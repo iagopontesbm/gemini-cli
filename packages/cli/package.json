@@ -17,7 +17,7 @@
     "dist"
   ],
   "dependencies": {
-    "@google/genai": "^0.8.0",
+    "@google/genai": "^0.9.0",
     "@gemini-code/server": "1.0.0",
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
@@ -26,13 +26,13 @@
     "ink-select-input": "^6.0.0",
     "ink-spinner": "^5.0.0",
     "ink-text-input": "^6.0.0",
-    "react": "^18.3.1",
+    "react": "^19.1.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",
     "@types/dotenv": "^6.1.1",
-    "@types/node": "^20.11.24",
+    "@types/node": "22.14.1",
     "@types/react": "^19.1.0",
     "@types/yargs": "^17.0.32",
     "jsdom": "^26.1.0",
