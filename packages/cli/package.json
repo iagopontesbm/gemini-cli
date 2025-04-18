@@ -5,7 +5,7 @@
   "type": "module",
   "main": "gemini.js",
   "scripts": {
-    "build": "tsc && cp package.json README.md dist/",
+    "build": "tsc && cp package.json README.md ../../LICENSE dist/",
     "clean": "rm -rf dist",
     "start": "node dist/gemini.js",
     "debug": "node --inspect-brk dist/gemini.js",
