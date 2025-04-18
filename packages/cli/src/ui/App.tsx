@@ -11,6 +11,7 @@ import InputPrompt from './components/InputPrompt.js';
 import Footer from './components/Footer.js';
 import { StreamingState } from '../core/gemini-stream.js';
 import { PartListUnion } from '@google/genai';
+import ITermDetectionWarning from './utils/itermDetection.js';
 
 interface AppProps {
   directory: string;
@@ -115,13 +116,8 @@ const App = ({ directory }: AppProps) => {
         />
       )}
 
-      {process.env.TERM_PROGRAM === 'iTerm.app' && (
-        <Box marginTop={1}>
-          <Text dimColor>Note: Flickering may occur in iTerm.</Text>
-        </Box>
-      )}
-
       <Footer queryLength={query.length} />
+      <ITermDetectionWarning />
     </Box>
   );
 };
