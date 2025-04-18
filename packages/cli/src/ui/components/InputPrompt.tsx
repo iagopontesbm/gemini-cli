@@ -3,8 +3,6 @@ import { Box, Text } from 'ink';
 import TextInput from 'ink-text-input';
 import { globalConfig } from '../../config/config.js';
 
-
-
 interface InputPromptProps {
   query: string;
   setQuery: (value: string) => void;
@@ -37,6 +35,6 @@ const InputPrompt: React.FC<InputPromptProps> = ({
       </Box>
     </Box>
   );
-}
+};
 
 export default InputPrompt;

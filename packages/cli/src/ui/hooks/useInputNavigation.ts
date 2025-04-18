@@ -56,7 +56,11 @@ export function useInputNavigation({
         // Any other key press while navigating resets the history index
         if (
           historyIndex !== -1 &&
-          (input || key.backspace || key.delete || key.leftArrow || key.rightArrow)
+          (input ||
+            key.backspace ||
+            key.delete ||
+            key.leftArrow ||
+            key.rightArrow)
         ) {
           setHistoryIndex(-1);
           setOriginalQueryBeforeNav(''); // Clear the stored query
@@ -65,4 +69,4 @@ export function useInputNavigation({
     },
     { isActive: isInputActive }, // Ensure the hook is active only when input is expected
   );
-} 
+}

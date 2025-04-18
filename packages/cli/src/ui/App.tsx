@@ -1,5 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
+import path from 'path';
+import os from 'os';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -28,23 +30,28 @@ const App = ({ directory }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
-  const [originalQueryBeforeNav, setOriginalQueryBeforeNav] = useState<string>('');
+  const [originalQueryBeforeNav, setOriginalQueryBeforeNav] =
+    useState<string>('');
   const { streamingState, submitQuery, initError } =
     useGeminiStream(setHistory);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
-
   useStartupWarnings(setStartupWarnings);
   useInitializationErrorEffect(initError, history, setHistory);
 
-  const userMessages = useMemo(() =>
-    history
-      .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
-        item.type === 'user' && typeof item.text === 'string' && item.text.trim() !== ''
-      )
-      .map(item => item.text)
-    , [history]);
+  const userMessages = useMemo(
+    () =>
+      history
+        .filter(
+          (item): item is HistoryItem & { type: 'user'; text: string } =>
+            item.type === 'user' &&
+            typeof item.text === 'string' &&
+            item.text.trim() !== '',
+        )
+        .map((item) => item.text),
+    [history],
+  );
 
   const handleInputSubmit = (value: PartListUnion) => {
     setHistoryIndex(-1);

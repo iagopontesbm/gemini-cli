@@ -115,10 +115,7 @@ interface QueuedCommand {
 /**
  * Implementation of the terminal tool that executes shell commands within a persistent session.
  */
-export class TerminalTool extends BaseTool<
-  TerminalToolParams,
-  ToolResult
-> {
+export class TerminalTool extends BaseTool<TerminalToolParams, ToolResult> {
   static Name: string = 'execute_bash_command';
 
   private readonly rootDirectory: string;
@@ -451,9 +448,7 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
     // Define temp file paths here to be accessible throughout
     let tempStdoutPath: string | null = null;
     let tempStderrPath: string | null = null;
-    let originalResolve: (
-      value: ToolResult | PromiseLike<ToolResult>,
-    ) => void; // To pass to polling
+    let originalResolve: (value: ToolResult | PromiseLike<ToolResult>) => void; // To pass to polling
     let originalReject: (reason?: unknown) => void;
 
     const promise = new Promise<ToolResult>((resolve, reject) => {
@@ -936,9 +931,7 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
     initialStderr: string, // Stderr during launch phase
     tempStdoutPath: string, // Path to redirected stdout
     tempStderrPath: string, // Path to redirected stderr
-    resolve: (
-      value: ToolResult | PromiseLike<ToolResult>,
-    ) => void, // The original promise's resolve
+    resolve: (value: ToolResult | PromiseLike<ToolResult>) => void, // The original promise's resolve
   ): Promise<void> {
     // This function manages its own lifecycle but resolves the outer promise
     let finalStdout = '';

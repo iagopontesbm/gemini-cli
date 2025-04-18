@@ -6,9 +6,19 @@ import { App } from './App.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { StreamingState } from '../core/gemini-stream.js';
 import fs from 'fs';
-import { initializeConfig } from '../config/globalConfig.js';
+import { Config, loadConfig, globalConfig } from '../config/config.js';
 
 // --- Mocks ---
+
+// Mock config loader
+vi.mock('../config/config.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../config/config.js')>();
+  return {
+    ...actual, // Keep other exports like Config class
+    loadConfig: vi.fn(), // Mock loadConfig
+    globalConfig: new actual.Config('', 'test-model-v1', ''), // Provide a default mock instance initially if needed
+  };
+});
 
 // Mock the useGeminiStream hook
 vi.mock('./hooks/useGeminiStream.js', () => ({
@@ -16,26 +26,32 @@ vi.mock('./hooks/useGeminiStream.js', () => ({
 }));
 
 // Mock fs/path/os used for warnings check
-vi.mock('fs', () => ({
-  default: {
+vi.mock('fs', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('fs')>();
+  return {
+    ...actual, // Keep actual fs functions
+    // Override specific functions needed for tests
     existsSync: vi.fn().mockReturnValue(false),
     readFileSync: vi.fn(),
     unlinkSync: vi.fn(),
     writeFileSync: vi.fn(),
-  },
-}));
-vi.mock('path', async (importOriginal) => {
-  const originalPath = await importOriginal<typeof import('path')>();
-  return {
-    ...originalPath,
-    default: originalPath,
-    join: originalPath.join,
-    resolve: originalPath.resolve,
-    relative: originalPath.relative,
   };
 });
-vi.mock('os', async (importOriginal) => {
-  const originalOs = await importOriginal<typeof import('os')>();
+vi.mock(
+  'path',
+  async (importOriginal: () => Promise<typeof import('path')>) => {
+    const originalPath = await importOriginal();
+    return {
+      ...originalPath,
+      default: originalPath,
+      join: originalPath.join,
+      resolve: originalPath.resolve,
+      relative: originalPath.relative,
+    };
+  },
+);
+vi.mock('os', async (importOriginal: () => Promise<typeof import('os')>) => {
+  const originalOs = await importOriginal();
   return {
     ...originalOs,
     default: originalOs,
@@ -62,8 +78,13 @@ describe('App Component Rendering', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.restoreAllMocks();
-    (fs.existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
-    initializeConfig({ model: 'test-model-v1' });
+    // No need to mock fs.existsSync directly here anymore, the module mock handles it.
+    // (fs.existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    // Set the mock return value for loadConfig *before* App renders
+    (loadConfig as ReturnType<typeof vi.fn>).mockReturnValue(
+      new Config('test-key', 'test-model-v1', '/test/dir'),
+    );
+    // We don't call initializeConfig or globalConfig here anymore
     setupMocks(); // Default setup
   });
 
@@ -74,15 +95,19 @@ describe('App Component Rendering', () => {
 
   // --- Tests ---
   test('should render initial placeholder with model', () => {
-    const { lastFrame } = render(<App directory="/test/dir" />); // Use direct render
+    // globalConfig should now be the mocked instance via loadConfig mock
+    const { lastFrame } = render(
+      <App directory={globalConfig.getTargetDir()} />,
+    ); // Use mocked globalConfig if needed
     expect(lastFrame()).toContain('Ask Gemini (test-model-v1)');
   });
 
   test('should render InputPrompt with initial empty query', () => {
-    const { lastFrame } = render(<App directory="/test/dir" />); // Use direct render
-    expect(lastFrame()).toContain('> Ask Gemini (test-model-v1)... (try "/init" or "/help")');
+    const { lastFrame } = render(<App directory="/test/dir" />); // Use direct render or mocked config
+    expect(lastFrame()).toContain(
+      '> Ask Gemini (test-model-v1)... (try "/init" or "/help")',
+    );
   });
 
   // Navigation tests are now in useInputNavigation.test.ts
-
 });

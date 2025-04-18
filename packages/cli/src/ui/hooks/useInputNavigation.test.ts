@@ -5,8 +5,8 @@ import { useInputNavigation } from './useInputNavigation.js';
 import type { Key } from 'ink';
 
 // Mock ink's useInput hook
-vi.mock('ink', async (importOriginal) => {
-  const originalInk = await importOriginal<typeof import('ink')>();
+vi.mock('ink', async (importOriginal: () => Promise<typeof import('ink')>) => {
+  const originalInk = await importOriginal();
   return {
     ...originalInk,
     useInput: vi.fn(),
@@ -40,20 +40,24 @@ describe('useInputNavigation Hook', () => {
   };
 
   // Helper to setup the hook with initial props
-  const setupHook = (initialProps: Partial<Parameters<typeof useInputNavigation>[0]> = {}) => {
+  const setupHook = (
+    initialProps: Partial<Parameters<typeof useInputNavigation>[0]> = {},
+  ) => {
     mockSetQuery = vi.fn();
     mockSetHistoryIndex = vi.fn();
     mockSetOriginalQueryBeforeNav = vi.fn();
 
     // Capture the callback passed to useInput
-    (useInput as ReturnType<typeof vi.fn>).mockImplementation((callback) => {
-      capturedUseInputCallback = callback;
-    });
+    (useInput as ReturnType<typeof vi.fn>).mockImplementation(
+      (callback: (input: string, key: Key) => void) => {
+        capturedUseInputCallback = callback;
+      },
+    );
 
     const defaultProps = {
       isInputActive: true,
       isWaitingForToolConfirmation: false,
-      userMessages: userMessages,
+      userMessages,
       query: '',
       setQuery: mockSetQuery,
       historyIndex: -1,
@@ -94,7 +98,7 @@ describe('useInputNavigation Hook', () => {
     expect(mockSetQuery).toHaveBeenCalledWith('first message');
   });
 
-   test('down arrow should navigate back', () => {
+  test('down arrow should navigate back', () => {
     setupHook({ historyIndex: 1, query: 'first message' });
     act(() => {
       capturedUseInputCallback('', { ...baseKey, downArrow: true });
@@ -105,7 +109,11 @@ describe('useInputNavigation Hook', () => {
 
   test('down arrow from start should restore original query', () => {
     const originalQuery = 'original typed query';
-    setupHook({ historyIndex: 0, query: 'second message', originalQueryBeforeNav: originalQuery });
+    setupHook({
+      historyIndex: 0,
+      query: 'second message',
+      originalQueryBeforeNav: originalQuery,
+    });
     act(() => {
       capturedUseInputCallback('', { ...baseKey, downArrow: true });
     });
@@ -122,4 +130,4 @@ describe('useInputNavigation Hook', () => {
     expect(mockSetHistoryIndex).toHaveBeenCalledWith(-1);
     expect(mockSetOriginalQueryBeforeNav).toHaveBeenCalledWith('');
   });
-}); 
+});
