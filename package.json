@@ -12,7 +12,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit --jsx react",
     "start": "npm run start --workspace=gemini-code-cli -- \"$@\"",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "artifactregistry-login": "npx google-artifactregistry-auth"
   },
   "devDependencies": {
     "eslint": "^9.24.0",
