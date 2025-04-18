@@ -26,16 +26,11 @@ export interface WriteFileToolParams {
 }
 
 /**
- * Standardized result from the WriteFile tool
- */
-export interface WriteFileToolResult extends ToolResult {}
-
-/**
  * Implementation of the WriteFile tool that writes files to the filesystem
  */
 export class WriteFileTool extends BaseTool<
   WriteFileToolParams,
-  WriteFileToolResult
+  ToolResult
 > {
   static readonly Name: string = 'write_file';
   private shouldAlwaysWrite = false;
@@ -101,7 +96,7 @@ export class WriteFileTool extends BaseTool<
    * @param params Parameters to validate
    * @returns True if parameters are valid, false otherwise
    */
-  invalidParams(params: WriteFileToolParams): string | null {
+  validateToolParams(params: WriteFileToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -143,7 +138,7 @@ export class WriteFileTool extends BaseTool<
     let currentContent = '';
     try {
       currentContent = fs.readFileSync(params.file_path, 'utf8');
-    } catch (error) {
+    } catch {
       // File may not exist, which is fine
     }
 
@@ -184,8 +179,8 @@ export class WriteFileTool extends BaseTool<
    * @param params Parameters for the file writing
    * @returns Result of the file writing operation
    */
-  async execute(params: WriteFileToolParams): Promise<WriteFileToolResult> {
-    const validationError = this.invalidParams(params);
+  async execute(params: WriteFileToolParams): Promise<ToolResult> {
+    const validationError = this.validateToolParams(params);
     if (validationError) {
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,

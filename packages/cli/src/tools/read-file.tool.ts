@@ -25,16 +25,11 @@ export interface ReadFileToolParams {
 }
 
 /**
- * Standardized result from the ReadFile tool
- */
-export interface ReadFileToolResult extends ToolResult {}
-
-/**
  * Implementation of the ReadFile tool that reads files from the filesystem
  */
 export class ReadFileTool extends BaseTool<
   ReadFileToolParams,
-  ReadFileToolResult
+  ToolResult
 > {
   static readonly Name: string = 'read_file';
 
@@ -111,7 +106,7 @@ export class ReadFileTool extends BaseTool<
    * @param params Parameters to validate
    * @returns True if parameters are valid, false otherwise
    */
-  invalidParams(params: ReadFileToolParams): string | null {
+  validateToolParams(params: ReadFileToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -166,7 +161,7 @@ export class ReadFileTool extends BaseTool<
 
       // If more than 30% are non-printable, likely binary
       return nonPrintableCount / bytesRead > 0.3;
-    } catch (error) {
+    } catch {
       return false;
     }
   }
@@ -214,9 +209,8 @@ export class ReadFileTool extends BaseTool<
    * @param params Parameters for the file reading
    * @returns Result with file contents
    */
-  async execute(params: ReadFileToolParams): Promise<ReadFileToolResult> {
-    const validationError = this.invalidParams(params);
-    const filePath = params.file_path;
+  async execute(params: ReadFileToolParams): Promise<ToolResult> {
+    const validationError = this.validateToolParams(params);
     if (validationError) {
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
@@ -224,6 +218,7 @@ export class ReadFileTool extends BaseTool<
       };
     }
 
+    const filePath = params.file_path;
     try {
       if (!fs.existsSync(filePath)) {
         return {

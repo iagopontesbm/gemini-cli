@@ -8,8 +8,6 @@ import {
   PartListUnion,
   Content,
 } from '@google/genai';
-import { getApiKey } from '../config/env.js';
-import { getModel } from '../config/globalConfig.js';
 import { CoreSystemPrompt } from './prompts.js';
 import {
   type ToolCallEvent,
@@ -21,17 +19,20 @@ import { toolRegistry } from '../tools/tool-registry.js';
 import { ToolResult } from '../tools/tools.js';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
 import { GeminiEventType, GeminiStream } from './gemini-stream.js';
+import { Config } from '../config/config.js';
+
 
 type ToolExecutionOutcome = {
   callId: string;
   name: string;
-  args: Record<string, any>;
+  args: Record<string, never>;
   result?: ToolResult;
-  error?: any;
+  error?: Error;
   confirmationDetails?: ToolCallConfirmationDetails;
 };
 
 export class GeminiClient {
+  private config: Config;
   private ai: GoogleGenAI;
   private defaultHyperParameters: GenerateContentConfig = {
     temperature: 0,
@@ -39,14 +40,14 @@ export class GeminiClient {
   };
   private readonly MAX_TURNS = 100;
 
-  constructor() {
-    const apiKey = getApiKey();
-    this.ai = new GoogleGenAI({ apiKey });
+  constructor(config: Config) {
+    this.config = config;
+    this.ai = new GoogleGenAI({ apiKey: config.getApiKey() });
   }
 
   async startChat(): Promise<Chat> {
     const tools = toolRegistry.getToolSchemas();
-    const model = getModel();
+    const model = this.config.getModel();
 
     // --- Get environmental information ---
     const cwd = process.cwd();
@@ -126,7 +127,7 @@ ${folderStructure}
         let pendingToolCalls: Array<{
           callId: string;
           name: string;
-          args: Record<string, any>;
+          args: Record<string, never>;
         }> = [];
         let yieldedTextInTurn = false;
         const chunksForDebug = [];
@@ -148,7 +149,7 @@ ${folderStructure}
                 call.id ??
                 `${call.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
               const name = call.name || 'undefined_tool_name';
-              const args = (call.args || {}) as Record<string, any>;
+              const args = (call.args || {}) as Record<string, never>;
 
               pendingToolCalls.push({ callId, name, args });
               const evtValue: ToolCallEvent = {
@@ -281,7 +282,7 @@ ${folderStructure}
             (executedTool: ToolExecutionOutcome): Part => {
               const { name, result, error } = executedTool;
               const output = { output: result?.llmContent };
-              let toolOutcomePayload: any;
+              let toolOutcomePayload: Record<string, unknown>;
 
               if (error) {
                 const errorMessage = error?.message || String(error);
@@ -445,11 +446,11 @@ Respond *only* in JSON format according to the following schema. Do not include 
   async generateJson(
     contents: Content[],
     schema: SchemaUnion,
-  ): Promise<any> {
-    const model = getModel();
+  ): Promise<Record<string, unknown>> {
+    const model = this.config.getModel();
     try {
       const result = await this.ai.models.generateContent({
-        model: model,
+        model,
         config: {
           ...this.defaultHyperParameters,
           systemInstruction: CoreSystemPrompt,

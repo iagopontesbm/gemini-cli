@@ -1,14 +1,14 @@
 {
-  "name": "gemini-code-cli",
+  "name": "@google/gemini-code",
   "version": "1.0.0",
   "description": "Gemini Code CLI",
   "type": "module",
-  "main": "dist/gemini.js",
+  "main": "gemini.js",
   "scripts": {
-    "build": "tsc && touch dist/.last_build",
+    "build": "tsc && cp package.json README.md ../../LICENSE dist/",
+    "clean": "rm -rf dist",
     "start": "node dist/gemini.js",
     "debug": "node --inspect-brk dist/gemini.js",
-    "test": "vitest run",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write ."
   },
@@ -33,7 +33,6 @@
     "@types/node": "^20.11.24",
     "@types/react": "^19.1.0",
     "@types/yargs": "^17.0.32",
-    "jsdom": "^26.1.0",
     "typescript": "^5.3.3"
   },
   "engines": {
