@@ -1,5 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -16,6 +19,8 @@ import {
   useInitializationErrorEffect,
 } from './hooks/useAppEffects.js';
 import { useInputNavigation } from './hooks/useInputNavigation.js';
+
+const warningsFilePath = path.join(os.tmpdir(), 'gemini-code-cli-warnings.txt');
 
 interface AppProps {
   directory: string;
