@@ -13,7 +13,7 @@ import { WebFetchTool } from './tools/web-fetch.tool.js';
 import { globalConfig } from './config/config.js';
 
 // TODO(b/411707095): remove. left here as an example of how to pull in inter-package deps
-import { helloServer } from '@gemini-code/server'
+import { helloServer } from '@gemini-code/server';
 helloServer();
 
 async function main() {
