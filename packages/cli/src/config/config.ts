@@ -20,19 +20,19 @@ export class Config {
     this.extraArgs = extraArgs;
   }
 
-  public getApiKey(): string {
+  getApiKey(): string {
     return this.apiKey;
   }
 
-  public getModel(): string {
+  getModel(): string {
     return this.model;
   }
 
-  public getTargetDir(): string {
+  getTargetDir(): string {
     return this.targetDir;
   }
 
-  public getExtraArgs(): (string | number)[] {
+  getExtraArgs(): (string | number)[] {
     return this.extraArgs;
   }
 }
@@ -49,7 +49,6 @@ export function loadConfig(): Config {
 }
 
 export const globalConfig = loadConfig(); // TODO(jbd): Remove global state.
-
 
 interface CliArgs {
   target_dir: string | undefined;
