@@ -73,7 +73,7 @@ ${folderStructure}
 
     try {
       const chat = this.ai.chats.create({
-        model: 'gemini-2.0-flash', //'gemini-2.0-flash',
+        model: 'gemini-2.5-pro-preview-03-25',
         config: {
           systemInstruction: CoreSystemPrompt,
           ...this.defaultHyperParameters,
