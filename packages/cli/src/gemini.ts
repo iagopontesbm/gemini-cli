@@ -13,6 +13,7 @@ import { GlobTool } from './tools/glob.tool.js';
 import { EditTool } from './tools/edit.tool.js';
 import { TerminalTool } from './tools/terminal.tool.js';
 import { WriteFileTool } from './tools/write-file.tool.js';
+import { WebFetchTool } from './tools/web-fetch.tool.js';
 
 async function main() {
   // 1. Configuration
@@ -86,6 +87,7 @@ function registerTools(targetDir: string) {
   const editTool = new EditTool(targetDir);
   const terminalTool = new TerminalTool(targetDir);
   const writeFileTool = new WriteFileTool(targetDir);
+  const webFetchTool = new WebFetchTool();
 
   toolRegistry.registerTool(lsTool);
   toolRegistry.registerTool(readFileTool);
@@ -94,4 +96,5 @@ function registerTools(targetDir: string) {
   toolRegistry.registerTool(editTool);
   toolRegistry.registerTool(terminalTool);
   toolRegistry.registerTool(writeFileTool);
+  toolRegistry.registerTool(webFetchTool);
 }
