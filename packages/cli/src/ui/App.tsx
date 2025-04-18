@@ -14,6 +14,10 @@ import InputPrompt from './components/InputPrompt.js';
 import Footer from './components/Footer.js';
 import { StreamingState } from '../core/gemini-stream.js';
 import { PartListUnion } from '@google/genai';
+import {
+  useStartupWarnings,
+  useInitializationErrorEffect,
+} from './hooks/useAppEffects.js';
 
 const warningsFilePath = path.join(os.tmpdir(), 'gemini-code-cli-warnings.txt');
 
@@ -30,24 +34,8 @@ const App = ({ directory }: AppProps) => {
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
-  useEffect(() => {
-    try {
-      if (fs.existsSync(warningsFilePath)) {
-        console.log('[App] Found warnings file:', warningsFilePath);
-        const warningsContent = fs.readFileSync(warningsFilePath, 'utf-8');
-        setStartupWarnings(warningsContent.split('\n').filter(line => line.trim() !== ''));
-        try {
-            fs.unlinkSync(warningsFilePath);
-        } catch (unlinkErr: any) {
-             console.warn(`[App] Warning: Could not delete warnings file: ${unlinkErr.message}`);
-        }
-      } else {
-         console.log('[App] No warnings file found.');
-      }
-    } catch (err: any) {
-      console.error(`[App] Error checking/reading warnings file: ${err.message}`);
-    }
-  }, []);
+  useStartupWarnings(setStartupWarnings);
+  useInitializationErrorEffect(initError, history, setHistory);
 
   const handleInputSubmit = (value: PartListUnion) => {
     submitQuery(value)
@@ -58,24 +46,6 @@ const App = ({ directory }: AppProps) => {
         setQuery('');
       });
   };
-
-  useEffect(() => {
-    if (
-      initError &&
-      !history.some(
-        (item) => item.type === 'error' && item.text?.includes(initError),
-      )
-    ) {
-      setHistory((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          type: 'error',
-          text: `Initialization Error: ${initError}. Please check API key and configuration.`,
-        } as HistoryItem,
-      ]);
-    }
-  }, [initError, history]);
 
   const isWaitingForToolConfirmation = history.some(
     (item) =>
