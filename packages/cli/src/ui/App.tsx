@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
@@ -39,13 +39,17 @@ export const App = ({ directory }: AppProps) => {
   useStartupWarnings(setStartupWarnings);
   useInitializationErrorEffect(initError, history, setHistory);
 
-  const userMessages = useMemo(() => {
-    return history
-      .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
-        item.type === 'user' && typeof item.text === 'string' && item.text.trim() !== ''
-      )
-      .map(item => item.text);
-  }, [history]);
+  const userMessages = useMemo(
+    () =>
+      history
+        .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
+          item.type === 'user' &&
+          typeof item.text === 'string' &&
+          item.text.trim() !== ''
+        )
+        .map((item) => item.text),
+    [history]
+  );
 
   const isWaitingForToolConfirmation = history.some(
     (item) =>
