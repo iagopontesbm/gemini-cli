@@ -9,6 +9,7 @@ import {
   Content,
 } from '@google/genai';
 import { getApiKey } from '../config/env.js';
+import { getModel } from '../config/globalConfig.js';
 import { CoreSystemPrompt } from './prompts.js';
 import {
   type ToolCallEvent,
@@ -43,8 +44,9 @@ export class GeminiClient {
     this.ai = new GoogleGenAI({ apiKey });
   }
 
-  public async startChat(): Promise<Chat> {
+  async startChat(): Promise<Chat> {
     const tools = toolRegistry.getToolSchemas();
+    const model = getModel();
 
     // --- Get environmental information ---
     const cwd = process.cwd();
@@ -73,7 +75,7 @@ ${folderStructure}
 
     try {
       const chat = this.ai.chats.create({
-        model: 'gemini-2.0-flash', //'gemini-2.0-flash',
+        model,
         config: {
           systemInstruction: CoreSystemPrompt,
           ...this.defaultHyperParameters,
@@ -101,14 +103,12 @@ ${folderStructure}
     }
   }
 
-  public addMessageToHistory(chat: Chat, message: Content): void {
+  addMessageToHistory(chat: Chat, message: Content): void {
     const history = chat.getHistory();
     history.push(message);
-    this.ai.chats;
-    chat;
   }
 
-  public async *sendMessageStream(
+  async *sendMessageStream(
     chat: Chat,
     request: PartListUnion,
     signal?: AbortSignal,
@@ -178,7 +178,7 @@ ${folderStructure}
         }
 
         if (pendingToolCalls.length > 0) {
-          const toolPromises: Promise<ToolExecutionOutcome>[] =
+          const toolPromises: Array<Promise<ToolExecutionOutcome>> =
             pendingToolCalls.map(async (pendingToolCall) => {
               const tool = toolRegistry.getTool(pendingToolCall.name);
 
@@ -309,7 +309,7 @@ ${folderStructure}
 
               return {
                 functionResponse: {
-                  name: name,
+                  name,
                   id: executedTool.callId,
                   response: toolOutcomePayload,
                 },
@@ -442,20 +442,21 @@ Respond *only* in JSON format according to the following schema. Do not include 
    * @returns A promise that resolves to the parsed JSON object matching the schema.
    * @throws Throws an error if the API call fails or the response is not valid JSON.
    */
-  public async generateJson(
+  async generateJson(
     contents: Content[],
     schema: SchemaUnion,
   ): Promise<any> {
+    const model = getModel();
     try {
       const result = await this.ai.models.generateContent({
-        model: 'gemini-2.0-flash', // Using flash for potentially faster structured output
+        model: model,
         config: {
           ...this.defaultHyperParameters,
           systemInstruction: CoreSystemPrompt,
           responseSchema: schema,
           responseMimeType: 'application/json',
         },
-        contents: contents, // Pass the full Content array
+        contents, // Pass the full Content array
       });
 
       const responseText = result.text;
