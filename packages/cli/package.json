@@ -1,11 +1,11 @@
 {
-  "name": "gemini-code-cli",
+  "name": "@google/gemini-code",
   "version": "1.0.0",
   "description": "Gemini Code CLI",
   "type": "module",
-  "main": "dist/gemini.js",
+  "main": "gemini.js",
   "scripts": {
-    "build": "tsc && touch dist/.last_build",
+    "build": "tsc && cp package.json README.md ../../LICENSE dist/ && touch dist/.last_build",
     "start": "node dist/gemini.js",
     "debug": "node --inspect-brk dist/gemini.js",
     "lint": "eslint . --ext .ts,.tsx",

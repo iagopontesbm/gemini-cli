@@ -1,10 +1,6 @@
 import React from 'react';
 import { render } from 'ink';
 import App from './ui/App.js';
-import { parseArguments } from './config/args.js';
-import { loadEnvironment } from './config/env.js';
-import { initializeConfig } from './config/globalConfig.js';
-import { getTargetDirectory } from './utils/paths.js';
 import { toolRegistry } from './tools/tool-registry.js';
 import { LSTool } from './tools/ls.tool.js';
 import { ReadFileTool } from './tools/read-file.tool.js';
@@ -13,21 +9,17 @@ import { GlobTool } from './tools/glob.tool.js';
 import { EditTool } from './tools/edit.tool.js';
 import { TerminalTool } from './tools/terminal.tool.js';
 import { WriteFileTool } from './tools/write-file.tool.js';
+import { WebFetchTool } from './tools/web-fetch.tool.js';
+import { globalConfig } from './config/config.js';
 
 async function main() {
-  // 1. Configuration
-  loadEnvironment();
-  const argv = await parseArguments();
-  initializeConfig({ model: argv.model as string });
-  const targetDir = getTargetDirectory(argv.target_dir);
+  // Configure tools
+  registerTools(globalConfig.getTargetDir());
 
-  // 2. Configure tools
-  registerTools(targetDir);
-
-  // 3. Render UI
+  // Render UI
   render(
     React.createElement(App, {
-      directory: targetDir,
+      directory: globalConfig.getTargetDir(),
     }),
   );
 }
@@ -86,6 +78,7 @@ function registerTools(targetDir: string) {
   const editTool = new EditTool(targetDir);
   const terminalTool = new TerminalTool(targetDir);
   const writeFileTool = new WriteFileTool(targetDir);
+  const webFetchTool = new WebFetchTool();
 
   toolRegistry.registerTool(lsTool);
   toolRegistry.registerTool(readFileTool);
@@ -94,4 +87,5 @@ function registerTools(targetDir: string) {
   toolRegistry.registerTool(editTool);
   toolRegistry.registerTool(terminalTool);
   toolRegistry.registerTool(writeFileTool);
+  toolRegistry.registerTool(webFetchTool);
 }
