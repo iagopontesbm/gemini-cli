@@ -1,8 +1,5 @@
 import React, { useState, useMemo } from 'react';
 import { Box, Text } from 'ink';
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -36,6 +33,7 @@ const App = ({ directory }: AppProps) => {
     useGeminiStream(setHistory);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
+
 
   useStartupWarnings(setStartupWarnings);
   useInitializationErrorEffect(initError, history, setHistory);
