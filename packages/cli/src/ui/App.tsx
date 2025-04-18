@@ -41,7 +41,7 @@ const App = ({ directory }: AppProps) => {
         item.type === 'user' && typeof item.text === 'string' && item.text.trim() !== ''
       )
       .map(item => item.text)
-  , [history]);
+    , [history]);
 
   const handleInputSubmit = (value: PartListUnion) => {
     setHistoryIndex(-1);
