@@ -19,20 +19,20 @@ export function useStartupWarnings(
         );
         try {
           fs.unlinkSync(warningsFilePath);
-        } catch (unlinkErr: any) {
+        } catch (_unlinkErr: unknown) {
           setStartupWarnings((prev) => [
             ...prev,
             `Warning: Could not delete temporary warnings file.`,
           ]);
         }
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setStartupWarnings((prev) => [
         ...prev,
-        `Error checking/reading warnings file: ${err.message}`,
+        `Error checking/reading warnings file: ${(err as Error)?.message || 'Unknown error'}`,
       ]);
     }
-  }, [setStartupWarnings]); // Include setStartupWarnings in dependency array
+  }, [setStartupWarnings]);
 }
 
 // Effect to handle initialization errors

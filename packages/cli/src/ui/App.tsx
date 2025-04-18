@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Box, Text, useInput } from 'ink';
+import { Box, Text } from 'ink';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -15,6 +15,7 @@ import {
   useStartupWarnings,
   useInitializationErrorEffect,
 } from './hooks/useAppEffects.js';
+import { useInputNavigation } from './hooks/useInputNavigation.js';
 
 interface AppProps {
   directory: string;
@@ -30,17 +31,17 @@ const App = ({ directory }: AppProps) => {
     useGeminiStream(setHistory);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
-  
+
   useStartupWarnings(setStartupWarnings);
   useInitializationErrorEffect(initError, history, setHistory);
 
-  const userMessages = useMemo(() => {
-    return history
+  const userMessages = useMemo(() =>
+    history
       .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
         item.type === 'user' && typeof item.text === 'string' && item.text.trim() !== ''
       )
-      .map(item => item.text);
-  }, [history]);
+      .map(item => item.text)
+  , [history]);
 
   const handleInputSubmit = (value: PartListUnion) => {
     setHistoryIndex(-1);
@@ -61,39 +62,17 @@ const App = ({ directory }: AppProps) => {
   );
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
-  useInput((input, key) => {
-    if (!isInputActive || isWaitingForToolConfirmation) {
-      return;
-    }
-
-    if (key.upArrow) {
-      if (userMessages.length === 0) return;
-      if (historyIndex === -1) {
-        setOriginalQueryBeforeNav(query);
-      }
-      const nextIndex = Math.min(historyIndex + 1, userMessages.length - 1);
-      if (nextIndex !== historyIndex) {
-         setHistoryIndex(nextIndex);
-         setQuery(userMessages[userMessages.length - 1 - nextIndex]);
-      }
-    } else if (key.downArrow) {
-      if (historyIndex < 0) return;
-      const nextIndex = Math.max(historyIndex - 1, -1);
-      setHistoryIndex(nextIndex);
-      if (nextIndex === -1) {
-        setQuery(originalQueryBeforeNav);
-      } else {
-        setQuery(userMessages[userMessages.length - 1 - nextIndex]);
-      }
-    } else {
-      if (input || key.backspace || key.delete || key.leftArrow || key.rightArrow) {
-        if (historyIndex !== -1) {
-           setHistoryIndex(-1);
-           setOriginalQueryBeforeNav('');
-        }
-      }
-    }
-  }, { isActive: isInputActive });
+  useInputNavigation({
+    isInputActive,
+    isWaitingForToolConfirmation,
+    userMessages,
+    query,
+    setQuery,
+    historyIndex,
+    setHistoryIndex,
+    originalQueryBeforeNav,
+    setOriginalQueryBeforeNav,
+  });
 
   return (
     <Box flexDirection="column" padding={1} marginBottom={1} width="100%">
@@ -164,6 +143,7 @@ const App = ({ directory }: AppProps) => {
           setQuery={setQuery}
           onSubmit={handleInputSubmit}
           isActive={isInputActive}
+          forceKey={historyIndex}
         />
       )}
 
@@ -172,4 +152,4 @@ const App = ({ directory }: AppProps) => {
   );
 };
 
-export default App;
+export { App };
