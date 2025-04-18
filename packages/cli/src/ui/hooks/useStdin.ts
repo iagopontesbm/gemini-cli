@@ -1,6 +1,6 @@
 // src/hooks/usePipedInput.ts
 import { useState, useEffect } from 'react';
-import { useStdin, useApp } from 'ink';
+import { useStdin } from 'ink';
 
 export interface PipedInputState {
   data: string | null; // Use null initially to distinguish from empty string
@@ -32,9 +32,9 @@ export function usePipedInput(): PipedInputState {
 
       // Ensure stdin is available (it should be if !isTTY)
       if (!stdin) {
-          setError("Stdin stream is unavailable.");
-          setIsLoading(false);
-          return; // Cannot proceed
+        setError('Stdin stream is unavailable.');
+        setIsLoading(false);
+        return; // Cannot proceed
       }
 
       let data = '';
@@ -65,7 +65,6 @@ export function usePipedInput(): PipedInputState {
         stdin.removeListener('error', handleError);
         stdin.removeListener('end', handleEnd);
       };
-
     } else {
       // No piped input (running interactively)
       setIsLoading(false);
