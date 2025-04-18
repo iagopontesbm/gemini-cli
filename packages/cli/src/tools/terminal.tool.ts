@@ -127,7 +127,7 @@ export class TerminalTool extends BaseTool<
   TerminalToolParams,
   TerminalToolResult
 > {
-  public static Name: string = 'execute_bash_command';
+  static Name: string = 'execute_bash_command';
 
   private readonly rootDirectory: string;
   private readonly outputLimit: number;
@@ -142,7 +142,10 @@ export class TerminalTool extends BaseTool<
   private rejectShellReady: ((reason?: any) => void) | undefined; // Definite assignment assertion
   private readonly backgroundTerminalAnalyzer: BackgroundTerminalAnalyzer;
 
-  constructor(rootDirectory: string, outputLimit: number = MAX_OUTPUT_LENGTH) {
+  constructor(
+    rootDirectory: string,
+    outputLimit: number = MAX_OUTPUT_LENGTH,
+  ) {
     const toolDisplayName = 'Terminal';
     // --- LLM-Facing Description ---
     // Updated description for background tasks to mention polling and LLM analysis
@@ -314,7 +317,7 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
   }
 
   // --- Parameter Validation (unchanged) ---
-  invalidParams(params: TerminalToolParams): string | null {
+  validateToolParams(params: TerminalToolParams): string | null {
     if (
       !SchemaValidator.validate(
         this.parameterSchema as Record<string, unknown>,
@@ -384,7 +387,7 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
     const confirmationDetails: ToolExecuteConfirmationDetails = {
       title: 'Confirm Shell Command',
       command: params.command,
-      rootCommand: rootCommand,
+      rootCommand,
       description: `Execute in '${this.currentCwd}':\n${description}`,
       onConfirm: async (outcome: ToolConfirmationOutcome) => {
         if (outcome === ToolConfirmationOutcome.ProceedAlways) {
@@ -397,7 +400,7 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
 
   // --- Command Execution and Queueing (unchanged structure) ---
   async execute(params: TerminalToolParams): Promise<TerminalToolResult> {
-    const validationError = this.invalidParams(params);
+    const validationError = this.validateToolParams(params);
     if (validationError) {
       return {
         llmContent: `Command rejected: ${params.command}\nReason: ${validationError}`,

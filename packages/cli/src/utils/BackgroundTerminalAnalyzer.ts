@@ -60,7 +60,7 @@ export class BackgroundTerminalAnalyzer {
       initialDelayMs?: number;
     } = {}, // Provide default options
   ) {
-    this.ai = aiClient || new GeminiClient(); // Use injected client or default
+    this.ai = aiClient || new GeminiClient(); // Call constructor without model
     this.pollIntervalMs = options.pollIntervalMs ?? 5000; // Default 5 seconds
     this.maxAttempts = options.maxAttempts ?? 6; // Default 6 attempts (approx 30s total)
     this.initialDelayMs = options.initialDelayMs ?? 500; // Default 0.5s initial delay
@@ -75,7 +75,7 @@ export class BackgroundTerminalAnalyzer {
    * @param command The command string that was executed (for context in prompts).
    * @returns A promise resolving to the final analysis outcome.
    */
-  public async analyze(
+  async analyze(
     pid: ProcessHandle,
     tempStdoutFilePath: string,
     tempStderrFilePath: string,
@@ -91,8 +91,8 @@ export class BackgroundTerminalAnalyzer {
 
     while (attempts < this.maxAttempts) {
       attempts++;
-      let currentStdout: string = '';
-      let currentStderr: string = '';
+      let currentStdout = '';
+      let currentStderr = '';
 
       // --- Robust File Reading ---
       try {
