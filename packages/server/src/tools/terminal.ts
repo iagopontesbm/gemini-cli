@@ -85,6 +85,11 @@ const BANNED_COMMAND_ROOTS = [
   'open',
 ];
 
+// Define structure for terminal confirmation details
+interface TerminalConfirmationDetails {
+  command: string;
+}
+
 /**
  * Simplified implementation of the Terminal tool logic for single command execution.
  */
@@ -143,6 +148,15 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
 
   getDescription(params: TerminalToolParams): string {
     return params.command;
+  }
+
+  // Add method to get confirmation details
+  getConfirmationDetails(params: TerminalToolParams): TerminalConfirmationDetails | null {
+    // Basic validation could be repeated here if desired, but validateParams is called first
+    if (this.validateParams(params)) {
+      return null; // Don't confirm if params are invalid
+    }
+    return { command: params.command };
   }
 
   async execute(

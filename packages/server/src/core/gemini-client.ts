@@ -96,7 +96,7 @@ export class GeminiClient {
     try {
       while (turns < this.MAX_TURNS) {
         turns++;
-        const turn = new Turn(chat, availableTools);
+        const turn = new Turn(chat, availableTools /*, logFn */);
         const resultStream = turn.run(request, signal);
         for await (const event of resultStream) {
           yield event;

@@ -27,6 +27,13 @@ export interface WriteFileToolParams {
   content: string;
 }
 
+// Define structure for write confirmation details (similar to edit)
+interface WriteFileConfirmationDetails {
+  fileDiff: string;
+  fileName: string;
+  isNewFile: boolean;
+}
+
 /**
  * Implementation of the WriteFile tool logic (moved from CLI)
  */
@@ -96,6 +103,50 @@ export class WriteFileLogic extends BaseTool<WriteFileToolParams, ToolResult> {
   getDescription(params: WriteFileToolParams): string {
     const relativePath = makeRelative(params.file_path, this.rootDirectory);
     return `Writing to ${shortenPath(relativePath)}`;
+  }
+
+  // Add method to get confirmation details
+  getConfirmationDetails(params: WriteFileToolParams): WriteFileConfirmationDetails | null {
+    const validationError = this.validateParams(params);
+    if (validationError) {
+      console.warn('[WriteFileLogic] Invalid params for getConfirmationDetails:', validationError);
+      return null;
+    }
+
+    let currentContent = '';
+    let isNewFile = false;
+    try {
+      currentContent = fs.readFileSync(params.file_path, 'utf8');
+    } catch (err: unknown) {
+      if (isNodeError(err) && err.code === 'ENOENT') {
+        isNewFile = true;
+      } else {
+        // Don't ask for confirmation if we can't even read the original (e.g., permissions)
+        console.error('[WriteFileLogic] Error checking existing file for confirmation:', err);
+        return null;
+      }
+    }
+
+    try {
+        const fileName = path.basename(params.file_path);
+        const fileDiff = Diff.createPatch(
+          fileName,
+          currentContent,
+          params.content,
+          'Original',
+          'Proposed',
+          { context: 3 },
+        );
+
+        return {
+            fileDiff,
+            fileName,
+            isNewFile,
+        };
+    } catch (error) {
+      console.error('[WriteFileLogic] Error generating diff for confirmation:', error);
+      return null;
+    }
   }
 
   async execute(params: WriteFileToolParams): Promise<ToolResult> {

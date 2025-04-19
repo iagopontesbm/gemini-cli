@@ -6,25 +6,19 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useInput } from 'ink';
-import axios from 'axios'; // Re-import axios
-import EventSource from 'eventsource'; // Import EventSource
+import axios from 'axios';
+import EventSource from 'eventsource';
 
 import { getErrorMessage } from '@gemini-code/server';
 import type { HistoryItem } from '../types.js';
 import { StreamingState } from '../../core/gemini-stream.js';
-// Import the history updater
-import {
-  addErrorMessageToHistory,
-  handleToolCallChunk,
-  handleToolCallResult,
-} from '../../core/history-updater.js';
-// Import ToolCallStatus enum for use in history updater call
-import { ToolCallStatus } from '../types.js';
+import { addErrorMessageToHistory, handleToolCallChunk, handleToolCallResult } from '../../core/history-updater.js';
+import { ToolCallStatus, ToolConfirmationPayload } from '../types.js';
 
 // Define the expected structure of events from the server
 interface ServerSseEvent {
-  type: 'content' | 'tool_call_request' | 'tool_call_result' | 'error' | 'done';
-  payload: any & { requiresConfirmation?: boolean };
+  type: 'content' | 'tool_call_request' | 'tool_call_result' | 'error' | 'done' | 'tool_confirmation_request';
+  payload: any & { requiresConfirmation?: boolean; details?: any };
 }
 
 const addHistoryItem = (
@@ -176,23 +170,21 @@ export const useGeminiStream = (
                 );
               }
             } else if (serverEvent.type === 'tool_call_request') {
-              // Reset gemini message tracking for next response
-              currentGeminiText = '';
-              hasInitialGeminiResponse = false;
-              currentGeminiMessageIdRef.current = null;
-
-              // Call the adapted history updater function
               handleToolCallChunk(
                 serverEvent.payload,
                 setHistory,
                 () => getNextMessageId(userMessageTimestamp),
                 currentToolGroupIdRef,
               );
-              if (serverEvent.payload.requiresConfirmation) {
-                setStreamingState(StreamingState.WaitingForConfirmation);
-              }
+            } else if (serverEvent.type === 'tool_confirmation_request') {
+              handleToolCallChunk(
+                serverEvent.payload,
+                setHistory,
+                () => getNextMessageId(userMessageTimestamp),
+                currentToolGroupIdRef,
+              );
+              setStreamingState(StreamingState.WaitingForConfirmation);
             } else if (serverEvent.type === 'tool_call_result') {
-              // Call the new history update function for results
               handleToolCallResult(
                 serverEvent.payload,
                 setHistory,
@@ -212,7 +204,6 @@ export const useGeminiStream = (
               cleanupEventSource();
             }
           } catch (parseError) {
-            console.error('[CLI] Failed to parse SSE data:', event.data, parseError);
             addErrorMessageToHistory(
               new Error('Failed to parse server event.'),
               setHistory,
@@ -223,20 +214,16 @@ export const useGeminiStream = (
         };
 
         es.onerror = (errorEvent: Event) => {
-          console.error('[CLI] EventSource error:', errorEvent);
-          // Log error message regardless of exact streaming state during error event
           addErrorMessageToHistory(
-              // Attempt to get a more specific message if possible, fallback
               new Error(`Connection error: ${getErrorMessage(errorEvent)}`),
               setHistory,
               () => getNextMessageId(userMessageTimestamp),
           );
           cleanupEventSource();
-          setInitError('Connection to server failed.'); // Set initError for display
+          setInitError('Connection to server failed.');
         };
 
       } catch (error: unknown) {
-        console.error('[CLI] Failed to establish SSE connection:', error);
         addErrorMessageToHistory(
           new Error(`Connection failed: ${getErrorMessage(error)}`),
           setHistory,
@@ -246,7 +233,6 @@ export const useGeminiStream = (
         setInitError('Failed to connect to server.');
       }
     },
-    // Add serverBaseUrl to dependencies
     [streamingState, setHistory, getNextMessageId, updateGeminiMessage, cleanupEventSource, serverBaseUrl],
   );
 

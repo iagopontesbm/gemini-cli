@@ -37,6 +37,7 @@ export enum GeminiEventType {
   Content = 'content',
   ToolCallRequest = 'tool_call_request',
   ToolCallResult = 'tool_call_result',
+  AwaitingConfirmation = 'awaiting_confirmation',
 }
 
 // Add requiresConfirmation flag to ToolCallRequestInfo
@@ -49,19 +50,29 @@ interface ToolCallRequestInfo {
 }
 
 // Define structure for the new event type
-interface ToolCallResultInfo {
+// Export this interface
+export interface ToolCallResultInfo {
   callId: string;
-  name: string; // Include name for context
+  name: string;
   status: 'success' | 'error';
   resultDisplay?: ToolResultDisplay;
-  errorMessage?: string; // Include error message on failure
+  errorMessage?: string;
+}
+
+// Define structure for AwaitingConfirmation event
+export interface AwaitingConfirmationInfo {
+  callId: string;
+  name: string;
+  args: Record<string, unknown>;
+  details?: any; // Add optional field for details (diff/command)
 }
 
 // Export the type alias
 export type ServerGeminiStreamEvent =
   | { type: GeminiEventType.Content; value: string }
   | { type: GeminiEventType.ToolCallRequest; value: ToolCallRequestInfo }
-  | { type: GeminiEventType.ToolCallResult; value: ToolCallResultInfo };
+  | { type: GeminiEventType.ToolCallResult; value: ToolCallResultInfo }
+  | { type: GeminiEventType.AwaitingConfirmation; value: AwaitingConfirmationInfo };
 
 // --- Turn Class (Refactored for Server) ---
 
@@ -69,18 +80,16 @@ export type ServerGeminiStreamEvent =
 export class Turn {
   private readonly chat: Chat;
   private readonly availableTools: Map<string, ServerTool>; // Use passed-in tools
-  private pendingToolCalls: Array<{
-    callId: string;
-    name: string;
-    args: Record<string, unknown>; // Use unknown
-  }>;
+  private awaitingConfirmationCalls: Map<string, { name: string; args: Record<string, unknown>; toolDefinition: ServerTool }>; // Store pending calls
+  private immediateToolPromises: Promise<ServerToolExecutionOutcome>[]; // Store promises for immediate execution
   private fnResponses: Part[];
   private debugResponses: GenerateContentResponse[];
 
   constructor(chat: Chat, availableTools: ServerTool[]) {
     this.chat = chat;
     this.availableTools = new Map(availableTools.map((t) => [t.name, t]));
-    this.pendingToolCalls = [];
+    this.awaitingConfirmationCalls = new Map();
+    this.immediateToolPromises = [];
     this.fnResponses = [];
     this.debugResponses = [];
   }
@@ -90,6 +99,11 @@ export class Turn {
     req: PartListUnion,
     signal?: AbortSignal,
   ): AsyncGenerator<ServerGeminiStreamEvent> {
+    // Reset state for this run iteration
+    this.awaitingConfirmationCalls.clear();
+    this.immediateToolPromises = [];
+    this.fnResponses = [];
+
     const responseStream = await this.chat.sendMessageStream({ message: req });
 
     for await (const resp of responseStream) {
@@ -105,90 +119,123 @@ export class Turn {
         continue;
       }
 
-      // Handle function calls (requesting tool execution)
+      // Handle function calls
       for (const fnCall of resp.functionCalls) {
-        const event = this.handlePendingFunctionCall(fnCall);
-        if (event) {
-          yield event;
+        // Yield ToolCallRequest first (includes requiresConfirmation flag)
+        const requestEvent = this.handleToolCallRequest(fnCall);
+        if (requestEvent) {
+          yield requestEvent;
+
+          // Now decide if confirmation is needed
+          const { callId, name, args } = requestEvent.value;
+          const toolDefinition = this.availableTools.get(name);
+
+          if (toolDefinition?.requiresConfirmation) {
+            // Call the new handler function
+            const awaitEvent = this.handleAwaitingConfirmation(callId, name, args, toolDefinition);
+            if (awaitEvent) {
+              yield awaitEvent;
+            }
+          } else if (toolDefinition) {
+            // Prepare for immediate execution
+            this.immediateToolPromises.push(
+               this.executeTool({ callId, name, args, toolDefinition })
+            );
+          } else {
+             // Tool not found - prepare error outcome for immediate processing
+             this.immediateToolPromises.push(
+               Promise.resolve({ callId, name, args, error: new Error(`Tool \"${name}\" not found.`) })
+             );
+          }
         }
       }
 
-      // Execute pending tool calls
-      const toolPromises = this.pendingToolCalls.map(
-        async (pendingToolCall): Promise<ServerToolExecutionOutcome> => {
-          const tool = this.availableTools.get(pendingToolCall.name);
-          if (!tool) {
-            return {
-              ...pendingToolCall,
-              error: new Error(
-                `Tool "${pendingToolCall.name}" not found or not provided to Turn.`,
-              ),
-            };
-          }
-          // No confirmation logic in the server Turn
-          try {
-            // TODO: Add validation step if needed (tool.validateParams?)
-            const result = await tool.execute(pendingToolCall.args);
-            return { ...pendingToolCall, result };
-          } catch (execError: unknown) {
-            return {
-              ...pendingToolCall,
-              error: new Error(
-                `Tool execution failed: ${execError instanceof Error ? execError.message : String(execError)}`,
-              ),
-            };
-          }
-        },
-      );
-      const outcomes = await Promise.all(toolPromises);
+      // Execute ONLY immediate tool calls
+      if (this.immediateToolPromises.length > 0) {
+        const outcomes = await Promise.all(this.immediateToolPromises);
+        this.immediateToolPromises = []; // Clear promises for this turn
 
-      // *** NEW: Yield ToolCallResult events based on outcomes ***
-      for (const outcome of outcomes) {
-        if (signal?.aborted) throw this.abortError(); // Check abort before yielding result
+        // Yield ToolCallResult events for immediate outcomes
+        for (const outcome of outcomes) {
+          if (signal?.aborted) throw this.abortError();
+          const resultValue: ToolCallResultInfo = {
+            callId: outcome.callId,
+            name: outcome.name,
+            status: outcome.error ? 'error' : 'success',
+            resultDisplay: outcome.result?.returnDisplay,
+            errorMessage: outcome.error?.message,
+          };
+          yield { type: GeminiEventType.ToolCallResult, value: resultValue };
+        }
 
-        const resultValue: ToolCallResultInfo = {
-          callId: outcome.callId,
-          name: outcome.name,
-          status: outcome.error ? 'error' : 'success',
-          resultDisplay: outcome.result?.returnDisplay,
-          errorMessage: outcome.error?.message,
-        };
-        yield { type: GeminiEventType.ToolCallResult, value: resultValue };
+        // Process outcomes and prepare function responses ONLY for immediate calls
+        this.fnResponses = this.buildFunctionResponses(outcomes);
+      } else {
       }
-      // *** END NEW ***
-
-      // Process outcomes and prepare function responses
-      this.fnResponses = this.buildFunctionResponses(outcomes);
-      this.pendingToolCalls = []; // Clear pending calls for this turn
-
-      // If there were function responses, the caller (GeminiService) will loop
-      // and call run() again with these responses.
-      // If no function responses, the turn ends here.
     }
   }
 
-  // Generates a ToolCallRequest event to signal the need for execution
-  private handlePendingFunctionCall(
+  // Extracted tool execution logic
+  private async executeTool(pendingCall: {
+    callId: string;
+    name: string;
+    args: Record<string, unknown>;
+    toolDefinition: ServerTool;
+  }): Promise<ServerToolExecutionOutcome> {
+      try {
+        const result = await pendingCall.toolDefinition.execute(pendingCall.args);
+        return { ...pendingCall, result };
+      } catch (execError: unknown) {
+        return {
+          ...pendingCall,
+          error: new Error(
+            `Tool execution failed: ${execError instanceof Error ? execError.message : String(execError)}`
+          ),
+        };
+      }
+  }
+
+  // Generates a ToolCallRequest event
+  private handleToolCallRequest(
     fnCall: FunctionCall,
-  ): ServerGeminiStreamEvent | null {
+  ): { type: GeminiEventType.ToolCallRequest; value: ToolCallRequestInfo } | null {
     const callId =
       fnCall.id ??
       `${fnCall.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const name = fnCall.name || 'undefined_tool_name';
     const args = (fnCall.args || {}) as Record<string, unknown>;
 
-    this.pendingToolCalls.push({ callId, name, args });
-
-    // Check the tool definition for the confirmation flag
     const toolDefinition = this.availableTools.get(name);
     const requiresConfirmation = toolDefinition?.requiresConfirmation ?? false;
 
-    // TODO: If requiresConfirmation is true, generate confirmation details (diff/command)
-    // and add them to the payload. For now, just send the flag.
-
-    // Include the flag in the event payload
     const value: ToolCallRequestInfo = { callId, name, args, requiresConfirmation };
     return { type: GeminiEventType.ToolCallRequest, value };
+  }
+
+  // New method to handle yielding AwaitingConfirmation event
+  private handleAwaitingConfirmation(callId: string, name: string, args: Record<string, unknown>, toolDefinition: ServerTool): ServerGeminiStreamEvent | null {
+      // Generate confirmation details if the tool supports it
+      let confirmationDetails: any | null = null;
+      if (typeof (toolDefinition as any).getConfirmationDetails === 'function') {
+         try {
+            confirmationDetails = (toolDefinition as any).getConfirmationDetails(args);
+         } catch (e) {
+             console.error(`Error getting confirmation details for ${name}:`, e);
+             // Proceed without details? Or maybe treat as error?
+         }
+      }
+
+      // Store for later confirmation
+      this.awaitingConfirmationCalls.set(callId, { name, args, toolDefinition });
+
+      // Prepare and yield the event
+      const awaitingValue: AwaitingConfirmationInfo = {
+          callId,
+          name,
+          args,
+          details: confirmationDetails,
+      };
+      return { type: GeminiEventType.AwaitingConfirmation, value: awaitingValue };
   }
 
   // Builds the Part array expected by the Google GenAI API
@@ -233,5 +280,15 @@ export class Turn {
   // Debugging information (optional)
   getDebugResponses(): GenerateContentResponse[] {
     return this.debugResponses;
+  }
+
+  // Method to retrieve stored details for confirmation handling
+  public getAwaitingConfirmationCall(callId: string): { name: string; args: Record<string, unknown>; toolDefinition: ServerTool } | undefined {
+    return this.awaitingConfirmationCalls.get(callId);
+  }
+
+  // Method to remove a call after confirmation handled (or timeout)
+  public clearAwaitingConfirmationCall(callId: string): void {
+     this.awaitingConfirmationCalls.delete(callId);
   }
 }

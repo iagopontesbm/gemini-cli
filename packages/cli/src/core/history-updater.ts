@@ -14,16 +14,17 @@ import {
   // ToolConfirmationOutcome, // Removed
   // ToolEditConfirmationDetails, // Removed
   // ToolExecuteConfirmationDetails, // Removed
-  ToolConfirmationPayload, // Import new type
+  ToolConfirmationPayload, // Keep this import
 } from '../ui/types.js';
 import type { ToolResultDisplay } from '@gemini-code/server';
 
-// Define the structure of the payload received from the server for tool calls
+// Update payload interface to match server event, including details
 interface ServerToolCallRequestPayload {
   callId: string;
   name: string;
   args: Record<string, unknown>;
-  requiresConfirmation?: boolean; // Add flag
+  requiresConfirmation?: boolean;
+  details?: any; // Add details field
 }
 
 // Define the structure of the payload for tool call results
@@ -48,16 +49,16 @@ export const handleToolCallChunk = (
   getNextMessageId: () => number,
   currentToolGroupIdRef: React.MutableRefObject<number | null>,
 ): void => {
-  // Determine status and confirmation payload based on flag
   const requiresConfirmation = serverPayload.requiresConfirmation ?? false;
   const status = requiresConfirmation
     ? ToolCallStatus.Confirming
     : ToolCallStatus.Pending;
   const confirmationPayload: ToolConfirmationPayload | undefined = requiresConfirmation
-    ? { // Store needed data if confirming
+    ? { // Store details if confirming
         callId: serverPayload.callId,
         name: serverPayload.name,
         args: serverPayload.args,
+        details: serverPayload.details, // Store the details
       }
     : undefined;
 
@@ -80,19 +81,19 @@ export const handleToolCallChunk = (
   setHistory((prev) => {
     // Logic for adding/updating tool group remains largely the same,
     // but only deals with adding the pending tool display.
-    if (activeGroupId === null) {
-      // Start a new tool group
-      const newGroupId = getNextMessageId();
-      currentToolGroupIdRef.current = newGroupId;
-      return [
-        ...prev,
-        {
-          id: newGroupId,
-          type: 'tool_group',
-          tools: [toolDetail],
-        } as HistoryItem,
-      ];
-    }
+      if (activeGroupId === null) {
+        // Start a new tool group
+        const newGroupId = getNextMessageId();
+        currentToolGroupIdRef.current = newGroupId;
+        return [
+          ...prev,
+          {
+            id: newGroupId,
+            type: 'tool_group',
+            tools: [toolDetail],
+          } as HistoryItem,
+        ];
+      }
 
     // Add to existing tool group if not already present
     return prev.map((item) =>

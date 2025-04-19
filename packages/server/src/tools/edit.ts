@@ -7,7 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import * as Diff from 'diff';
-import { BaseTool, ToolResult, ToolResultDisplay } from './tools.js';
+import { BaseTool, ToolResult, ToolResultDisplay, FileDiff } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
@@ -42,6 +42,13 @@ interface CalculatedEdit {
   newContent: string;
   occurrences: number;
   error?: { display: string; raw: string };
+  isNewFile: boolean;
+}
+
+// Define structure for edit confirmation details
+interface EditConfirmationDetails {
+  fileDiff: string;
+  fileName: string; // Add fileName for context
   isNewFile: boolean;
 }
 
@@ -225,7 +232,50 @@ export class EditLogic extends BaseTool<EditToolParams, ToolResult> {
     };
   }
 
-  // Removed shouldConfirmExecute - Confirmation is handled by the CLI wrapper
+  // Add method to get confirmation details using calculateEdit
+  getConfirmationDetails(params: EditToolParams): EditConfirmationDetails | null {
+    const validationError = this.validateParams(params);
+    if (validationError) {
+      console.warn('[EditLogic] Invalid params for getConfirmationDetails:', validationError);
+      return null;
+    }
+
+    try {
+      const editData = this.calculateEdit(params);
+      if (editData.error) {
+        // Don't request confirmation if the edit will fail anyway
+        console.warn('[EditLogic] Pre-computation error, skipping confirmation:', editData.error.display);
+        return null;
+      }
+
+      const fileName = path.basename(params.file_path);
+      let fileDiff = '';
+      if (!editData.isNewFile && editData.currentContent !== null) {
+           fileDiff = Diff.createPatch(
+             fileName,
+             editData.currentContent,
+             editData.newContent,
+             'Current',
+             'Proposed',
+             { context: 3 },
+           );
+      } else if (editData.isNewFile) {
+          // For new files, maybe show the content to be added?
+          // Or create a diff against empty string?
+          fileDiff = Diff.createPatch(fileName, '', editData.newContent, '', 'Proposed', { context: 3 });
+      }
+
+      return {
+        fileDiff,
+        fileName,
+        isNewFile: editData.isNewFile,
+      };
+    } catch (error) {
+      // Catch errors during calculateEdit (e.g., file read permission errors)
+      console.error('[EditLogic] Error during getConfirmationDetails:', error);
+      return null;
+    }
+  }
 
   getDescription(params: EditToolParams): string {
     const relativePath = makeRelative(params.file_path, this.rootDirectory);

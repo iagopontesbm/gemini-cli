@@ -18,6 +18,7 @@ export interface ToolConfirmationPayload {
   callId: string;
   name: string;
   args: Record<string, unknown>;
+  details?: any;
 }
 
 export interface IndividualToolCallDisplay {
