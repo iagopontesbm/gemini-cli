@@ -7,23 +7,11 @@
 import React from 'react';
 import { render } from 'ink';
 import { App } from './ui/App.js';
-import { toolRegistry } from './tools/tool-registry.js';
-import { LSTool } from './tools/ls.tool.js';
-import { ReadFileTool } from './tools/read-file.tool.js';
-import { GrepTool } from './tools/grep.tool.js';
-import { GlobTool } from './tools/glob.tool.js';
-import { EditTool } from './tools/edit.tool.js';
-import { TerminalTool } from './tools/terminal.tool.js';
-import { WriteFileTool } from './tools/write-file.tool.js';
-import { WebFetchTool } from './tools/web-fetch.tool.js';
 import { loadCliConfig } from './config/config.js';
 
 async function main() {
   // Load configuration
   const config = loadCliConfig();
-
-  // Configure tools using the loaded config
-  registerTools(config.getTargetDir());
 
   // Render UI, passing necessary config values
   render(
@@ -78,24 +66,3 @@ main().catch((error) => {
   }
   process.exit(1);
 });
-
-function registerTools(targetDir: string) {
-  const config = loadCliConfig();
-  const lsTool = new LSTool(targetDir);
-  const readFileTool = new ReadFileTool(targetDir);
-  const grepTool = new GrepTool(targetDir);
-  const globTool = new GlobTool(targetDir);
-  const editTool = new EditTool(targetDir);
-  const terminalTool = new TerminalTool(targetDir, config);
-  const writeFileTool = new WriteFileTool(targetDir);
-  const webFetchTool = new WebFetchTool();
-
-  toolRegistry.registerTool(lsTool);
-  toolRegistry.registerTool(readFileTool);
-  toolRegistry.registerTool(grepTool);
-  toolRegistry.registerTool(globTool);
-  toolRegistry.registerTool(editTool);
-  toolRegistry.registerTool(terminalTool);
-  toolRegistry.registerTool(writeFileTool);
-  toolRegistry.registerTool(webFetchTool);
-}

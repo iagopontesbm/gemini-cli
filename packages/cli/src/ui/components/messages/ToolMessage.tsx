@@ -7,29 +7,14 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import {
-  IndividualToolCallDisplay,
-  ToolCallStatus,
-  ToolCallConfirmationDetails,
-  ToolEditConfirmationDetails,
-  ToolExecuteConfirmationDetails,
-} from '../../types.js';
+import { IndividualToolCallDisplay, ToolCallStatus } from '../../types.js';
 import { DiffRenderer } from './DiffRenderer.js';
 // Import FileDiff and ToolResultDisplay from server package
 import type { FileDiff, ToolResultDisplay } from '@gemini-code/server';
 
-export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
-  callId,
-  name,
-  description,
-  resultDisplay,
-  status,
-  confirmationDetails,
-}) => {
-  // Explicitly type the props to help the type checker
-  const typedConfirmationDetails = confirmationDetails as
-    | ToolCallConfirmationDetails
-    | undefined;
+export const ToolMessage: React.FC<
+  Omit<IndividualToolCallDisplay, 'confirmationDetails'>
+> = ({ callId, name, description, resultDisplay, status }) => {
   const typedResultDisplay = resultDisplay as ToolResultDisplay | undefined;
 
   let color = 'gray';
@@ -40,10 +25,6 @@ export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
       break;
     case ToolCallStatus.Invoked:
       prefix = 'Executing:';
-      break;
-    case ToolCallStatus.Confirming:
-      color = 'yellow';
-      prefix = 'Confirm:';
       break;
     case ToolCallStatus.Success:
       color = 'green';
@@ -79,30 +60,6 @@ export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
             : ` - ${description}`}
         </Text>
       </Box>
-      {status === ToolCallStatus.Confirming && typedConfirmationDetails && (
-        <Box flexDirection="column" marginLeft={2}>
-          {/* Display diff for edit/write */}
-          {'fileDiff' in typedConfirmationDetails && (
-            <DiffRenderer
-              diffContent={
-                (typedConfirmationDetails as ToolEditConfirmationDetails)
-                  .fileDiff
-              }
-            />
-          )}
-          {/* Display command for execute */}
-          {'command' in typedConfirmationDetails && (
-            <Text color="yellow">
-              Command:{' '}
-              {
-                (typedConfirmationDetails as ToolExecuteConfirmationDetails)
-                  .command
-              }
-            </Text>
-          )}
-          {/* <ConfirmInput onConfirm={handleConfirm} isFocused={isFocused} /> */}
-        </Box>
-      )}
       {status === ToolCallStatus.Success && typedResultDisplay && (
         <Box flexDirection="column" marginLeft={2}>
           {typeof typedResultDisplay === 'string' ? (

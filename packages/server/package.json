@@ -6,6 +6,7 @@
   "main": "dist/src/index.js",
   "scripts": {
     "start": "node dist/src/index.js",
+    "start:http": "node dist/src/http-server.js",
     "build": "tsc --build && cp package.json dist/",
     "clean": "rm -rf dist",
     "lint": "eslint . --ext .ts,.tsx",
@@ -19,12 +20,14 @@
     "@google/genai": "^0.8.0",
     "fast-glob": "^3.3.3",
     "diff": "^7.0.0",
-    "dotenv": "^16.4.7"
+    "dotenv": "^16.4.7",
+    "express": "^4.17.1"
   },
   "devDependencies": {
     "typescript": "^5.3.3",
     "@types/diff": "^7.0.2",
     "@types/dotenv": "^6.1.1",
+    "@types/express": "^4.17.13",
     "vitest": "^3.1.1"
   },
   "engines": {

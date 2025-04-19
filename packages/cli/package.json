@@ -7,8 +7,8 @@
   "scripts": {
     "build": "tsc --build && cp package.json README.md ../../LICENSE dist/ && touch dist/.last_build",
     "clean": "rm -rf dist",
-    "start": "node dist/gemini.js",
-    "debug": "node --inspect-brk dist/gemini.js",
+    "start": "node dist/src/gemini.js",
+    "debug": "node --inspect-brk dist/src/gemini.js",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
     "test": "vitest run"
@@ -19,6 +19,7 @@
   "dependencies": {
     "@gemini-code/server": "1.0.0",
     "@google/genai": "^0.8.0",
+    "axios": "^1.6.8",
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",

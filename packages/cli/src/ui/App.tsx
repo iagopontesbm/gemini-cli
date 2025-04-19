@@ -31,11 +31,8 @@ interface AppProps {
 export const App = ({ config }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
-  const { streamingState, submitQuery, initError } = useGeminiStream(
-    setHistory,
-    config.getApiKey(),
-    config.getModel(),
-  );
+  const { streamingState, submitQuery, initError } =
+    useGeminiStream(setHistory);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
