@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { BaseTool, ToolResult } from './tools.js'; // Updated import
-import { getErrorMessage } from '../utils/errors.js'; // Updated import
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { BaseTool, ToolResult } from './tools.js';
+import { getErrorMessage } from '../utils/errors.js';
 
 /**
  * Parameters for the WebFetch tool

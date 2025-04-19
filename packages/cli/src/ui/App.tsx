@@ -25,13 +25,15 @@ import {
 
 interface AppProps {
   directory: string;
+  apiKey: string;
+  model: string;
 }
 
-export const App = ({ directory }: AppProps) => {
+export const App = ({ directory, apiKey, model }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const { streamingState, submitQuery, initError } =
-    useGeminiStream(setHistory);
+    useGeminiStream(setHistory, apiKey, model);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
@@ -63,9 +65,7 @@ export const App = ({ directory }: AppProps) => {
 
   const {
     query,
-    setQuery,
     handleSubmit: handleHistorySubmit,
-    inputKey,
   } = useInputHistory({
     userMessages,
     onSubmit: submitQuery,
@@ -137,11 +137,7 @@ export const App = ({ directory }: AppProps) => {
 
       {isInputActive && (
         <InputPrompt
-          query={query}
-          setQuery={setQuery}
           onSubmit={handleHistorySubmit}
-          isActive={isInputActive}
-          forceKey={inputKey}
         />
       )}
 

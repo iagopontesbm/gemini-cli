@@ -6,9 +6,9 @@
 
 import fs from 'fs';
 import path from 'path';
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { makeRelative, shortenPath } from '../utils/paths.js'; // Updated import
-import { BaseTool, ToolResult } from './tools.js'; // Updated import
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { makeRelative, shortenPath } from '../utils/paths.js';
+import { BaseTool, ToolResult } from './tools.js';
 
 /**
  * Parameters for the ReadFile tool
@@ -31,30 +31,15 @@ export interface ReadFileToolParams {
 }
 
 /**
- * Implementation of the ReadFile tool logic (moved from CLI)
+ * Implementation of the ReadFile tool logic
  */
 export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
-  static readonly Name: string = 'read_file'; // Keep static name for reference
-
-  // Maximum number of lines to read by default
+  static readonly Name: string = 'read_file';
   private static readonly DEFAULT_MAX_LINES = 2000;
-
-  // Maximum length of a line before truncating
   private static readonly MAX_LINE_LENGTH = 2000;
-
-  /**
-   * The root directory that this tool is grounded in.
-   * All file operations will be restricted to this directory.
-   */
   private rootDirectory: string;
 
-  /**
-   * Creates a new instance of the ReadFileLogic
-   * @param rootDirectory Root directory to ground this tool in. All operations will be restricted to this directory.
-   */
   constructor(rootDirectory: string) {
-    // Note: We pass dummy values for displayName/description here as the CLI tool
-    // will provide the actual ones. The schema parts are still needed by BaseTool.
     super(
       ReadFileLogic.Name,
       '', // Display name handled by CLI wrapper
@@ -81,8 +66,6 @@ export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
         type: 'object',
       },
     );
-
-    // Set the root directory
     this.rootDirectory = path.resolve(rootDirectory);
   }
 
@@ -94,12 +77,9 @@ export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
   private isWithinRoot(pathToCheck: string): boolean {
     const normalizedPath = path.normalize(pathToCheck);
     const normalizedRoot = path.normalize(this.rootDirectory);
-
-    // Ensure the normalizedRoot ends with a path separator for proper path comparison
     const rootWithSep = normalizedRoot.endsWith(path.sep)
       ? normalizedRoot
       : normalizedRoot + path.sep;
-
     return (
       normalizedPath === normalizedRoot ||
       normalizedPath.startsWith(rootWithSep)
@@ -219,7 +199,7 @@ export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
     if (validationError) {
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
-        returnDisplay: '**Error:** Failed to execute tool.', // Keep simple display for errors
+        returnDisplay: '**Error:** Failed to execute tool.',
       };
     }
 

@@ -11,9 +11,10 @@ import {
   WriteFileLogic,
   WriteFileToolParams,
   ToolResult,
+  makeRelative,
+  shortenPath,
 } from '@gemini-code/server';
 import { BaseTool } from './tools.js';
-import { makeRelative, shortenPath } from '../utils/paths.js';
 import {
   ToolCallConfirmationDetails,
   ToolConfirmationOutcome,

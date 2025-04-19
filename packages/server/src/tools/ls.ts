@@ -6,9 +6,9 @@
 
 import fs from 'fs';
 import path from 'path';
-import { BaseTool, ToolResult } from './tools.js'; // Updated import
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { makeRelative, shortenPath } from '../utils/paths.js'; // Updated import
+import { BaseTool, ToolResult } from './tools.js';
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { makeRelative, shortenPath } from '../utils/paths.js';
 
 /**
  * Parameters for the LS tool
@@ -56,10 +56,10 @@ export interface FileEntry {
 }
 
 /**
- * Implementation of the LS tool logic (moved from CLI)
+ * Implementation of the LS tool logic
  */
 export class LSLogic extends BaseTool<LSToolParams, ToolResult> {
-  static readonly Name = 'list_directory'; // Keep static name
+  static readonly Name = 'list_directory';
 
   /**
    * The root directory that this tool is grounded in.

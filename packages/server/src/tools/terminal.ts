@@ -6,25 +6,21 @@
 
 import { spawn, SpawnOptions } from 'child_process';
 import path from 'path';
-import { BaseTool, ToolResult } from './tools.js'; // Updated import
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { getErrorMessage } from '../utils/errors.js'; // Updated import (removed isNodeError)
+import { BaseTool, ToolResult } from './tools.js';
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { getErrorMessage } from '../utils/errors.js';
 
-// --- Interfaces ---
 export interface TerminalToolParams {
   command: string;
-  // Note: description, timeout, runInBackground are handled by the CLI wrapper
 }
 
-// --- Constants ---
-const MAX_OUTPUT_LENGTH = 10000; // Max output length for simple execution
-const DEFAULT_EXEC_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes default timeout for simple exec
+const MAX_OUTPUT_LENGTH = 10000;
+const DEFAULT_EXEC_TIMEOUT_MS = 5 * 60 * 1000;
 
-// Banned commands remain relevant for security
 const BANNED_COMMAND_ROOTS = [
   'alias', 'bg', 'command', 'declare', 'dirs', 'disown', 'enable', 'eval', 'exec',
   'exit', 'export', 'fc', 'fg', 'getopts', 'hash', 'history', 'jobs', 'kill',
-  'let', 'local', 'logout', 'popd', 'printf', 'pushd', /*'pwd',*/ 'read', 'readonly',
+  'let', 'local', 'logout', 'popd', 'printf', 'pushd', 'read', 'readonly',
   'set', 'shift', 'shopt', 'source', 'suspend', 'test', 'times', 'trap', 'type',
   'typeset', 'ulimit', 'umask', 'unalias', 'unset', 'wait', 'curl', 'wget',
   'nc', 'telnet', 'ssh', 'scp', 'ftp', 'sftp', 'http', 'https', 'rsync',
@@ -34,12 +30,9 @@ const BANNED_COMMAND_ROOTS = [
 
 /**
  * Simplified implementation of the Terminal tool logic for single command execution.
- * Does NOT maintain a persistent shell, handle background tasks, queueing, or LLM analysis.
- * Primarily provides validation and basic execution capabilities.
  */
 export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
-  static readonly Name = 'execute_bash_command'; // Keep static name for schema compatibility
-
+  static readonly Name = 'execute_bash_command';
   private readonly rootDirectory: string;
 
   constructor(rootDirectory: string) {
@@ -54,8 +47,6 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
             description: `The exact bash command or sequence of commands (using ';' or '&&') to execute. Must adhere to usage guidelines. Example: 'npm install && npm run build'`,
             type: 'string',
           },
-          // Parameters like description, timeout, runInBackground are NOT part of this simplified logic's schema
-          // They are handled by the more complex CLI wrapper.
         },
         required: ['command'],
       },
@@ -63,12 +54,7 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     this.rootDirectory = path.resolve(rootDirectory);
   }
 
-  /**
-   * Validates the command parameter for banned keywords and basic syntax.
-   * Does NOT validate the execution path as this logic doesn't manage CWD.
-   */
   validateParams(params: TerminalToolParams): string | null {
-    // Validate against the minimal schema defined in the constructor
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -78,13 +64,11 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     ) {
       return "Parameters failed schema validation (expecting only 'command').";
     }
-
     const commandOriginal = params.command.trim();
     if (!commandOriginal) {
       return 'Command cannot be empty.';
     }
     const commandParts = commandOriginal.split(/[\s;&&|]+/);
-
     for (const part of commandParts) {
       if (!part) continue;
       const cleanPart =
@@ -96,25 +80,17 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
         return `Command contains a banned keyword: '${cleanPart}'. Banned list includes network tools, session control, etc.`;
       }
     }
-    return null; // Basic validation passed
+    return null;
   }
 
-  // getDescription is simple as this logic doesn't know context
   getDescription(params: TerminalToolParams): string {
     return params.command;
   }
 
-  /**
-   * Executes a single command in a non-persistent shell.
-   * @param params Parameters containing the command.
-   * @param executionCwd The absolute path where the command should be executed.
-   * @param timeout Optional timeout for the execution.
-   * @returns Result of the command execution.
-   */
   async execute(
     params: TerminalToolParams,
-    executionCwd?: string, // Optional CWD, defaults to root
-    timeout: number = DEFAULT_EXEC_TIMEOUT_MS, // Use internal default
+    executionCwd?: string,
+    timeout: number = DEFAULT_EXEC_TIMEOUT_MS,
   ): Promise<ToolResult> {
     const validationError = this.validateParams(params);
     if (validationError) {
@@ -125,7 +101,6 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     }
 
     const cwd = executionCwd ? path.resolve(executionCwd) : this.rootDirectory;
-    // Security check: ensure CWD is within root
     if (!cwd.startsWith(this.rootDirectory) && cwd !== this.rootDirectory) {
         const message = `Execution CWD validation failed: Attempted path "${cwd}" resolves outside the allowed root directory "${this.rootDirectory}".`;
         return {
@@ -141,9 +116,8 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
         env: { ...process.env },
         stdio: 'pipe',
         windowsHide: true,
-        timeout: timeout, // Apply timeout directly to spawn
+        timeout: timeout,
       };
-
       let stdout = '';
       let stderr = '';
       let processError: Error | null = null;
@@ -151,7 +125,6 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
 
       try {
         const child = spawn(params.command, spawnOptions);
-
         child.stdout!.on('data', (data) => {
           stdout += data.toString();
           if (stdout.length > MAX_OUTPUT_LENGTH) {
@@ -159,7 +132,6 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
             child.stdout!.pause();
           }
         });
-
         child.stderr!.on('data', (data) => {
           stderr += data.toString();
           if (stderr.length > MAX_OUTPUT_LENGTH) {
@@ -167,32 +139,25 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
             child.stderr!.pause();
           }
         });
-
         child.on('error', (err) => {
           processError = err;
           console.error(`TerminalLogic spawn error for "${params.command}":`, err);
         });
-
         child.on('close', (code, signal) => {
-          const exitCode = code ?? (signal ? -1 : -2); // Assign codes for signal/unknown
+          const exitCode = code ?? (signal ? -1 : -2);
           if (signal === 'SIGTERM' || signal === 'SIGKILL') {
-             // Check if timeout signal specifically
              if (child.killed && timeout > 0) timedOut = true;
           }
-
           const finalStdout = this.truncateOutput(stdout);
           const finalStderr = this.truncateOutput(stderr);
-
           let llmContent = `Command: ${params.command}\nExecuted in: ${cwd}\nExit Code: ${exitCode}\n`;
           if (timedOut) llmContent += `Status: Timed Out after ${timeout}ms\n`;
           if (processError) llmContent += `Process Error: ${processError.message}\n`;
           llmContent += `Stdout:\n${finalStdout}\nStderr:\n${finalStderr}`;
-
           let displayOutput = finalStderr.trim() || finalStdout.trim();
           if (timedOut) displayOutput = `Timeout: ${displayOutput || 'No output before timeout'}`;
           else if (exitCode !== 0 && !displayOutput) displayOutput = `Failed (Exit Code: ${exitCode})`;
           else if (exitCode === 0 && !displayOutput) displayOutput = `Success (no output)`;
-
           resolve({
             llmContent,
             returnDisplay: displayOutput.trim() || `Exit Code: ${exitCode}`,
@@ -209,7 +174,6 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     });
   }
 
-  // Keep truncateOutput as a utility
   private truncateOutput(output: string, limit: number = MAX_OUTPUT_LENGTH): string {
     if (output.length > limit) {
       return (

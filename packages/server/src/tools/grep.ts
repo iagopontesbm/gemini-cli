@@ -9,11 +9,11 @@ import fsPromises from 'fs/promises';
 import path from 'path';
 import { EOL } from 'os';
 import { spawn } from 'child_process';
-import fastGlob from 'fast-glob'; // Dependency to be added
-import { BaseTool, ToolResult } from './tools.js'; // Updated import
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { makeRelative, shortenPath } from '../utils/paths.js'; // Updated import
-import { getErrorMessage, isNodeError } from '../utils/errors.js'; // Updated import
+import fastGlob from 'fast-glob';
+import { BaseTool, ToolResult } from './tools.js';
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { makeRelative, shortenPath } from '../utils/paths.js';
+import { getErrorMessage, isNodeError } from '../utils/errors.js';
 
 // --- Interfaces ---
 

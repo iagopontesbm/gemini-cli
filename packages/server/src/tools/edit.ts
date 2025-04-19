@@ -6,11 +6,11 @@
 
 import fs from 'fs';
 import path from 'path';
-import * as Diff from 'diff'; // Dependency to be added
-import { SchemaValidator } from '../utils/schemaValidator.js'; // Updated import
-import { BaseTool, ToolResult, ToolResultDisplay } from './tools.js'; // Updated import
-import { makeRelative, shortenPath } from '../utils/paths.js'; // Updated import
-import { isNodeError } from '../utils/errors.js'; // Updated import
+import * as Diff from 'diff';
+import { BaseTool, ToolResult, ToolResultDisplay } from './tools.js';
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { makeRelative, shortenPath } from '../utils/paths.js';
+import { isNodeError } from '../utils/errors.js';
 
 /**
  * Parameters for the Edit tool
