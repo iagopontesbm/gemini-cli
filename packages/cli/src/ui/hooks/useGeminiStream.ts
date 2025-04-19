@@ -6,8 +6,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useInput } from 'ink';
-// Remove axios imports
-// import axios, { CancelTokenSource, isCancel } from 'axios';
+import axios from 'axios'; // Re-import axios
 import EventSource from 'eventsource'; // Import EventSource
 
 import { getErrorMessage } from '@gemini-code/server';
@@ -25,7 +24,7 @@ import { ToolCallStatus } from '../types.js';
 // Define the expected structure of events from the server
 interface ServerSseEvent {
   type: 'content' | 'tool_call_request' | 'tool_call_result' | 'error' | 'done';
-  payload: any;
+  payload: any & { requiresConfirmation?: boolean };
 }
 
 const addHistoryItem = (
@@ -78,23 +77,53 @@ export const useGeminiStream = (
       eventSourceRef.current.close();
       eventSourceRef.current = null;
     }
-    setStreamingState(StreamingState.Idle);
+    if (streamingState !== StreamingState.WaitingForConfirmation) {
+      setStreamingState(StreamingState.Idle);
+    }
     currentGeminiMessageIdRef.current = null;
     currentToolGroupIdRef.current = null;
-  }, []);
+  }, [streamingState]);
 
   // Input Handling Effect for Abort
   useInput((input, key) => {
-    // Close SSE connection on escape during response
-    if (streamingState === StreamingState.Responding && key.escape) {
+    if (
+      (streamingState === StreamingState.Responding ||
+       streamingState === StreamingState.WaitingForConfirmation) &&
+      key.escape
+    ) {
       cleanupEventSource();
       addErrorMessageToHistory(
-        new Error('Request cancelled by user'), // Use standard Error
+        new Error('Request cancelled by user'),
         setHistory,
         () => getNextMessageId(Date.now()),
       );
     }
   });
+
+  // Function to send confirmation decision to the server
+  const sendToolConfirmation = useCallback(
+    async (callId: string, confirmed: boolean) => {
+      const confirmUrl = `${serverBaseUrl}/api/confirmTool`; // Define endpoint URL
+      try {
+        console.log(`[CLI] Sending confirmation for ${callId}: ${confirmed}`);
+        await axios.post(confirmUrl, { callId, confirmed });
+        // Assuming server handles resuming the stream via the original SSE connection
+        // Optionally, reset state here or wait for server events?
+        // For now, let's reset to idle after sending confirmation
+        setStreamingState(StreamingState.Idle);
+      } catch (error) {
+        console.error('[CLI] Failed to send tool confirmation:', error);
+        addErrorMessageToHistory(
+          new Error(`Failed to send confirmation: ${getErrorMessage(error)}`),
+          setHistory,
+          () => getNextMessageId(Date.now()),
+        );
+        // Reset state even on error to allow user to try again?
+        setStreamingState(StreamingState.Idle);
+      }
+    },
+    [serverBaseUrl, setHistory, getNextMessageId], // Add dependencies
+  );
 
   const submitQuery = useCallback(
     async (query: string) => {
@@ -154,21 +183,25 @@ export const useGeminiStream = (
 
               // Call the adapted history updater function
               handleToolCallChunk(
-                serverEvent.payload, // Pass the payload directly
+                serverEvent.payload,
                 setHistory,
                 () => getNextMessageId(userMessageTimestamp),
                 currentToolGroupIdRef,
               );
-              // console.log('[CLI] Received tool call request:', serverEvent.payload); // Removed placeholder
+              if (serverEvent.payload.requiresConfirmation) {
+                setStreamingState(StreamingState.WaitingForConfirmation);
+              }
             } else if (serverEvent.type === 'tool_call_result') {
               // Call the new history update function for results
               handleToolCallResult(
-                serverEvent.payload, // Pass the result payload
+                serverEvent.payload,
                 setHistory,
                 currentToolGroupIdRef,
               );
             } else if (serverEvent.type === 'done') {
-              cleanupEventSource();
+              if (streamingState !== StreamingState.WaitingForConfirmation) {
+                cleanupEventSource();
+              }
             } else if (serverEvent.type === 'error') {
               console.error('[CLI] Received error from server:', serverEvent.payload);
               addErrorMessageToHistory(
@@ -217,5 +250,5 @@ export const useGeminiStream = (
     [streamingState, setHistory, getNextMessageId, updateGeminiMessage, cleanupEventSource, serverBaseUrl],
   );
 
-  return { streamingState, submitQuery, initError };
+  return { streamingState, submitQuery, initError, sendToolConfirmation };
 };

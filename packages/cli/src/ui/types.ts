@@ -9,8 +9,15 @@ import type { ToolResultDisplay } from '@gemini-code/server';
 export enum ToolCallStatus {
   Pending = 'Pending',
   Invoked = 'Invoked',
+  Confirming = 'Confirming',
   Success = 'Success',
   Error = 'Error',
+}
+
+export interface ToolConfirmationPayload {
+  callId: string;
+  name: string;
+  args: Record<string, unknown>;
 }
 
 export interface IndividualToolCallDisplay {
@@ -19,6 +26,7 @@ export interface IndividualToolCallDisplay {
   description: string;
   resultDisplay: ToolResultDisplay | undefined;
   status: ToolCallStatus;
+  confirmationPayload?: ToolConfirmationPayload;
 }
 
 export interface HistoryItemBase {

@@ -34,7 +34,7 @@ export const App = ({ config }: AppProps) => {
 
   const serverUrl = config.getServerUrl();
 
-  const { streamingState, submitQuery, initError } = useGeminiStream(
+  const { streamingState, submitQuery, initError, sendToolConfirmation } = useGeminiStream(
     setHistory,
     serverUrl,
   );
@@ -65,6 +65,17 @@ export const App = ({ config }: AppProps) => {
     onSubmit: submitQuery,
     isActive: isInputActive,
   });
+
+  // Function to handle tool confirmation decision
+  const handleSubmitToolConfirmation = (
+    callId: string,
+    confirmed: boolean,
+  ) => {
+    console.log(`[App] User decision for ${callId}: ${confirmed}`);
+    // Call the function from the hook to send decision to server
+    sendToolConfirmation(callId, confirmed);
+    // No need to set state here, hook does it
+  };
 
   return (
     <Box flexDirection="column" padding={1} marginBottom={1} width="100%">
@@ -120,7 +131,10 @@ export const App = ({ config }: AppProps) => {
         )}
 
       <Box flexDirection="column">
-        <HistoryDisplay history={history} onSubmit={submitQuery} />
+        <HistoryDisplay
+          history={history}
+          onSubmitToolConfirmation={handleSubmitToolConfirmation}
+        />
         <LoadingIndicator
           isLoading={streamingState === StreamingState.Responding}
           currentLoadingPhrase={currentLoadingPhrase}

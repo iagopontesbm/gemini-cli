@@ -7,7 +7,7 @@ import { FunctionDeclaration, Part } from '@google/genai';
 import { loadEnvironment, createServerConfig } from './config/config.js';
 import { GeminiClient } from './core/gemini-client.js';
 import { GeminiEventType, ServerTool } from './core/turn.js';
-import { ToolResult } from './tools/tools.js';
+import { ToolResult, ToolResultDisplay } from './tools/tools.js';
 // Import the event type definition from turn.ts
 import type { ServerGeminiStreamEvent } from './core/turn.js';
 // Import tool logic classes (adjust imports as needed based on final structure)
@@ -19,6 +19,18 @@ import { EditLogic } from './tools/edit.js';
 import { TerminalLogic } from './tools/terminal.js';
 import { WriteFileLogic } from './tools/write-file.js';
 import { WebFetchLogic } from './tools/web-fetch.js';
+
+// Interface for storing pending confirmation details
+interface PendingConfirmation {
+  callId: string;
+  name: string;
+  args: Record<string, unknown>;
+  toolDefinition: ServerTool; // Store the tool itself for execution
+  // TODO: Add mechanism to signal back / store original SSE response ref (carefully)
+}
+
+// Simple in-memory store for pending confirmations
+const pendingConfirmations = new Map<string, PendingConfirmation>();
 
 // Define the structure for Server-Sent Events
 interface SseEvent {
@@ -171,6 +183,49 @@ app.get('/api/generate', async (req: Request, res: Response) => {
     console.log(`SSE stream finished for prompt: ${userInput}`);
   }
 });
+
+// --- NEW Endpoint: Handle Confirmation Decision ---
+app.post('/api/confirmTool', async (req: Request, res: Response) => {
+  const { callId, confirmed } = req.body;
+
+  if (typeof callId !== 'string' || typeof confirmed !== 'boolean') {
+    return res.status(400).json({ error: 'Invalid request body. Expecting { callId: string, confirmed: boolean }' });
+  }
+
+  const pendingRequest = pendingConfirmations.get(callId);
+
+  if (!pendingRequest) {
+    console.warn(`[confirmTool] Confirmation received for unknown or expired callId: ${callId}`);
+    return res.status(404).json({ error: 'Tool call ID not found or already handled.' });
+  }
+
+  pendingConfirmations.delete(callId);
+  console.log(`[confirmTool] Handling decision for ${callId}: ${confirmed}`);
+
+  let toolResult: ToolResult | null = null;
+  let executionError: Error | null = null;
+
+  if (confirmed) {
+    try {
+      console.log(`[confirmTool] Executing confirmed tool: ${pendingRequest.name}`);
+      toolResult = await pendingRequest.toolDefinition.execute(pendingRequest.args);
+      console.log(`[confirmTool] Execution success for ${callId}`);
+    } catch (error) {
+      console.error(`[confirmTool] Execution error for ${callId}:`, error);
+      executionError = error instanceof Error ? error : new Error(String(error));
+    }
+  } else {
+    console.log(`[confirmTool] Execution denied by user for ${callId}`);
+    executionError = new Error('Tool execution denied by user.');
+    toolResult = { llmContent: `Tool call ${pendingRequest.name} denied by user.`, returnDisplay: 'Denied by user.' };
+  }
+
+  // TODO: Implement mechanism to send result/error back to original SSE connection and Gemini API flow.
+  // This is the complex coordination part.
+
+  res.status(200).json({ message: `Confirmation for ${callId} processed.` });
+});
+// --- END NEW Endpoint ---
 
 // Placeholder for other API routes
 // Example: app.post('/apply', (req, res) => { /* ... logic ... */ });

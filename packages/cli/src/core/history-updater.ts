@@ -14,6 +14,7 @@ import {
   // ToolConfirmationOutcome, // Removed
   // ToolEditConfirmationDetails, // Removed
   // ToolExecuteConfirmationDetails, // Removed
+  ToolConfirmationPayload, // Import new type
 } from '../ui/types.js';
 import type { ToolResultDisplay } from '@gemini-code/server';
 
@@ -22,6 +23,7 @@ interface ServerToolCallRequestPayload {
   callId: string;
   name: string;
   args: Record<string, unknown>;
+  requiresConfirmation?: boolean; // Add flag
 }
 
 // Define the structure of the payload for tool call results
@@ -46,7 +48,20 @@ export const handleToolCallChunk = (
   getNextMessageId: () => number,
   currentToolGroupIdRef: React.MutableRefObject<number | null>,
 ): void => {
-  // Simplified description - potentially enhance later if server sends more info
+  // Determine status and confirmation payload based on flag
+  const requiresConfirmation = serverPayload.requiresConfirmation ?? false;
+  const status = requiresConfirmation
+    ? ToolCallStatus.Confirming
+    : ToolCallStatus.Pending;
+  const confirmationPayload: ToolConfirmationPayload | undefined = requiresConfirmation
+    ? { // Store needed data if confirming
+        callId: serverPayload.callId,
+        name: serverPayload.name,
+        args: serverPayload.args,
+      }
+    : undefined;
+
+  // Simplified description - enhance later if needed
   const description = `${serverPayload.name} requested with args: ${JSON.stringify(serverPayload.args)}`;
   const toolDisplayName = serverPayload.name;
 
@@ -56,7 +71,8 @@ export const handleToolCallChunk = (
     description,
     // resultDisplay: serverPayload.resultDisplay, // Server doesn't send result in request event
     resultDisplay: undefined,
-    status: ToolCallStatus.Pending, // Show as pending initially
+    status: status, // Use determined status
+    confirmationPayload: confirmationPayload, // Add confirmation payload
     // confirmationDetails: undefined, // Confirmation handled server-side
   };
 

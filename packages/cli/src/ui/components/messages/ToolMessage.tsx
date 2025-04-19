@@ -7,14 +7,23 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
-import { IndividualToolCallDisplay, ToolCallStatus } from '../../types.js';
+import {
+  IndividualToolCallDisplay,
+  ToolCallStatus,
+  ToolConfirmationPayload,
+} from '../../types.js';
 import { DiffRenderer } from './DiffRenderer.js';
 // Import FileDiff and ToolResultDisplay from server package
 import type { FileDiff, ToolResultDisplay } from '@gemini-code/server';
 
-export const ToolMessage: React.FC<
-  Omit<IndividualToolCallDisplay, 'confirmationDetails'>
-> = ({ callId, name, description, resultDisplay, status }) => {
+export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
+  callId,
+  name,
+  description,
+  resultDisplay,
+  status,
+  confirmationPayload,
+}) => {
   const typedResultDisplay = resultDisplay as ToolResultDisplay | undefined;
 
   let color = 'gray';
@@ -25,6 +34,10 @@ export const ToolMessage: React.FC<
       break;
     case ToolCallStatus.Invoked:
       prefix = 'Executing:';
+      break;
+    case ToolCallStatus.Confirming:
+      color = 'yellow';
+      prefix = 'Confirm:';
       break;
     case ToolCallStatus.Success:
       color = 'green';
@@ -60,6 +73,12 @@ export const ToolMessage: React.FC<
             : ` - ${description}`}
         </Text>
       </Box>
+      {status === ToolCallStatus.Confirming && confirmationPayload && (
+        <Box marginLeft={2} borderStyle="round" borderColor="yellow" paddingX={1} marginY={1}>
+          <Text color="yellow">Confirmation needed for {confirmationPayload.name}. Args: {JSON.stringify(confirmationPayload.args)}</Text>
+          <Text color="gray">(Confirmation UI placeholder)</Text>
+        </Box>
+      )}
       {status === ToolCallStatus.Success && typedResultDisplay && (
         <Box flexDirection="column" marginLeft={2}>
           {typeof typedResultDisplay === 'string' ? (

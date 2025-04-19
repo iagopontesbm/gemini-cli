@@ -12,14 +12,16 @@ import { GeminiMessage } from './messages/GeminiMessage.js';
 import { InfoMessage } from './messages/InfoMessage.js';
 import { ErrorMessage } from './messages/ErrorMessage.js';
 import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
+import { PartListUnion } from '@google/genai';
 
 interface HistoryDisplayProps {
   history: HistoryItem[];
-  onSubmit: (value: string) => void;
+  onSubmitToolConfirmation: (callId: string, confirmed: boolean) => void;
 }
 
 export const HistoryDisplay: React.FC<HistoryDisplayProps> = ({
   history,
+  onSubmitToolConfirmation,
 }) => (
   // No grouping logic needed here anymore
   <Box flexDirection="column">
@@ -33,7 +35,10 @@ export const HistoryDisplay: React.FC<HistoryDisplayProps> = ({
 
         {/* Render the tool group component */}
         {item.type === 'tool_group' && (
-          <ToolGroupMessage toolCalls={item.tools} />
+          <ToolGroupMessage
+            toolCalls={item.tools}
+            onSubmitDecision={onSubmitToolConfirmation}
+          />
         )}
       </Box>
     ))}
