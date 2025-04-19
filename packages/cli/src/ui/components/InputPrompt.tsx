@@ -40,12 +40,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({ onSubmit }) => {
         value={value}
         onChange={setValue}
         placeholder="Enter your message or use tools..."
-        onSubmit={() => {
-          if (value.trim()) {
-            onSubmit(value);
-            setValue('');
-          }
-        }}
+        onSubmit={() => {/* Empty to prevent double submission */}}
       />
     </Box>
   );

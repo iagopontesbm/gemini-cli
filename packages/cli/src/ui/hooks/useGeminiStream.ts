@@ -50,7 +50,8 @@ export const useGeminiStream = (
   const chatSessionRef = useRef<Chat | null>(null);
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const messageIdCounterRef = useRef(0);
-
+  const currentGeminiMessageIdRef = useRef<number | null>(null);
+  
   // Initialize Client Effect - uses props now
   useEffect(() => {
     setInitError(null);
@@ -79,7 +80,21 @@ export const useGeminiStream = (
     return baseTimestamp + messageIdCounterRef.current;
   }, []);
 
-  // Submit Query Callback needs significant changes
+  // Helper function to update Gemini message content
+  const updateGeminiMessage = useCallback(
+    (messageId: number, newContent: string) => {
+      setHistory((prevHistory) =>
+        prevHistory.map((item) =>
+          item.id === messageId && item.type === 'gemini'
+            ? { ...item, text: newContent }
+            : item
+        )
+      );
+    },
+    [setHistory]
+  );
+
+  // Improved submit query function
   const submitQuery = useCallback(
     async (query: PartListUnion) => {
       if (streamingState === StreamingState.Responding) return;
@@ -108,22 +123,19 @@ export const useGeminiStream = (
       setInitError(null);
       messageIdCounterRef.current = 0; // Reset counter for new submission
       const chat = chatSessionRef.current;
-      let currentToolGroupId: number | null = null; // Track current tool group
+      let currentToolGroupId: number | null = null;
+      
+      // For function responses, we don't need to add a user message
+      if (typeof query === 'string') {
+        // Only add user message for string queries, not for function responses
+        addHistoryItem(
+          setHistory,
+          { type: 'user', text: query },
+          userMessageTimestamp,
+        );
+      }
 
       try {
-        if (typeof query === 'string') {
-          addHistoryItem(
-            setHistory,
-            { type: 'user', text: query },
-            userMessageTimestamp,
-          );
-          // TODO: Handle allowlisted commands if still desired
-        } else {
-          // Assume it's a function response part, just add it visually if needed
-          // The actual content is already in the chat history managed by the client/SDK
-          // addHistoryItem(setHistory, { type: 'tool_result', text: 'Tool Result Submitted' }, userMessageTimestamp);
-        }
-
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
@@ -137,19 +149,37 @@ export const useGeminiStream = (
         const stream = client.sendMessageStream(chat, query, serverTools, signal);
 
         // Process the stream events from the server logic
+        let currentGeminiText = ''; // To accumulate message content
+        let hasInitialGeminiResponse = false;
+        
         for await (const event of stream) {
           if (signal.aborted) break;
 
-          const eventTimestamp = getNextMessageId(userMessageTimestamp);
-
           if (event.type === ServerGeminiEventType.Content) {
-            addHistoryItem(
-              setHistory,
-              { type: 'gemini', text: event.value },
-              eventTimestamp,
-            );
-            currentToolGroupId = null;
+            // For content events, accumulate the text and update an existing message or create a new one
+            currentGeminiText += event.value;
+            
+            if (!hasInitialGeminiResponse) {
+              // Create a new Gemini message if this is the first content event
+              hasInitialGeminiResponse = true;
+              const eventTimestamp = getNextMessageId(userMessageTimestamp);
+              currentGeminiMessageIdRef.current = eventTimestamp;
+              
+              addHistoryItem(
+                setHistory,
+                { type: 'gemini', text: currentGeminiText },
+                eventTimestamp,
+              );
+            } else if (currentGeminiMessageIdRef.current !== null) {
+              // Update the existing message with accumulated content
+              updateGeminiMessage(currentGeminiMessageIdRef.current, currentGeminiText);
+            }
           } else if (event.type === ServerGeminiEventType.ToolCallRequest) {
+            // Reset the Gemini message tracking for the next response
+            currentGeminiText = '';
+            hasInitialGeminiResponse = false;
+            currentGeminiMessageIdRef.current = null;
+            
             const { callId, name, args } = event.value;
 
             const cliTool = toolRegistry.getTool(name); // Get the full CLI tool
@@ -159,7 +189,7 @@ export const useGeminiStream = (
             }
 
             if (currentToolGroupId === null) {
-              currentToolGroupId = eventTimestamp;
+              currentToolGroupId = getNextMessageId(userMessageTimestamp);
               // Add explicit cast to Omit<HistoryItem, 'id'>
               addHistoryItem(
                 setHistory,
@@ -255,9 +285,10 @@ export const useGeminiStream = (
                   return item;
                 }),
               );
+              
+              // Execute the function and continue the stream
               await submitQuery(resultPart);
               return;
-
             } catch (execError: unknown) {
                const error = new Error(`Tool execution failed: ${execError instanceof Error ? execError.message : String(execError)}`);
                const errorPart = {
@@ -307,8 +338,8 @@ export const useGeminiStream = (
         }
       }
     },
-    // Dependencies need careful review - likely missing some
-    [streamingState, setHistory, apiKey, model, getNextMessageId]
+    // Dependencies need careful review - including updateGeminiMessage
+    [streamingState, setHistory, apiKey, model, getNextMessageId, updateGeminiMessage]
   );
 
   return { streamingState, submitQuery, initError };
