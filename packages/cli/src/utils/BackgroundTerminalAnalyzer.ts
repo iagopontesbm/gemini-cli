@@ -12,9 +12,7 @@ import {
   GeminiClient,
 } from '@gemini-code/server';
 import { promises as fs } from 'fs';
-import { exec as _exec, spawn as _spawn } from 'child_process';
-import _path from 'path';
-import _os from 'os';
+import { exec as _exec } from 'child_process';
 import { promisify } from 'util';
 
 // Define the AnalysisStatus type alias

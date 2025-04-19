@@ -18,10 +18,6 @@ import { WriteFileTool } from './tools/write-file.tool.js';
 import { WebFetchTool } from './tools/web-fetch.tool.js';
 import { loadCliConfig } from './config/config.js';
 
-// Removed helloServer import and call
-// import { helloServer } from '@gemini-code/server';
-// helloServer();
-
 async function main() {
   // Load configuration
   const config = loadCliConfig();
@@ -32,10 +28,7 @@ async function main() {
   // Render UI, passing necessary config values
   render(
     React.createElement(App, {
-      directory: config.getTargetDir(),
-      // Pass other config like apiKey and model if App needs them
-      apiKey: config.getApiKey(),
-      model: config.getModel(),
+      config,
     }),
   );
 }

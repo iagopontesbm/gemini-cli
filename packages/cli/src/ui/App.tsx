@@ -22,20 +22,19 @@ import {
   useStartupWarnings,
   useInitializationErrorEffect,
 } from './hooks/useAppEffects.js';
+import type { Config } from '@gemini-code/server';
 
 interface AppProps {
-  directory: string;
-  apiKey: string;
-  model: string;
+  config: Config;
 }
 
-export const App = ({ directory, apiKey, model }: AppProps) => {
+export const App = ({ config }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const { streamingState, submitQuery, initError } = useGeminiStream(
     setHistory,
-    apiKey,
-    model,
+    config.getApiKey(),
+    config.getModel(),
   );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
@@ -74,7 +73,7 @@ export const App = ({ directory, apiKey, model }: AppProps) => {
 
   return (
     <Box flexDirection="column" padding={1} marginBottom={1} width="100%">
-      <Header cwd={directory} />
+      <Header cwd={config.getTargetDir()} />
 
       {startupWarnings.length > 0 && (
         <Box
