@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { Box, Text } from 'ink';
 import type { HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
-import { useInputHistory } from './hooks/useInputHistory.js';
 import { Header } from './components/Header.js';
 import { Tips } from './components/Tips.js';
 import { HistoryDisplay } from './components/HistoryDisplay.js';
@@ -29,6 +28,7 @@ interface AppProps {
 }
 
 export const App = ({ directory }: AppProps) => {
+  const [query, setQuery] = useState('');
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const { streamingState, submitQuery, initError } =
@@ -39,35 +39,7 @@ export const App = ({ directory }: AppProps) => {
   useStartupWarnings(setStartupWarnings);
   useInitializationErrorEffect(initError, history, setHistory);
 
-  const userMessages = useMemo(
-    () =>
-      history
-        .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
-          item.type === 'user' &&
-          typeof item.text === 'string' &&
-          item.text.trim() !== ''
-        )
-        .map((item) => item.text),
-    [history]
-  );
-
-  const isWaitingForToolConfirmation = history.some(
-    (item) =>
-      item.type === 'tool_group' &&
-      item.tools.some((tool) => tool.confirmationDetails !== undefined),
-  );
-  const isInputActive =
-    streamingState === StreamingState.Idle &&
-    !initError &&
-    !isWaitingForToolConfirmation;
-
-  const { query, setQuery, resetHistoryNav, inputKey } = useInputHistory({
-    userMessages,
-    isActive: isInputActive,
-  });
-
   const handleInputSubmit = (value: PartListUnion) => {
-    resetHistoryNav();
     submitQuery(value)
       .then(() => {
         setQuery('');
@@ -76,6 +48,13 @@ export const App = ({ directory }: AppProps) => {
         setQuery('');
       });
   };
+
+  const isWaitingForToolConfirmation = history.some(
+    (item) =>
+      item.type === 'tool_group' &&
+      item.tools.some((tool) => tool.confirmationDetails !== undefined),
+  );
+  const isInputActive = streamingState === StreamingState.Idle && !initError;
 
   return (
     <Box flexDirection="column" padding={1} marginBottom={1} width="100%">
@@ -140,13 +119,12 @@ export const App = ({ directory }: AppProps) => {
         />
       </Box>
 
-      {!isWaitingForToolConfirmation && (
+      {!isWaitingForToolConfirmation && isInputActive && (
         <InputPrompt
           query={query}
           setQuery={setQuery}
           onSubmit={handleInputSubmit}
           isActive={isInputActive}
-          forceKey={inputKey}
         />
       )}
 

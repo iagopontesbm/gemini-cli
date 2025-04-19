@@ -14,14 +14,12 @@ interface InputPromptProps {
   setQuery: (value: string) => void;
   onSubmit: (value: string) => void;
   isActive: boolean;
-  forceKey: number;
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
   query,
   setQuery,
   onSubmit,
-  forceKey,
 }) => {
   const model = globalConfig.getModel();
 
@@ -30,7 +28,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       <Text color={'white'}>&gt; </Text>
       <Box flexGrow={1}>
         <TextInput
-          key={forceKey}
           value={query}
           onChange={setQuery}
           onSubmit={onSubmit}
