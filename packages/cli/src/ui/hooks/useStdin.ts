@@ -1,4 +1,3 @@
-// src/hooks/usePipedInput.ts
 import { useState, useEffect } from 'react';
 import { useStdin } from 'ink';
 
