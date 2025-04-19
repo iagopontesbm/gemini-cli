@@ -8,6 +8,8 @@ import { loadEnvironment, createServerConfig } from './config/config.js';
 import { GeminiClient } from './core/gemini-client.js';
 import { GeminiEventType, ServerTool } from './core/turn.js';
 import { ToolResult } from './tools/tools.js';
+// Import the event type definition from turn.ts
+import type { ServerGeminiStreamEvent } from './core/turn.js';
 // Import tool logic classes (adjust imports as needed based on final structure)
 import { ReadFileLogic } from './tools/read-file.js';
 import { LSLogic } from './tools/ls.js';
@@ -18,6 +20,12 @@ import { TerminalLogic } from './tools/terminal.js';
 import { WriteFileLogic } from './tools/write-file.js';
 import { WebFetchLogic } from './tools/web-fetch.js';
 
+// Define the structure for Server-Sent Events
+interface SseEvent {
+  type: 'content' | 'tool_call_request' | 'tool_call_result' | 'error' | 'done';
+  payload: any;
+}
+
 dotenv.config(); // Load environment variables from .env file
 
 const app = express();
@@ -26,26 +34,44 @@ const port = process.env.PORT || 3000; // Default to port 3000 if not specified
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// Helper function to send SSE data
+const sendSseEvent = (res: Response, eventData: SseEvent) => {
+  res.write(`data: ${JSON.stringify(eventData)}\n\n`);
+};
+
 // Basic health check endpoint
 app.get('/healthz', (req: Request, res: Response) => {
   res.status(200).send('OK');
 });
 
-// Endpoint to handle user requests and generate responses via LLM
-app.post('/api/generate', async (req: Request, res: Response) => {
+// Change POST to GET for SSE endpoint, pass prompt as query param
+app.get('/api/generate', async (req: Request, res: Response) => {
+  // Set SSE headers
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders(); // Flush headers to establish SSE connection
+
+  // Get prompt from query parameter
+  const userInput = req.query.prompt as string | undefined;
+
+  if (!userInput || typeof userInput !== 'string') {
+    sendSseEvent(res, { type: 'error', payload: 'Invalid request. Expecting ?prompt=... query parameter.' });
+    res.end();
+    return;
+  }
+
+  console.log(`SSE Connection established for prompt: ${userInput}`);
+
+  // Keep track of connection status
+  let isClosed = false;
+  req.on('close', () => {
+    console.log('SSE Connection closed by client.');
+    isClosed = true;
+    // TODO: Potentially signal GeminiClient to abort?
+  });
+
   try {
-    const userInput = req.body.prompt;
-
-    if (!userInput || typeof userInput !== 'string') {
-      return res
-        .status(400)
-        .json({
-          error: 'Invalid request body. Expecting { "prompt": "string" }',
-        });
-    }
-
-    console.log(`Received prompt: ${userInput}`);
-
     // Load environment variables
     loadEnvironment();
 
@@ -58,12 +84,9 @@ app.post('/api/generate', async (req: Request, res: Response) => {
     // Validate required environment variables
     if (!apiKey) {
       // API Key is still mandatory
-      return res
-        .status(500)
-        .json({
-          error: 'Internal Server Error',
-          details: 'GEMINI_API_KEY environment variable is not set.',
-        });
+      sendSseEvent(res, { type: 'error', payload: 'GEMINI_API_KEY environment variable is not set.' });
+      res.end();
+      return;
     }
     /* // Remove checks for model and targetDir as they now have defaults
     if (!model) {
@@ -114,30 +137,38 @@ app.post('/api/generate', async (req: Request, res: Response) => {
     const requestParts: Part[] = [{ text: userInput }];
 
     // Send the message and process the stream
-    let aggregatedResponse = '';
-    const stream = geminiClient.sendMessageStream(
-      chat,
-      requestParts,
-      serverTools,
-    );
+    const stream: AsyncGenerator<ServerGeminiStreamEvent> = geminiClient.sendMessageStream(chat, requestParts, serverTools);
 
     for await (const event of stream) {
+      if (isClosed) break;
+
       if (event.type === GeminiEventType.Content) {
-        aggregatedResponse += event.value;
+        sendSseEvent(res, { type: 'content', payload: event.value });
       } else if (event.type === GeminiEventType.ToolCallRequest) {
         console.log(`[Server] Tool call requested: ${event.value.name}`);
+        sendSseEvent(res, { type: 'tool_call_request', payload: event.value });
+      } else if (event.type === GeminiEventType.ToolCallResult) {
+        console.log(`[Server] Tool call result for ${event.value.name}: ${event.value.status}`);
+        sendSseEvent(res, { type: 'tool_call_result', payload: event.value });
       }
     }
 
-    // Send the final aggregated response
-    res.status(200).json({ response: aggregatedResponse });
+    if (!isClosed) {
+      sendSseEvent(res, { type: 'done', payload: null });
+    }
+
   } catch (error: unknown) {
-    console.error('[Server] Error processing /api/generate:', error);
+    console.error('[Server] Error processing /api/generate stream:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred';
-    res
-      .status(500)
-      .json({ error: 'Internal Server Error', details: errorMessage });
+    if (!isClosed) {
+      sendSseEvent(res, { type: 'error', payload: errorMessage });
+    }
+  } finally {
+    if (!isClosed) {
+      res.end(); // End the response stream when done or on error
+    }
+    console.log(`SSE stream finished for prompt: ${userInput}`);
   }
 });
 
@@ -179,3 +210,4 @@ startServer();
 
 // Export the app and server for potential testing or extension
 export { app, server, startServer, shutdown };
+

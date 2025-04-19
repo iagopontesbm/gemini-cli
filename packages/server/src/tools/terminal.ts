@@ -90,6 +90,7 @@ const BANNED_COMMAND_ROOTS = [
  */
 export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
   static readonly Name = 'execute_bash_command';
+  readonly requiresConfirmation = true;
   private readonly rootDirectory: string;
 
   constructor(rootDirectory: string) {

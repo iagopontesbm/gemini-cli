@@ -7,16 +7,48 @@
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
-// Import server config logic
-import {
-  Config,
-  loadEnvironment,
-  createServerConfig,
-} from '@gemini-code/server';
+// Only import loadEnvironment from server config
+import { loadEnvironment } from '@gemini-code/server';
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-preview-04-17';
+const DEFAULT_GEMINI_MODEL = 'gemini-pro'; // Update default model maybe?
+const DEFAULT_SERVER_URL = 'http://localhost:3000';
 
-// Keep CLI-specific argument parsing
+// Define a specific configuration class for the CLI
+export class CliConfig {
+  private apiKey: string;
+  private model: string;
+  private targetDir: string;
+  private serverUrl: string;
+
+  constructor(
+    apiKey: string,
+    model: string,
+    targetDir: string,
+    serverUrl: string,
+  ) {
+    this.apiKey = apiKey;
+    this.model = model;
+    this.targetDir = targetDir;
+    this.serverUrl = serverUrl;
+  }
+
+  getApiKey(): string {
+    return this.apiKey;
+  }
+
+  getModel(): string {
+    return this.model;
+  }
+
+  getTargetDir(): string {
+    return this.targetDir;
+  }
+
+  getServerUrl(): string {
+    return this.serverUrl;
+  }
+}
+
 interface CliArgs {
   target_dir: string | undefined;
   model: string | undefined;
@@ -42,13 +74,11 @@ function parseArguments(): CliArgs {
   return argv as unknown as CliArgs;
 }
 
-// Renamed function for clarity
-export function loadCliConfig(): Config {
-  // Load .env file using logic from server package
+export function loadCliConfig(): CliConfig { // Return type is now CliConfig
   loadEnvironment();
 
-  // Check API key (CLI responsibility)
-  if (!process.env.GEMINI_API_KEY) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
     console.log(
       'GEMINI_API_KEY is not set. See https://ai.google.dev/gemini-api/docs/api-key to obtain one. ' +
         'Please set it in your .env file or as an environment variable.',
@@ -56,16 +86,18 @@ export function loadCliConfig(): Config {
     process.exit(1);
   }
 
-  // Parse CLI arguments
   const argv = parseArguments();
 
-  // Create config using factory from server package
-  return createServerConfig(
-    process.env.GEMINI_API_KEY,
+  // Get server URL from environment or use default
+  const serverUrl = process.env.GEMINI_CODE_SERVER_URL || DEFAULT_SERVER_URL;
+
+  // Instantiate the new CliConfig class
+  return new CliConfig(
+    apiKey,
     argv.model || DEFAULT_GEMINI_MODEL,
     argv.target_dir || process.cwd(),
+    serverUrl,
   );
 }
 
-// The globalConfig export is problematic, CLI entry point (gemini.ts) should call loadCliConfig
-// export const globalConfig = loadCliConfig(); // Remove or replace global export
+// Removed globalConfig export

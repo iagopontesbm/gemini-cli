@@ -32,7 +32,7 @@ export interface WriteFileToolParams {
  */
 export class WriteFileLogic extends BaseTool<WriteFileToolParams, ToolResult> {
   static readonly Name: string = 'write_file';
-
+  readonly requiresConfirmation = true;
   private readonly rootDirectory: string;
 
   constructor(rootDirectory: string) {

@@ -18,15 +18,7 @@ import {
 import { CoreSystemPrompt } from './prompts.js';
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
-import { Turn, ServerTool, GeminiEventType } from './turn.js';
-
-// Import the ServerGeminiStreamEvent type
-type ServerGeminiStreamEvent =
-  | { type: GeminiEventType.Content; value: string }
-  | {
-      type: GeminiEventType.ToolCallRequest;
-      value: { callId: string; name: string; args: Record<string, unknown> };
-    };
+import { Turn, ServerTool, GeminiEventType, ServerGeminiStreamEvent } from './turn.js';
 
 export class GeminiClient {
   private ai: GoogleGenAI;

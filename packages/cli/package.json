@@ -18,10 +18,10 @@
   ],
   "dependencies": {
     "@gemini-code/server": "1.0.0",
-    "@google/genai": "^0.8.0",
     "axios": "^1.6.8",
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
+    "eventsource": "^2.0.2",
     "fast-glob": "^3.3.3",
     "ink": "^5.2.0",
     "ink-select-input": "^6.0.0",
@@ -33,6 +33,7 @@
   "devDependencies": {
     "@types/diff": "^7.0.2",
     "@types/dotenv": "^6.1.1",
+    "@types/eventsource": "^1.1.15",
     "@types/node": "^20.11.24",
     "@types/react": "^19.1.0",
     "@types/yargs": "^17.0.32",

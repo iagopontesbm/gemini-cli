@@ -5,178 +5,138 @@
  */
 
 import { Part } from '@google/genai';
-import { toolRegistry } from '../tools/tool-registry.js';
+// import { toolRegistry } from '../tools/tool-registry.js'; // Removed
 import {
   HistoryItem,
   IndividualToolCallDisplay,
-  ToolCallEvent,
+  // ToolCallEvent, // Removed
   ToolCallStatus,
-  ToolConfirmationOutcome,
-  ToolEditConfirmationDetails,
-  ToolExecuteConfirmationDetails,
+  // ToolConfirmationOutcome, // Removed
+  // ToolEditConfirmationDetails, // Removed
+  // ToolExecuteConfirmationDetails, // Removed
 } from '../ui/types.js';
 import type { ToolResultDisplay } from '@gemini-code/server';
 
+// Define the structure of the payload received from the server for tool calls
+interface ServerToolCallRequestPayload {
+  callId: string;
+  name: string;
+  args: Record<string, unknown>;
+}
+
+// Define the structure of the payload for tool call results
+interface ServerToolCallResultPayload {
+  callId: string;
+  name: string; // Keep name for potential context
+  status: 'success' | 'error';
+  resultDisplay?: ToolResultDisplay;
+  errorMessage?: string;
+}
+
 /**
- * Processes a tool call chunk and updates the history state accordingly.
- * Manages adding new tool groups or updating existing ones.
- * Resides here as its primary effect is updating history based on tool events.
+ * Processes a tool call request event received from the server via SSE
+ * and updates the CLI history state to display the request.
  */
+// Uncomment and adapt the function
 export const handleToolCallChunk = (
-  chunk: ToolCallEvent,
+  // chunk: ToolCallEvent, // Change parameter type
+  serverPayload: ServerToolCallRequestPayload,
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  submitQuery: (query: Part) => Promise<void>,
+  // submitQuery: (query: Part) => Promise<void>, // No longer needed
   getNextMessageId: () => number,
   currentToolGroupIdRef: React.MutableRefObject<number | null>,
 ): void => {
-  const toolDefinition = toolRegistry.getTool(chunk.name);
-  const description = toolDefinition?.getDescription
-    ? toolDefinition.getDescription(chunk.args)
-    : '';
-  const toolDisplayName = toolDefinition?.displayName ?? chunk.name;
-  let confirmationDetails = chunk.confirmationDetails;
-  if (confirmationDetails) {
-    const originalConfirmationDetails = confirmationDetails;
-    const historyUpdatingConfirm = async (outcome: ToolConfirmationOutcome) => {
-      originalConfirmationDetails.onConfirm(outcome);
+  // Simplified description - potentially enhance later if server sends more info
+  const description = `${serverPayload.name} requested with args: ${JSON.stringify(serverPayload.args)}`;
+  const toolDisplayName = serverPayload.name;
 
-      if (outcome === ToolConfirmationOutcome.Cancel) {
-        let resultDisplay: ToolResultDisplay | undefined;
-        if ('fileDiff' in originalConfirmationDetails) {
-          resultDisplay = {
-            fileDiff: (
-              originalConfirmationDetails as ToolEditConfirmationDetails
-            ).fileDiff,
-          };
-        } else {
-          resultDisplay = `~~${(originalConfirmationDetails as ToolExecuteConfirmationDetails).command}~~`;
-        }
-        handleToolCallChunk(
-          {
-            ...chunk,
-            status: ToolCallStatus.Error,
-            confirmationDetails: undefined,
-            resultDisplay: resultDisplay ?? 'Canceled by user.',
-          },
-          setHistory,
-          submitQuery,
-          getNextMessageId,
-          currentToolGroupIdRef,
-        );
-        const functionResponse: Part = {
-          functionResponse: {
-            name: chunk.name,
-            response: { error: 'User rejected function call.' },
-          },
-        };
-        await submitQuery(functionResponse);
-      } else {
-        const tool = toolRegistry.getTool(chunk.name);
-        if (!tool) {
-          throw new Error(
-            `Tool "${chunk.name}" not found or is not registered.`,
-          );
-        }
-        handleToolCallChunk(
-          {
-            ...chunk,
-            status: ToolCallStatus.Invoked,
-            resultDisplay: 'Executing...',
-            confirmationDetails: undefined,
-          },
-          setHistory,
-          submitQuery,
-          getNextMessageId,
-          currentToolGroupIdRef,
-        );
-        const result = await tool.execute(chunk.args);
-        handleToolCallChunk(
-          {
-            ...chunk,
-            status: ToolCallStatus.Invoked,
-            resultDisplay: result.returnDisplay,
-            confirmationDetails: undefined,
-          },
-          setHistory,
-          submitQuery,
-          getNextMessageId,
-          currentToolGroupIdRef,
-        );
-        const functionResponse: Part = {
-          functionResponse: {
-            name: chunk.name,
-            id: chunk.callId,
-            response: { output: result.llmContent },
-          },
-        };
-        await submitQuery(functionResponse);
-      }
-    };
-
-    confirmationDetails = {
-      ...originalConfirmationDetails,
-      onConfirm: historyUpdatingConfirm,
-    };
-  }
   const toolDetail: IndividualToolCallDisplay = {
-    callId: chunk.callId,
+    callId: serverPayload.callId,
     name: toolDisplayName,
     description,
-    resultDisplay: chunk.resultDisplay,
-    status: chunk.status,
-    confirmationDetails,
+    // resultDisplay: serverPayload.resultDisplay, // Server doesn't send result in request event
+    resultDisplay: undefined,
+    status: ToolCallStatus.Pending, // Show as pending initially
+    // confirmationDetails: undefined, // Confirmation handled server-side
   };
 
   const activeGroupId = currentToolGroupIdRef.current;
   setHistory((prev) => {
-    if (chunk.status === ToolCallStatus.Pending) {
-      if (activeGroupId === null) {
-        // Start a new tool group
-        const newGroupId = getNextMessageId();
-        currentToolGroupIdRef.current = newGroupId;
-        return [
-          ...prev,
-          {
-            id: newGroupId,
-            type: 'tool_group',
-            tools: [toolDetail],
-          } as HistoryItem,
-        ];
-      }
-
-      // Add to existing tool group
-      return prev.map((item) =>
-        item.id === activeGroupId && item.type === 'tool_group'
-          ? item.tools.some((t) => t.callId === toolDetail.callId)
-            ? item // Tool already listed as pending
-            : { ...item, tools: [...item.tools, toolDetail] }
-          : item,
-      );
-    }
-
-    // Update the status of a pending tool within the active group
+    // Logic for adding/updating tool group remains largely the same,
+    // but only deals with adding the pending tool display.
     if (activeGroupId === null) {
-      // Log if an invoked tool arrives without an active group context
-      console.warn(
-        'Received invoked tool status without an active tool group ID:',
-        chunk,
-      );
-      return prev;
+      // Start a new tool group
+      const newGroupId = getNextMessageId();
+      currentToolGroupIdRef.current = newGroupId;
+      return [
+        ...prev,
+        {
+          id: newGroupId,
+          type: 'tool_group',
+          tools: [toolDetail],
+        } as HistoryItem,
+      ];
     }
 
+    // Add to existing tool group if not already present
     return prev.map((item) =>
       item.id === activeGroupId && item.type === 'tool_group'
-        ? {
-            ...item,
-            tools: item.tools.map((t) =>
-              t.callId === toolDetail.callId
-                ? { ...t, ...toolDetail, status: chunk.status } // Update details & status
-                : t,
-            ),
-          }
+        ? item.tools.some((t) => t.callId === toolDetail.callId)
+          ? item // Tool already listed
+          : { ...item, tools: [...item.tools, toolDetail] }
         : item,
     );
+
+    // Removed logic for updating status beyond Pending, as results/errors
+    // are not handled by this specific event anymore.
   });
+};
+
+/**
+ * Processes a tool call result event received from the server via SSE
+ * and updates the status and result display of the corresponding tool call in history.
+ */
+export const handleToolCallResult = (
+  serverPayload: ServerToolCallResultPayload,
+  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
+  currentToolGroupIdRef: React.MutableRefObject<number | null>,
+): void => {
+  const activeGroupId = currentToolGroupIdRef.current;
+  if (activeGroupId === null) {
+    console.warn(
+      '[handleToolCallResult] Received tool result without an active tool group ID:',
+      serverPayload,
+    );
+    return; // Cannot update if we don't know which group it belongs to
+  }
+
+  setHistory((prev) =>
+    prev.map((item) => {
+      if (item.id === activeGroupId && item.type === 'tool_group') {
+        return {
+          ...item,
+          tools: item.tools.map((tool) => {
+            if (tool.callId === serverPayload.callId) {
+              // Update the status and resultDisplay
+              return {
+                ...tool,
+                status:
+                  serverPayload.status === 'success'
+                    ? ToolCallStatus.Success
+                    : ToolCallStatus.Error,
+                resultDisplay:
+                  serverPayload.status === 'error'
+                    ? serverPayload.errorMessage || 'Unknown error' // Display error message on failure
+                    : serverPayload.resultDisplay, // Display ToolResultDisplay on success
+              };
+            }
+            return tool; // Return other tools unchanged
+          }),
+        };
+      }
+      return item; // Return other history items unchanged
+    }),
+  );
 };
 
 /**
@@ -184,10 +144,11 @@ export const handleToolCallChunk = (
  * it to the last non-user message or creating a new entry.
  */
 export const addErrorMessageToHistory = (
-  error: DOMException | Error,
+  error: Error, // Changed type from DOMException | Error
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   getNextMessageId: () => number,
 ): void => {
+  // Simplified error check - DOMException not typically relevant here
   const isAbort = error.name === 'AbortError';
   const errorType = isAbort ? 'info' : 'error';
   const errorText = isAbort
@@ -197,11 +158,13 @@ export const addErrorMessageToHistory = (
   setHistory((prev) => {
     const reversedHistory = [...prev].reverse();
     // Find the last message that isn't from the user to append the error/info to
-    const lastBotMessageIndex = reversedHistory.findIndex(
-      (item) => item.type !== 'user',
+    const lastNonToolMessageIndex = reversedHistory.findIndex(
+      (item) => item.type !== 'user' && item.type !== 'tool_group',
     );
     const originalIndex =
-      lastBotMessageIndex !== -1 ? prev.length - 1 - lastBotMessageIndex : -1;
+      lastNonToolMessageIndex !== -1
+        ? prev.length - 1 - lastNonToolMessageIndex
+        : -1;
 
     if (originalIndex !== -1) {
       // Append error to the last relevant message
@@ -209,12 +172,10 @@ export const addErrorMessageToHistory = (
         if (index === originalIndex) {
           let baseText = '';
           // Determine base text based on item type
+          // Removed tool_group case
           if (item.type === 'gemini') baseText = item.text ?? '';
-          else if (item.type === 'tool_group')
-            baseText = `Tool execution (${item.tools.length} calls)`;
           else if (item.type === 'error' || item.type === 'info')
             baseText = item.text ?? '';
-          // Safely handle potential undefined text
 
           const updatedText = (
             baseText +

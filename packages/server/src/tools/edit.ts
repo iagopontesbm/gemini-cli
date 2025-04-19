@@ -50,7 +50,7 @@ interface CalculatedEdit {
  */
 export class EditLogic extends BaseTool<EditToolParams, ToolResult> {
   static readonly Name = 'replace'; // Keep static name
-
+  readonly requiresConfirmation = true; // Add confirmation flag
   private readonly rootDirectory: string;
 
   /**

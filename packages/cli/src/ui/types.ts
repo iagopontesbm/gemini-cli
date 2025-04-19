@@ -9,19 +9,8 @@ import type { ToolResultDisplay } from '@gemini-code/server';
 export enum ToolCallStatus {
   Pending = 'Pending',
   Invoked = 'Invoked',
-  Confirming = 'Confirming',
   Success = 'Success',
   Error = 'Error',
-}
-
-export interface ToolCallEvent {
-  type: 'tool_call';
-  status: ToolCallStatus;
-  callId: string;
-  name: string;
-  args: Record<string, never>;
-  resultDisplay: ToolResultDisplay | undefined;
-  confirmationDetails: ToolCallConfirmationDetails | undefined;
 }
 
 export interface IndividualToolCallDisplay {
@@ -30,7 +19,6 @@ export interface IndividualToolCallDisplay {
   description: string;
   resultDisplay: ToolResultDisplay | undefined;
   status: ToolCallStatus;
-  confirmationDetails: ToolCallConfirmationDetails | undefined;
 }
 
 export interface HistoryItemBase {
@@ -46,27 +34,3 @@ export type HistoryItem = HistoryItemBase &
     | { type: 'error'; text: string }
     | { type: 'tool_group'; tools: IndividualToolCallDisplay[] }
   );
-
-export interface ToolCallConfirmationDetails {
-  title: string;
-  onConfirm: (outcome: ToolConfirmationOutcome) => Promise<void>;
-}
-
-export interface ToolEditConfirmationDetails
-  extends ToolCallConfirmationDetails {
-  fileName: string;
-  fileDiff: string;
-}
-
-export interface ToolExecuteConfirmationDetails
-  extends ToolCallConfirmationDetails {
-  command: string;
-  rootCommand: string;
-  description: string;
-}
-
-export enum ToolConfirmationOutcome {
-  ProceedOnce,
-  ProceedAlways,
-  Cancel,
-}

@@ -7,7 +7,7 @@ import {
   FunctionDeclaration,
 } from '@google/genai';
 // Removed UI type imports
-import { ToolResult } from '../tools/tools.js'; // Keep ToolResult for now
+import { ToolResult, ToolResultDisplay } from '../tools/tools.js'; // Keep ToolResult for now
 // Removed gemini-stream import (types defined locally)
 
 // --- Types for Server Logic ---
@@ -29,23 +29,39 @@ export interface ServerTool {
   // The execute method signature might differ slightly or be wrapped
   execute(params: Record<string, unknown>): Promise<ToolResult>;
   // validation and description might be handled differently or passed
+  requiresConfirmation?: boolean; // Add optional flag
 }
 
 // Redefine necessary event types locally
 export enum GeminiEventType {
   Content = 'content',
   ToolCallRequest = 'tool_call_request',
+  ToolCallResult = 'tool_call_result',
 }
 
+// Add requiresConfirmation flag to ToolCallRequestInfo
 interface ToolCallRequestInfo {
   callId: string;
   name: string;
   args: Record<string, unknown>;
+  requiresConfirmation?: boolean; // Add flag
+  // Potentially add confirmationDetails here later (e.g., diff, command)
 }
 
-type ServerGeminiStreamEvent =
+// Define structure for the new event type
+interface ToolCallResultInfo {
+  callId: string;
+  name: string; // Include name for context
+  status: 'success' | 'error';
+  resultDisplay?: ToolResultDisplay;
+  errorMessage?: string; // Include error message on failure
+}
+
+// Export the type alias
+export type ServerGeminiStreamEvent =
   | { type: GeminiEventType.Content; value: string }
-  | { type: GeminiEventType.ToolCallRequest; value: ToolCallRequestInfo };
+  | { type: GeminiEventType.ToolCallRequest; value: ToolCallRequestInfo }
+  | { type: GeminiEventType.ToolCallResult; value: ToolCallResultInfo };
 
 // --- Turn Class (Refactored for Server) ---
 
@@ -126,6 +142,21 @@ export class Turn {
       );
       const outcomes = await Promise.all(toolPromises);
 
+      // *** NEW: Yield ToolCallResult events based on outcomes ***
+      for (const outcome of outcomes) {
+        if (signal?.aborted) throw this.abortError(); // Check abort before yielding result
+
+        const resultValue: ToolCallResultInfo = {
+          callId: outcome.callId,
+          name: outcome.name,
+          status: outcome.error ? 'error' : 'success',
+          resultDisplay: outcome.result?.returnDisplay,
+          errorMessage: outcome.error?.message,
+        };
+        yield { type: GeminiEventType.ToolCallResult, value: resultValue };
+      }
+      // *** END NEW ***
+
       // Process outcomes and prepare function responses
       this.fnResponses = this.buildFunctionResponses(outcomes);
       this.pendingToolCalls = []; // Clear pending calls for this turn
@@ -148,8 +179,15 @@ export class Turn {
 
     this.pendingToolCalls.push({ callId, name, args });
 
-    // Yield a request for the tool call, not the pending/confirming status
-    const value: ToolCallRequestInfo = { callId, name, args };
+    // Check the tool definition for the confirmation flag
+    const toolDefinition = this.availableTools.get(name);
+    const requiresConfirmation = toolDefinition?.requiresConfirmation ?? false;
+
+    // TODO: If requiresConfirmation is true, generate confirmation details (diff/command)
+    // and add them to the payload. For now, just send the flag.
+
+    // Include the flag in the event payload
+    const value: ToolCallRequestInfo = { callId, name, args, requiresConfirmation };
     return { type: GeminiEventType.ToolCallRequest, value };
   }
 

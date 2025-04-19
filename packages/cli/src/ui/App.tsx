@@ -22,17 +22,22 @@ import {
   useStartupWarnings,
   useInitializationErrorEffect,
 } from './hooks/useAppEffects.js';
-import type { Config } from '@gemini-code/server';
+import type { CliConfig } from '../config/config.js';
 
 interface AppProps {
-  config: Config;
+  config: CliConfig;
 }
 
 export const App = ({ config }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
-  const { streamingState, submitQuery, initError } =
-    useGeminiStream(setHistory);
+
+  const serverUrl = config.getServerUrl();
+
+  const { streamingState, submitQuery, initError } = useGeminiStream(
+    setHistory,
+    serverUrl,
+  );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
@@ -52,15 +57,8 @@ export const App = ({ config }: AppProps) => {
     [history],
   );
 
-  const isWaitingForToolConfirmation = history.some(
-    (item) =>
-      item.type === 'tool_group' &&
-      item.tools.some((tool) => tool.confirmationDetails !== undefined),
-  );
   const isInputActive =
-    streamingState === StreamingState.Idle &&
-    !initError &&
-    !isWaitingForToolConfirmation;
+    streamingState === StreamingState.Idle && !initError;
 
   const { query, handleSubmit: handleHistorySubmit } = useInputHistory({
     userMessages,
@@ -91,8 +89,7 @@ export const App = ({ config }: AppProps) => {
       <Tips />
 
       {initError &&
-        streamingState !== StreamingState.Responding &&
-        !isWaitingForToolConfirmation && (
+        streamingState !== StreamingState.Responding && (
           <Box
             borderStyle="round"
             borderColor="red"

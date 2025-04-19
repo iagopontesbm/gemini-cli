@@ -6,19 +6,27 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useInput } from 'ink';
-import axios, { CancelTokenSource, isCancel } from 'axios';
+// Remove axios imports
+// import axios, { CancelTokenSource, isCancel } from 'axios';
+import EventSource from 'eventsource'; // Import EventSource
 
-// Import server-side error utilities only
 import { getErrorMessage } from '@gemini-code/server';
-
-// Import CLI types
-import type { HistoryItem } from '../types.js'; // Keep HistoryItem
+import type { HistoryItem } from '../types.js';
 import { StreamingState } from '../../core/gemini-stream.js';
+// Import the history updater
+import {
+  addErrorMessageToHistory,
+  handleToolCallChunk,
+  handleToolCallResult,
+} from '../../core/history-updater.js';
+// Import ToolCallStatus enum for use in history updater call
+import { ToolCallStatus } from '../types.js';
 
-// Removed imports: GeminiClient, ServerGeminiEventType, ToolResult, ServerTool
-// Removed imports: Chat, PartListUnion, FunctionDeclaration
-// Removed imports: Tool, toolRegistry
-// Removed imports: IndividualToolCallDisplay, ToolCallStatus
+// Define the expected structure of events from the server
+interface ServerSseEvent {
+  type: 'content' | 'tool_call_request' | 'tool_call_result' | 'error' | 'done';
+  payload: any;
+}
 
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
@@ -33,43 +41,79 @@ const addHistoryItem = (
 
 export const useGeminiStream = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  // Removed apiKey and model from hook params as they are handled server-side
+  serverBaseUrl: string,
 ) => {
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
   );
-  const [initError, setInitError] = useState<string | null>(null); // Keep for general errors
-  const abortControllerRef = useRef<CancelTokenSource | null>(null); // Use axios cancel token
+  const [initError, setInitError] = useState<string | null>(null);
+  // Use EventSource ref for abortion/closing
+  const eventSourceRef = useRef<EventSource | null>(null);
   const messageIdCounterRef = useRef(0);
-
-  // Removed GeminiClient/Chat initialization effects and refs
-
-  // Input Handling Effect for Abort
-  useInput((input, key) => {
-    if (streamingState === StreamingState.Responding && key.escape) {
-      abortControllerRef.current?.cancel('User aborted request.');
-    }
-  });
+  const currentGeminiMessageIdRef = useRef<number | null>(null);
+  const currentToolGroupIdRef = useRef<number | null>(null); // Ref for grouping tool calls
 
   const getNextMessageId = useCallback((baseTimestamp: number): number => {
     messageIdCounterRef.current += 1;
     return baseTimestamp + messageIdCounterRef.current;
   }, []);
 
+  // Helper function to update Gemini message content (needed for streaming)
+  const updateGeminiMessage = useCallback(
+    (messageId: number, newContent: string) => {
+      setHistory((prevHistory) =>
+        prevHistory.map((item) =>
+          item.id === messageId && item.type === 'gemini'
+            ? { ...item, text: newContent }
+            : item,
+        ),
+      );
+    },
+    [setHistory],
+  );
+
+  // Cleanup function to close EventSource
+  const cleanupEventSource = useCallback(() => {
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+    setStreamingState(StreamingState.Idle);
+    currentGeminiMessageIdRef.current = null;
+    currentToolGroupIdRef.current = null;
+  }, []);
+
+  // Input Handling Effect for Abort
+  useInput((input, key) => {
+    // Close SSE connection on escape during response
+    if (streamingState === StreamingState.Responding && key.escape) {
+      cleanupEventSource();
+      addErrorMessageToHistory(
+        new Error('Request cancelled by user'), // Use standard Error
+        setHistory,
+        () => getNextMessageId(Date.now()),
+      );
+    }
+  });
+
   const submitQuery = useCallback(
     async (query: string) => {
-      // Simplified to only accept string query
       if (streamingState === StreamingState.Responding) return;
       if (query.trim().length === 0) return;
 
       const userMessageTimestamp = Date.now();
-      const serverUrl = 'http://localhost:3000/api/generate'; // Hardcoded for now
+      // Use the passed-in serverUrl
+      const eventSourceUrl = `${serverBaseUrl}/api/generate?prompt=${encodeURIComponent(query)}`;
+
+      // Close any existing connection
+      cleanupEventSource();
 
       setStreamingState(StreamingState.Responding);
       setInitError(null);
-      messageIdCounterRef.current = 0; // Reset counter for new submission
+      messageIdCounterRef.current = 0;
+      let currentGeminiText = '';
+      let hasInitialGeminiResponse = false;
 
-      // Add user message to history
       addHistoryItem(
         setHistory,
         { type: 'user', text: query },
@@ -77,71 +121,101 @@ export const useGeminiStream = (
       );
 
       try {
-        // Use default axios import for CancelToken.source()
-        // eslint-disable-next-line import/no-named-as-default-member
-        abortControllerRef.current = axios.CancelToken.source();
-        // Check if controller was created before accessing token
-        if (!abortControllerRef.current) {
-          throw new Error('Failed to create cancellation token source.');
-        }
-        const cancelToken = abortControllerRef.current.token;
+        // Use the dynamic eventSourceUrl
+        const es = new EventSource(eventSourceUrl);
+        eventSourceRef.current = es;
 
-        const response = await axios.post<{ response: string }>( // Expected response type
-          serverUrl,
-          { prompt: query }, // Request body
-          { cancelToken }, // Pass cancel token
-        );
+        es.onmessage = (event: MessageEvent) => {
+          try {
+            const serverEvent: ServerSseEvent = JSON.parse(event.data);
 
-        const geminiResponseText = response.data.response;
+            if (serverEvent.type === 'content') {
+              currentGeminiText += serverEvent.payload;
+              if (!hasInitialGeminiResponse) {
+                hasInitialGeminiResponse = true;
+                const eventTimestamp = getNextMessageId(userMessageTimestamp);
+                currentGeminiMessageIdRef.current = eventTimestamp;
+                addHistoryItem(
+                  setHistory,
+                  { type: 'gemini', text: currentGeminiText },
+                  eventTimestamp,
+                );
+              } else if (currentGeminiMessageIdRef.current !== null) {
+                updateGeminiMessage(
+                  currentGeminiMessageIdRef.current,
+                  currentGeminiText,
+                );
+              }
+            } else if (serverEvent.type === 'tool_call_request') {
+              // Reset gemini message tracking for next response
+              currentGeminiText = '';
+              hasInitialGeminiResponse = false;
+              currentGeminiMessageIdRef.current = null;
 
-        if (geminiResponseText) {
-          const geminiMessageId = getNextMessageId(userMessageTimestamp);
-          addHistoryItem(
-            setHistory,
-            { type: 'gemini', text: geminiResponseText },
-            geminiMessageId,
+              // Call the adapted history updater function
+              handleToolCallChunk(
+                serverEvent.payload, // Pass the payload directly
+                setHistory,
+                () => getNextMessageId(userMessageTimestamp),
+                currentToolGroupIdRef,
+              );
+              // console.log('[CLI] Received tool call request:', serverEvent.payload); // Removed placeholder
+            } else if (serverEvent.type === 'tool_call_result') {
+              // Call the new history update function for results
+              handleToolCallResult(
+                serverEvent.payload, // Pass the result payload
+                setHistory,
+                currentToolGroupIdRef,
+              );
+            } else if (serverEvent.type === 'done') {
+              cleanupEventSource();
+            } else if (serverEvent.type === 'error') {
+              console.error('[CLI] Received error from server:', serverEvent.payload);
+              addErrorMessageToHistory(
+                new Error(serverEvent.payload),
+                setHistory,
+                () => getNextMessageId(userMessageTimestamp),
+              );
+              cleanupEventSource();
+            }
+          } catch (parseError) {
+            console.error('[CLI] Failed to parse SSE data:', event.data, parseError);
+            addErrorMessageToHistory(
+              new Error('Failed to parse server event.'),
+              setHistory,
+              () => getNextMessageId(userMessageTimestamp),
+            );
+            cleanupEventSource();
+          }
+        };
+
+        es.onerror = (errorEvent: Event) => {
+          console.error('[CLI] EventSource error:', errorEvent);
+          // Log error message regardless of exact streaming state during error event
+          addErrorMessageToHistory(
+              // Attempt to get a more specific message if possible, fallback
+              new Error(`Connection error: ${getErrorMessage(errorEvent)}`),
+              setHistory,
+              () => getNextMessageId(userMessageTimestamp),
           );
-        } else {
-          // Handle cases where the server might return an empty response
-          addHistoryItem(
-            setHistory,
-            {
-              type: 'error',
-              text: '[Server returned an empty response]',
-            },
-            getNextMessageId(userMessageTimestamp),
-          );
-        }
+          cleanupEventSource();
+          setInitError('Connection to server failed.'); // Set initError for display
+        };
+
       } catch (error: unknown) {
-        if (isCancel(error)) {
-          addHistoryItem(
-            setHistory,
-            { type: 'error', text: '[Request cancelled by user]' },
-            getNextMessageId(userMessageTimestamp),
-          );
-          console.log('Request cancelled:', error.message);
-        } else {
-          const errorMessage = getErrorMessage(error);
-          console.error('Error sending request to server:', error);
-          addHistoryItem(
-            setHistory,
-            {
-              type: 'error',
-              text: `[Error communicating with server: ${errorMessage}]`,
-            },
-            getNextMessageId(userMessageTimestamp),
-          );
-          // Optionally set initError for persistent display
-          setInitError(`Failed to communicate with server: ${errorMessage}`);
-        }
-      } finally {
-        abortControllerRef.current = null;
-        setStreamingState(StreamingState.Idle);
+        console.error('[CLI] Failed to establish SSE connection:', error);
+        addErrorMessageToHistory(
+          new Error(`Connection failed: ${getErrorMessage(error)}`),
+          setHistory,
+          () => getNextMessageId(userMessageTimestamp),
+        );
+        cleanupEventSource();
+        setInitError('Failed to connect to server.');
       }
     },
-    [streamingState, setHistory, getNextMessageId],
+    // Add serverBaseUrl to dependencies
+    [streamingState, setHistory, getNextMessageId, updateGeminiMessage, cleanupEventSource, serverBaseUrl],
   );
 
-  // The hook now only returns state, the submit function, and potential initError
   return { streamingState, submitQuery, initError };
 };
