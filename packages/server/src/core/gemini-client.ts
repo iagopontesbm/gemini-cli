@@ -23,7 +23,10 @@ import { Turn, ServerTool, GeminiEventType } from './turn.js';
 // Import the ServerGeminiStreamEvent type
 type ServerGeminiStreamEvent =
   | { type: GeminiEventType.Content; value: string }
-  | { type: GeminiEventType.ToolCallRequest; value: { callId: string; name: string; args: Record<string, unknown> } };
+  | {
+      type: GeminiEventType.ToolCallRequest;
+      value: { callId: string; name: string; args: Record<string, unknown> };
+    };
 
 export class GeminiClient {
   private ai: GoogleGenAI;
@@ -111,11 +114,13 @@ export class GeminiClient {
           request = fnResponses;
           continue;
         } else {
-           break;
+          break;
         }
       }
       if (turns >= this.MAX_TURNS) {
-        console.warn('sendMessageStream: Reached maximum tool call turns limit.');
+        console.warn(
+          'sendMessageStream: Reached maximum tool call turns limit.',
+        );
       }
     } catch (error: unknown) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -163,4 +168,4 @@ export class GeminiClient {
       throw new Error(`Failed to generate JSON content: ${message}`);
     }
   }
-} 
+}

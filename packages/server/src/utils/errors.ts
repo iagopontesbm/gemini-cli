@@ -21,4 +21,4 @@ export function getErrorMessage(error: unknown): string {
       return 'Failed to get error details';
     }
   }
-} 
+}

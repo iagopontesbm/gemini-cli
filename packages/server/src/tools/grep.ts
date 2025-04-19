@@ -171,7 +171,9 @@ export class GrepLogic extends BaseTool<GrepToolParams, ToolResult> {
   async execute(params: GrepToolParams): Promise<ToolResult> {
     const validationError = this.validateToolParams(params);
     if (validationError) {
-      console.error(`GrepLogic Parameter Validation Failed: ${validationError}`);
+      console.error(
+        `GrepLogic Parameter Validation Failed: ${validationError}`,
+      );
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: `Error: Failed to execute tool.`,
@@ -420,7 +422,8 @@ export class GrepLogic extends BaseTool<GrepToolParams, ToolResult> {
               const stdoutData = Buffer.concat(stdoutChunks).toString('utf8');
               const stderrData = Buffer.concat(stderrChunks).toString('utf8');
               if (code === 0) resolve(stdoutData);
-              else if (code === 1) resolve(''); // No matches
+              else if (code === 1)
+                resolve(''); // No matches
               else
                 reject(
                   new Error(`git grep exited with code ${code}: ${stderrData}`),
@@ -477,7 +480,8 @@ export class GrepLogic extends BaseTool<GrepToolParams, ToolResult> {
                 .toString('utf8')
                 .trim();
               if (code === 0) resolve(stdoutData);
-              else if (code === 1) resolve(''); // No matches
+              else if (code === 1)
+                resolve(''); // No matches
               else {
                 if (stderrData)
                   reject(
@@ -498,7 +502,9 @@ export class GrepLogic extends BaseTool<GrepToolParams, ToolResult> {
       }
 
       // --- Strategy 3: Pure JavaScript Fallback ---
-      console.warn('GrepLogic: Falling back to JavaScript grep implementation.');
+      console.warn(
+        'GrepLogic: Falling back to JavaScript grep implementation.',
+      );
       strategyUsed = 'javascript fallback';
       const globPattern = include ? include : '**/*';
       const ignorePatterns = [
@@ -556,4 +562,4 @@ export class GrepLogic extends BaseTool<GrepToolParams, ToolResult> {
       throw error; // Re-throw
     }
   }
-} 
+}

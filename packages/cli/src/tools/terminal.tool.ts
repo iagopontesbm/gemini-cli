@@ -41,14 +41,71 @@ const BACKGROUND_LAUNCH_TIMEOUT_MS = 15 * 1000;
 const BACKGROUND_POLL_TIMEOUT_MS = 30000;
 
 const BANNED_COMMAND_ROOTS = [
-  'alias', 'bg', 'command', 'declare', 'dirs', 'disown', 'enable', 'eval', 'exec',
-  'exit', 'export', 'fc', 'fg', 'getopts', 'hash', 'history', 'jobs', 'kill',
-  'let', 'local', 'logout', 'popd', 'printf', 'pushd', 'read', 'readonly',
-  'set', 'shift', 'shopt', 'source', 'suspend', 'test', 'times', 'trap', 'type',
-  'typeset', 'ulimit', 'umask', 'unalias', 'unset', 'wait', 'curl', 'wget',
-  'nc', 'telnet', 'ssh', 'scp', 'ftp', 'sftp', 'http', 'https', 'rsync',
-  'lynx', 'w3m', 'links', 'elinks', 'httpie', 'xh', 'http-prompt', 'chrome',
-  'firefox', 'safari', 'edge', 'xdg-open', 'open',
+  'alias',
+  'bg',
+  'command',
+  'declare',
+  'dirs',
+  'disown',
+  'enable',
+  'eval',
+  'exec',
+  'exit',
+  'export',
+  'fc',
+  'fg',
+  'getopts',
+  'hash',
+  'history',
+  'jobs',
+  'kill',
+  'let',
+  'local',
+  'logout',
+  'popd',
+  'printf',
+  'pushd',
+  'read',
+  'readonly',
+  'set',
+  'shift',
+  'shopt',
+  'source',
+  'suspend',
+  'test',
+  'times',
+  'trap',
+  'type',
+  'typeset',
+  'ulimit',
+  'umask',
+  'unalias',
+  'unset',
+  'wait',
+  'curl',
+  'wget',
+  'nc',
+  'telnet',
+  'ssh',
+  'scp',
+  'ftp',
+  'sftp',
+  'http',
+  'https',
+  'rsync',
+  'lynx',
+  'w3m',
+  'links',
+  'elinks',
+  'httpie',
+  'xh',
+  'http-prompt',
+  'chrome',
+  'firefox',
+  'safari',
+  'edge',
+  'xdg-open',
+  'open',
 ];
 
 interface QueuedCommand {
@@ -74,7 +131,11 @@ export class TerminalTool extends BaseTool<TerminalToolParams, ToolResult> {
   private readonly backgroundTerminalAnalyzer: BackgroundTerminalAnalyzer;
   private readonly config: Config;
 
-  constructor(rootDirectory: string, config: Config, outputLimit: number = MAX_OUTPUT_LENGTH) {
+  constructor(
+    rootDirectory: string,
+    config: Config,
+    outputLimit: number = MAX_OUTPUT_LENGTH,
+  ) {
     const toolDisplayName = 'Terminal';
     const toolDescription = `Executes one or more bash commands sequentially in a secure and persistent interactive shell session. Can run commands in the foreground (waiting for completion) or background (returning after launch, with subsequent status polling).
 
@@ -552,7 +613,9 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
           console.error(
             `CRITICAL: Command "${params.command}" (background: ${isBackgroundTask}) finished delimiter processing but exitCode is null.`,
           );
-          const errorMode = isBackgroundTask ? 'Background Launch' : 'Foreground';
+          const errorMode = isBackgroundTask
+            ? 'Background Launch'
+            : 'Foreground';
           if (isBackgroundTask && tempStdoutPath && tempStderrPath) {
             await this.cleanupTempFiles(tempStdoutPath, tempStderrPath);
           }
@@ -585,8 +648,14 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
         }
         if (isBackgroundTask) {
           const launchSuccess = exitCode === 0;
-          const pidString = backgroundPid !== null ? backgroundPid.toString() : 'Not Captured';
-          if (launchSuccess && backgroundPid !== null && tempStdoutPath && tempStderrPath) {
+          const pidString =
+            backgroundPid !== null ? backgroundPid.toString() : 'Not Captured';
+          if (
+            launchSuccess &&
+            backgroundPid !== null &&
+            tempStdoutPath &&
+            tempStderrPath
+          ) {
             this.inspectBackgroundProcess(
               backgroundPid,
               params.command,
@@ -599,9 +668,13 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
             );
           } else {
             const reason =
-              backgroundPid === null ? 'PID not captured' : `Launch failed (Exit Code: ${exitCode})`;
+              backgroundPid === null
+                ? 'PID not captured'
+                : `Launch failed (Exit Code: ${exitCode})`;
             const displayMessage = `Failed to launch process in background (${reason})`;
-            console.error(`Background launch failed for command: ${params.command}. Reason: ${reason}`);
+            console.error(
+              `Background launch failed for command: ${params.command}. Reason: ${reason}`,
+            );
             if (tempStdoutPath && tempStderrPath) {
               await this.cleanupTempFiles(tempStdoutPath, tempStderrPath);
             }
@@ -631,7 +704,9 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
         }
       };
       if (!this.bashProcess || this.bashProcess.killed) {
-        console.error('Bash process lost or killed before listeners could be attached.');
+        console.error(
+          'Bash process lost or killed before listeners could be attached.',
+        );
         if (isBackgroundTask && tempStdoutPath && tempStderrPath) {
           this.cleanupTempFiles(tempStdoutPath, tempStderrPath).catch((err) => {
             console.warn(
@@ -640,7 +715,9 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
           });
         }
         return originalReject(
-          new Error('Bash process lost or killed before listeners could be attached.'),
+          new Error(
+            'Bash process lost or killed before listeners could be attached.',
+          ),
         );
       }
       if (onStdoutData) this.bashProcess.stdout.on('data', onStdoutData);
@@ -652,14 +729,19 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
         commandToWrite = `echo "${startDelimiter}"; ${params.command}; __EXIT_CODE=$?; echo "${exitCodeDelimiter}$__EXIT_CODE" >&2; echo "${endDelimiter}$__EXIT_CODE" >&1\n`;
       } else {
         return originalReject(
-          new Error('Internal setup error: Missing temporary file paths for background execution.'),
+          new Error(
+            'Internal setup error: Missing temporary file paths for background execution.',
+          ),
         );
       }
       try {
         if (this.bashProcess?.stdin?.writable) {
           this.bashProcess.stdin.write(commandToWrite, (err) => {
             if (err) {
-              console.error(`Error writing command "${params.command}" to bash stdin (callback):`, err);
+              console.error(
+                `Error writing command "${params.command}" to bash stdin (callback):`,
+                err,
+              );
               const listenersToClean = { onStdoutData, onStderrData };
               cleanupListeners(listenersToClean);
               if (isBackgroundTask && tempStdoutPath && tempStderrPath) {
@@ -668,15 +750,22 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
                 );
               }
               originalReject(
-                new Error(`Shell stdin write error: ${err.message}. Command likely did not execute.`),
+                new Error(
+                  `Shell stdin write error: ${err.message}. Command likely did not execute.`,
+                ),
               );
             }
           });
         } else {
-          throw new Error('Shell stdin is not writable or process closed when attempting to write command.');
+          throw new Error(
+            'Shell stdin is not writable or process closed when attempting to write command.',
+          );
         }
       } catch (e: unknown) {
-        console.error(`Error writing command "${params.command}" to bash stdin (sync):`, e);
+        console.error(
+          `Error writing command "${params.command}" to bash stdin (sync):`,
+          e,
+        );
         const listenersToClean = { onStdoutData, onStderrData };
         cleanupListeners(listenersToClean);
         if (isBackgroundTask && tempStdoutPath && tempStderrPath) {
@@ -685,7 +774,9 @@ Use this tool for running build steps (\`npm install\`, \`make\`), linters (\`es
           );
         }
         originalReject(
-          new Error(`Shell stdin write exception: ${getErrorMessage(e)}. Command likely did not execute.`),
+          new Error(
+            `Shell stdin write exception: ${getErrorMessage(e)}. Command likely did not execute.`,
+          ),
         );
       }
     });

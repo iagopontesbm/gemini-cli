@@ -62,4 +62,4 @@ export function createServerConfig(
   targetDir: string,
 ): Config {
   return new Config(apiKey, model, path.resolve(targetDir));
-} 
+}

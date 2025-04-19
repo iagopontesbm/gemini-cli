@@ -273,4 +273,4 @@ export class LSLogic extends BaseTool<LSToolParams, ToolResult> {
       return this.errorResult(errorMsg, 'Failed to list directory.');
     }
   }
-} 
+}

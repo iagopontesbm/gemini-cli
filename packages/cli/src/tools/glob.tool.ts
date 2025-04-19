@@ -5,11 +5,7 @@
  */
 
 // Import core logic and types from the server package
-import {
-  GlobLogic,
-  GlobToolParams,
-  ToolResult,
-} from '@gemini-code/server';
+import { GlobLogic, GlobToolParams, ToolResult } from '@gemini-code/server';
 
 // Import CLI-specific base class and types
 import { BaseTool } from './tools.js';

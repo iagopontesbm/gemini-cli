@@ -18,7 +18,12 @@ import _os from 'os';
 import { promisify } from 'util';
 
 // Define the AnalysisStatus type alias
-type AnalysisStatus = 'Running' | 'SuccessReported' | 'ErrorReported' | 'Unknown' | 'AnalysisFailed';
+type AnalysisStatus =
+  | 'Running'
+  | 'SuccessReported'
+  | 'ErrorReported'
+  | 'Unknown'
+  | 'AnalysisFailed';
 
 // Promisify child_process.exec for easier async/await usage
 const execAsync = promisify(_exec);
@@ -78,7 +83,10 @@ export class BackgroundTerminalAnalyzer {
   ) {
     try {
       // Initialize Gemini client using config
-      this.geminiClient = new GeminiClient(config.getApiKey(), config.getModel());
+      this.geminiClient = new GeminiClient(
+        config.getApiKey(),
+        config.getModel(),
+      );
     } catch (error) {
       console.error(
         'Failed to initialize GeminiClient in BackgroundTerminalAnalyzer:',
@@ -336,8 +344,16 @@ export class BackgroundTerminalAnalyzer {
       };
     }
 
-    const truncatedStdout = stdoutContent.substring(0, this.maxOutputAnalysisLength) + (stdoutContent.length > this.maxOutputAnalysisLength ? '... [truncated]' : '');
-    const truncatedStderr = stderrContent.substring(0, this.maxOutputAnalysisLength) + (stderrContent.length > this.maxOutputAnalysisLength ? '... [truncated]' : '');
+    const truncatedStdout =
+      stdoutContent.substring(0, this.maxOutputAnalysisLength) +
+      (stdoutContent.length > this.maxOutputAnalysisLength
+        ? '... [truncated]'
+        : '');
+    const truncatedStderr =
+      stderrContent.substring(0, this.maxOutputAnalysisLength) +
+      (stderrContent.length > this.maxOutputAnalysisLength
+        ? '... [truncated]'
+        : '');
 
     const analysisPrompt = `**Analyze Background Process Logs**
 
@@ -376,12 +392,14 @@ Based *only* on the provided stdout and stderr:
         properties: {
           summary: {
             type: 'string',
-            description: 'Concise markdown summary (1-3 sentences) of log interpretation.',
+            description:
+              'Concise markdown summary (1-3 sentences) of log interpretation.',
           },
           inferredStatus: {
             type: 'string',
             enum: ['Running', 'SuccessReported', 'ErrorReported', 'Unknown'],
-            description: 'Status inferred from logs: Running, SuccessReported, ErrorReported, Unknown',
+            description:
+              'Status inferred from logs: Running, SuccessReported, ErrorReported, Unknown',
           },
         },
         required: ['summary', 'inferredStatus'],
@@ -400,11 +418,13 @@ Based *only* on the provided stdout and stderr:
       properties: {
         summary: {
           type: Type.STRING,
-          description: 'Concise markdown summary (1-3 sentences) of log interpretation.',
+          description:
+            'Concise markdown summary (1-3 sentences) of log interpretation.',
         },
         inferredStatus: {
           type: Type.STRING,
-          description: 'Status inferred from logs: Running, SuccessReported, ErrorReported, Unknown',
+          description:
+            'Status inferred from logs: Running, SuccessReported, ErrorReported, Unknown',
           enum: ['Running', 'SuccessReported', 'ErrorReported', 'Unknown'],
         },
       },
@@ -414,32 +434,41 @@ Based *only* on the provided stdout and stderr:
     try {
       const resultJson = await this.geminiClient.generateJson(
         [{ role: 'user', parts: [{ text: analysisPrompt }] }],
-        schema
+        schema,
       );
-      
+
       // Validate and construct the AnalysisResult object
-      const summary = typeof resultJson?.summary === 'string' ? resultJson.summary : '[Summary unavailable]';
-      
+      const summary =
+        typeof resultJson?.summary === 'string'
+          ? resultJson.summary
+          : '[Summary unavailable]';
+
       // Define valid statuses using the AnalysisStatus type (ensure it's defined above)
-      const validStatuses: Array<Exclude<AnalysisStatus, 'AnalysisFailed'>> = ['Running', 'SuccessReported', 'ErrorReported', 'Unknown'];
-      
+      const validStatuses: Array<Exclude<AnalysisStatus, 'AnalysisFailed'>> = [
+        'Running',
+        'SuccessReported',
+        'ErrorReported',
+        'Unknown',
+      ];
+
       // Cast the unknown value to string before checking with includes
       const statusString = resultJson?.inferredStatus as string;
-      const inferredStatus = validStatuses.includes(statusString as Exclude<AnalysisStatus, 'AnalysisFailed'>) 
-          ? statusString as Exclude<AnalysisStatus, 'AnalysisFailed'> 
-          : 'Unknown'; 
-            
-      // Explicitly construct the object matching AnalysisResult type
-      const analysisResult: AnalysisResult = { summary, inferredStatus }; 
-      return analysisResult;
+      const inferredStatus = validStatuses.includes(
+        statusString as Exclude<AnalysisStatus, 'AnalysisFailed'>,
+      )
+        ? (statusString as Exclude<AnalysisStatus, 'AnalysisFailed'>)
+        : 'Unknown';
 
+      // Explicitly construct the object matching AnalysisResult type
+      const analysisResult: AnalysisResult = { summary, inferredStatus };
+      return analysisResult;
     } catch (error: unknown) {
       console.error(`LLM Analysis Request Failed for PID ${pid}:`, error);
       // Return the AnalysisFailure type
       const analysisFailure: AnalysisFailure = {
         error: `[Analysis failed: ${getErrorMessage(error)}]`,
         inferredStatus: 'AnalysisFailed', // This matches the AnalysisStatus type
-      }; 
+      };
       return analysisFailure;
     }
   }

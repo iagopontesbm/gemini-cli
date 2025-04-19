@@ -154,7 +154,9 @@ export class Turn {
   }
 
   // Builds the Part array expected by the Google GenAI API
-  private buildFunctionResponses(outcomes: ServerToolExecutionOutcome[]): Part[] {
+  private buildFunctionResponses(
+    outcomes: ServerToolExecutionOutcome[],
+  ): Part[] {
     return outcomes.map((outcome): Part => {
       const { name, result, error } = outcome;
       let fnResponsePayload: Record<string, unknown>;
@@ -194,4 +196,4 @@ export class Turn {
   getDebugResponses(): GenerateContentResponse[] {
     return this.debugResponses;
   }
-} 
+}

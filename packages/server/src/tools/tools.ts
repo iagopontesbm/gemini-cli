@@ -147,4 +147,4 @@ export type ToolResultDisplay = string | FileDiff;
 
 export interface FileDiff {
   fileDiff: string;
-} 
+}

@@ -386,4 +386,4 @@ export async function getFolderStructure(
     console.error(`Error getting folder structure for ${resolvedPath}:`, error);
     return `Error processing directory "${resolvedPath}": ${getErrorMessage(error)}`;
   }
-} 
+}

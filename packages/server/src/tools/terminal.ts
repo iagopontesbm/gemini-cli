@@ -18,14 +18,71 @@ const MAX_OUTPUT_LENGTH = 10000;
 const DEFAULT_EXEC_TIMEOUT_MS = 5 * 60 * 1000;
 
 const BANNED_COMMAND_ROOTS = [
-  'alias', 'bg', 'command', 'declare', 'dirs', 'disown', 'enable', 'eval', 'exec',
-  'exit', 'export', 'fc', 'fg', 'getopts', 'hash', 'history', 'jobs', 'kill',
-  'let', 'local', 'logout', 'popd', 'printf', 'pushd', 'read', 'readonly',
-  'set', 'shift', 'shopt', 'source', 'suspend', 'test', 'times', 'trap', 'type',
-  'typeset', 'ulimit', 'umask', 'unalias', 'unset', 'wait', 'curl', 'wget',
-  'nc', 'telnet', 'ssh', 'scp', 'ftp', 'sftp', 'http', 'https', 'rsync',
-  'lynx', 'w3m', 'links', 'elinks', 'httpie', 'xh', 'http-prompt', 'chrome',
-  'firefox', 'safari', 'edge', 'xdg-open', 'open',
+  'alias',
+  'bg',
+  'command',
+  'declare',
+  'dirs',
+  'disown',
+  'enable',
+  'eval',
+  'exec',
+  'exit',
+  'export',
+  'fc',
+  'fg',
+  'getopts',
+  'hash',
+  'history',
+  'jobs',
+  'kill',
+  'let',
+  'local',
+  'logout',
+  'popd',
+  'printf',
+  'pushd',
+  'read',
+  'readonly',
+  'set',
+  'shift',
+  'shopt',
+  'source',
+  'suspend',
+  'test',
+  'times',
+  'trap',
+  'type',
+  'typeset',
+  'ulimit',
+  'umask',
+  'unalias',
+  'unset',
+  'wait',
+  'curl',
+  'wget',
+  'nc',
+  'telnet',
+  'ssh',
+  'scp',
+  'ftp',
+  'sftp',
+  'http',
+  'https',
+  'rsync',
+  'lynx',
+  'w3m',
+  'links',
+  'elinks',
+  'httpie',
+  'xh',
+  'http-prompt',
+  'chrome',
+  'firefox',
+  'safari',
+  'edge',
+  'xdg-open',
+  'open',
 ];
 
 /**
@@ -102,11 +159,11 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
 
     const cwd = executionCwd ? path.resolve(executionCwd) : this.rootDirectory;
     if (!cwd.startsWith(this.rootDirectory) && cwd !== this.rootDirectory) {
-        const message = `Execution CWD validation failed: Attempted path "${cwd}" resolves outside the allowed root directory "${this.rootDirectory}".`;
-        return {
-            llmContent: `Command rejected: ${params.command}\nReason: ${message}`,
-            returnDisplay: `Error: ${message}`,
-        };
+      const message = `Execution CWD validation failed: Attempted path "${cwd}" resolves outside the allowed root directory "${this.rootDirectory}".`;
+      return {
+        llmContent: `Command rejected: ${params.command}\nReason: ${message}`,
+        returnDisplay: `Error: ${message}`,
+      };
     }
 
     return new Promise((resolve) => {
@@ -141,23 +198,30 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
         });
         child.on('error', (err) => {
           processError = err;
-          console.error(`TerminalLogic spawn error for "${params.command}":`, err);
+          console.error(
+            `TerminalLogic spawn error for "${params.command}":`,
+            err,
+          );
         });
         child.on('close', (code, signal) => {
           const exitCode = code ?? (signal ? -1 : -2);
           if (signal === 'SIGTERM' || signal === 'SIGKILL') {
-             if (child.killed && timeout > 0) timedOut = true;
+            if (child.killed && timeout > 0) timedOut = true;
           }
           const finalStdout = this.truncateOutput(stdout);
           const finalStderr = this.truncateOutput(stderr);
           let llmContent = `Command: ${params.command}\nExecuted in: ${cwd}\nExit Code: ${exitCode}\n`;
           if (timedOut) llmContent += `Status: Timed Out after ${timeout}ms\n`;
-          if (processError) llmContent += `Process Error: ${processError.message}\n`;
+          if (processError)
+            llmContent += `Process Error: ${processError.message}\n`;
           llmContent += `Stdout:\n${finalStdout}\nStderr:\n${finalStderr}`;
           let displayOutput = finalStderr.trim() || finalStdout.trim();
-          if (timedOut) displayOutput = `Timeout: ${displayOutput || 'No output before timeout'}`;
-          else if (exitCode !== 0 && !displayOutput) displayOutput = `Failed (Exit Code: ${exitCode})`;
-          else if (exitCode === 0 && !displayOutput) displayOutput = `Success (no output)`;
+          if (timedOut)
+            displayOutput = `Timeout: ${displayOutput || 'No output before timeout'}`;
+          else if (exitCode !== 0 && !displayOutput)
+            displayOutput = `Failed (Exit Code: ${exitCode})`;
+          else if (exitCode === 0 && !displayOutput)
+            displayOutput = `Success (no output)`;
           resolve({
             llmContent,
             returnDisplay: displayOutput.trim() || `Exit Code: ${exitCode}`,
@@ -165,7 +229,10 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
         });
       } catch (spawnError: unknown) {
         const errMsg = getErrorMessage(spawnError);
-        console.error(`TerminalLogic failed to spawn "${params.command}":`, spawnError);
+        console.error(
+          `TerminalLogic failed to spawn "${params.command}":`,
+          spawnError,
+        );
         resolve({
           llmContent: `Failed to start command: ${params.command}\nError: ${errMsg}`,
           returnDisplay: `Error spawning command: ${errMsg}`,
@@ -174,7 +241,10 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     });
   }
 
-  private truncateOutput(output: string, limit: number = MAX_OUTPUT_LENGTH): string {
+  private truncateOutput(
+    output: string,
+    limit: number = MAX_OUTPUT_LENGTH,
+  ): string {
     if (output.length > limit) {
       return (
         output.substring(0, limit) +
@@ -183,4 +253,4 @@ export class TerminalLogic extends BaseTool<TerminalToolParams, ToolResult> {
     }
     return output;
   }
-} 
+}

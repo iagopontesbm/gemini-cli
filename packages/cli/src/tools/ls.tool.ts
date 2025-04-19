@@ -5,11 +5,7 @@
  */
 
 // Import core logic and types from the server package
-import {
-  LSLogic,
-  LSToolParams,
-  ToolResult,
-} from '@gemini-code/server';
+import { LSLogic, LSToolParams, ToolResult } from '@gemini-code/server';
 
 // Import CLI-specific base class and types
 import { BaseTool } from './tools.js';

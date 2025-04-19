@@ -350,4 +350,4 @@ export class EditLogic extends BaseTool<EditToolParams, ToolResult> {
       fs.mkdirSync(dirName, { recursive: true });
     }
   }
-} 
+}

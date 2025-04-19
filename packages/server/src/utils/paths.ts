@@ -99,4 +99,4 @@ export function makeRelative(
 
   // If the paths are the same, path.relative returns '', return '.' instead
   return relativePath || '.';
-} 
+}

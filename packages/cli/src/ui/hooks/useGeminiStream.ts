@@ -17,7 +17,11 @@ import {
 } from '@gemini-code/server';
 import type { Chat, PartListUnion, FunctionDeclaration } from '@google/genai';
 // Import CLI types
-import { HistoryItem, IndividualToolCallDisplay, ToolCallStatus } from '../types.js';
+import {
+  HistoryItem,
+  IndividualToolCallDisplay,
+  ToolCallStatus,
+} from '../types.js';
 import { Tool } from '../../tools/tools.js'; // CLI Tool definition
 import { StreamingState } from '../../core/gemini-stream.js';
 // Import CLI tool registry
@@ -51,7 +55,7 @@ export const useGeminiStream = (
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const messageIdCounterRef = useRef(0);
   const currentGeminiMessageIdRef = useRef<number | null>(null);
-  
+
   // Initialize Client Effect - uses props now
   useEffect(() => {
     setInitError(null);
@@ -87,11 +91,11 @@ export const useGeminiStream = (
         prevHistory.map((item) =>
           item.id === messageId && item.type === 'gemini'
             ? { ...item, text: newContent }
-            : item
-        )
+            : item,
+        ),
       );
     },
-    [setHistory]
+    [setHistory],
   );
 
   // Improved submit query function
@@ -124,7 +128,7 @@ export const useGeminiStream = (
       messageIdCounterRef.current = 0; // Reset counter for new submission
       const chat = chatSessionRef.current;
       let currentToolGroupId: number | null = null;
-      
+
       // For function responses, we don't need to add a user message
       if (typeof query === 'string') {
         // Only add user message for string queries, not for function responses
@@ -140,31 +144,39 @@ export const useGeminiStream = (
         const signal = abortControllerRef.current.signal;
 
         // Get ServerTool descriptions for the server call
-        const serverTools: ServerTool[] = toolRegistry.getAllTools().map((cliTool: Tool) => ({
-          name: cliTool.name,
-          schema: cliTool.schema,
-          execute: (args: Record<string, unknown>) => cliTool.execute(args as ToolArgs), // Pass execution
-        }));
+        const serverTools: ServerTool[] = toolRegistry
+          .getAllTools()
+          .map((cliTool: Tool) => ({
+            name: cliTool.name,
+            schema: cliTool.schema,
+            execute: (args: Record<string, unknown>) =>
+              cliTool.execute(args as ToolArgs), // Pass execution
+          }));
 
-        const stream = client.sendMessageStream(chat, query, serverTools, signal);
+        const stream = client.sendMessageStream(
+          chat,
+          query,
+          serverTools,
+          signal,
+        );
 
         // Process the stream events from the server logic
         let currentGeminiText = ''; // To accumulate message content
         let hasInitialGeminiResponse = false;
-        
+
         for await (const event of stream) {
           if (signal.aborted) break;
 
           if (event.type === ServerGeminiEventType.Content) {
             // For content events, accumulate the text and update an existing message or create a new one
             currentGeminiText += event.value;
-            
+
             if (!hasInitialGeminiResponse) {
               // Create a new Gemini message if this is the first content event
               hasInitialGeminiResponse = true;
               const eventTimestamp = getNextMessageId(userMessageTimestamp);
               currentGeminiMessageIdRef.current = eventTimestamp;
-              
+
               addHistoryItem(
                 setHistory,
                 { type: 'gemini', text: currentGeminiText },
@@ -172,14 +184,17 @@ export const useGeminiStream = (
               );
             } else if (currentGeminiMessageIdRef.current !== null) {
               // Update the existing message with accumulated content
-              updateGeminiMessage(currentGeminiMessageIdRef.current, currentGeminiText);
+              updateGeminiMessage(
+                currentGeminiMessageIdRef.current,
+                currentGeminiText,
+              );
             }
           } else if (event.type === ServerGeminiEventType.ToolCallRequest) {
             // Reset the Gemini message tracking for the next response
             currentGeminiText = '';
             hasInitialGeminiResponse = false;
             currentGeminiMessageIdRef.current = null;
-            
+
             const { callId, name, args } = event.value;
 
             const cliTool = toolRegistry.getTool(name); // Get the full CLI tool
@@ -209,30 +224,46 @@ export const useGeminiStream = (
             };
 
             // Add pending tool call to the UI history group
-            setHistory((prevHistory) => prevHistory.map((item) => {
-                if (item.id === currentToolGroupId && item.type === 'tool_group') {
+            setHistory((prevHistory) =>
+              prevHistory.map((item) => {
+                if (
+                  item.id === currentToolGroupId &&
+                  item.type === 'tool_group'
+                ) {
                   // Ensure item.tools exists and is an array before spreading
-                  const currentTools = Array.isArray(item.tools) ? item.tools : [];
+                  const currentTools = Array.isArray(item.tools)
+                    ? item.tools
+                    : [];
                   return {
                     ...item,
                     tools: [...currentTools, toolCallDisplay], // Add the complete display object
                   };
                 }
                 return item;
-              }));
+              }),
+            );
 
             // --- Tool Execution & Confirmation Logic ---
-            const confirmationDetails = await cliTool.shouldConfirmExecute(args as ToolArgs);
+            const confirmationDetails = await cliTool.shouldConfirmExecute(
+              args as ToolArgs,
+            );
 
             if (confirmationDetails) {
               setHistory((prevHistory) =>
                 prevHistory.map((item) => {
-                  if (item.id === currentToolGroupId && item.type === 'tool_group') {
+                  if (
+                    item.id === currentToolGroupId &&
+                    item.type === 'tool_group'
+                  ) {
                     return {
                       ...item,
                       tools: item.tools.map((tool) =>
                         tool.callId === callId
-                          ? { ...tool, status: ToolCallStatus.Confirming, confirmationDetails }
+                          ? {
+                              ...tool,
+                              status: ToolCallStatus.Confirming,
+                              confirmationDetails,
+                            }
                           : tool,
                       ),
                     };
@@ -247,7 +278,10 @@ export const useGeminiStream = (
             try {
               setHistory((prevHistory) =>
                 prevHistory.map((item) => {
-                  if (item.id === currentToolGroupId && item.type === 'tool_group') {
+                  if (
+                    item.id === currentToolGroupId &&
+                    item.type === 'tool_group'
+                  ) {
                     return {
                       ...item,
                       tools: item.tools.map((tool) =>
@@ -261,7 +295,9 @@ export const useGeminiStream = (
                 }),
               );
 
-              const result: ToolResult = await cliTool.execute(args as ToolArgs);
+              const result: ToolResult = await cliTool.execute(
+                args as ToolArgs,
+              );
               const resultPart = {
                 functionResponse: {
                   name,
@@ -272,12 +308,19 @@ export const useGeminiStream = (
 
               setHistory((prevHistory) =>
                 prevHistory.map((item) => {
-                  if (item.id === currentToolGroupId && item.type === 'tool_group') {
+                  if (
+                    item.id === currentToolGroupId &&
+                    item.type === 'tool_group'
+                  ) {
                     return {
                       ...item,
                       tools: item.tools.map((tool) =>
                         tool.callId === callId
-                          ? { ...tool, status: ToolCallStatus.Success, resultDisplay: result.returnDisplay }
+                          ? {
+                              ...tool,
+                              status: ToolCallStatus.Success,
+                              resultDisplay: result.returnDisplay,
+                            }
                           : tool,
                       ),
                     };
@@ -285,36 +328,47 @@ export const useGeminiStream = (
                   return item;
                 }),
               );
-              
+
               // Execute the function and continue the stream
               await submitQuery(resultPart);
               return;
             } catch (execError: unknown) {
-               const error = new Error(`Tool execution failed: ${execError instanceof Error ? execError.message : String(execError)}`);
-               const errorPart = {
-                 functionResponse: {
-                   name,
-                   id: callId,
-                   response: { error: `Tool execution failed: ${error.message}` },
-                 },
-               };
-               setHistory((prevHistory) =>
-                 prevHistory.map((item) => {
-                   if (item.id === currentToolGroupId && item.type === 'tool_group') {
-                     return {
-                       ...item,
-                       tools: item.tools.map((tool) =>
-                         tool.callId === callId
-                           ? { ...tool, status: ToolCallStatus.Error, resultDisplay: `Error: ${error.message}` }
-                           : tool,
-                       ),
-                     };
-                   }
-                   return item;
-                 }),
-               );
-               await submitQuery(errorPart);
-               return;
+              const error = new Error(
+                `Tool execution failed: ${execError instanceof Error ? execError.message : String(execError)}`,
+              );
+              const errorPart = {
+                functionResponse: {
+                  name,
+                  id: callId,
+                  response: {
+                    error: `Tool execution failed: ${error.message}`,
+                  },
+                },
+              };
+              setHistory((prevHistory) =>
+                prevHistory.map((item) => {
+                  if (
+                    item.id === currentToolGroupId &&
+                    item.type === 'tool_group'
+                  ) {
+                    return {
+                      ...item,
+                      tools: item.tools.map((tool) =>
+                        tool.callId === callId
+                          ? {
+                              ...tool,
+                              status: ToolCallStatus.Error,
+                              resultDisplay: `Error: ${error.message}`,
+                            }
+                          : tool,
+                      ),
+                    };
+                  }
+                  return item;
+                }),
+              );
+              await submitQuery(errorPart);
+              return;
             }
           }
         }
@@ -339,7 +393,14 @@ export const useGeminiStream = (
       }
     },
     // Dependencies need careful review - including updateGeminiMessage
-    [streamingState, setHistory, apiKey, model, getNextMessageId, updateGeminiMessage]
+    [
+      streamingState,
+      setHistory,
+      apiKey,
+      model,
+      getNextMessageId,
+      updateGeminiMessage,
+    ],
   );
 
   return { streamingState, submitQuery, initError };

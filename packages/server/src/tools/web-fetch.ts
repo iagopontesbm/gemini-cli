@@ -102,23 +102,29 @@ export class WebFetchLogic extends BaseTool<WebFetchToolParams, ToolResult> {
 
       // Basic check for text-based content types
       const contentType = response.headers.get('content-type') || '';
-      if (!contentType.includes('text/') && !contentType.includes('json') && !contentType.includes('xml')) {
+      if (
+        !contentType.includes('text/') &&
+        !contentType.includes('json') &&
+        !contentType.includes('xml')
+      ) {
         const errorText = `Unsupported content type: ${contentType} from ${url}`;
         return {
-            llmContent: `Error: ${errorText}`, 
-            returnDisplay: `Error: ${errorText}` 
+          llmContent: `Error: ${errorText}`,
+          returnDisplay: `Error: ${errorText}`,
         };
       }
 
       const data = await response.text();
       const MAX_LLM_CONTENT_LENGTH = 200000; // Truncate large responses
-      const truncatedData = data.length > MAX_LLM_CONTENT_LENGTH
-          ? data.substring(0, MAX_LLM_CONTENT_LENGTH) + '\n... [Content truncated]'
+      const truncatedData =
+        data.length > MAX_LLM_CONTENT_LENGTH
+          ? data.substring(0, MAX_LLM_CONTENT_LENGTH) +
+            '\n... [Content truncated]'
           : data;
-      
+
       const llmContent = data
-          ? `Fetched data from ${url}:\n\n${truncatedData}`
-          : `No text data fetched from ${url}. Status: ${response.status}`; // Adjusted message for clarity
+        ? `Fetched data from ${url}:\n\n${truncatedData}`
+        : `No text data fetched from ${url}. Status: ${response.status}`; // Adjusted message for clarity
 
       return {
         llmContent,
@@ -132,4 +138,4 @@ export class WebFetchLogic extends BaseTool<WebFetchToolParams, ToolResult> {
       };
     }
   }
-} 
+}

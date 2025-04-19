@@ -42,7 +42,8 @@ export class WriteFileLogic extends BaseTool<WriteFileToolParams, ToolResult> {
       '', // Description handled by CLI wrapper
       {
         properties: {
-          file_path: { // Renamed from filePath in original schema
+          file_path: {
+            // Renamed from filePath in original schema
             description:
               "The absolute path to the file to write to (e.g., '/home/user/project/file.txt'). Relative paths are not supported.",
             type: 'string',
@@ -163,4 +164,4 @@ export class WriteFileLogic extends BaseTool<WriteFileToolParams, ToolResult> {
   }
 
   // ensureParentDirectoriesExist logic moved into execute
-} 
+}

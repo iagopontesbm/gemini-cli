@@ -26,7 +26,9 @@ export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
   confirmationDetails,
 }) => {
   // Explicitly type the props to help the type checker
-  const typedConfirmationDetails = confirmationDetails as ToolCallConfirmationDetails | undefined;
+  const typedConfirmationDetails = confirmationDetails as
+    | ToolCallConfirmationDetails
+    | undefined;
   const typedResultDisplay = resultDisplay as ToolResultDisplay | undefined;
 
   let color = 'gray';
@@ -60,7 +62,7 @@ export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
   return (
     <Box key={callId} borderStyle="round" paddingX={1} flexDirection="column">
       <Box>
-        {(status === ToolCallStatus.Invoked) && (
+        {status === ToolCallStatus.Invoked && (
           <Box marginRight={1}>
             <Text color="blue">
               <Spinner type="dots" />
@@ -78,25 +80,36 @@ export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
       </Box>
       {status === ToolCallStatus.Confirming && typedConfirmationDetails && (
         <Box flexDirection="column" marginLeft={2}>
-          {/* Display diff for edit/write */} 
-          {('fileDiff' in typedConfirmationDetails) && (
+          {/* Display diff for edit/write */}
+          {'fileDiff' in typedConfirmationDetails && (
             <DiffRenderer
-              diffContent={(typedConfirmationDetails as ToolEditConfirmationDetails).fileDiff}
+              diffContent={
+                (typedConfirmationDetails as ToolEditConfirmationDetails)
+                  .fileDiff
+              }
             />
           )}
-          {/* Display command for execute */} 
-          {('command' in typedConfirmationDetails) && (
-              <Text color='yellow'>Command: {(typedConfirmationDetails as ToolExecuteConfirmationDetails).command}</Text>
+          {/* Display command for execute */}
+          {'command' in typedConfirmationDetails && (
+            <Text color="yellow">
+              Command:{' '}
+              {
+                (typedConfirmationDetails as ToolExecuteConfirmationDetails)
+                  .command
+              }
+            </Text>
           )}
           {/* <ConfirmInput onConfirm={handleConfirm} isFocused={isFocused} /> */}
         </Box>
       )}
-      {(status === ToolCallStatus.Success) && typedResultDisplay && (
+      {status === ToolCallStatus.Success && typedResultDisplay && (
         <Box flexDirection="column" marginLeft={2}>
           {typeof typedResultDisplay === 'string' ? (
             <Text>{typedResultDisplay}</Text>
           ) : (
-            <DiffRenderer diffContent={(typedResultDisplay as FileDiff).fileDiff} />
+            <DiffRenderer
+              diffContent={(typedResultDisplay as FileDiff).fileDiff}
+            />
           )}
         </Box>
       )}

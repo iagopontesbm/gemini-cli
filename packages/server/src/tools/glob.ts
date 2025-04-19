@@ -97,7 +97,10 @@ export class GlobLogic extends BaseTool<GlobToolParams, ToolResult> {
       return "Parameters failed schema validation. Ensure 'pattern' is a string and 'path' (if provided) is a string.";
     }
 
-    const searchDirAbsolute = path.resolve(this.rootDirectory, params.path || '.');
+    const searchDirAbsolute = path.resolve(
+      this.rootDirectory,
+      params.path || '.',
+    );
 
     if (!this.isWithinRoot(searchDirAbsolute)) {
       return `Search path ("${searchDirAbsolute}") resolves outside the tool's root directory ("${this.rootDirectory}").`;
@@ -151,7 +154,10 @@ export class GlobLogic extends BaseTool<GlobToolParams, ToolResult> {
     }
 
     try {
-      const searchDirAbsolute = path.resolve(this.rootDirectory, params.path || '.');
+      const searchDirAbsolute = path.resolve(
+        this.rootDirectory,
+        params.path || '.',
+      );
 
       const entries = await fg(params.pattern, {
         cwd: searchDirAbsolute,
@@ -207,4 +213,4 @@ export class GlobLogic extends BaseTool<GlobToolParams, ToolResult> {
       };
     }
   }
-} 
+}

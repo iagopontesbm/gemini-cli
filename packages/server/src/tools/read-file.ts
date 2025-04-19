@@ -244,7 +244,8 @@ export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
         let processedLine = line;
         if (line.length > ReadFileLogic.MAX_LINE_LENGTH) {
           processedLine =
-            line.substring(0, ReadFileLogic.MAX_LINE_LENGTH) + '... [truncated]';
+            line.substring(0, ReadFileLogic.MAX_LINE_LENGTH) +
+            '... [truncated]';
           truncated = true;
         }
 
@@ -274,4 +275,4 @@ export class ReadFileLogic extends BaseTool<ReadFileToolParams, ToolResult> {
       };
     }
   }
-} 
+}

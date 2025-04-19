@@ -32,8 +32,11 @@ interface AppProps {
 export const App = ({ directory, apiKey, model }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
-  const { streamingState, submitQuery, initError } =
-    useGeminiStream(setHistory, apiKey, model);
+  const { streamingState, submitQuery, initError } = useGeminiStream(
+    setHistory,
+    apiKey,
+    model,
+  );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
@@ -63,10 +66,7 @@ export const App = ({ directory, apiKey, model }: AppProps) => {
     !initError &&
     !isWaitingForToolConfirmation;
 
-  const {
-    query,
-    handleSubmit: handleHistorySubmit,
-  } = useInputHistory({
+  const { query, handleSubmit: handleHistorySubmit } = useInputHistory({
     userMessages,
     onSubmit: submitQuery,
     isActive: isInputActive,
@@ -135,11 +135,7 @@ export const App = ({ directory, apiKey, model }: AppProps) => {
         />
       </Box>
 
-      {isInputActive && (
-        <InputPrompt
-          onSubmit={handleHistorySubmit}
-        />
-      )}
+      {isInputActive && <InputPrompt onSubmit={handleHistorySubmit} />}
 
       <Footer queryLength={query.length} />
       <ITermDetectionWarning />
