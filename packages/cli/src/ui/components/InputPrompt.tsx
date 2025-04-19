@@ -7,7 +7,6 @@
 import React from 'react';
 import { Box, useInput, useFocus } from 'ink';
 import TextInput from 'ink-text-input';
-import { UI_WIDTH } from '../constants.js';
 
 interface InputPromptProps {
   onSubmit: (value: string) => void;
@@ -31,7 +30,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({ onSubmit }) => {
 
   return (
     <Box
-      width={UI_WIDTH}
       borderStyle="round"
       borderColor={isFocused ? 'blue' : 'gray'}
       paddingX={1}
