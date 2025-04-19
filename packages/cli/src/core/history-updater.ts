@@ -15,7 +15,7 @@ import {
   ToolEditConfirmationDetails,
   ToolExecuteConfirmationDetails,
 } from '../ui/types.js';
-import { ToolResultDisplay } from '../tools/tools.js';
+import type { ToolResultDisplay } from '@gemini-code/server';
 
 /**
  * Processes a tool call chunk and updates the history state accordingly.

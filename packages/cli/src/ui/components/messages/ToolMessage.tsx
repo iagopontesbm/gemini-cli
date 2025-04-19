@@ -15,7 +15,8 @@ import {
   ToolExecuteConfirmationDetails,
 } from '../../types.js';
 import { DiffRenderer } from './DiffRenderer.js';
-import { FileDiff, ToolResultDisplay } from '../../../tools/tools.js';
+// Import FileDiff and ToolResultDisplay from server package
+import type { FileDiff, ToolResultDisplay } from '@gemini-code/server';
 
 export const ToolMessage: React.FC<IndividualToolCallDisplay> = ({
   callId,

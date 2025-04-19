@@ -14,6 +14,7 @@ import {
   getErrorMessage,
   isNodeError,
   ToolResult,
+  ServerTool
 } from '@gemini-code/server';
 import type { Chat, PartListUnion, FunctionDeclaration } from '@google/genai';
 // Import CLI types
@@ -406,12 +407,7 @@ export const useGeminiStream = (
   return { streamingState, submitQuery, initError };
 };
 
-// Define ServerTool interface here if not importing from server (circular dep issue?)
-interface ServerTool {
-  name: string;
-  schema: FunctionDeclaration;
-  execute(params: Record<string, unknown>): Promise<ToolResult>;
-}
+// ServerTool interface is now imported from @gemini-code/server
 
 // Define a more specific type for tool arguments to replace 'any'
 type ToolArgs = Record<string, unknown>;

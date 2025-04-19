@@ -11,9 +11,4 @@ export enum StreamingState {
   WaitingForConfirmation = 'waiting_for_confirmation',
 }
 
-// Copied from server/src/core/turn.ts for CLI usage
-export enum GeminiEventType {
-  Content = 'content',
-  ToolCallRequest = 'tool_call_request',
-  // Add other event types if the UI hook needs to handle them
-}
+// Removed local definition, using imported ServerGeminiEventType

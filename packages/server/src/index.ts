@@ -4,31 +4,52 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Export config
-export * from './config/config.js';
+// --- Config ---
+export type { Config } from './config/config.js';
+export { loadEnvironment, createServerConfig } from './config/config.js';
 
-// Export Core Logic
-export * from './core/gemini-client.js';
-export * from './core/prompts.js';
-export * from './core/turn.js';
-// Potentially export types from turn.ts if needed externally
-// export { GeminiEventType } from './core/turn.js'; // Example
+// --- Core Logic ---
+export { GeminiClient } from './core/gemini-client.js';
+export { GeminiEventType } from './core/turn.js'; // Specific export
+// Export the ServerTool interface used by GeminiClient
+export type { ServerTool } from './core/turn.js';
 
-// Export utilities
-export * from './utils/paths.js';
-export * from './utils/schemaValidator.js';
-export * from './utils/errors.js';
-export * from './utils/getFolderStructure.js';
+// --- Utilities ---
+// Primarily error handling needed by CLI
+export { getErrorMessage, isNodeError } from './utils/errors.js';
+// Export specific path utilities needed by CLI tools
+export { makeRelative, shortenPath } from './utils/paths.js';
+// Export SchemaValidator as it is needed by TerminalTool
+export { SchemaValidator } from './utils/schemaValidator.js';
 
-// Export base tool definitions
-export * from './tools/tools.js';
+// --- Base Tool Types ---
+// Export only the necessary base types used across tools
+export type { ToolResult, ToolResultDisplay, FileDiff } from './tools/tools.js';
 
-// Export specific tool logic
-export * from './tools/read-file.js';
-export * from './tools/ls.js';
-export * from './tools/grep.js';
-export * from './tools/glob.js';
-export * from './tools/edit.js';
-export * from './tools/terminal.js';
-export * from './tools/write-file.js';
-export * from './tools/web-fetch.js';
+// --- Specific Tool Logic & Parameter Types ---
+export { ReadFileLogic } from './tools/read-file.js';
+export type { ReadFileToolParams } from './tools/read-file.js';
+
+export { LSLogic } from './tools/ls.js';
+export type { LSToolParams } from './tools/ls.js';
+
+export { GrepLogic } from './tools/grep.js';
+export type { GrepToolParams } from './tools/grep.js';
+
+export { GlobLogic } from './tools/glob.js';
+export type { GlobToolParams } from './tools/glob.js';
+
+export { EditLogic } from './tools/edit.js';
+export type { EditToolParams } from './tools/edit.js';
+
+export { TerminalLogic } from './tools/terminal.js';
+export type { TerminalToolParams } from './tools/terminal.js';
+
+export { WriteFileLogic } from './tools/write-file.js';
+export type { WriteFileToolParams } from './tools/write-file.js';
+
+export { WebFetchLogic } from './tools/web-fetch.js';
+export type { WebFetchToolParams } from './tools/web-fetch.js';
+
+// Note: Removed exports for prompts.js, paths.js, getFolderStructure.js
+// and changed wildcard exports to named exports.

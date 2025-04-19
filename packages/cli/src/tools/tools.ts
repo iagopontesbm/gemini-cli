@@ -6,6 +6,8 @@
 
 import { FunctionDeclaration, Schema } from '@google/genai';
 import { ToolCallConfirmationDetails } from '../ui/types.js';
+// Import the base ToolResult type from the server package
+import type { ToolResult } from '@gemini-code/server';
 
 /**
  * Interface representing the base Tool functionality
@@ -143,22 +145,5 @@ export abstract class BaseTool<
   abstract execute(params: TParams): Promise<TResult>;
 }
 
-export interface ToolResult {
-  /**
-   * Content meant to be included in LLM history.
-   * This should represent the factual outcome of the tool execution.
-   */
-  llmContent: string;
-
-  /**
-   * Markdown string for user display.
-   * This provides a user-friendly summary or visualization of the result.
-   */
-  returnDisplay: ToolResultDisplay;
-}
-
-export type ToolResultDisplay = string | FileDiff;
-
-export interface FileDiff {
-  fileDiff: string;
-}
+// Types like ToolResult, ToolResultDisplay, and FileDiff are now imported
+// from the @gemini-code/server package.

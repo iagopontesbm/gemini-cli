@@ -19,7 +19,8 @@ import {
   isNodeError,
   Config,
 } from '@gemini-code/server';
-import { BaseTool, ToolResult } from './tools.js';
+import { BaseTool } from './tools.js';
+import type { ToolResult } from '@gemini-code/server';
 import {
   ToolCallConfirmationDetails,
   ToolConfirmationOutcome,

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ToolResultDisplay } from '../tools/tools.js';
+import type { ToolResultDisplay } from '@gemini-code/server';
 
 export enum ToolCallStatus {
   Pending = 'Pending',
