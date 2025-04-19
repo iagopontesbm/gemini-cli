@@ -41,13 +41,14 @@ export const App = ({ directory }: AppProps) => {
   const userMessages = useMemo(
     () =>
       history
-        .filter((item): item is HistoryItem & { type: 'user'; text: string } =>
-          item.type === 'user' &&
-          typeof item.text === 'string' &&
-          item.text.trim() !== ''
+        .filter(
+          (item): item is HistoryItem & { type: 'user'; text: string } =>
+            item.type === 'user' &&
+            typeof item.text === 'string' &&
+            item.text.trim() !== '',
         )
         .map((item) => item.text),
-    [history]
+    [history],
   );
 
   const isWaitingForToolConfirmation = history.some(
@@ -60,7 +61,12 @@ export const App = ({ directory }: AppProps) => {
     !initError &&
     !isWaitingForToolConfirmation;
 
-  const { query, setQuery, handleSubmit: handleHistorySubmit, inputKey } = useInputHistory({
+  const {
+    query,
+    setQuery,
+    handleSubmit: handleHistorySubmit,
+    inputKey,
+  } = useInputHistory({
     userMessages,
     onSubmit: submitQuery,
     isActive: isInputActive,

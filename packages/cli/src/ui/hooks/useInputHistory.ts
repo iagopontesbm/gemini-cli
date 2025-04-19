@@ -40,16 +40,19 @@ export function useInputHistory({
   }, []);
 
   // Wrapper for the onSubmit prop to include resetting history navigation
-  const handleSubmit = useCallback((value: string) => {
-    const trimmedValue = value.trim();
-    if (trimmedValue) { // Only submit non-empty values
-       onSubmit(trimmedValue); // Call the original submit function
-    }
-    setQuery(''); // Clear the input field managed by this hook
-    resetHistoryNav(); // Reset history state
-    // Don't increment inputKey here, only on nav changes
-  }, [onSubmit, resetHistoryNav]);
-
+  const handleSubmit = useCallback(
+    (value: string) => {
+      const trimmedValue = value.trim();
+      if (trimmedValue) {
+        // Only submit non-empty values
+        onSubmit(trimmedValue); // Call the original submit function
+      }
+      setQuery(''); // Clear the input field managed by this hook
+      resetHistoryNav(); // Reset history state
+      // Don't increment inputKey here, only on nav changes
+    },
+    [onSubmit, resetHistoryNav],
+  );
 
   useInput(
     (input, key) => {
@@ -80,10 +83,9 @@ export function useInputHistory({
           // History is ordered newest to oldest, so access from the end
           const newValue = userMessages[userMessages.length - 1 - nextIndex];
           setQuery(newValue);
-          setInputKey(k => k + 1); // Increment key on navigation change
+          setInputKey((k) => k + 1); // Increment key on navigation change
           didNavigate = true;
         }
-
       } else if (key.downArrow) {
         if (historyIndex === -1) return; // Already at the bottom (current input)
 
@@ -98,21 +100,20 @@ export function useInputHistory({
           const newValue = userMessages[userMessages.length - 1 - nextIndex];
           setQuery(newValue);
         }
-        setInputKey(k => k + 1); // Increment key on navigation change
+        setInputKey((k) => k + 1); // Increment key on navigation change
         didNavigate = true;
-
       } else {
         // If user types anything other than arrows while navigating, reset history navigation state
         if (historyIndex !== -1 && !didNavigate) {
-           // Check if it's a key that modifies input content
+          // Check if it's a key that modifies input content
           if (input || key.backspace || key.delete) {
-             resetHistoryNav();
-             // The actual query state update for typing is handled by the component's onChange calling setQuery
+            resetHistoryNav();
+            // The actual query state update for typing is handled by the component's onChange calling setQuery
           }
         }
       }
     },
-    { isActive } // Pass isActive to useInput
+    { isActive }, // Pass isActive to useInput
   );
 
   return {
@@ -121,4 +122,4 @@ export function useInputHistory({
     handleSubmit, // Return the wrapped submit handler
     inputKey, // Return the key
   };
-} 
+}
