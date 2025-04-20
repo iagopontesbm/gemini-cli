@@ -15,7 +15,12 @@ export class Config {
   private targetDir: string;
   private debugMode: boolean;
 
-  constructor(apiKey: string, model: string, targetDir: string, debugMode: boolean) {
+  constructor(
+    apiKey: string,
+    model: string,
+    targetDir: string,
+    debugMode: boolean,
+  ) {
     this.apiKey = apiKey;
     this.model = model;
     this.targetDir = targetDir;
