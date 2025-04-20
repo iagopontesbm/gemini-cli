@@ -147,7 +147,7 @@ export const App = ({ config }: AppProps) => {
         </>
       )}
 
-      <Footer queryLength={query.length} />
+      <Footer queryLength={query.length} debugMode={config.getDebugMode()} />
       <ITermDetectionWarning />
     </Box>
   );
