@@ -31,7 +31,7 @@ interface AppProps {
 export const App = ({ config }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
-  const { streamingState, submitQuery, initError } = useGeminiStream(
+  const { streamingState, submitQuery, initError, debugMessage } = useGeminiStream(
     setHistory,
     config.getApiKey(),
     config.getModel(),
@@ -147,7 +147,7 @@ export const App = ({ config }: AppProps) => {
         </>
       )}
 
-      <Footer queryLength={query.length} debugMode={config.getDebugMode()} />
+      <Footer queryLength={query.length} debugMode={config.getDebugMode()} debugMessage={debugMessage} />
       <ITermDetectionWarning />
     </Box>
   );

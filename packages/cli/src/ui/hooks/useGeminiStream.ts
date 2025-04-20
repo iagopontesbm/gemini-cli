@@ -49,6 +49,7 @@ export const useGeminiStream = (
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
   );
+  const [debugMessage, setDebugMessage] = useState<string>('');
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
@@ -403,7 +404,7 @@ export const useGeminiStream = (
     ],
   );
 
-  return { streamingState, submitQuery, initError };
+  return { streamingState, submitQuery, initError, debugMessage };
 };
 
 // Define ServerTool interface here if not importing from server (circular dep issue?)
