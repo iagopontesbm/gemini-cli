@@ -9,15 +9,28 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import process from 'node:process';
 
+const DEFAULT_PASSTHROUGH_COMMANDS = ['ls', 'git', 'npm'];
+
 export class Config {
   private apiKey: string;
   private model: string;
   private targetDir: string;
+  private debugMode: boolean;
+  private passthroughCommands: string[];
 
-  constructor(apiKey: string, model: string, targetDir: string) {
+  constructor(
+    apiKey: string,
+    model: string,
+    targetDir: string,
+    debugMode: boolean,
+    passthroughCommands?: string[],
+  ) {
     this.apiKey = apiKey;
     this.model = model;
     this.targetDir = targetDir;
+    this.debugMode = debugMode;
+    this.passthroughCommands =
+      passthroughCommands || DEFAULT_PASSTHROUGH_COMMANDS;
   }
 
   getApiKey(): string {
@@ -30,6 +43,14 @@ export class Config {
 
   getTargetDir(): string {
     return this.targetDir;
+  }
+
+  getDebugMode(): boolean {
+    return this.debugMode;
+  }
+
+  getPassthroughCommands(): string[] {
+    return this.passthroughCommands;
   }
 }
 
@@ -60,6 +81,14 @@ export function createServerConfig(
   apiKey: string,
   model: string,
   targetDir: string,
+  debugMode: boolean,
+  passthroughCommands?: string[],
 ): Config {
-  return new Config(apiKey, model, path.resolve(targetDir));
+  return new Config(
+    apiKey,
+    model,
+    path.resolve(targetDir),
+    debugMode,
+    passthroughCommands,
+  );
 }
