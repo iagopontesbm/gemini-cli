@@ -32,12 +32,7 @@ export const App = ({ config }: AppProps) => {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const { streamingState, submitQuery, initError, debugMessage } =
-    useGeminiStream(
-      setHistory,
-      config.getApiKey(),
-      config.getModel(),
-      config.getPassthroughCommands(),
-    );
+    useGeminiStream(setHistory, config);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 

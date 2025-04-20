@@ -14,6 +14,7 @@ import {
   getErrorMessage,
   isNodeError,
   ToolResult,
+  Config,
 } from '@gemini-code/server';
 import type { Chat, PartListUnion, FunctionDeclaration } from '@google/genai';
 // Import CLI types
@@ -26,8 +27,6 @@ import { Tool } from '../../tools/tools.js'; // CLI Tool definition
 import { StreamingState } from '../../core/gemini-stream.js';
 // Import CLI tool registry
 import { toolRegistry } from '../../tools/tool-registry.js';
-
-const _allowlistedCommands = ['ls']; // Prefix with underscore since it's unused
 
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
@@ -43,9 +42,7 @@ const addHistoryItem = (
 // Hook now accepts apiKey and model
 export const useGeminiStream = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  apiKey: string,
-  model: string,
-  passthroughCommands: string[],
+  config: Config,
 ) => {
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
@@ -63,15 +60,17 @@ export const useGeminiStream = (
     setInitError(null);
     if (!geminiClientRef.current) {
       try {
-        geminiClientRef.current = new GeminiClient(apiKey, model);
+        geminiClientRef.current = new GeminiClient(
+          config.getApiKey(),
+          config.getModel(),
+        );
       } catch (error: unknown) {
         setInitError(
           `Failed to initialize client: ${getErrorMessage(error) || 'Unknown error'}`,
         );
       }
     }
-    // Dependency array includes apiKey and model now
-  }, [apiKey, model]);
+  }, [config.getApiKey(), config.getModel()]);
 
   // Input Handling Effect (remains the same)
   useInput((input, key) => {
@@ -109,7 +108,7 @@ export const useGeminiStream = (
       if (typeof query === 'string') {
         setDebugMessage(`User query: ${query}`);
         const maybeCommand = query.split(/\s+/)[0];
-        if (passthroughCommands.includes(maybeCommand)) {
+        if (config.getPassthroughCommands().includes(maybeCommand)) {
           // Execute and capture output
           setDebugMessage(`Executing shell command directly: ${query}`);
           _exec(query, (error, stdout, stderr) => {
@@ -436,8 +435,8 @@ export const useGeminiStream = (
     [
       streamingState,
       setHistory,
-      apiKey,
-      model,
+      config.getApiKey(),
+      config.getModel(),
       getNextMessageId,
       updateGeminiMessage,
     ],
