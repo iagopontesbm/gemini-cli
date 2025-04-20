@@ -9,6 +9,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import process from 'node:process';
 
+const DEFAULT_PASSTHROUGH_COMMANDS = ['ls', 'git', 'npm'];
+
 export class Config {
   private apiKey: string;
   private model: string;
@@ -27,7 +29,8 @@ export class Config {
     this.model = model;
     this.targetDir = targetDir;
     this.debugMode = debugMode;
-    this.passthroughCommands = passthroughCommands || ['ls', 'git'];
+    this.passthroughCommands =
+      passthroughCommands || DEFAULT_PASSTHROUGH_COMMANDS;
   }
 
   getApiKey(): string {
@@ -81,5 +84,11 @@ export function createServerConfig(
   debugMode: boolean,
   passthroughCommands?: string[],
 ): Config {
-  return new Config(apiKey, model, path.resolve(targetDir), debugMode, passthroughCommands);
+  return new Config(
+    apiKey,
+    model,
+    path.resolve(targetDir),
+    debugMode,
+    passthroughCommands,
+  );
 }

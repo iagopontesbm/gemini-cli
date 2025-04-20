@@ -110,6 +110,8 @@ export const useGeminiStream = (
         setDebugMessage(`User query: ${query}`);
         const maybeCommand = query.split(/\s+/)[0];
         if (passthroughCommands.includes(maybeCommand)) {
+          // Execute and capture output
+          setDebugMessage(`Executing shell command directly: ${query}`);
           _exec(query, (error, stdout, stderr) => {
             const timestamp = getNextMessageId(Date.now());
             if (error) {
@@ -121,7 +123,7 @@ export const useGeminiStream = (
             } else if (stderr) {
               addHistoryItem(
                 setHistory,
-                { type: 'error', text: stderr},
+                { type: 'error', text: stderr },
                 timestamp,
               );
             } else {
@@ -136,7 +138,7 @@ export const useGeminiStream = (
             setStreamingState(StreamingState.Idle);
           });
           // Set state to Responding while the command runs
-          setStreamingState(StreamingState.Responding); 
+          setStreamingState(StreamingState.Responding);
           return; // Prevent Gemini call
         }
       }
