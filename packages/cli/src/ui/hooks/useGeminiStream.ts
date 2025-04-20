@@ -105,6 +105,10 @@ export const useGeminiStream = (
       if (streamingState === StreamingState.Responding) return;
       if (typeof query === 'string' && query.trim().length === 0) return;
 
+      if (typeof query === 'string') {
+        setDebugMessage(`User query: ${query}`);
+      }
+
       const userMessageTimestamp = Date.now();
       const client = geminiClientRef.current;
       if (!client) {
