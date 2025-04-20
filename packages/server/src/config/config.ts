@@ -14,17 +14,20 @@ export class Config {
   private model: string;
   private targetDir: string;
   private debugMode: boolean;
+  private passthroughCommands: string[];
 
   constructor(
     apiKey: string,
     model: string,
     targetDir: string,
     debugMode: boolean,
+    passthroughCommands?: string[],
   ) {
     this.apiKey = apiKey;
     this.model = model;
     this.targetDir = targetDir;
     this.debugMode = debugMode;
+    this.passthroughCommands = passthroughCommands || ['ls', 'git'];
   }
 
   getApiKey(): string {
@@ -41,6 +44,10 @@ export class Config {
 
   getDebugMode(): boolean {
     return this.debugMode;
+  }
+
+  getPassthroughCommands(): string[] {
+    return this.passthroughCommands;
   }
 }
 
@@ -72,6 +79,7 @@ export function createServerConfig(
   model: string,
   targetDir: string,
   debugMode: boolean,
+  passthroughCommands?: string[],
 ): Config {
-  return new Config(apiKey, model, path.resolve(targetDir), debugMode);
+  return new Config(apiKey, model, path.resolve(targetDir), debugMode, passthroughCommands);
 }

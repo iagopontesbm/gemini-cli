@@ -45,6 +45,7 @@ export const useGeminiStream = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   apiKey: string,
   model: string,
+  passthroughCommands: string[],
 ) => {
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
@@ -107,6 +108,37 @@ export const useGeminiStream = (
 
       if (typeof query === 'string') {
         setDebugMessage(`User query: ${query}`);
+        const maybeCommand = query.split(/\s+/)[0];
+        if (passthroughCommands.includes(maybeCommand)) {
+          _exec(query, (error, stdout, stderr) => {
+            const timestamp = getNextMessageId(Date.now());
+            if (error) {
+              addHistoryItem(
+                setHistory,
+                { type: 'error', text: error.message },
+                timestamp,
+              );
+            } else if (stderr) {
+              addHistoryItem(
+                setHistory,
+                { type: 'error', text: stderr},
+                timestamp,
+              );
+            } else {
+              // Add stdout as an info message
+              addHistoryItem(
+                setHistory,
+                { type: 'info', text: stdout || '' },
+                timestamp,
+              );
+            }
+            // Set state back to Idle *after* command finishes and output is added
+            setStreamingState(StreamingState.Idle);
+          });
+          // Set state to Responding while the command runs
+          setStreamingState(StreamingState.Responding); 
+          return; // Prevent Gemini call
+        }
       }
 
       const userMessageTimestamp = Date.now();
@@ -391,7 +423,8 @@ export const useGeminiStream = (
         }
       } finally {
         abortControllerRef.current = null;
-        // Only set to Idle if not waiting for confirmation
+        // Only set to Idle if not waiting for confirmation.
+        // Passthrough commands handle their own Idle transition.
         if (streamingState !== StreamingState.WaitingForConfirmation) {
           setStreamingState(StreamingState.Idle);
         }
