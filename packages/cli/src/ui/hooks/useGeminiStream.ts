@@ -20,11 +20,11 @@ import {
 } from '@gemini-code/server';
 import type { Chat, PartListUnion, FunctionDeclaration } from '@google/genai';
 import {
+  StreamingState,
   HistoryItem,
   IndividualToolCallDisplay,
   ToolCallStatus,
 } from '../types.js';
-import { StreamingState } from '../../core/gemini-stream.js';
 import { toolRegistry } from '../../tools/tool-registry.js';
 
 const addHistoryItem = (
