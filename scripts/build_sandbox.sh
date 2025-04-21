@@ -61,8 +61,7 @@ npm pack -w @gemini-code/server --pack-destination ./packages/server/dist &> /de
 chmod 755 packages/*/dist/gemini-code-*.tgz
 
 # build container image & prune older unused images
-# use empty --authfile to skip unnecessary auth refresh overhead
 echo "building $IMAGE ... (can be slow first time)"
-$CMD build --authfile <(echo '{}') -t "$IMAGE" . >/dev/null
+$CMD build -t "$IMAGE" . >/dev/null
 $CMD image prune -f
 echo "built $IMAGE"
