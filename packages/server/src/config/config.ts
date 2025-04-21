@@ -37,7 +37,7 @@ export class Config {
   ) {
     this.apiKey = apiKey;
     this.model = model;
-    this.targetDir = targetDir;
+    this.targetDir = path.resolve(targetDir);
     this.debugMode = debugMode;
     this.passthroughCommands =
       passthroughCommands || DEFAULT_PASSTHROUGH_COMMANDS;
@@ -93,22 +93,6 @@ export function loadEnvironment(): void {
   dotenv.config({ path: envFilePath });
 }
 
-export function createServerConfig(
-  apiKey: string,
-  model: string,
-  targetDir: string,
-  debugMode: boolean,
-  passthroughCommands?: string[],
-): Config {
-  return new Config(
-    apiKey,
-    model,
-    path.resolve(targetDir),
-    debugMode,
-    passthroughCommands,
-  );
-}
-
 function createToolRegistry(config: Config): ToolRegistry {
   const registry = new ToolRegistry();
   const targetDir = config.getTargetDir();
@@ -121,7 +105,7 @@ function createToolRegistry(config: Config): ToolRegistry {
     new EditTool(targetDir),
     new TerminalTool(targetDir, config),
     new WriteFileTool(targetDir),
-    new WebFetchTool(), // Note: WebFetchTool takes no arguments
+    new WebFetchTool(),
   ];
   for (const tool of tools) {
     registry.registerTool(tool);

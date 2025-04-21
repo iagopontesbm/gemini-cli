@@ -7,15 +7,10 @@
 import yargs from 'yargs/yargs';
 import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
-import {
-  Config,
-  loadEnvironment,
-  createServerConfig,
-} from '@gemini-code/server';
+import { Config, loadEnvironment } from '@gemini-code/server';
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-preview-04-17';
 
-// Keep CLI-specific argument parsing
 interface CliArgs {
   target_dir: string | undefined;
   model: string | undefined;
@@ -48,12 +43,10 @@ function parseArguments(): CliArgs {
   return argv as unknown as CliArgs;
 }
 
-// Renamed function for clarity
 export function loadCliConfig(): Config {
   // Load .env file using logic from server package
   loadEnvironment();
 
-  // Check API key (CLI responsibility)
   if (!process.env.GEMINI_API_KEY) {
     console.log(
       'GEMINI_API_KEY is not set. See https://ai.google.dev/gemini-api/docs/api-key to obtain one. ' +
@@ -62,15 +55,13 @@ export function loadCliConfig(): Config {
     process.exit(1);
   }
 
-  // Parse CLI arguments
   const argv = parseArguments();
-
-  // Create config using factory from server package
-  return createServerConfig(
+  return new Config(
     process.env.GEMINI_API_KEY,
     argv.model || DEFAULT_GEMINI_MODEL,
     argv.target_dir || process.cwd(),
     argv.debug_mode || false,
     // TODO: load passthroughCommands from .env file
+    [],
   );
 }
