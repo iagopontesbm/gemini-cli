@@ -9,20 +9,9 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import {
-  LSTool,
-  ReadFileTool,
-  GrepTool,
-  GlobTool,
-  EditTool,
-  TerminalTool,
-  WriteFileTool,
-  WebFetchTool,
-  GeminiClient,
-  ServerTool,
-} from '@gemini-code/server';
+import { GeminiClient, ServerTool } from '@gemini-code/server';
 
-import { Chat, PartListUnion } from '@google/genai';
+import { PartListUnion } from '@google/genai';
 
 async function main() {
   let initialInput: string | undefined = undefined;
