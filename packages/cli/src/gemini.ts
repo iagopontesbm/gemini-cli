@@ -8,8 +8,7 @@ import React from 'react';
 import { render } from 'ink';
 import { App } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
-<<<<<<< HEAD
-import { readStdin } from './utils/readStdin.js'; // Added import
+import { readStdin } from './utils/readStdin.js';
 import {
   LSTool,
   ReadFileTool,
@@ -19,13 +18,11 @@ import {
   TerminalTool,
   WriteFileTool,
   WebFetchTool,
-  GeminiClient, // Added import for GeminiClient
-  ServerTool, // Added import for ServerTool
+  GeminiClient,
+  ServerTool, 
 } from '@gemini-code/server';
-=======
->>>>>>> main
 
-import { Chat, PartListUnion } from '@google/genai'; // Import Chat and PartListUnion from @google/genai
+import { Chat, PartListUnion } from '@google/genai'; 
 
 async function main() {
   let initialInput: string | undefined = undefined;
@@ -42,22 +39,19 @@ async function main() {
 
   // Load configuration
   const config = loadCliConfig();
-<<<<<<< HEAD
-
-  // Configure tools using the loaded config
-  registerTools(config.getTargetDir());
 
   // Render UI, passing necessary config values and initial input
   if (process.stdin.isTTY) {
     render(
       React.createElement(App, {
         config,
-        initialInput, // Pass initialInput as a prop
+        initialInput, 
       }),
     );
   } else if (initialInput) {
     // If not a TTY and we have initial input, process it directly
     const geminiClient = new GeminiClient(config.getApiKey(), config.getModel());
+    const toolRegistry = config.getToolRegistry();
     const availableTools: ServerTool[] = toolRegistry.getAllTools();
     const toolDeclarations = toolRegistry.getFunctionDeclarations();
     const chat = await geminiClient.startChat(toolDeclarations);
@@ -82,14 +76,6 @@ async function main() {
     console.error('No input provided via stdin.');
     process.exit(1);
   }
-=======
-  // Render UI, passing necessary config values
-  render(
-    React.createElement(App, {
-      config,
-    }),
-  );
->>>>>>> main
 }
 
 // --- Global Unhandled Rejection Handler ---
