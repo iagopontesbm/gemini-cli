@@ -1,0 +1,42 @@
+name: Nightly Release
+
+on:
+  schedule:
+    # Run every night at midnight UTC
+    - cron: '0 0 * * *'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: 'read'
+      id-token: 'write' # This is required to fetch the OIDC token.
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22' # Or your preferred Node.js version
+          registry-url: 'https://us-west1-npm.pkg.dev/gemini-code-dev/gemini-code/'
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: 'projects/48735766119/locations/global/workloadIdentityPools/github/providers/oicd-gh'
+          project_id: 'gemini-code-dev'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build packages
+        run: npm run build
+
+      - name: Run staging script
+        run: npm run stage
+
+      - name: Publish packages
+        run: npm publish --workspaces
