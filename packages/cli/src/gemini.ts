@@ -15,7 +15,7 @@ async function main() {
   const config = loadCliConfig();
   let input = config.getQuestion();
 
-  // Render UI, passing necessary config values. Check that there is no comman line question.
+  // Render UI, passing necessary config values. Check that there is no command line question.
   if (process.stdin.isTTY && input?.length === 0) {
     render(
       React.createElement(App, {
