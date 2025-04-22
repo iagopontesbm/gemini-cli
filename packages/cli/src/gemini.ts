@@ -7,8 +7,8 @@
 import React from 'react';
 import { render } from 'ink';
 import { App } from './ui/App.js';
-import { toolRegistry } from './tools/tool-registry.js';
 import { loadCliConfig } from './config/config.js';
+<<<<<<< HEAD
 import { readStdin } from './utils/readStdin.js'; // Added import
 import {
   LSTool,
@@ -22,6 +22,8 @@ import {
   GeminiClient, // Added import for GeminiClient
   ServerTool, // Added import for ServerTool
 } from '@gemini-code/server';
+=======
+>>>>>>> main
 
 import { Chat, PartListUnion } from '@google/genai'; // Import Chat and PartListUnion from @google/genai
 
@@ -40,6 +42,7 @@ async function main() {
 
   // Load configuration
   const config = loadCliConfig();
+<<<<<<< HEAD
 
   // Configure tools using the loaded config
   registerTools(config.getTargetDir());
@@ -79,6 +82,14 @@ async function main() {
     console.error('No input provided via stdin.');
     process.exit(1);
   }
+=======
+  // Render UI, passing necessary config values
+  render(
+    React.createElement(App, {
+      config,
+    }),
+  );
+>>>>>>> main
 }
 
 // --- Global Unhandled Rejection Handler ---
@@ -127,24 +138,3 @@ main().catch((error) => {
   }
   process.exit(1);
 });
-
-function registerTools(targetDir: string) {
-  const config = loadCliConfig();
-  const lsTool = new LSTool(targetDir);
-  const readFileTool = new ReadFileTool(targetDir);
-  const grepTool = new GrepTool(targetDir);
-  const globTool = new GlobTool(targetDir);
-  const editTool = new EditTool(targetDir);
-  const terminalTool = new TerminalTool(targetDir, config);
-  const writeFileTool = new WriteFileTool(targetDir);
-  const webFetchTool = new WebFetchTool();
-
-  toolRegistry.registerTool(lsTool);
-  toolRegistry.registerTool(readFileTool);
-  toolRegistry.registerTool(grepTool);
-  toolRegistry.registerTool(globTool);
-  toolRegistry.registerTool(editTool);
-  toolRegistry.registerTool(terminalTool);
-  toolRegistry.registerTool(writeFileTool);
-  toolRegistry.registerTool(webFetchTool);
-}

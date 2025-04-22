@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ToolListUnion, FunctionDeclaration } from '@google/genai';
+import { FunctionDeclaration } from '@google/genai';
 import { Tool } from './tools.js';
 
-class ToolRegistry {
+export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
 
   /**
@@ -38,29 +38,10 @@ class ToolRegistry {
   }
 
   /**
-   * Deprecated/Internal? Retrieves schemas in the ToolListUnion format.
-   * Kept for reference, prefer getFunctionDeclarations.
-   */
-  getToolSchemas(): ToolListUnion {
-    const declarations = this.getFunctionDeclarations();
-    if (declarations.length === 0) {
-      return [];
-    }
-    return [{ functionDeclarations: declarations }];
-  }
-
-  /**
    * Returns an array of all registered tool instances.
    */
   getAllTools(): Tool[] {
     return Array.from(this.tools.values());
-  }
-
-  /**
-   * Optional: Get a list of registered tool names.
-   */
-  listAvailableTools(): string[] {
-    return Array.from(this.tools.keys());
   }
 
   /**
@@ -70,6 +51,3 @@ class ToolRegistry {
     return this.tools.get(name);
   }
 }
-
-// Export a singleton instance of the registry
-export const toolRegistry = new ToolRegistry();
