@@ -28,7 +28,8 @@ interface AppProps {
   initialInput?: string; // Added optional prop
 }
 
-export const App = ({ config, initialInput }: AppProps) => { // Destructured prop
+export const App = ({ config, initialInput }: AppProps) => {
+  // Destructured prop
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const { streamingState, submitQuery, initError, debugMessage } =

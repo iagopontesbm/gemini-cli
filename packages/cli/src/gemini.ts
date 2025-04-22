@@ -19,10 +19,10 @@ import {
   WriteFileTool,
   WebFetchTool,
   GeminiClient,
-  ServerTool, 
+  ServerTool,
 } from '@gemini-code/server';
 
-import { Chat, PartListUnion } from '@google/genai'; 
+import { Chat, PartListUnion } from '@google/genai';
 
 async function main() {
   let initialInput: string | undefined = undefined;
@@ -45,12 +45,15 @@ async function main() {
     render(
       React.createElement(App, {
         config,
-        initialInput, 
+        initialInput,
       }),
     );
   } else if (initialInput) {
     // If not a TTY and we have initial input, process it directly
-    const geminiClient = new GeminiClient(config.getApiKey(), config.getModel());
+    const geminiClient = new GeminiClient(
+      config.getApiKey(),
+      config.getModel(),
+    );
     const toolRegistry = config.getToolRegistry();
     const availableTools: ServerTool[] = toolRegistry.getAllTools();
     const toolDeclarations = toolRegistry.getFunctionDeclarations();
@@ -59,7 +62,11 @@ async function main() {
     const request: PartListUnion = [{ text: initialInput }];
 
     try {
-      for await (const event of geminiClient.sendMessageStream(chat, request, availableTools)) {
+      for await (const event of geminiClient.sendMessageStream(
+        chat,
+        request,
+        availableTools,
+      )) {
         if (event.type === 'content') {
           process.stdout.write(event.value);
         }
