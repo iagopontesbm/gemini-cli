@@ -1,4 +1,4 @@
-FROM node:20-slim
+FROM docker.io/library/node:20-slim
 
 # install minimal set of packages, then clean up
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -34,6 +34,5 @@ COPY packages/cli/dist/gemini-code-cli-*.tgz /usr/local/share/npm-global/gemini-
 COPY packages/server/dist/gemini-code-server-*.tgz /usr/local/share/npm-global/gemini-code-server.tgz
 RUN npm install -g /usr/local/share/npm-global/gemini-code-cli.tgz /usr/local/share/npm-global/gemini-code-server.tgz \
   && npm cache clean --force \
-  && rm -f /usr/local/share/npm-global/gemini-code-cli.tgz \
-  && rm -f /usr/local/share/npm-global/gemini-code-server.tgz
+  && rm -f /usr/local/share/npm-global/gemini-code-{cli,server}.tgz
 

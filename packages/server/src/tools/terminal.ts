@@ -13,12 +13,9 @@ import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
 import { promises as fs } from 'fs';
-import {
-  SchemaValidator,
-  getErrorMessage,
-  isNodeError,
-  Config,
-} from '@gemini-code/server';
+import { SchemaValidator } from '../utils/schemaValidator.js';
+import { getErrorMessage, isNodeError } from '../utils/errors.js';
+import { Config } from '../config/config.js';
 import {
   BaseTool,
   ToolCallConfirmationDetails,
