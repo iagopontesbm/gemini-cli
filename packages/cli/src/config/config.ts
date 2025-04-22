@@ -46,8 +46,9 @@ function parseArguments(): CliArgs {
     .option('question', {
       alias: 'q',
       type: 'string',
-      description: 'The question to pass to the command when using piped input.',
-  })
+      description:
+        'The question to pass to the command when using piped input.',
+    })
     .help()
     .alias('h', 'help')
     .strict().argv;

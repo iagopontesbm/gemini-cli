@@ -28,7 +28,7 @@ async function main() {
   // If not a TTY, read from stdin
   // This is for cases where the user pipes input directly into the command
   if (!process.stdin.isTTY) {
-    input += await readStdin(); 
+    input += await readStdin();
   }
   if (!input) {
     console.error('No input provided via stdin.');
@@ -54,7 +54,6 @@ async function main() {
     process.exit(1);
   }
 }
-
 
 // --- Global Unhandled Rejection Handler ---
 process.on('unhandledRejection', (reason, _promise) => {
