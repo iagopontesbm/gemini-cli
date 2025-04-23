@@ -17,7 +17,7 @@ import { EditTool } from '../tools/edit.js';
 import { TerminalTool } from '../tools/terminal.js';
 import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
-import { ConcatenateFilesTool } from '../tools/concatenate-files.js';
+import { ReadManyFilesTool } from '../tools/read-many-files.js';
 
 const DEFAULT_PASSTHROUGH_COMMANDS = ['ls', 'git', 'npm'];
 
@@ -131,7 +131,7 @@ function createToolRegistry(config: Config): ToolRegistry {
     new TerminalTool(targetDir, config),
     new WriteFileTool(targetDir),
     new WebFetchTool(), // Note: WebFetchTool takes no arguments
-    new ConcatenateFilesTool(targetDir),
+    new ReadManyFilesTool(targetDir),
   ];
   for (const tool of tools) {
     registry.registerTool(tool);
