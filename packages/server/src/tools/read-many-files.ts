@@ -99,7 +99,7 @@ const DEFAULT_EXCLUDES: string[] = [
   '**/*.ods',
   '**/*.odp',
   '**/*.DS_Store',
-  '**/.env'
+  '**/.env',
 ];
 
 // Default values for encoding and separator format
@@ -147,7 +147,7 @@ export class ReadManyFilesTool extends BaseTool<
             'Optional. Glob patterns for files/directories to exclude. Added to default excludes if useDefaultExcludes is true. Example: ["**/*.log", "temp/"]',
           default: [],
         },
-        recursive: { 
+        recursive: {
           type: 'boolean',
           description:
             'Optional. Whether to search recursively (primarily controlled by `**` in glob patterns). Defaults to true.',
@@ -164,7 +164,7 @@ export class ReadManyFilesTool extends BaseTool<
     };
 
     super(
-      ReadManyFilesTool.Name, 
+      ReadManyFilesTool.Name,
       'Read Many Files',
       `Reads content from multiple text files specified by paths or glob patterns within a configured target directory and concatenates them into a single string.
 This tool is useful when you need to understand or analyze a collection of files, such as:
@@ -182,9 +182,8 @@ This tool should NOT be used for binary files; it attempts to skip them.
 Default excludes apply to common non-text files and large dependency directories unless 'useDefaultExcludes' is false.`,
       parameterSchema,
     );
-    this.targetDir = path.resolve(targetDir); 
+    this.targetDir = path.resolve(targetDir);
   }
-
 
   validateParams(params: ReadManyFilesParams): string | null {
     if (
@@ -194,7 +193,11 @@ Default excludes apply to common non-text files and large dependency directories
         params,
       )
     ) {
-      if (!params.paths || !Array.isArray(params.paths) || params.paths.length === 0) {
+      if (
+        !params.paths ||
+        !Array.isArray(params.paths) ||
+        params.paths.length === 0
+      ) {
         return 'The "paths" parameter is required and must be a non-empty array of strings/glob patterns.';
       }
       return 'Parameters failed schema validation. Ensure "paths" is a non-empty array and other parameters match their expected types.';
@@ -203,18 +206,20 @@ Default excludes apply to common non-text files and large dependency directories
       if (typeof p !== 'string' || p.trim() === '') {
         return 'Each item in "paths" must be a non-empty string/glob pattern.';
       }
-      // Basic check for path traversal attempts in non-glob parts of paths.
-      // The glob library's `cwd` option is the primary safeguard.
-      if (p.split('/').some(segment => segment === '..') || p.split('\\').some(segment => segment === '..')) {
-         if (!p.includes('*') && !p.includes('?')) { 
-         }
-      }
     }
-    if (params.include && (!Array.isArray(params.include) || !params.include.every(item => typeof item === 'string'))) {
-        return 'If provided, "include" must be an array of strings/glob patterns.';
+    if (
+      params.include &&
+      (!Array.isArray(params.include) ||
+        !params.include.every((item) => typeof item === 'string'))
+    ) {
+      return 'If provided, "include" must be an array of strings/glob patterns.';
     }
-    if (params.exclude && (!Array.isArray(params.exclude) || !params.exclude.every(item => typeof item === 'string'))) {
-        return 'If provided, "exclude" must be an array of strings/glob patterns.';
+    if (
+      params.exclude &&
+      (!Array.isArray(params.exclude) ||
+        !params.exclude.every((item) => typeof item === 'string'))
+    ) {
+      return 'If provided, "exclude" must be an array of strings/glob patterns.';
     }
     return null;
   }
@@ -222,16 +227,17 @@ Default excludes apply to common non-text files and large dependency directories
   getDescription(params: ReadManyFilesParams): string {
     const allPatterns = [...params.paths, ...(params.include || [])];
     const pathDesc = `using patterns: \`${allPatterns.join('`, `')}\` (within target directory: \`${this.targetDir}\`)`;
-    
-    let effectiveExcludes = params.useDefaultExcludes !== false ? [...DEFAULT_EXCLUDES] : [];
+
+    let effectiveExcludes =
+      params.useDefaultExcludes !== false ? [...DEFAULT_EXCLUDES] : [];
     if (params.exclude && params.exclude.length > 0) {
-        effectiveExcludes = [...effectiveExcludes, ...params.exclude];
+      effectiveExcludes = [...effectiveExcludes, ...params.exclude];
     }
-    const excludeDesc = `Excluding: ${effectiveExcludes.length > 0 ? `patterns like \`${effectiveExcludes.slice(0,2).join('`, `')}${effectiveExcludes.length > 2 ? '...`' : '`'}` : 'none explicitly (beyond default non-text file avoidance).'}`;
+    const excludeDesc = `Excluding: ${effectiveExcludes.length > 0 ? `patterns like \`${effectiveExcludes.slice(0, 2).join('`, `')}${effectiveExcludes.length > 2 ? '...`' : '`'}` : 'none explicitly (beyond default non-text file avoidance).'}`;
 
     return `Will attempt to read and concatenate files ${pathDesc}. ${excludeDesc}. File encoding: ${DEFAULT_ENCODING}. Separator: "${DEFAULT_OUTPUT_SEPARATOR_FORMAT.replace('{filePath}', 'path/to/file.ext')}".`;
   }
-  
+
   async execute(params: ReadManyFilesParams): Promise<ToolResult> {
     const validationError = this.validateParams(params);
     if (validationError) {
@@ -242,27 +248,29 @@ Default excludes apply to common non-text files and large dependency directories
     }
 
     const {
-      paths: inputPatterns, 
+      paths: inputPatterns,
       include = [],
       exclude = [],
       useDefaultExcludes = true,
     } = params;
 
-    const toolBaseDir = this.targetDir; 
+    const toolBaseDir = this.targetDir;
 
-    const filesToConsider = new Set<string>(); 
+    const filesToConsider = new Set<string>();
     const skippedFiles: { path: string; reason: string }[] = [];
     const processedFilesRelativePaths: string[] = [];
     let concatenatedContent = '';
 
-    const effectiveExcludes = useDefaultExcludes ? [...DEFAULT_EXCLUDES, ...exclude] : [...exclude];
-    
+    const effectiveExcludes = useDefaultExcludes
+      ? [...DEFAULT_EXCLUDES, ...exclude]
+      : [...exclude];
+
     const searchPatterns = [...inputPatterns, ...include];
     if (searchPatterns.length === 0) {
-        return {
-            llmContent: "No search paths or include patterns provided.",
-            returnDisplay: `## Information\n\nNo search paths or include patterns were specified. Nothing to read or concatenate.`
-        }
+      return {
+        llmContent: 'No search paths or include patterns provided.',
+        returnDisplay: `## Information\n\nNo search paths or include patterns were specified. Nothing to read or concatenate.`,
+      };
     }
 
     try {
@@ -276,9 +284,9 @@ Default excludes apply to common non-text files and large dependency directories
         cwd: toolBaseDir,
         ignore: effectiveExcludes,
         onlyFiles: true,
-        dot: true, 
-        absolute: true, 
-        caseSensitiveMatch: false, 
+        dot: true,
+        absolute: true,
+        caseSensitiveMatch: false,
       });
 
       for (const absoluteFilePath of entries) {
@@ -286,41 +294,54 @@ Default excludes apply to common non-text files and large dependency directories
         // This should be guaranteed by `cwd` and the library's sandboxing, but an extra check is good practice.
         if (!absoluteFilePath.startsWith(toolBaseDir)) {
           skippedFiles.push({
-            path: absoluteFilePath, 
+            path: absoluteFilePath,
             reason: `Security: Glob library returned path outside target directory. Base: ${toolBaseDir}, Path: ${absoluteFilePath}`,
           });
           continue;
         }
         filesToConsider.add(absoluteFilePath);
       }
-
     } catch (error) {
       return {
         llmContent: `Error during file search: ${getErrorMessage(error)}`,
         returnDisplay: `## File Search Error\n\nAn error occurred while searching for files:\n\`\`\`\n${getErrorMessage(error)}\n\`\`\``,
       };
     }
-    
+
     const sortedFiles = Array.from(filesToConsider).sort();
 
     for (const filePath of sortedFiles) {
-      const relativePathForDisplay = path.relative(toolBaseDir, filePath).replace(/\\/g, '/');
+      const relativePathForDisplay = path
+        .relative(toolBaseDir, filePath)
+        .replace(/\\/g, '/');
       try {
         const contentBuffer = await fs.readFile(filePath);
         // Basic binary detection: check for null bytes in the first 1KB
-        const sample = contentBuffer.subarray(0, Math.min(contentBuffer.length, 1024));
+        const sample = contentBuffer.subarray(
+          0,
+          Math.min(contentBuffer.length, 1024),
+        );
         if (sample.includes(0)) {
-          skippedFiles.push({ path: relativePathForDisplay, reason: 'Skipped (appears to be binary)' });
+          skippedFiles.push({
+            path: relativePathForDisplay,
+            reason: 'Skipped (appears to be binary)',
+          });
           continue;
         }
         // Using default encoding
         const fileContent = contentBuffer.toString(DEFAULT_ENCODING);
         // Using default separator format
-        const separator = DEFAULT_OUTPUT_SEPARATOR_FORMAT.replace('{filePath}', relativePathForDisplay);
+        const separator = DEFAULT_OUTPUT_SEPARATOR_FORMAT.replace(
+          '{filePath}',
+          relativePathForDisplay,
+        );
         concatenatedContent += `${separator}\n\n${fileContent}\n\n`;
         processedFilesRelativePaths.push(relativePathForDisplay);
       } catch (error) {
-        skippedFiles.push({ path: relativePathForDisplay, reason: `Read error: ${getErrorMessage(error)}` });
+        skippedFiles.push({
+          path: relativePathForDisplay,
+          reason: `Read error: ${getErrorMessage(error)}`,
+        });
       }
     }
 
@@ -328,7 +349,9 @@ Default excludes apply to common non-text files and large dependency directories
     if (processedFilesRelativePaths.length > 0) {
       displayMessage += `Successfully read and concatenated content from **${processedFilesRelativePaths.length} file(s)**.\n`;
       displayMessage += `\n**Processed Files (up to 10 shown):**\n`;
-      processedFilesRelativePaths.slice(0, 10).forEach(p => displayMessage += `- \`${p}\`\n`);
+      processedFilesRelativePaths
+        .slice(0, 10)
+        .forEach((p) => (displayMessage += `- \`${p}\`\n`));
       if (processedFilesRelativePaths.length > 10) {
         displayMessage += `- ...and ${processedFilesRelativePaths.length - 10} more.\n`;
       }
@@ -338,14 +361,22 @@ Default excludes apply to common non-text files and large dependency directories
 
     if (skippedFiles.length > 0) {
       displayMessage += `\n**Skipped ${skippedFiles.length} item(s) (up to 5 shown):**\n`;
-      skippedFiles.slice(0, 5).forEach(f => displayMessage += `- \`${f.path}\` (Reason: ${f.reason})\n`);
+      skippedFiles
+        .slice(0, 5)
+        .forEach(
+          (f) => (displayMessage += `- \`${f.path}\` (Reason: ${f.reason})\n`),
+        );
       if (skippedFiles.length > 5) {
         displayMessage += `- ...and ${skippedFiles.length - 5} more.\n`;
       }
     }
-     if (concatenatedContent.length === 0 && processedFilesRelativePaths.length === 0) {
-        concatenatedContent = "No files matching the criteria were found or all were skipped.";
-     }
+    if (
+      concatenatedContent.length === 0 &&
+      processedFilesRelativePaths.length === 0
+    ) {
+      concatenatedContent =
+        'No files matching the criteria were found or all were skipped.';
+    }
 
     return {
       llmContent: concatenatedContent,
