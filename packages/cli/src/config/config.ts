@@ -46,7 +46,8 @@ function parseArguments(): CliArgs {
     .option('full_context', {
       alias: 'f',
       type: 'boolean',
-      description: 'Recursively include all files within the current directory as context.',
+      description:
+        'Recursively include all files within the current directory as context.',
       default: false,
     })
     .help()
