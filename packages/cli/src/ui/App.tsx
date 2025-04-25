@@ -88,7 +88,8 @@ export const App = ({ config, cliVersion }: AppProps) => {
   });
 
   // --- Completion Hook ---
-  const isCompletionActive = isInputActive && query.includes('@');
+  const isCompletionActive =
+    isInputActive && (query.startsWith('@') || /\s@\S/.test(query));
   const {
     suggestions,
     activeSuggestionIndex,
