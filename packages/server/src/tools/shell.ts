@@ -15,7 +15,7 @@ export interface ShellToolParams {
 }
 
 export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
-  static Name: string = 'execute_shell_command';
+  static Name: string = 'execute_bash_command';
   private readonly rootDirectory: string;
   private readonly config: Config;
 
