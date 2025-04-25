@@ -15,7 +15,7 @@
 
 set -euo pipefail
 
-if [ ! -d "dist" ] || [ ! -d "dist/src" ]; then
+if [[ $(pwd) != *"/packages/"* ]]; then
     echo "must be invoked from a package directory"
     exit 1
 fi
