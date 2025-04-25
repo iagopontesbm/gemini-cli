@@ -31,6 +31,7 @@ export class Config {
   private debugMode: boolean;
   private question: string | undefined;
   private passthroughCommands: string[];
+  private fullContext: boolean;
 
   constructor(
     apiKey: string,
@@ -39,6 +40,7 @@ export class Config {
     debugMode: boolean,
     question: string,
     passthroughCommands?: string[],
+    fullContext?: boolean,
   ) {
     this.apiKey = apiKey;
     this.model = model;
@@ -47,6 +49,7 @@ export class Config {
     this.question = question;
     this.passthroughCommands =
       passthroughCommands || DEFAULT_PASSTHROUGH_COMMANDS;
+    this.fullContext = fullContext || false;
 
     this.toolRegistry = createToolRegistry(this);
   }
@@ -76,6 +79,11 @@ export class Config {
 
   getPassthroughCommands(): string[] {
     return this.passthroughCommands;
+  }
+
+  getFullContext(): boolean {
+    // Added getter for fullContext
+    return this.fullContext;
   }
 }
 
@@ -109,6 +117,7 @@ export function createServerConfig(
   debugMode: boolean,
   question: string,
   passthroughCommands?: string[],
+  fullContext?: boolean,
 ): Config {
   return new Config(
     apiKey,
@@ -117,6 +126,7 @@ export function createServerConfig(
     debugMode,
     question,
     passthroughCommands,
+    fullContext,
   );
 }
 
