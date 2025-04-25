@@ -20,6 +20,8 @@ interface UseInputHistoryReturn {
   setQuery: React.Dispatch<React.SetStateAction<string>>; // Setter for the query
   handleSubmit: (value: string) => void; // Wrapped submit handler
   inputKey: number; // Key to force input reset
+  resetHistoryNav: () => void; // Expose reset function
+  forceInputReset: () => void; // Function to manually increment the key
 }
 
 export function useInputHistory({
@@ -37,6 +39,11 @@ export function useInputHistory({
   const resetHistoryNav = useCallback(() => {
     setHistoryIndex(-1);
     setOriginalQueryBeforeNav('');
+  }, []);
+
+  // Function to manually increment the key, forcing input reset/cursor move
+  const forceInputReset = useCallback(() => {
+    setInputKey((k) => k + 1);
   }, []);
 
   // Wrapper for the onSubmit prop to include resetting history navigation
@@ -121,5 +128,7 @@ export function useInputHistory({
     setQuery, // Return the hook's setQuery
     handleSubmit, // Return the wrapped submit handler
     inputKey, // Return the key
+    resetHistoryNav, // Return the reset function
+    forceInputReset, // Return the key increment function
   };
 }

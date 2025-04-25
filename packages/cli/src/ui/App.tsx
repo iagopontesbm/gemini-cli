@@ -10,10 +10,12 @@ import { StreamingState, type HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useInputHistory } from './hooks/useInputHistory.js';
+import { useCompletion } from './hooks/useCompletion.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { InputPrompt } from './components/InputPrompt.js';
+import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { useStartupWarnings } from './hooks/useAppEffects.js';
@@ -72,11 +74,29 @@ export const App = ({ config, cliVersion }: AppProps) => {
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
-  const { query, handleSubmit: handleHistorySubmit } = useInputHistory({
+  const {
+    query,
+    setQuery,
+    handleSubmit: handleHistorySubmit,
+    inputKey,
+    resetHistoryNav,
+    forceInputReset,
+  } = useInputHistory({
     userMessages,
     onSubmit: handleFinalSubmit,
     isActive: isInputActive,
   });
+
+  // --- Completion Hook ---
+  const isCompletionActive = isInputActive && query.includes('@');
+  const {
+    suggestions,
+    activeSuggestionIndex,
+    showSuggestions,
+    isLoadingSuggestions,
+    setActiveSuggestionIndex,
+    resetCompletionState,
+  } = useCompletion(query, config.getTargetDir(), isCompletionActive);
 
   // --- Render Logic ---
 
@@ -204,6 +224,62 @@ export const App = ({ config, cliVersion }: AppProps) => {
           )}
         </Box>
       )}
+
+      {/* RESOLVED BLOCK STARTS HERE */}
+      {isThemeDialogOpen ? (
+        <ThemeDialog
+          onSelect={handleThemeSelect}
+          onHighlight={handleThemeHighlight}
+        />
+      ) : (
+        <>
+          <Box flexDirection="column">
+            <HistoryDisplay history={history} onSubmit={submitQuery} />
+            <LoadingIndicator
+              isLoading={streamingState === StreamingState.Responding}
+              currentLoadingPhrase={currentLoadingPhrase}
+              elapsedTime={elapsedTime}
+            />
+          </Box>
+
+          {isInputActive && (
+            <>
+              <Box>
+                <Text color={Colors.SubtleComment}>cwd: </Text>
+                <Text color={Colors.LightBlue}>
+                  {shortenPath(config.getTargetDir(), /*maxLength*/ 70)}
+                </Text>
+              </Box>
+
+              <InputPrompt
+                key={inputKey}
+                onSubmit={handleHistorySubmit}
+                // Pass completion-related props
+                query={query}
+                setQuery={setQuery}
+                suggestions={suggestions}
+                activeSuggestionIndex={activeSuggestionIndex}
+                setActiveSuggestionIndex={setActiveSuggestionIndex}
+                showSuggestions={showSuggestions}
+                resetCompletionState={resetCompletionState}
+                resetHistoryNav={resetHistoryNav}
+                forceInputReset={forceInputReset}
+                isCompletionActive={isCompletionActive}
+              />
+              {/* Render SuggestionsDisplay conditionally */}
+              {showSuggestions && (
+                <SuggestionsDisplay
+                  suggestions={suggestions}
+                  activeIndex={activeSuggestionIndex}
+                  isLoading={isLoadingSuggestions}
+                  width={100} // TODO: Make width dynamic based on terminal/input size
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
+      {/* RESOLVED BLOCK ENDS HERE */}
 
       <Footer
         config={config}
