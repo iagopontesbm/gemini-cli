@@ -57,8 +57,8 @@ if [ "$SKIP_NPM_INSTALL_BUILD" = true ]; then
     fi
 fi
 
-# prepare global installation files for Dockerfile-prod
-if [ "$DOCKERFILE" = "Dockerfile-prod" ]; then
+# prepare global installation files for prod build
+if [ "$DOCKERFILE" = "Dockerfile" ]; then
     # pack cli
     echo "packing @gemini-code/cli ..."
     rm -f packages/cli/dist/gemini-code-cli-*.tgz
@@ -67,7 +67,7 @@ if [ "$DOCKERFILE" = "Dockerfile-prod" ]; then
     echo "packing @gemini-code/server ..."
     rm -f packages/server/dist/gemini-code-server-*.tgz
     npm pack -w @gemini-code/server --pack-destination ./packages/server/dist &>/dev/null
-    # give node user (used during installation, see Dockerfile-prod) access to these files
+    # give node user (used during installation, see Dockerfile) access to these files
     chmod 755 packages/*/dist/gemini-code-*.tgz
 fi
 
