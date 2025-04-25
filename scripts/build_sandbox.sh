@@ -24,18 +24,7 @@ CMD=$(scripts/sandbox_command.sh)
 echo "using $CMD for sandboxing"
 
 IMAGE=gemini-code-sandbox
-
-# default to using Dockerfile-dev unless DOCKERFILE is set
-# dev build should contain no global installation of gemini-code
-# dev build can be skipped if image exists, unless REBUILD_SANDBOX is set
-# rebuild should not be necessary unless Dockerfile-dev is modified
-DOCKERFILE=${DOCKERFILE:-Dockerfile-dev}
-if [ "$DOCKERFILE" = "Dockerfile-dev" ] && $CMD image exists "$IMAGE"; then
-    if [ -z "${REBUILD_SANDBOX:-}" ]; then
-        echo "using existing $IMAGE (set REBUILD_SANDBOX=true to rebuild)"
-        exit 0
-    fi
-fi
+DOCKERFILE=${DOCKERFILE:-Dockerfile}
 
 SKIP_NPM_INSTALL_BUILD=false
 while getopts "s" opt; do
@@ -54,6 +43,18 @@ shift $((OPTIND - 1))
 if [ "$SKIP_NPM_INSTALL_BUILD" = false ]; then
     npm install
     npm run build
+fi
+
+# if -s option is used, then we also switch to Dockerfile-dev
+# dev build should contain no global installation of gemini-code
+# dev build can be skipped if image exists, unless REBUILD_SANDBOX is set
+# rebuild should not be necessary unless Dockerfile-dev is modified
+if [ "$SKIP_NPM_INSTALL_BUILD" = true ]; then
+    DOCKERFILE=Dockerfile-dev
+    if $CMD image exists "$IMAGE" && [ -z "${REBUILD_SANDBOX:-}" ]; then
+        echo "using existing $IMAGE (set REBUILD_SANDBOX=true to force rebuild)"
+        exit 0
+    fi
 fi
 
 # prepare global installation files for Dockerfile-prod
