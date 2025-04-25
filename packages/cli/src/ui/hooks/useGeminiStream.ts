@@ -29,6 +29,7 @@ import {
   ToolCallStatus,
 } from '../types.js';
 import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
+import { handleAtCommand } from './atCommandProcessor.js';
 
 interface SlashCommand {
   name: string; // slash command
@@ -36,6 +37,8 @@ interface SlashCommand {
   action: (value: PartListUnion) => void;
 }
 
+
+// Helper function to add history items (could be moved to a shared util if needed elsewhere)
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   itemData: Omit<HistoryItem, 'id'>,
@@ -117,7 +120,7 @@ export const useGeminiStream = (
         );
       }
     }
-  }, [config.getApiKey(), config.getModel()]);
+  }, [config]);
 
   // Input Handling Effect (remains the same)
   useInput((input, key) => {
@@ -234,124 +237,30 @@ export const useGeminiStream = (
       if (streamingState === StreamingState.Responding) return;
       if (typeof query === 'string' && query.trim().length === 0) return;
 
-      let processedQuery: PartListUnion = query;
       const userMessageTimestamp = Date.now();
+      let processedQuery: PartListUnion;
+      let shouldProceed: boolean;
 
-      // --- Pre-processing for special commands (@file, clear, passthrough) ---
+      // --- Pre-processing for special commands (clear, passthrough, @file) ---
       if (typeof query === 'string') {
         const trimmedQuery = query.trim();
         const maybeCommand = trimmedQuery.split(/\s+/)[0];
 
+        // 1. Handle 'clear' command
         if (trimmedQuery === 'clear') {
           setDebugMessage('Clearing terminal.');
           setHistory((_) => []);
           return; // Stop processing
-        } else if (trimmedQuery.startsWith('@')) {
-          const filePath = trimmedQuery.substring(1);
-          if (filePath) {
-            const readManyFilesTool = toolRegistry.getTool('read_many_files');
-            if (readManyFilesTool) {
-              // Add user message first, so it appears before potential errors/tool UI
-              addHistoryItem(
-                setHistory,
-                { type: 'user', text: query },
-                userMessageTimestamp,
-              );
+        }
 
-              // --- Path Handling for @ command ---
-              let pathSpec = filePath;
-              // Basic check: If no extension or ends with '/', assume directory and add globstar.
-              // This is a heuristic and might not cover all edge cases (e.g., files without extensions).
-              if (!filePath.includes('.') || filePath.endsWith('/')) {
-                 pathSpec = filePath.endsWith('/') ? `${filePath}**` : `${filePath}/**`;
-              }
-              const toolArgs = { paths: [pathSpec] };
-              const contentLabel = pathSpec === filePath ? filePath : `directory ${filePath}`; // Adjust label
-              // --- End Path Handling ---
-
-              let toolCallDisplay: IndividualToolCallDisplay;
-              try {
-                setDebugMessage(`Reading via @ command: ${pathSpec}`); // Use pathSpec
-                const result = await readManyFilesTool.execute(toolArgs); // Use updated toolArgs
-                const fileContent = result.llmContent || '';
-
-                // Construct success UI
-                toolCallDisplay = {
-                  callId: `client-read-${userMessageTimestamp}`,
-                  name: readManyFilesTool.displayName,
-                  description: readManyFilesTool.getDescription(toolArgs), // Use updated toolArgs
-                  status: ToolCallStatus.Success,
-                  resultDisplay: result.returnDisplay,
-                  confirmationDetails: undefined,
-                };
-
-                // Prepend file content to the query sent to the model
-                processedQuery = [
-                  { text: `--- Content from: ${contentLabel} ---\n${fileContent}\n--- End Content ---` }, // Use contentLabel
-                  // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
-                ];
-              } catch (error) {
-                // Construct error UI
-                toolCallDisplay = {
-                  callId: `client-read-${userMessageTimestamp}`,
-                  name: readManyFilesTool.displayName,
-                  description: readManyFilesTool.getDescription(toolArgs), // Use updated toolArgs
-                  status: ToolCallStatus.Error,
-                  resultDisplay: `Error reading ${contentLabel}: ${getErrorMessage(error)}`, // Use contentLabel
-                  confirmationDetails: undefined,
-                };
-                // Don't proceed to Gemini if file reading failed
-                setStreamingState(StreamingState.Idle);
-                // Add the tool group UI and return
-                const toolGroupId = getNextMessageId(userMessageTimestamp);
-                addHistoryItem(
-                  setHistory,
-                  { type: 'tool_group', tools: [toolCallDisplay] } as Omit<HistoryItem, 'id'>,
-                  toolGroupId,
-                );
-                return;
-              }
-              // Add the tool group UI (for success case)
-              const toolGroupId = getNextMessageId(userMessageTimestamp);
-              addHistoryItem(
-                setHistory,
-                { type: 'tool_group', tools: [toolCallDisplay] } as Omit<HistoryItem, 'id'>,
-                toolGroupId,
-              );
-              // Note: We already added the user message above.
-              // Proceed to call Gemini with the prepended content
-            } else {
-               // Add user message first
-               addHistoryItem(
-                 setHistory,
-                 { type: 'user', text: query },
-                 userMessageTimestamp,
-               );
-              const errorTimestamp = getNextMessageId(userMessageTimestamp);
-              addHistoryItem(
-                setHistory,
-                { type: 'error', text: 'Error: read_many_files tool not found.' },
-                errorTimestamp,
-              );
-              setStreamingState(StreamingState.Idle);
-              return; // Don't proceed if tool is missing
-            }
-          } else {
-            // Handle case where it's just "@" - treat as normal input
-             addHistoryItem(
-               setHistory,
-               { type: 'user', text: query },
-               userMessageTimestamp,
-             );
-             processedQuery = query; // Send the "@" to the model
-          }
-        } else if (config.getPassthroughCommands().includes(maybeCommand)) {
-           // Add user message first
-           addHistoryItem(
-             setHistory,
-             { type: 'user', text: query },
-             userMessageTimestamp,
-           );
+        // 2. Handle passthrough commands
+        if (config.getPassthroughCommands().includes(maybeCommand)) {
+          // Add user message first
+          addHistoryItem(
+            setHistory,
+            { type: 'user', text: query },
+            userMessageTimestamp,
+          );
           // Execute and capture output
           const targetDir = config.getTargetDir();
           setDebugMessage(`Executing shell command in ${targetDir}: ${query}`);
@@ -359,36 +268,60 @@ export const useGeminiStream = (
           _exec(query, execOptions, (error, stdout, stderr) => {
             const timestamp = getNextMessageId(Date.now());
             if (error) {
-              addHistoryItem(setHistory, { type: 'error', text: error.message }, timestamp);
+              addHistoryItem(
+                setHistory,
+                { type: 'error', text: error.message },
+                timestamp,
+              );
             } else if (stderr) {
-              addHistoryItem(setHistory, { type: 'error', text: stderr }, timestamp);
+              addHistoryItem(
+                setHistory,
+                { type: 'error', text: stderr },
+                timestamp,
+              );
             } else {
-              addHistoryItem(setHistory, { type: 'info', text: stdout || '' }, timestamp);
+              addHistoryItem(
+                setHistory,
+                { type: 'info', text: stdout || '' },
+                timestamp,
+              );
             }
             setStreamingState(StreamingState.Idle);
           });
-          setStreamingState(StreamingState.Responding);
+          setStreamingState(StreamingState.Responding); // Set state while exec runs
           return; // Prevent Gemini call
-        } else {
-           // Default case: Add normal user message if it's not a special command
-           addHistoryItem(
-             setHistory,
-             { type: 'user', text: query },
-             userMessageTimestamp,
-           );
-           processedQuery = query;
         }
+
+        // 3. Handle '@' command using the dedicated processor
+        const atCommandResult = await handleAtCommand({
+          query,
+          config,
+          setHistory,
+          setDebugMessage,
+          getNextMessageId,
+          userMessageTimestamp,
+        });
+        processedQuery = atCommandResult.processedQuery;
+        shouldProceed = atCommandResult.shouldProceed;
+
+        if (!shouldProceed) {
+          setStreamingState(StreamingState.Idle); // Ensure state is reset if not proceeding
+          return; // Stop if @ command handled it or failed
+        }
+        // If it wasn't '@', 'clear', or passthrough, handleAtCommand added the user message.
       } else {
         // If query is already PartListUnion (e.g., function response), use it directly
         // No user message added here as it's an internal step
         processedQuery = query;
+        shouldProceed = true; // Always proceed with internal function responses
       }
       // --- End Pre-processing ---
 
-
+      // --- Start Gemini API Call Logic ---
       const client = geminiClientRef.current;
       if (!client) {
         setInitError('Gemini client is not available.');
+        setStreamingState(StreamingState.Idle); // Reset state
         return;
       }
 
@@ -485,7 +418,17 @@ export const useGeminiStream = (
             const cliTool = toolRegistry.getTool(name); // Get the full CLI tool
             if (!cliTool) {
               console.error(`CLI Tool "${name}" not found!`);
-              continue;
+              // Add error to history? Or just log?
+              const errorTimestamp = getNextMessageId(userMessageTimestamp);
+              addHistoryItem(
+                setHistory,
+                {
+                  type: 'error',
+                  text: `Error: Tool "${name}" requested by model not found.`,
+                },
+                errorTimestamp,
+              );
+              continue; // Skip this tool call
             }
 
             if (currentToolGroupId === null) {
@@ -548,10 +491,11 @@ export const useGeminiStream = (
               confirmationDetails,
             );
             setStreamingState(StreamingState.WaitingForConfirmation);
-            return;
+            return; // Exit the loop to wait for user confirmation
           }
-        }
+        } // End for-await loop
 
+        // If loop finishes normally (not aborted or waiting for confirmation)
         setStreamingState(StreamingState.Idle);
       } catch (error: unknown) {
         if (!isNodeError(error) || error.name !== 'AbortError') {
@@ -560,15 +504,27 @@ export const useGeminiStream = (
             setHistory,
             {
               type: 'error',
-              text: `[Error: ${getErrorMessage(error)}]`,
+              text: `[Stream Error: ${getErrorMessage(error)}]`,
+            },
+            getNextMessageId(userMessageTimestamp),
+          );
+        } else {
+          // Handle AbortError specifically (user cancellation)
+          addHistoryItem(
+            setHistory,
+            {
+              type: 'info',
+              text: 'Request cancelled.',
             },
             getNextMessageId(userMessageTimestamp),
           );
         }
-        setStreamingState(StreamingState.Idle);
+        setStreamingState(StreamingState.Idle); // Ensure state is reset on error/abort
       } finally {
         abortControllerRef.current = null;
       }
+
+      // --- Helper functions defined within submitQuery scope ---
 
       function updateConfirmingFunctionStatusUI(
         callId: string,
@@ -632,6 +588,10 @@ export const useGeminiStream = (
         ) => {
           originalConfirmationDetails.onConfirm(outcome);
 
+          // Reset streaming state since confirmation has been chosen.
+          // Important: Do NOT set to Idle here yet, let the subsequent submitQuery call handle it.
+          // setStreamingState(StreamingState.Idle); // REMOVED
+
           if (outcome === ToolConfirmationOutcome.Cancel) {
             let resultDisplay: ToolResultDisplay | undefined;
             if ('fileDiff' in originalConfirmationDetails) {
@@ -655,55 +615,105 @@ export const useGeminiStream = (
               callId: request.callId,
               responsePart: functionResponse,
               resultDisplay,
-              error: undefined,
-            };
-
-            updateFunctionResponseUI(responseInfo, ToolCallStatus.Error);
-            setStreamingState(StreamingState.Idle);
-          } else {
-            const tool = toolRegistry.getTool(request.name);
-            if (!tool) {
-              throw new Error(
-                `Tool "${request.name}" not found or is not registered.`,
-              );
-            }
-            const result = await tool.execute(request.args);
-            const functionResponse: Part = {
-              functionResponse: {
-                name: request.name,
-                id: request.callId,
-                response: { output: result.llmContent },
+              error: {
+                name: 'FunctionCallRejection',
+                message: 'User rejected function call.',
               },
             };
 
-            const responseInfo: ToolCallResponseInfo = {
-              callId: request.callId,
-              responsePart: functionResponse,
-              resultDisplay: result.returnDisplay,
-              error: undefined,
-            };
-            updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
-            setStreamingState(StreamingState.Idle);
+            // Update UI to show cancellation/error *before* resubmitting
+            updateFunctionResponseUI(responseInfo, ToolCallStatus.Canceled); // Use Canceled status
+
+            // Resubmit the rejection to the model
             await submitQuery(functionResponse);
+          } else {
+            // User approved (ProceedOnce or ProceedAlways)
+            const tool = toolRegistry.getTool(request.name);
+            if (!tool) {
+              // This should ideally not happen if ToolCallRequest handled it, but double-check
+              const errorMsg = `Tool "${request.name}" not found or is not registered.`;
+              console.error(errorMsg);
+              const functionResponse: Part = {
+                functionResponse: {
+                  id: request.callId,
+                  name: request.name,
+                  response: { error: errorMsg },
+                },
+              };
+              const responseInfo: ToolCallResponseInfo = {
+                callId: request.callId,
+                responsePart: functionResponse,
+                resultDisplay: errorMsg,
+                error: { name: 'ToolNotFound', message: errorMsg },
+              };
+              updateFunctionResponseUI(responseInfo, ToolCallStatus.Error);
+              await submitQuery(functionResponse); // Send error back to model
+              return; // Stop execution
+            }
+
+            // Execute the tool
+            try {
+              const result = await tool.execute(request.args);
+              const functionResponse: Part = {
+                functionResponse: {
+                  name: request.name,
+                  id: request.callId,
+                  response: { output: result.llmContent },
+                },
+              };
+
+              const responseInfo: ToolCallResponseInfo = {
+                callId: request.callId,
+                responsePart: functionResponse,
+                resultDisplay: result.returnDisplay,
+                error: undefined,
+              };
+              // Update UI to show success *before* resubmitting
+              updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
+
+              // Resubmit the successful result to the model
+              await submitQuery(functionResponse);
+            } catch (executionError) {
+              // Handle errors during tool execution
+              const errorMsg = `Error executing tool "${request.name}": ${getErrorMessage(executionError)}`;
+              console.error(errorMsg);
+              const functionResponse: Part = {
+                functionResponse: {
+                  id: request.callId,
+                  name: request.name,
+                  response: { error: errorMsg },
+                },
+              };
+              const responseInfo: ToolCallResponseInfo = {
+                callId: request.callId,
+                responsePart: functionResponse,
+                resultDisplay: errorMsg, // Show error in UI
+                error: { name: 'ErrorExecutingTool', message: errorMsg },
+              };
+              // Update UI to show error *before* resubmitting
+              updateFunctionResponseUI(responseInfo, ToolCallStatus.Error);
+              // Resubmit the error to the model
+              await submitQuery(functionResponse);
+            }
           }
-        };
+        }; // End of resubmittingConfirm
 
         return {
           ...originalConfirmationDetails,
           onConfirm: resubmittingConfirm,
         };
-      }
+      } // End of wireConfirmationSubmission
     },
-    // Dependencies need careful review - including updateGeminiMessage
+    // Dependencies need careful review
     [
       streamingState,
       setHistory,
-      config.getApiKey(),
-      config.getModel(),
+      config, // Depend on the whole config object now
       getNextMessageId,
       updateGeminiMessage,
-      config, // Added config dependency due to getPassthroughCommands and getTargetDir usage
-      toolRegistry, // Added toolRegistry dependency
+      toolRegistry,
+      setDebugMessage, // Added setDebugMessage
+      setInitError, // Added setInitError
     ],
   );
 
