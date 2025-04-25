@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Text, Box, useInput, useFocus } from 'ink';
 import TextInput from 'ink-text-input';
 import { Colors } from '../colors.js';
@@ -37,6 +37,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   isCompletionActive,
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
+  const [triggerReset, setTriggerReset] = useState(false); 
 
   // Helper function to handle selecting a suggestion
   const handleCompletionSelection = (indexToUse?: number) => {
@@ -58,7 +59,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
       setQuery(completedValue);
       resetCompletionState();
-      forceInputReset(); // Force re-render to move cursor
+      setTriggerReset(true);
       return true; // Indicate selection happened
     }
     return false; // Indicate selection didn't happen
@@ -146,6 +147,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     },
     { isActive: isFocused },
   );
+
+  // Effect to trigger the input reset after state update
+  useEffect(() => {
+    if (triggerReset) {
+      forceInputReset();
+      setTriggerReset(false); // Reset the trigger
+    }
+  }, [triggerReset, forceInputReset]);
 
   return (
     <Box borderStyle="round" borderColor={Colors.AccentBlue} paddingX={1}>
