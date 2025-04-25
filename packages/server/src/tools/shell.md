@@ -1,1 +1,1 @@
-This is a minimal shell tool. 
+This is a minimal shell tool.
