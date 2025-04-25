@@ -24,6 +24,7 @@ import { Colors } from './colors.js';
 import { Tips } from './components/Tips.js';
 import { ConsoleOutput } from './components/ConsolePatcher.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
+import { isPotentiallyAtCommand } from './utils/commandUtils.js'; // Import the new utility
 
 interface AppProps {
   config: Config;
@@ -88,8 +89,7 @@ export const App = ({ config, cliVersion }: AppProps) => {
   });
 
   // --- Completion Hook ---
-  const isCompletionActive =
-    isInputActive && (query.startsWith('@') || /\s@\S/.test(query));
+  const isCompletionActive = isInputActive && isPotentiallyAtCommand(query); // Use the utility function
   const {
     suggestions,
     activeSuggestionIndex,

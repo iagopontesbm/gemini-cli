@@ -30,6 +30,7 @@ import {
 } from '../types.js';
 import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { handleAtCommand } from './atCommandProcessor.js';
+import { isPotentiallyAtCommand } from '../utils/commandUtils.js';
 
 interface SlashCommand {
   name: string; // slash command
@@ -292,23 +293,36 @@ export const useGeminiStream = (
           return; // Prevent Gemini call
         }
 
-        // 3. Handle '@' command using the dedicated processor
-        const atCommandResult = await handleAtCommand({
-          query,
-          config,
-          setHistory,
-          setDebugMessage,
-          getNextMessageId,
-          userMessageTimestamp,
-        });
-        processedQuery = atCommandResult.processedQuery;
-        shouldProceed = atCommandResult.shouldProceed;
+        // 3. Check if it looks like an '@' command
+        if (isPotentiallyAtCommand(query)) {
+          // Handle '@' command using the dedicated processor
+          const atCommandResult = await handleAtCommand({
+            query,
+            config,
+            setHistory,
+            setDebugMessage,
+            getNextMessageId,
+            userMessageTimestamp,
+          });
+          processedQuery = atCommandResult.processedQuery;
+          shouldProceed = atCommandResult.shouldProceed;
 
-        if (!shouldProceed) {
-          setStreamingState(StreamingState.Idle); // Ensure state is reset if not proceeding
-          return; // Stop if @ command handled it or failed
+          if (!shouldProceed) {
+            setStreamingState(StreamingState.Idle); // Ensure state is reset if not proceeding
+            return; // Stop if @ command handled it or failed
+          }
+          // If handleAtCommand proceeded, it already added the user message.
+        } else {
+          // It's a regular query that happens to contain '@', not an @-command.
+          // Add the user message manually and proceed to Gemini.
+          addHistoryItem(
+            setHistory,
+            { type: 'user', text: query },
+            userMessageTimestamp,
+          );
+          processedQuery = query;
+          shouldProceed = true;
         }
-        // If it wasn't '@', 'clear', or passthrough, handleAtCommand added the user message.
       } else {
         // If query is already PartListUnion (e.g., function response), use it directly
         // No user message added here as it's an internal step
