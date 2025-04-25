@@ -27,12 +27,14 @@ IMAGE=gemini-code-sandbox
 DOCKERFILE=${DOCKERFILE:-Dockerfile}
 
 SKIP_NPM_INSTALL_BUILD=false
-while getopts "s" opt; do
+while getopts "sd" opt; do
     case ${opt} in
     s) SKIP_NPM_INSTALL_BUILD=true ;;
+    d) DOCKERFILE=Dockerfile-dev ;;
     \?)
-        echo "usage: $(basename "$0") [-s]"
+        echo "usage: $(basename "$0") [-s] [-d]"
         echo "  -s: skip npm install + npm run build"
+        echo "  -d: use Dockerfile-dev"
         exit 1
         ;;
     esac
@@ -45,12 +47,9 @@ if [ "$SKIP_NPM_INSTALL_BUILD" = false ]; then
     npm run build
 fi
 
-# if -s option is used, then we also switch to Dockerfile-dev
-# dev build should contain no global installation of gemini-code
-# dev build can be skipped if image exists, unless REBUILD_SANDBOX is set
+# if using Dockerfile-dev, then skip rebuild unless REBUILD_SANDBOX is set
 # rebuild should not be necessary unless Dockerfile-dev is modified
-if [ "$SKIP_NPM_INSTALL_BUILD" = true ]; then
-    DOCKERFILE=Dockerfile-dev
+if [ "$DOCKERFILE" = "Dockerfile-dev" ]; then
     if $CMD images -q "$IMAGE" | grep -q . && [ -z "${REBUILD_SANDBOX:-}" ]; then
         echo "using existing $IMAGE (set REBUILD_SANDBOX=true to force rebuild)"
         exit 0
