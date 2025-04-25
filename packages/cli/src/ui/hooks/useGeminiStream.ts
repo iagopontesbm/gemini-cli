@@ -29,6 +29,12 @@ import {
   ToolCallStatus,
 } from '../types.js';
 
+interface SlashCommand {
+  name: string; // slash command
+  description: string; // flavor text in UI
+  action: (value: PartListUnion) => void;
+}
+
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   itemData: Omit<HistoryItem, 'id'>,
@@ -56,6 +62,47 @@ export const useGeminiStream = (
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const messageIdCounterRef = useRef(0);
   const currentGeminiMessageIdRef = useRef<number | null>(null);
+
+  const slashCommands: SlashCommand[] = [
+    {
+      name: 'clear',
+      description: 'clear the screen',
+      action: (_value: PartListUnion) => {
+        // This just clears the *UI* history, not the model history.
+        setDebugMessage('Clearing terminal.');
+        setHistory((_) => []);
+      },
+    },
+    {
+      name: 'exit',
+      description: 'Exit gemini-code',
+      action: (_value: PartListUnion) => {
+        setDebugMessage('Exiting. Good-bye.');
+        const timestamp = getNextMessageId(Date.now());
+        addHistoryItem(
+          setHistory,
+          { type: 'info', text: 'good-bye!' },
+          timestamp,
+        );
+        process.exit(0);
+      },
+    },
+    {
+      // TODO: dedup with exit by adding altName or cmdRegex.
+      name: 'quit',
+      description: 'Quit gemini-code',
+      action: (_value: PartListUnion) => {
+        setDebugMessage('Quitting. Good-bye.');
+        const timestamp = getNextMessageId(Date.now());
+        addHistoryItem(
+          setHistory,
+          { type: 'info', text: 'good-bye!' },
+          timestamp,
+        );
+        process.exit(0);
+      },
+    },
+  ];
 
   // Initialize Client Effect - uses props now
   useEffect(() => {
@@ -104,30 +151,18 @@ export const useGeminiStream = (
       return false;
     }
 
-    const query = rawQuery.trim();
-    if (query === 'clear' || query === '/clear') {
-      // This just clears the *UI* history, not the model history.
-      // TODO: add a slash command for that.
-      setDebugMessage('Clearing terminal.');
-      setHistory((_) => []);
-      return true;
+    let query = rawQuery.trim();
+    if (query.length && query.charAt(0) === '/') {
+      query = query.slice(1);
     }
-    if (
-      query === 'exit' ||
-      query === '/exit' ||
-      query === 'quit' ||
-      query === '/quit'
-    ) {
-      setDebugMessage('Quitting. Good-bye.');
-      const timestamp = getNextMessageId(Date.now());
-      addHistoryItem(
-        setHistory,
-        { type: 'info', text: 'good-bye!' },
-        timestamp,
-      );
-      process.exit(0);
-      return true;
+
+    for (const cmd of slashCommands) {
+      if (query === cmd.name) {
+        cmd.action(query);
+        return true;
+      }
     }
+
     const maybeCommand = query.split(/\s+/)[0];
     if (config.getPassthroughCommands().includes(maybeCommand)) {
       // Execute and capture output
