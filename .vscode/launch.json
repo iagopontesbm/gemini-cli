@@ -15,7 +15,7 @@
       // there seems to be no way to map two distinct remoteRoots to same localRoot under same configuration
       // "remoteRoot": "/usr/local/share/npm-global/lib/node_modules/@gemini-code",
       "remoteRoot": "/sandbox/gemini-code/packages",
-      "localRoot": "${workspaceFolder}/packages",
+      "localRoot": "${workspaceFolder}/packages"
     },
     {
       "type": "node",
