@@ -25,15 +25,27 @@ echo "using $CMD for sandboxing"
 
 IMAGE=gemini-code-sandbox
 
+# default to using Dockerfile-dev unless DOCKERFILE is set
+# dev build should contain no global installation of gemini-code
+# dev build can be skipped if image exists, unless REBUILD_SANDBOX is set
+# rebuild should not be necessary unless Dockerfile-dev is modified
+DOCKERFILE=${DOCKERFILE:-Dockerfile-dev}
+if [ "$DOCKERFILE" = "Dockerfile-dev" ] && $CMD image exists "$IMAGE"; then
+    if [ -z "${REBUILD_SANDBOX:-}" ]; then
+        echo "using existing $IMAGE (set REBUILD_SANDBOX=true to rebuild)"
+        exit 0
+    fi
+fi
+
 SKIP_NPM_INSTALL_BUILD=false
 while getopts "s" opt; do
     case ${opt} in
-        s) SKIP_NPM_INSTALL_BUILD=true ;;
-        \?)
-            echo "usage: $(basename "$0") [-s]"
-            echo "  -s: skip npm install + npm run build"
-            exit 1
-            ;;
+    s) SKIP_NPM_INSTALL_BUILD=true ;;
+    \?)
+        echo "usage: $(basename "$0") [-s]"
+        echo "  -s: skip npm install + npm run build"
+        exit 1
+        ;;
     esac
 done
 shift $((OPTIND - 1))
@@ -44,30 +56,31 @@ if [ "$SKIP_NPM_INSTALL_BUILD" = false ]; then
     npm run build
 fi
 
-# pack cli
-echo "packing @gemini-code/cli ..."
-rm -f packages/cli/dist/gemini-code-cli-*.tgz
-npm pack -w @gemini-code/cli --pack-destination ./packages/cli/dist &> /dev/null
-
-# pack server
-echo "packing @gemini-code/server ..."
-rm -f packages/server/dist/gemini-code-server-*.tgz
-npm pack -w @gemini-code/server --pack-destination ./packages/server/dist &> /dev/null
-
-# give node user access to tgz files
-chmod 755 packages/*/dist/gemini-code-*.tgz
+# prepare global installation files for Dockerfile-prod
+if [ "$DOCKERFILE" = "Dockerfile-prod" ]; then
+    # pack cli
+    echo "packing @gemini-code/cli ..."
+    rm -f packages/cli/dist/gemini-code-cli-*.tgz
+    npm pack -w @gemini-code/cli --pack-destination ./packages/cli/dist &>/dev/null
+    # pack server
+    echo "packing @gemini-code/server ..."
+    rm -f packages/server/dist/gemini-code-server-*.tgz
+    npm pack -w @gemini-code/server --pack-destination ./packages/server/dist &>/dev/null
+    # give node user (used during installation, see Dockerfile-prod) access to these files
+    chmod 755 packages/*/dist/gemini-code-*.tgz
+fi
 
 # build container image & prune older unused images
 echo "building $IMAGE ... (can be slow first time)"
 
 if [[ "$CMD" == "podman" ]]; then
     # use empty --authfile to skip unnecessary auth refresh overhead
-    $CMD build --authfile=<(echo '{}') -t "$IMAGE" . >/dev/null
+    $CMD build --authfile=<(echo '{}') -f "$DOCKERFILE" -t "$IMAGE" . >/dev/null
 elif [[ "$CMD" == "docker" ]]; then
     # use an empty config directory to skip unnecessary auth refresh overhead
-    $CMD --config="empty" build -t "$IMAGE" . >/dev/null
+    $CMD --config="empty" build -f "$DOCKERFILE" -t "$IMAGE" . >/dev/null
 else
-    $CMD build -t "$IMAGE" . >/dev/null
+    $CMD build -f "$DOCKERFILE" -t "$IMAGE" . >/dev/null
 fi
 $CMD image prune -f >/dev/null
 echo "built $IMAGE"
