@@ -251,38 +251,75 @@ export const useGeminiStream = (
           if (filePath) {
             const readManyFilesTool = toolRegistry.getTool('read_many_files');
             if (readManyFilesTool) {
+              // Add user message first, so it appears before potential errors/tool UI
+              addHistoryItem(
+                setHistory,
+                { type: 'user', text: query },
+                userMessageTimestamp,
+              );
+
+              // --- Path Handling for @ command ---
+              let pathSpec = filePath;
+              // Basic check: If no extension or ends with '/', assume directory and add globstar.
+              // This is a heuristic and might not cover all edge cases (e.g., files without extensions).
+              if (!filePath.includes('.') || filePath.endsWith('/')) {
+                 pathSpec = filePath.endsWith('/') ? `${filePath}**` : `${filePath}/**`;
+              }
+              const toolArgs = { paths: [pathSpec] };
+              const contentLabel = pathSpec === filePath ? filePath : `directory ${filePath}`; // Adjust label
+              // --- End Path Handling ---
+
+              let toolCallDisplay: IndividualToolCallDisplay;
               try {
-                setDebugMessage(`Reading file via @ command: ${filePath}`);
-                // Add user message first, so it appears before potential errors/info
-                addHistoryItem(
-                  setHistory,
-                  { type: 'user', text: query },
-                  userMessageTimestamp,
-                );
-                const result = await readManyFilesTool.execute({ paths: [filePath] });
+                setDebugMessage(`Reading via @ command: ${pathSpec}`); // Use pathSpec
+                const result = await readManyFilesTool.execute(toolArgs); // Use updated toolArgs
                 const fileContent = result.llmContent || '';
-                const infoTimestamp = getNextMessageId(userMessageTimestamp);
-                addHistoryItem(
-                  setHistory,
-                  { type: 'info', text: `Reading file: ${filePath}` },
-                  infoTimestamp,
-                );
+
+                // Construct success UI
+                toolCallDisplay = {
+                  callId: `client-read-${userMessageTimestamp}`,
+                  name: readManyFilesTool.displayName,
+                  description: readManyFilesTool.getDescription(toolArgs), // Use updated toolArgs
+                  status: ToolCallStatus.Success,
+                  resultDisplay: result.returnDisplay,
+                  confirmationDetails: undefined,
+                };
+
                 // Prepend file content to the query sent to the model
                 processedQuery = [
-                  { text: `--- File Content: ${filePath} ---\n${fileContent}\n--- End File Content ---` },
+                  { text: `--- Content from: ${contentLabel} ---\n${fileContent}\n--- End Content ---` }, // Use contentLabel
                   // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
                 ];
-                // Note: We already added the user message above.
               } catch (error) {
-                const errorTimestamp = getNextMessageId(userMessageTimestamp);
+                // Construct error UI
+                toolCallDisplay = {
+                  callId: `client-read-${userMessageTimestamp}`,
+                  name: readManyFilesTool.displayName,
+                  description: readManyFilesTool.getDescription(toolArgs), // Use updated toolArgs
+                  status: ToolCallStatus.Error,
+                  resultDisplay: `Error reading ${contentLabel}: ${getErrorMessage(error)}`, // Use contentLabel
+                  confirmationDetails: undefined,
+                };
+                // Don't proceed to Gemini if file reading failed
+                setStreamingState(StreamingState.Idle);
+                // Add the tool group UI and return
+                const toolGroupId = getNextMessageId(userMessageTimestamp);
                 addHistoryItem(
                   setHistory,
-                  { type: 'error', text: `Error reading file ${filePath}: ${getErrorMessage(error)}` },
-                  errorTimestamp,
+                  { type: 'tool_group', tools: [toolCallDisplay] } as Omit<HistoryItem, 'id'>,
+                  toolGroupId,
                 );
-                setStreamingState(StreamingState.Idle);
-                return; // Don't proceed if file reading failed
+                return;
               }
+              // Add the tool group UI (for success case)
+              const toolGroupId = getNextMessageId(userMessageTimestamp);
+              addHistoryItem(
+                setHistory,
+                { type: 'tool_group', tools: [toolCallDisplay] } as Omit<HistoryItem, 'id'>,
+                toolGroupId,
+              );
+              // Note: We already added the user message above.
+              // Proceed to call Gemini with the prepended content
             } else {
                // Add user message first
                addHistoryItem(
@@ -320,7 +357,7 @@ export const useGeminiStream = (
           setDebugMessage(`Executing shell command in ${targetDir}: ${query}`);
           const execOptions = { cwd: targetDir };
           _exec(query, execOptions, (error, stdout, stderr) => {
-            const timestamp = getNextMessageId(Date.now()); 
+            const timestamp = getNextMessageId(Date.now());
             if (error) {
               addHistoryItem(setHistory, { type: 'error', text: error.message }, timestamp);
             } else if (stderr) {
@@ -339,7 +376,7 @@ export const useGeminiStream = (
              { type: 'user', text: query },
              userMessageTimestamp,
            );
-           processedQuery = query; 
+           processedQuery = query;
         }
       } else {
         // If query is already PartListUnion (e.g., function response), use it directly
