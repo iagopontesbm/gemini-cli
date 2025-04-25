@@ -51,7 +51,7 @@ fi
 # rebuild should not be necessary unless Dockerfile-dev is modified
 if [ "$SKIP_NPM_INSTALL_BUILD" = true ]; then
     DOCKERFILE=Dockerfile-dev
-    if $CMD image exists "$IMAGE" && [ -z "${REBUILD_SANDBOX:-}" ]; then
+    if $CMD images -q "$IMAGE" | grep -q . && [ -z "${REBUILD_SANDBOX:-}" ]; then
         echo "using existing $IMAGE (set REBUILD_SANDBOX=true to force rebuild)"
         exit 0
     fi
