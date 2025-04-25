@@ -37,7 +37,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   isCompletionActive,
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
-  const [triggerReset, setTriggerReset] = useState(false); 
+  const [triggerReset, setTriggerReset] = useState(false);
 
   // Helper function to handle selecting a suggestion
   const handleCompletionSelection = (indexToUse?: number) => {
