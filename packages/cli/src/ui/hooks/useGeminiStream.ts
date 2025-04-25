@@ -102,6 +102,20 @@ export const useGeminiStream = (
         process.exit(0);
       },
     },
+    {
+      name: 'help',
+      description: 'show help',
+      action: (_value: PartListUnion) => {
+        const helpText = 'I am an interactive CLI tool assistant designed to ' +
+            'help with software engineering tasks. I can use tools to read ' +
+            'and write files, search code, execute bash commands, and more ' +
+            'to assist with development workflows. I will explain commands ' +
+            'and ask for permission before running them and will not ' +
+            'commit changes unless explicitly instructed.';
+        const timestamp = getNextMessageId(Date.now());
+        addHistoryItem(setHistory, { type: 'info', text: helpText }, timestamp);
+      },
+    },
   ];
 
   // Initialize Client Effect - uses props now
@@ -399,10 +413,10 @@ export const useGeminiStream = (
                 tools: item.tools.map((tool) =>
                   tool.callId === callId
                     ? {
-                        ...tool,
-                        status: ToolCallStatus.Confirming,
-                        confirmationDetails,
-                      }
+                      ...tool,
+                      status: ToolCallStatus.Confirming,
+                      confirmationDetails,
+                    }
                     : tool,
                 ),
               };
