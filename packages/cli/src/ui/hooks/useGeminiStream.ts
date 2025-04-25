@@ -234,15 +234,121 @@ export const useGeminiStream = (
       if (streamingState === StreamingState.Responding) return;
       if (typeof query === 'string' && query.trim().length === 0) return;
 
-      if (typeof query === 'string') {
-        setDebugMessage(`User query: '${query}'`);
-      }
-
-      if (handleQueryManually(query)) {
-        return;
-      }
-
+      let processedQuery: PartListUnion = query;
       const userMessageTimestamp = Date.now();
+
+      // --- Pre-processing for special commands (@file, clear, passthrough) ---
+      if (typeof query === 'string') {
+        const trimmedQuery = query.trim();
+        const maybeCommand = trimmedQuery.split(/\s+/)[0];
+
+        if (trimmedQuery === 'clear') {
+          setDebugMessage('Clearing terminal.');
+          setHistory((_) => []);
+          return; // Stop processing
+        } else if (trimmedQuery.startsWith('@')) {
+          const filePath = trimmedQuery.substring(1);
+          if (filePath) {
+            const readManyFilesTool = toolRegistry.getTool('read_many_files');
+            if (readManyFilesTool) {
+              try {
+                setDebugMessage(`Reading file via @ command: ${filePath}`);
+                // Add user message first, so it appears before potential errors/info
+                addHistoryItem(
+                  setHistory,
+                  { type: 'user', text: query },
+                  userMessageTimestamp,
+                );
+                const result = await readManyFilesTool.execute({ paths: [filePath] });
+                const fileContent = result.llmContent || '';
+                const infoTimestamp = getNextMessageId(userMessageTimestamp);
+                addHistoryItem(
+                  setHistory,
+                  { type: 'info', text: `Reading file: ${filePath}` },
+                  infoTimestamp,
+                );
+                // Prepend file content to the query sent to the model
+                processedQuery = [
+                  { text: `--- File Content: ${filePath} ---\n${fileContent}\n--- End File Content ---` },
+                  // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
+                ];
+                // Note: We already added the user message above.
+              } catch (error) {
+                const errorTimestamp = getNextMessageId(userMessageTimestamp);
+                addHistoryItem(
+                  setHistory,
+                  { type: 'error', text: `Error reading file ${filePath}: ${getErrorMessage(error)}` },
+                  errorTimestamp,
+                );
+                setStreamingState(StreamingState.Idle);
+                return; // Don't proceed if file reading failed
+              }
+            } else {
+               // Add user message first
+               addHistoryItem(
+                 setHistory,
+                 { type: 'user', text: query },
+                 userMessageTimestamp,
+               );
+              const errorTimestamp = getNextMessageId(userMessageTimestamp);
+              addHistoryItem(
+                setHistory,
+                { type: 'error', text: 'Error: read_many_files tool not found.' },
+                errorTimestamp,
+              );
+              setStreamingState(StreamingState.Idle);
+              return; // Don't proceed if tool is missing
+            }
+          } else {
+            // Handle case where it's just "@" - treat as normal input
+             addHistoryItem(
+               setHistory,
+               { type: 'user', text: query },
+               userMessageTimestamp,
+             );
+             processedQuery = query; // Send the "@" to the model
+          }
+        } else if (config.getPassthroughCommands().includes(maybeCommand)) {
+           // Add user message first
+           addHistoryItem(
+             setHistory,
+             { type: 'user', text: query },
+             userMessageTimestamp,
+           );
+          // Execute and capture output
+          const targetDir = config.getTargetDir();
+          setDebugMessage(`Executing shell command in ${targetDir}: ${query}`);
+          const execOptions = { cwd: targetDir };
+          _exec(query, execOptions, (error, stdout, stderr) => {
+            const timestamp = getNextMessageId(Date.now()); 
+            if (error) {
+              addHistoryItem(setHistory, { type: 'error', text: error.message }, timestamp);
+            } else if (stderr) {
+              addHistoryItem(setHistory, { type: 'error', text: stderr }, timestamp);
+            } else {
+              addHistoryItem(setHistory, { type: 'info', text: stdout || '' }, timestamp);
+            }
+            setStreamingState(StreamingState.Idle);
+          });
+          setStreamingState(StreamingState.Responding);
+          return; // Prevent Gemini call
+        } else {
+           // Default case: Add normal user message if it's not a special command
+           addHistoryItem(
+             setHistory,
+             { type: 'user', text: query },
+             userMessageTimestamp,
+           );
+           processedQuery = query; 
+        }
+      } else {
+        // If query is already PartListUnion (e.g., function response), use it directly
+        // No user message added here as it's an internal step
+        processedQuery = query;
+      }
+      // --- End Pre-processing ---
+
+
       const client = geminiClientRef.current;
       if (!client) {
         setInitError('Gemini client is not available.');
@@ -265,21 +371,11 @@ export const useGeminiStream = (
       const chat = chatSessionRef.current;
       let currentToolGroupId: number | null = null;
 
-      // For function responses, we don't need to add a user message
-      if (typeof query === 'string') {
-        // Only add user message for string queries, not for function responses
-        addHistoryItem(
-          setHistory,
-          { type: 'user', text: query },
-          userMessageTimestamp,
-        );
-      }
-
       try {
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
-        const stream = client.sendMessageStream(chat, query, signal);
+        const stream = client.sendMessageStream(chat, processedQuery, signal);
 
         // Process the stream events from the server logic
         let currentGeminiText = ''; // To accumulate message content
@@ -569,6 +665,8 @@ export const useGeminiStream = (
       config.getModel(),
       getNextMessageId,
       updateGeminiMessage,
+      config, // Added config dependency due to getPassthroughCommands and getTargetDir usage
+      toolRegistry, // Added toolRegistry dependency
     ],
   );
 
