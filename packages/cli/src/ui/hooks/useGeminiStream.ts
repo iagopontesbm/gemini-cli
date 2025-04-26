@@ -34,6 +34,56 @@ import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
+function partListUnionToString(value: PartListUnion): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(partListUnionToString).join('');
+  }
+
+  const part = value as Part;
+
+  if (part.videoMetadata !== undefined) {
+    return `[Video Metadata]`;
+  }
+
+  if (part.thought !== undefined) {
+    return `[Thought: ${part.thought}]`;
+  }
+
+  if (part.codeExecutionResult !== undefined) {
+    return `[Code Execution Result]`;
+  }
+
+  if (part.executableCode !== undefined) {
+    return `[Executable Code]`;
+  }
+
+  if (part.fileData !== undefined) {
+    return `[File Data]`;
+  }
+
+  if (part.functionCall !== undefined) {
+    return `[Function Call: ${part.functionCall.name}]`;
+  }
+
+  if (part.functionResponse !== undefined) {
+    return `[Function Response: ${part.functionResponse.name}]`;
+  }
+
+  if (part.inlineData !== undefined) {
+    return `<${part.inlineData.mimeType}>`;
+  }
+
+  if (part.text !== undefined) {
+    return part.text;
+  }
+
+  return '';
+}
+
 /**
  * Hook to manage the Gemini stream, handle user input, process commands,
  * and interact with the Gemini API and history manager.
@@ -451,7 +501,7 @@ export const useGeminiStream = (
 
               if (abortControllerRef.current.signal.aborted) {
                 declineToolExecution(
-                  result.llmContent,
+                  partListUnionToString(result.llmContent),
                   ToolCallStatus.Canceled,
                 );
                 return;

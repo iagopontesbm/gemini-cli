@@ -10,7 +10,8 @@ import { getErrorMessage } from '../utils/errors.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import fg from 'fast-glob';
-
+import { PartUnion } from '@google/genai';
+import mime from 'mime-types';
 /**
  * Parameters for the ReadManyFilesTool.
  */
@@ -81,14 +82,6 @@ const DEFAULT_EXCLUDES: string[] = [
   '**/*.bz2',
   '**/*.rar',
   '**/*.7z',
-  '**/*.png',
-  '**/*.jpg',
-  '**/*.jpeg',
-  '**/*.gif',
-  '**/*.bmp',
-  '**/*.tiff',
-  '**/*.ico',
-  '**/*.pdf',
   '**/*.doc',
   '**/*.docx',
   '**/*.xls',
@@ -262,6 +255,7 @@ Default excludes apply to common non-text files and large dependency directories
     const skippedFiles: Array<{ path: string; reason: string }> = [];
     const processedFilesRelativePaths: string[] = [];
     let concatenatedContent = '';
+    const images: PartUnion[] = [];
 
     const effectiveExcludes = useDefaultExcludes
       ? [...DEFAULT_EXCLUDES, ...exclude]
@@ -317,6 +311,22 @@ Default excludes apply to common non-text files and large dependency directories
         .relative(toolBaseDir, filePath)
         .replace(/\\/g, '/');
       try {
+        const mimeType = mime.lookup(filePath);
+        if (mimeType && mimeType.startsWith('image/')) {
+          // Read the file content as a Buffer
+          const fileContent = await fs.readFile(filePath);
+          // Convert Buffer to base64 string
+          const base64Data = fileContent.toString('base64');
+          // Add the image as a DataPart
+          images.push({
+            inlineData: {
+              data: base64Data,
+              mimeType,
+            },
+          });
+          continue;
+        }
+
         const contentBuffer = await fs.readFile(filePath);
         // Basic binary detection: check for null bytes in the first 1KB
         const sample = contentBuffer.subarray(
@@ -374,14 +384,17 @@ Default excludes apply to common non-text files and large dependency directories
     }
     if (
       concatenatedContent.length === 0 &&
-      processedFilesRelativePaths.length === 0
+      processedFilesRelativePaths.length === 0 &&
+      images.length === 0
     ) {
       concatenatedContent =
         'No files matching the criteria were found or all were skipped.';
     }
-
     return {
-      llmContent: concatenatedContent,
+      llmContent:
+        images.length > 0
+          ? [concatenatedContent, ...images]
+          : concatenatedContent,
       returnDisplay: displayMessage,
     };
   }
