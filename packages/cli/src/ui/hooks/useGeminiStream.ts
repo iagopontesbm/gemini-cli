@@ -28,6 +28,134 @@ import {
   IndividualToolCallDisplay,
   ToolCallStatus,
 } from '../types.js';
+import fs from 'node:fs/promises';
+import mime from 'mime-types';
+
+function partListUnionToString(value: PartListUnion): string {
+  if (typeof value === 'string') {
+    return value;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map(partListUnionToString).join('');
+  }
+
+  if (typeof value !== 'object') return '';
+
+  const part = value as Part;
+
+  if (part.videoMetadata !== undefined) {
+    return `[Video Metadata]`;
+  }
+
+  if (part.thought !== undefined) {
+    return `[Thought: ${part.thought}]`;
+  }
+
+  if (part.codeExecutionResult !== undefined) {
+    return `[Code Execution Result]`;
+  }
+
+  if (part.executableCode !== undefined) {
+    return `[Executable Code]`;
+  }
+
+  if (part.fileData !== undefined) {
+    return `[File Data]`;
+  }
+
+  if (part.functionCall !== undefined) {
+    return `[Function Call: ${part.functionCall.name}]`;
+  }
+
+  if (part.functionResponse !== undefined) {
+    return `[Function Response: ${part.functionResponse.name}]`;
+  }
+
+  if (part.inlineData !== undefined) {
+    return `<${part.inlineData.mimeType}>`;
+  }
+
+  if (part.text !== undefined) {
+    return part.text;
+  }
+
+  return '';
+}
+
+async function parseImageReferences(inputText: string): Promise<PartListUnion> {
+  const parts: Part[] = [];
+
+  // Simple regex to find potential file paths (can be improved).
+  const filePathRegex =
+    /(?:'|")?(\/[^\s'"]+|\.\/[^\s'"]+|~\/[^\s'"]+)(?:'|")?/g;
+  let match;
+  let lastIndex = 0;
+
+  function addTextBlock(text: string) {
+    if (parts.length > 0 && parts[parts.length - 1].text !== undefined) {
+      // If the last part is text, append to it.
+      parts[parts.length - 1].text += text;
+    } else {
+      parts.push({ text });
+    }
+  }
+
+  while ((match = filePathRegex.exec(inputText)) !== null) {
+    const filePath = match[0].replace(/^['"]|['"]$/g, ''); // Strip single or double quotes.
+    const textBeforePath = inputText.substring(lastIndex, match.index);
+
+    // Add text before the path as a TextPart
+    if (textBeforePath) {
+      addTextBlock(textBeforePath);
+    }
+
+    // Check if the path exists and is a file
+    try {
+      // TODO(jacob314): what is the best way for us to pierce the sandbox for
+      // file paths the user has intentionally provided?
+      const fileStats = await fs.stat(filePath);
+      if (fileStats.isFile()) {
+        const mimeType = mime.lookup(filePath);
+        // Check if it's an image MIME type that Gemini supports
+        if (mimeType && mimeType.startsWith('image/')) {
+          // Read the file content as a Buffer
+          const fileContent = await fs.readFile(filePath);
+          // Convert Buffer to base64 string
+          const base64Data = fileContent.toString('base64');
+
+          // Add the image as a DataPart
+          parts.push({
+            inlineData: {
+              data: base64Data,
+              mimeType,
+            },
+          });
+        } else {
+          addTextBlock(filePath);
+        }
+      } else {
+        // If it's not a file (e.g., a directory), add the path as text
+        addTextBlock(filePath);
+      }
+    } catch (_) {
+      // File is not valid.
+      addTextBlock(filePath);
+    }
+
+    lastIndex = filePathRegex.lastIndex;
+  }
+
+  // Add any remaining text as a TextPart
+  if (lastIndex < inputText.length) {
+    addTextBlock(inputText.substring(lastIndex));
+  }
+
+  if (parts.length === 1 && parts[0].text !== undefined) {
+    return parts[0].text!;
+  }
+  return parts;
+}
 
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
@@ -206,12 +334,19 @@ export const useGeminiStream = (
       const chat = chatSessionRef.current;
       let currentToolGroupId: number | null = null;
 
+      let parsedQuery: PartListUnion = query;
       // For function responses, we don't need to add a user message
       if (typeof query === 'string') {
+        parsedQuery = await parseImageReferences(query);
+
         // Only add user message for string queries, not for function responses
         addHistoryItem(
           setHistory,
-          { type: 'user', text: query },
+          {
+            type: 'user',
+            text: query,
+            displayText: partListUnionToString(parsedQuery),
+          } as Omit<HistoryItem, 'id'>,
           userMessageTimestamp,
         );
       }
@@ -220,7 +355,7 @@ export const useGeminiStream = (
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
-        const stream = client.sendMessageStream(chat, query, signal);
+        const stream = client.sendMessageStream(chat, parsedQuery, signal);
 
         // Process the stream events from the server logic
         let currentGeminiText = ''; // To accumulate message content

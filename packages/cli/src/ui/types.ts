@@ -57,7 +57,7 @@ export interface HistoryItemBase {
 
 export type HistoryItem = HistoryItemBase &
   (
-    | { type: 'user'; text: string }
+    | { type: 'user'; text: string; displayText: string }
     | { type: 'gemini'; text: string }
     | { type: 'info'; text: string }
     | { type: 'error'; text: string }

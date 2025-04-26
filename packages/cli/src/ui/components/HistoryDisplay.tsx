@@ -28,7 +28,7 @@ export const HistoryDisplay: React.FC<HistoryDisplayProps> = ({
     {history.map((item) => (
       <Box key={item.id} marginBottom={1}>
         {/* Render standard message types */}
-        {item.type === 'user' && <UserMessage text={item.text} />}
+        {item.type === 'user' && <UserMessage text={item.displayText} />}
         {item.type === 'gemini' && <GeminiMessage text={item.text} />}
         {item.type === 'info' && <InfoMessage text={item.text} />}
         {item.type === 'error' && <ErrorMessage text={item.text} />}
