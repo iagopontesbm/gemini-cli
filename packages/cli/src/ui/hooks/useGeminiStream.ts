@@ -40,7 +40,7 @@ function partListUnionToString(value: PartListUnion): string {
     return value.map(partListUnionToString).join('');
   }
 
-  if (typeof value !== 'object') return '';
+  if (typeof value !== 'object') return value.toString();
 
   const part = value as Part;
 
