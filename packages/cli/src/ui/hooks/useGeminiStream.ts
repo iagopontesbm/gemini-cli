@@ -151,7 +151,8 @@ export const useGeminiStream = (
       return false;
     }
 
-    let query = rawQuery.trim();
+    const trimmedQuery = rawQuery.trim();
+    let query = trimmedQuery;
     if (query.length && query.charAt(0) === '/') {
       query = query.slice(1);
     }
@@ -163,7 +164,7 @@ export const useGeminiStream = (
       }
     }
 
-    const maybeCommand = query.split(/\s+/)[0];
+    const maybeCommand = trimmedQuery.split(/\s+/)[0];
     if (config.getPassthroughCommands().includes(maybeCommand)) {
       // Execute and capture output
       const targetDir = config.getTargetDir();
