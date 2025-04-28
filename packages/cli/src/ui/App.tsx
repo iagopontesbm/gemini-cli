@@ -226,7 +226,6 @@ export const App = ({ config, cliVersion }: AppProps) => {
         </Box>
       )}
 
-      {/* RESOLVED BLOCK STARTS HERE */}
       {isThemeDialogOpen ? (
         <ThemeDialog
           onSelect={handleThemeSelect}
@@ -280,7 +279,6 @@ export const App = ({ config, cliVersion }: AppProps) => {
           )}
         </>
       )}
-      {/* RESOLVED BLOCK ENDS HERE */}
 
       <Footer
         config={config}

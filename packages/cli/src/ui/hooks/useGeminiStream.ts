@@ -38,8 +38,6 @@ interface SlashCommand {
   action: (value: PartListUnion) => void;
 }
 
-
-// Helper function to add history items (could be moved to a shared util if needed elsewhere)
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   itemData: Omit<HistoryItem, 'id'>,
