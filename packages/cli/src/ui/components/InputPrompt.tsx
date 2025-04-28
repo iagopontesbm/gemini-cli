@@ -26,7 +26,7 @@ interface InputPromptProps {
   showSuggestions: boolean;
   resetCompletionState: () => void;
   resetHistoryNav: () => void;
-  forceInputReset: () => void;
+  forceInputReset: () => void; // RESTORED prop
   isCompletionActive: boolean;
 }
 
@@ -40,11 +40,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   showSuggestions,
   resetCompletionState,
   resetHistoryNav,
-  forceInputReset,
+  forceInputReset, // RESTORED prop
   isCompletionActive,
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
-  const [triggerReset, setTriggerReset] = useState(false);
+  const [triggerReset, setTriggerReset] = useState(false); // RESTORED state
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // Reset scroll offset when suggestions are hidden or change
@@ -102,8 +102,9 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       const completedValue = prefix + basePath + selectedSuggestion;
 
       setQuery(completedValue);
+      // Don't delay reset anymore
       resetCompletionState();
-      setTriggerReset(true);
+      setTriggerReset(true); // RESTORED trigger
       return true; // Indicate selection happened
     }
     return false; // Indicate selection didn't happen
@@ -132,6 +133,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           // Use the currently active index for Enter
           const selectionHandled = handleCompletionSelection();
           if (selectionHandled) {
+            // Force reset ONLY when completion is selected via Enter
+            // setTriggerReset(true); // Already called in handleCompletionSelection
             return;
           }
           // If selection wasn't handled (e.g., no suggestion selected), fall through to default submit
@@ -146,7 +149,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }
 
           if (selectionHandled) {
-            // If selection happened, update the active index state for consistency (optional but good practice)
+            // Force reset ONLY when completion is selected via Tab
+            // setTriggerReset(true); // Already called in handleCompletionSelection
             setActiveSuggestionIndex(
               activeSuggestionIndex >= 0 ? activeSuggestionIndex : 0,
             );
@@ -188,7 +192,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     { isActive: isFocused },
   );
 
-  // Effect to trigger the input reset after state update
+  // RESTORED: Effect to trigger the input reset after state update
   useEffect(() => {
     if (triggerReset) {
       forceInputReset();

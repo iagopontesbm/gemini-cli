@@ -78,9 +78,9 @@ export const App = ({ config, cliVersion }: AppProps) => {
     query,
     setQuery,
     handleSubmit: handleHistorySubmit,
-    inputKey,
+    inputKey, // RESTORED
     resetHistoryNav,
-    forceInputReset,
+    forceInputReset, // RESTORED
   } = useInputHistory({
     userMessages,
     onSubmit: handleFinalSubmit,
@@ -93,10 +93,10 @@ export const App = ({ config, cliVersion }: AppProps) => {
     suggestions,
     activeSuggestionIndex,
     showSuggestions,
-    _isLoadingSuggestions,
+    isLoadingSuggestions,
     setActiveSuggestionIndex,
     resetCompletionState,
-    _visibleStartIndex,
+    visibleStartIndex,
   } = useCompletion(query, config.getTargetDir(), isCompletionActive);
 
   // --- Render Logic ---
@@ -251,7 +251,7 @@ export const App = ({ config, cliVersion }: AppProps) => {
               </Box>
 
               <InputPrompt
-                key={inputKey}
+                key={inputKey} // RESTORED
                 onSubmit={handleHistorySubmit}
                 // Pass completion-related props
                 query={query}
@@ -262,7 +262,7 @@ export const App = ({ config, cliVersion }: AppProps) => {
                 showSuggestions={showSuggestions}
                 resetCompletionState={resetCompletionState}
                 resetHistoryNav={resetHistoryNav}
-                forceInputReset={forceInputReset}
+                forceInputReset={forceInputReset} // RESTORED
                 isCompletionActive={isCompletionActive}
               />
             </>

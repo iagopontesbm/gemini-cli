@@ -19,9 +19,9 @@ interface UseInputHistoryReturn {
   query: string; // The current input query managed by the hook
   setQuery: React.Dispatch<React.SetStateAction<string>>; // Setter for the query
   handleSubmit: (value: string) => void; // Wrapped submit handler
-  inputKey: number; // Key to force input reset
+  inputKey: number; // RESTORED: Key to force input reset
   resetHistoryNav: () => void; // Expose reset function
-  forceInputReset: () => void; // Function to manually increment the key
+  forceInputReset: () => void; // RESTORED: Function to manually increment the key
 }
 
 export function useInputHistory({
@@ -33,7 +33,7 @@ export function useInputHistory({
   const [historyIndex, setHistoryIndex] = useState<number>(-1); // -1 means current query
   const [originalQueryBeforeNav, setOriginalQueryBeforeNav] =
     useState<string>('');
-  const [inputKey, setInputKey] = useState<number>(0); // Key for forcing input reset
+  const [inputKey, setInputKey] = useState<number>(0); // RESTORED: Key for forcing input reset
 
   // Function to reset navigation state, called on submit or manual reset
   const resetHistoryNav = useCallback(() => {
@@ -41,7 +41,7 @@ export function useInputHistory({
     setOriginalQueryBeforeNav('');
   }, []);
 
-  // Function to manually increment the key, forcing input reset/cursor move
+  // RESTORED: Function to manually increment the key
   const forceInputReset = useCallback(() => {
     setInputKey((k) => k + 1);
   }, []);
@@ -56,7 +56,7 @@ export function useInputHistory({
       }
       setQuery(''); // Clear the input field managed by this hook
       resetHistoryNav(); // Reset history state
-      // Don't increment inputKey here, only on nav changes
+      // Don't increment inputKey on regular submit
     },
     [onSubmit, resetHistoryNav],
   );
@@ -90,7 +90,7 @@ export function useInputHistory({
           // History is ordered newest to oldest, so access from the end
           const newValue = userMessages[userMessages.length - 1 - nextIndex];
           setQuery(newValue);
-          setInputKey((k) => k + 1); // Increment key on navigation change
+          setInputKey((k) => k + 1); // RESTORE: Increment key on UP navigation change
           didNavigate = true;
         }
       } else if (key.downArrow) {
@@ -107,7 +107,7 @@ export function useInputHistory({
           const newValue = userMessages[userMessages.length - 1 - nextIndex];
           setQuery(newValue);
         }
-        setInputKey((k) => k + 1); // Increment key on navigation change
+        setInputKey((k) => k + 1); // RESTORE: Increment key on DOWN navigation change
         didNavigate = true;
       } else {
         // If user types anything other than arrows while navigating, reset history navigation state
@@ -127,8 +127,8 @@ export function useInputHistory({
     query,
     setQuery, // Return the hook's setQuery
     handleSubmit, // Return the wrapped submit handler
-    inputKey, // Return the key
+    inputKey, // RESTORED: Return the key
     resetHistoryNav, // Return the reset function
-    forceInputReset, // Return the key increment function
+    forceInputReset, // RESTORED: Return the key increment function
   };
 }
