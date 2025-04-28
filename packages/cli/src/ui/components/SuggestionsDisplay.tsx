@@ -12,15 +12,17 @@ interface SuggestionsDisplayProps {
   activeIndex: number;
   isLoading: boolean;
   width: number;
+  scrollOffset: number;
 }
 
-const MAX_SUGGESTIONS_TO_SHOW = 8;
+export const MAX_SUGGESTIONS_TO_SHOW = 8;
 
 export function SuggestionsDisplay({
   suggestions,
   activeIndex,
   isLoading,
   width,
+  scrollOffset,
 }: SuggestionsDisplayProps) {
   if (isLoading) {
     return (
@@ -34,8 +36,13 @@ export function SuggestionsDisplay({
     return null; // Don't render anything if there are no suggestions
   }
 
-  // Limit the number of suggestions shown
-  const visibleSuggestions = suggestions.slice(0, MAX_SUGGESTIONS_TO_SHOW);
+  // Calculate the visible slice based on scrollOffset
+  const startIndex = scrollOffset;
+  const endIndex = Math.min(
+    scrollOffset + MAX_SUGGESTIONS_TO_SHOW,
+    suggestions.length,
+  );
+  const visibleSuggestions = suggestions.slice(startIndex, endIndex);
 
   return (
     <Box
@@ -44,18 +51,25 @@ export function SuggestionsDisplay({
       paddingX={1}
       width={width} // Use the passed width
     >
-      {visibleSuggestions.map((suggestion, index) => (
-        <Text
-          key={suggestion}
-          color={index === activeIndex ? 'black' : 'white'}
-          backgroundColor={index === activeIndex ? 'blue' : undefined}
-        >
-          {suggestion}
-        </Text>
-      ))}
+      {scrollOffset > 0 && <Text color="gray">▲</Text>}
+
+      {visibleSuggestions.map((suggestion, index) => {
+        const originalIndex = startIndex + index;
+        const isActive = originalIndex === activeIndex;
+        return (
+          <Text
+            key={`${suggestion}-${originalIndex}`}
+            color={isActive ? 'black' : 'white'}
+            backgroundColor={isActive ? 'blue' : undefined}
+          >
+            {suggestion}
+          </Text>
+        );
+      })}
+      {endIndex < suggestions.length && <Text color="gray">▼</Text>}
       {suggestions.length > MAX_SUGGESTIONS_TO_SHOW && (
         <Text color="gray">
-          ... ({suggestions.length - MAX_SUGGESTIONS_TO_SHOW} more)
+          ({activeIndex + 1}/{suggestions.length})
         </Text>
       )}
     </Box>

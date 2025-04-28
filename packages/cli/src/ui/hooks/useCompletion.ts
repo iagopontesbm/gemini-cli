@@ -9,14 +9,19 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { isNodeError } from '@gemini-code/server';
 
+const MAX_SUGGESTIONS_TO_SHOW = 8;
+
 export interface UseCompletionReturn {
   suggestions: string[];
   activeSuggestionIndex: number;
+  visibleStartIndex: number;
   showSuggestions: boolean;
   isLoadingSuggestions: boolean;
   setActiveSuggestionIndex: React.Dispatch<React.SetStateAction<number>>;
   setShowSuggestions: React.Dispatch<React.SetStateAction<boolean>>;
   resetCompletionState: () => void;
+  navigateUp: () => void;
+  navigateDown: () => void;
 }
 
 export function useCompletion(
@@ -27,6 +32,7 @@ export function useCompletion(
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
     useState<number>(-1);
+  const [visibleStartIndex, setVisibleStartIndex] = useState<number>(0);
   const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
   const [isLoadingSuggestions, setIsLoadingSuggestions] =
     useState<boolean>(false);
@@ -34,9 +40,56 @@ export function useCompletion(
   const resetCompletionState = useCallback(() => {
     setSuggestions([]);
     setActiveSuggestionIndex(-1);
+    setVisibleStartIndex(0);
     setShowSuggestions(false);
     setIsLoadingSuggestions(false);
   }, []);
+
+  // --- Navigation Logic ---
+  const navigateUp = useCallback(() => {
+    if (suggestions.length === 0) return;
+
+    setActiveSuggestionIndex((prevIndex) => {
+      const newIndex = prevIndex <= 0 ? suggestions.length - 1 : prevIndex - 1;
+
+      // Adjust visible window if needed (scrolling up)
+      if (newIndex < visibleStartIndex) {
+        setVisibleStartIndex(newIndex);
+      } else if (
+        newIndex === suggestions.length - 1 &&
+        suggestions.length > MAX_SUGGESTIONS_TO_SHOW
+      ) {
+        // Handle wrapping from first to last item
+        setVisibleStartIndex(
+          Math.max(0, suggestions.length - MAX_SUGGESTIONS_TO_SHOW),
+        );
+      }
+
+      return newIndex;
+    });
+  }, [suggestions.length, visibleStartIndex]);
+
+  const navigateDown = useCallback(() => {
+    if (suggestions.length === 0) return;
+
+    setActiveSuggestionIndex((prevIndex) => {
+      const newIndex = prevIndex >= suggestions.length - 1 ? 0 : prevIndex + 1;
+
+      // Adjust visible window if needed (scrolling down)
+      if (newIndex >= visibleStartIndex + MAX_SUGGESTIONS_TO_SHOW) {
+        setVisibleStartIndex(visibleStartIndex + 1);
+      } else if (
+        newIndex === 0 &&
+        suggestions.length > MAX_SUGGESTIONS_TO_SHOW
+      ) {
+        // Handle wrapping from last to first item
+        setVisibleStartIndex(0);
+      }
+
+      return newIndex;
+    });
+  }, [suggestions.length, visibleStartIndex]);
+  // --- End Navigation Logic ---
 
   useEffect(() => {
     if (!isActive) {
@@ -84,7 +137,8 @@ export function useCompletion(
         if (isMounted) {
           setSuggestions(filteredSuggestions);
           setShowSuggestions(filteredSuggestions.length > 0);
-          setActiveSuggestionIndex(-1);
+          setActiveSuggestionIndex(-1); // Reset selection on new suggestions
+          setVisibleStartIndex(0); // Reset scroll on new suggestions
         }
       } catch (error) {
         if (isNodeError(error) && error.code === 'ENOENT') {
@@ -121,10 +175,13 @@ export function useCompletion(
   return {
     suggestions,
     activeSuggestionIndex,
+    visibleStartIndex,
     showSuggestions,
     isLoadingSuggestions,
     setActiveSuggestionIndex,
     setShowSuggestions,
     resetCompletionState,
+    navigateUp,
+    navigateDown,
   };
 }

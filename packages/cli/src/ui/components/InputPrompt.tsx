@@ -8,6 +8,10 @@ import React, { useState, useEffect } from 'react';
 import { Text, Box, useInput, useFocus } from 'ink';
 import TextInput from 'ink-text-input';
 import { Colors } from '../colors.js';
+import {
+  SuggestionsDisplay,
+  MAX_SUGGESTIONS_TO_SHOW,
+} from './SuggestionsDisplay.js';
 
 interface InputPromptProps {
   onSubmit: (value: string) => void;
@@ -15,7 +19,10 @@ interface InputPromptProps {
   setQuery: (value: string) => void;
   suggestions: string[];
   activeSuggestionIndex: number;
-  setActiveSuggestionIndex: (index: number) => void;
+  // Allow setActiveSuggestionIndex to accept a function for safe state updates
+  setActiveSuggestionIndex: (
+    update: number | ((prevIndex: number) => number),
+  ) => void;
   showSuggestions: boolean;
   resetCompletionState: () => void;
   resetHistoryNav: () => void;
@@ -38,6 +45,43 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
   const [triggerReset, setTriggerReset] = useState(false);
+  const [scrollOffset, setScrollOffset] = useState(0);
+
+  // Reset scroll offset when suggestions are hidden or change
+  useEffect(() => {
+    if (!showSuggestions || suggestions.length === 0) {
+      setScrollOffset(0);
+    }
+  }, [showSuggestions, suggestions]);
+
+  // Adjust scroll offset when active index goes out of view
+  useEffect(() => {
+    if (!showSuggestions) return; // Only adjust when suggestions are visible
+
+    if (activeSuggestionIndex < scrollOffset) {
+      setScrollOffset(activeSuggestionIndex);
+    } else if (
+      activeSuggestionIndex >=
+      scrollOffset + MAX_SUGGESTIONS_TO_SHOW
+    ) {
+      setScrollOffset(activeSuggestionIndex - MAX_SUGGESTIONS_TO_SHOW + 1);
+    }
+    // Ensure scrollOffset doesn't go negative or beyond possible limits
+    setScrollOffset((currentOffset) =>
+      Math.max(
+        0,
+        Math.min(
+          currentOffset,
+          Math.max(0, suggestions.length - MAX_SUGGESTIONS_TO_SHOW),
+        ),
+      ),
+    );
+  }, [
+    activeSuggestionIndex,
+    suggestions.length,
+    showSuggestions,
+    scrollOffset,
+  ]);
 
   // Helper function to handle selecting a suggestion
   const handleCompletionSelection = (indexToUse?: number) => {
@@ -72,20 +116,16 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         return;
       }
 
-      // Completion Logic (only when suggestions are shown)
-      if (showSuggestions) {
+      // Completion Logic (only when suggestions are shown and available)
+      if (showSuggestions && suggestions.length > 0) {
         if (key.upArrow) {
-          setActiveSuggestionIndex(
-            activeSuggestionIndex <= 0
-              ? suggestions.length - 1
-              : activeSuggestionIndex - 1,
+          setActiveSuggestionIndex((prevIndex) =>
+            prevIndex <= 0 ? suggestions.length - 1 : prevIndex - 1,
           );
           return;
         } else if (key.downArrow) {
-          setActiveSuggestionIndex(
-            activeSuggestionIndex >= suggestions.length - 1
-              ? 0
-              : activeSuggestionIndex + 1,
+          setActiveSuggestionIndex((prevIndex) =>
+            prevIndex >= suggestions.length - 1 ? 0 : prevIndex + 1,
           );
           return;
         } else if (key.return) {
@@ -159,7 +199,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   return (
     <Box borderStyle="round" borderColor={Colors.AccentBlue} paddingX={1}>
       <Text color={Colors.AccentPurple}>&gt; </Text>
-      <Box flexGrow={1}>
+      <Box flexGrow={1} flexDirection="column">
         <TextInput
           value={query}
           onChange={setQuery}
@@ -169,6 +209,17 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }}
           focus={isFocused}
         />
+        {showSuggestions && (
+          <Box marginTop={1}>
+            <SuggestionsDisplay
+              suggestions={suggestions}
+              activeIndex={activeSuggestionIndex}
+              isLoading={false}
+              width={50}
+              scrollOffset={scrollOffset}
+            />
+          </Box>
+        )}
       </Box>
     </Box>
   );

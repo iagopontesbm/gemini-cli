@@ -15,7 +15,6 @@ import { useThemeCommand } from './hooks/useThemeCommand.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { InputPrompt } from './components/InputPrompt.js';
-import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { useStartupWarnings } from './hooks/useAppEffects.js';
@@ -94,9 +93,10 @@ export const App = ({ config, cliVersion }: AppProps) => {
     suggestions,
     activeSuggestionIndex,
     showSuggestions,
-    isLoadingSuggestions,
+    _isLoadingSuggestions,
     setActiveSuggestionIndex,
     resetCompletionState,
+    _visibleStartIndex,
   } = useCompletion(query, config.getTargetDir(), isCompletionActive);
 
   // --- Render Logic ---
@@ -218,7 +218,6 @@ export const App = ({ config, cliVersion }: AppProps) => {
                 Initialization Error: {initError}
               </Text>
               <Text color={Colors.AccentRed}>
-                {' '}
                 Please check API key and configuration.
               </Text>
             </>
@@ -266,15 +265,6 @@ export const App = ({ config, cliVersion }: AppProps) => {
                 forceInputReset={forceInputReset}
                 isCompletionActive={isCompletionActive}
               />
-              {/* Render SuggestionsDisplay conditionally */}
-              {showSuggestions && (
-                <SuggestionsDisplay
-                  suggestions={suggestions}
-                  activeIndex={activeSuggestionIndex}
-                  isLoading={isLoadingSuggestions}
-                  width={100} // TODO: Make width dynamic based on terminal/input size
-                />
-              )}
             </>
           )}
         </>
