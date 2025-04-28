@@ -26,7 +26,7 @@ interface InputPromptProps {
   showSuggestions: boolean;
   resetCompletionState: () => void;
   resetHistoryNav: () => void;
-  forceInputReset: () => void; // RESTORED prop
+  forceInputReset: () => void;
   isCompletionActive: boolean;
 }
 
@@ -40,11 +40,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   showSuggestions,
   resetCompletionState,
   resetHistoryNav,
-  forceInputReset, // RESTORED prop
+  forceInputReset, 
   isCompletionActive,
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
-  const [triggerReset, setTriggerReset] = useState(false); // RESTORED state
+  const [triggerReset, setTriggerReset] = useState(false); 
   const [scrollOffset, setScrollOffset] = useState(0);
 
   // Reset scroll offset when suggestions are hidden or change
@@ -89,22 +89,21 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     if (targetIndex >= 0 && suggestions[targetIndex]) {
       const selectedSuggestion = suggestions[targetIndex];
       const atIndex = query.lastIndexOf('@');
-      const prefix = query.substring(0, atIndex + 1); // e.g., "some text @"
-      const partialPath = query.substring(atIndex + 1); // e.g., "src/ui/co"
+      const prefix = query.substring(0, atIndex + 1); 
+      const partialPath = query.substring(atIndex + 1); 
       const lastSlashIndexInPartial = partialPath.lastIndexOf('/');
 
       // Get the directory path already typed after the '@'
       const basePath =
         lastSlashIndexInPartial === -1
           ? '' // No slash yet, base is empty relative to '@'
-          : partialPath.substring(0, lastSlashIndexInPartial + 1); // e.g., "src/ui/"
+          : partialPath.substring(0, lastSlashIndexInPartial + 1); 
 
       const completedValue = prefix + basePath + selectedSuggestion;
 
       setQuery(completedValue);
-      // Don't delay reset anymore
       resetCompletionState();
-      setTriggerReset(true); // RESTORED trigger
+      setTriggerReset(true); 
       return true; // Indicate selection happened
     }
     return false; // Indicate selection didn't happen
@@ -192,7 +191,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     { isActive: isFocused },
   );
 
-  // RESTORED: Effect to trigger the input reset after state update
+  
   useEffect(() => {
     if (triggerReset) {
       forceInputReset();
