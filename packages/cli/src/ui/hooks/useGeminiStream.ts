@@ -143,7 +143,7 @@ export const useGeminiStream = (
       if (streamingState === StreamingState.Responding) return;
       if (typeof query === 'string' && query.trim().length === 0) return;
 
-      const userMessageTimestamp = Date.now(); 
+      const userMessageTimestamp = Date.now();
 
       if (typeof query === 'string') {
         setDebugMessage(`User query: '${query}'`);
