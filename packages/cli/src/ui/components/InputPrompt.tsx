@@ -15,7 +15,6 @@ interface InputPromptProps {
   inputKey: number;
   setInputKey: React.Dispatch<React.SetStateAction<number>>;
   onSubmit: (value: string) => void;
-  // Completion props
   showSuggestions: boolean;
   suggestions: string[];
   activeSuggestionIndex: number;
@@ -88,7 +87,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         } else if (key.downArrow) {
           navigateDown();
           handled = true;
-          // Handle Tab OR Enter when a suggestion is active
         } else if ((key.tab || key.return) && activeSuggestionIndex >= 0) {
           handleAutocomplete();
           handled = true;
@@ -106,7 +104,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         handled = true;
       }
 
-      // Prevent default behavior for handled keys when suggestions are active
       if (
         handled &&
         showSuggestions &&

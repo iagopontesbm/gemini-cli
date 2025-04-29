@@ -75,7 +75,6 @@ export const App = ({ config, cliVersion }: AppProps) => {
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
-  // Destructure setInputKey from useInputHistory
   const {
     query,
     setQuery,

@@ -44,7 +44,6 @@ export function useCompletion(
     setIsLoadingSuggestions(false);
   }, []);
 
-  // --- Navigation Logic ---
   const navigateUp = useCallback(() => {
     if (suggestions.length === 0) return;
 
@@ -103,7 +102,6 @@ export function useCompletion(
       return newActiveIndex;
     });
   }, [suggestions.length]);
-  // --- End Navigation Logic ---
 
   useEffect(() => {
     if (!isActive) {
