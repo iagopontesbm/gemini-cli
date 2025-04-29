@@ -42,7 +42,7 @@ interface HandleAtCommandResult {
  * Processes user input starting with '@' to read files/directories.
  * Assumes the input query is confirmed to start with '@'.
  * It attempts to read the specified path, updates the UI with the tool call status,
- * and prepares the query to be sent to the LLM.
+ * and prepares the query to be sent to the LLM, including any text following the path.
  *
  * @returns An object containing the potentially modified query (or null)
  *          and a flag indicating if the main hook should proceed.
@@ -55,17 +55,32 @@ export async function handleAtCommand({
   getNextMessageId,
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
-  const filePath = query.trim().substring(1);
+  const trimmedQuery = query.trim();
+  // Find the first space after the initial '@' to separate path from the rest
+  const firstSpaceIndex = trimmedQuery.indexOf(' ', 1);
 
-  // Add user message for the @ command itself first
+  let pathPart: string;
+  let remainingQueryText: string | undefined;
+
+  if (firstSpaceIndex === -1) {
+    // No space found, the whole query after '@' is the path
+    pathPart = trimmedQuery.substring(1);
+    remainingQueryText = undefined;
+  } else {
+    // Space found, split into path and the rest
+    pathPart = trimmedQuery.substring(1, firstSpaceIndex);
+    remainingQueryText = trimmedQuery.substring(firstSpaceIndex + 1).trim();
+  }
+
+  // Add user message for the full original @ command
   addHistoryItem(
     setHistory,
-    { type: 'user', text: query },
+    { type: 'user', text: query }, // Use original full query for history
     userMessageTimestamp,
   );
 
-  if (!filePath) {
-    // Handle case where it's just "@" - treat as error/don't proceed
+  if (!pathPart) {
+    // Handle case where it's just "@" or "@ " - treat as error/don't proceed
     const errorTimestamp = getNextMessageId(userMessageTimestamp);
     addHistoryItem(
       setHistory,
@@ -89,14 +104,14 @@ export async function handleAtCommand({
   }
 
   // --- Path Handling for @ command ---
-  let pathSpec = filePath;
+  let pathSpec = pathPart; // Use the extracted path part
   // Basic check: If no extension or ends with '/', assume directory and add globstar.
-  if (!filePath.includes('.') || filePath.endsWith('/')) {
-    pathSpec = filePath.endsWith('/') ? `${filePath}**` : `${filePath}/**`;
+  if (!pathPart.includes('.') || pathPart.endsWith('/')) {
+    pathSpec = pathPart.endsWith('/') ? `${pathPart}**` : `${pathPart}/**`;
   }
   const toolArgs = { paths: [pathSpec] };
   const contentLabel =
-    pathSpec === filePath ? filePath : `directory ${filePath}`; // Adjust label
+    pathSpec === pathPart ? pathPart : `directory ${pathPart}`; // Adjust label
   // --- End Path Handling ---
 
   let toolCallDisplay: IndividualToolCallDisplay;
@@ -116,15 +131,21 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    // Prepend file content to the query sent to the model
-    // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
-    const processedQuery: PartListUnion = [
+    // Construct the query for Gemini
+    const processedQueryParts = [
       {
         text: `--- Content from: ${contentLabel} ---
 ${fileContent}
 --- End Content ---`,
       },
     ];
+
+    // Append the remaining query text if it exists
+    if (remainingQueryText) {
+      processedQueryParts.push({ text: remainingQueryText });
+    }
+
+    const processedQuery: PartListUnion = processedQueryParts;
 
     // Add the tool group UI
     const toolGroupId = getNextMessageId(userMessageTimestamp);
