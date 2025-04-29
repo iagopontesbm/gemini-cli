@@ -27,10 +27,11 @@ import {
   IndividualToolCallDisplay,
   ToolCallStatus,
 } from '../types.js';
-import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
+import { isPotentiallyAtCommand } from '../utils/commandUtils.js'; // Import the @ command checker
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { usePassthroughProcessor } from './passthroughCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js'; // Import the @ command handler
+import { findSafeSplitPoint } from '../utils/markdownUtilities.js'; // Import the split point finder
 
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
@@ -163,8 +164,8 @@ export const useGeminiStream = (
           return; // Handled, exit
         }
 
-        // 3. Check for @ Commands
-        if (trimmedQuery.startsWith('@')) {
+        // 3. Check for @ Commands using the utility function
+        if (isPotentiallyAtCommand(trimmedQuery)) {
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
             config,

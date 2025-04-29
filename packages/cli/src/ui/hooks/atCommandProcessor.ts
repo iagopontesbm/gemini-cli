@@ -25,7 +25,7 @@ const addHistoryItem = (
 };
 
 interface HandleAtCommandParams {
-  query: string; // Raw user input, guaranteed to start with '@'
+  query: string; // Raw user input, potentially containing '@'
   config: Config;
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
@@ -39,10 +39,10 @@ interface HandleAtCommandResult {
 }
 
 /**
- * Processes user input starting with '@' to read files/directories.
- * Assumes the input query is confirmed to start with '@'.
- * It attempts to read the specified path, updates the UI with the tool call status,
- * and prepares the query to be sent to the LLM, including any text following the path.
+ * Processes user input potentially containing an '@<path>' command.
+ * It finds the first '@<path>', reads the specified path, updates the UI,
+ * and prepares the query for the LLM, incorporating the file content
+ * and surrounding text.
  *
  * @returns An object containing the potentially modified query (or null)
  *          and a flag indicating if the main hook should proceed.
@@ -56,21 +56,29 @@ export async function handleAtCommand({
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const trimmedQuery = query.trim();
-  // Find the first space after the initial '@' to separate path from the rest
-  const firstSpaceIndex = trimmedQuery.indexOf(' ', 1);
 
-  let pathPart: string;
-  let remainingQueryText: string | undefined;
+  // Regex to find the first occurrence of @ followed by non-whitespace chars
+  // It captures the text before, the @path itself (including @), and the text after.
+  const atCommandRegex = /^(.*?)(@\S+)(.*)$/s; // s flag for dot to match newline
+  const match = trimmedQuery.match(atCommandRegex);
 
-  if (firstSpaceIndex === -1) {
-    // No space found, the whole query after '@' is the path
-    pathPart = trimmedQuery.substring(1);
-    remainingQueryText = undefined;
-  } else {
-    // Space found, split into path and the rest
-    pathPart = trimmedQuery.substring(1, firstSpaceIndex);
-    remainingQueryText = trimmedQuery.substring(firstSpaceIndex + 1).trim();
+  if (!match) {
+    // This should technically not happen if isPotentiallyAtCommand was true,
+    // but handle defensively.
+    const errorTimestamp = getNextMessageId(userMessageTimestamp);
+    addHistoryItem(
+      setHistory,
+      { type: 'error', text: 'Error: Could not parse @ command.' },
+      errorTimestamp,
+    );
+    return { processedQuery: null, shouldProceed: false };
   }
+
+  const textBefore = match[1].trim();
+  const atPath = match[2]; // Includes the '@'
+  const textAfter = match[3].trim();
+
+  const pathPart = atPath.substring(1); // Remove the leading '@'
 
   // Add user message for the full original @ command
   addHistoryItem(
@@ -131,18 +139,16 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    // Construct the query for Gemini
-    const processedQueryParts = [
-      {
-        text: `--- Content from: ${contentLabel} ---
-${fileContent}
---- End Content ---`,
-      },
-    ];
-
-    // Append the remaining query text if it exists
-    if (remainingQueryText) {
-      processedQueryParts.push({ text: remainingQueryText });
+    // Construct the query for Gemini, combining parts
+    const processedQueryParts = [];
+    if (textBefore) {
+      processedQueryParts.push({ text: textBefore });
+    }
+    processedQueryParts.push({
+      text: `\n--- Content from: ${contentLabel} ---\n${fileContent}\n--- End Content ---`,
+    });
+    if (textAfter) {
+      processedQueryParts.push({ text: textAfter });
     }
 
     const processedQuery: PartListUnion = processedQueryParts;
