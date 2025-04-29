@@ -222,7 +222,6 @@ export const useGeminiStream = (
 
       setStreamingState(StreamingState.Responding);
       setInitError(null);
-      // messageIdCounterRef.current = 0; // Reset counter for new submission << MOVED TO START OF FUNCTION
       const chat = chatSessionRef.current;
       let currentToolGroupId: number | null = null;
 
