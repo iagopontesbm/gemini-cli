@@ -62,6 +62,7 @@ export const useGeminiStream = (
 
   // ID Generation Callback
   const getNextMessageId = useCallback((baseTimestamp: number): number => {
+    // Increment *before* adding to ensure uniqueness against the base timestamp
     messageIdCounterRef.current += 1;
     return baseTimestamp + messageIdCounterRef.current;
   }, []);
@@ -145,61 +146,60 @@ export const useGeminiStream = (
       if (typeof query === 'string' && query.trim().length === 0) return;
 
       const userMessageTimestamp = Date.now();
-      let processedQuery: PartListUnion = query; // Initialize with original query
-      let shouldProceedToGemini = true; // Assume we proceed unless a handler says otherwise
+      messageIdCounterRef.current = 0; // Reset counter for this new submission
+      let queryToSendToGemini: PartListUnion | null = null;
 
       if (typeof query === 'string') {
-        setDebugMessage(`User query: '${query}'`);
+        const trimmedQuery = query.trim();
+        setDebugMessage(`User query: '${trimmedQuery}'`);
 
         // 1. Check for Slash Commands
-        if (handleSlashCommand(query)) {
-          return; // Command was handled, exit early
+        if (handleSlashCommand(trimmedQuery)) {
+          return; // Handled, exit
         }
 
         // 2. Check for Passthrough Commands
-        if (handlePassthroughCommand(query)) {
-          return; // Command was handled, exit early
+        if (handlePassthroughCommand(trimmedQuery)) {
+          return; // Handled, exit
         }
 
-        // 3. Check for @ Commands (async)
-        // Note: handleAtCommand adds the user message itself if it's an @ command
-        const atCommandResult = await handleAtCommand({
-          query,
-          config,
-          setHistory,
-          setDebugMessage,
-          getNextMessageId,
-          userMessageTimestamp,
-        });
+        // 3. Check for @ Commands
+        if (trimmedQuery.startsWith('@')) {
+          const atCommandResult = await handleAtCommand({
+            query: trimmedQuery,
+            config,
+            setHistory,
+            setDebugMessage,
+            getNextMessageId,
+            userMessageTimestamp,
+          });
 
-        processedQuery = atCommandResult.processedQuery;
-        shouldProceedToGemini = atCommandResult.shouldProceed;
-
-        if (!shouldProceedToGemini) {
-          // If @ command handled it and said not to proceed (e.g., error), exit.
-          // Or if it wasn't an @ command but it added the user message, we still might proceed.
-          // The logic inside handleAtCommand determines if the user message was added.
-          if (query.trim().startsWith('@')) {
-             // If it was an @ command and failed, stop here.
-             return;
+          if (!atCommandResult.shouldProceed) {
+            return; // @ command handled it (e.g., error) or decided not to proceed
           }
-          // If it wasn't an @ command, handleAtCommand added the user message,
-          // so we just need to proceed to Gemini below.
+          queryToSendToGemini = atCommandResult.processedQuery;
+          // User message and tool UI were added by handleAtCommand
+        } else {
+          // 4. It's a normal query for Gemini
+          addHistoryItem(
+            setHistory,
+            { type: 'user', text: trimmedQuery },
+            userMessageTimestamp,
+          );
+          queryToSendToGemini = trimmedQuery;
         }
-        // If it *was* an @ command and succeeded, shouldProceedToGemini is true,
-        // and processedQuery contains the file content + original query.
-        // The user message and tool UI were added by handleAtCommand.
-
       } else {
-        // For function responses (PartListUnion that isn't a string),
-        // we don't add a user message here. The tool call/response UI handles it.
-        // We always proceed to Gemini with function responses.
-        shouldProceedToGemini = true;
+        // 5. It's a function response (PartListUnion that isn't a string)
+        // Tool call/response UI handles history. Always proceed.
+        queryToSendToGemini = query;
       }
 
-      // 4. Proceed to Gemini API call if not handled or if @ command succeeded
-      if (!shouldProceedToGemini) {
-        // This case should only be hit if an @ command failed.
+      // --- Proceed to Gemini API call ---
+      if (queryToSendToGemini === null) {
+        // Should only happen if @ command failed and returned null query
+        setDebugMessage(
+          'Query processing resulted in null, not sending to Gemini.',
+        );
         return;
       }
 
@@ -221,7 +221,7 @@ export const useGeminiStream = (
 
       setStreamingState(StreamingState.Responding);
       setInitError(null);
-      messageIdCounterRef.current = 0; // Reset counter for new submission
+      // messageIdCounterRef.current = 0; // Reset counter for new submission << MOVED TO START OF FUNCTION
       const chat = chatSessionRef.current;
       let currentToolGroupId: number | null = null;
 
@@ -229,8 +229,12 @@ export const useGeminiStream = (
         abortControllerRef.current = new AbortController();
         const signal = abortControllerRef.current.signal;
 
-        // Use the potentially modified query for the Gemini call
-        const stream = client.sendMessageStream(chat, processedQuery, signal); // Use processedQuery
+        // Use the determined query for the Gemini call
+        const stream = client.sendMessageStream(
+          chat,
+          queryToSendToGemini,
+          signal,
+        );
 
         // Process the stream events from the server logic
         let currentGeminiText = ''; // To accumulate message content
@@ -482,7 +486,7 @@ export const useGeminiStream = (
             const tool = toolRegistry.getTool(request.name);
             if (!tool) {
               throw new Error(
-                `Tool "${request.name}" not found or is not registered.`
+                `Tool "${request.name}" not found or is not registered.`,
               );
             }
             const result = await tool.execute(request.args);
@@ -522,7 +526,7 @@ export const useGeminiStream = (
       handleSlashCommand,
       handlePassthroughCommand,
       // handleAtCommand is implicitly included via its direct call
-      setDebugMessage, // Added dependency for handleAtCommand
+      setDebugMessage, // Added dependency for handleAtCommand & passthrough
       setStreamingState, // Added dependency for handlePassthroughCommand
       updateAndAddGeminiMessageContent,
     ],

@@ -12,7 +12,7 @@ import {
   ToolCallStatus,
 } from '../types.js';
 
-// Helper function to add history items (could be moved to a shared util if needed elsewhere)
+// Helper function to add history items
 const addHistoryItem = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
   itemData: Omit<HistoryItem, 'id'>,
@@ -25,7 +25,7 @@ const addHistoryItem = (
 };
 
 interface HandleAtCommandParams {
-  query: string; // Raw user input
+  query: string; // Raw user input, guaranteed to start with '@'
   config: Config;
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>;
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
@@ -34,17 +34,18 @@ interface HandleAtCommandParams {
 }
 
 interface HandleAtCommandResult {
-  processedQuery: PartListUnion; // Query to potentially send to Gemini
+  processedQuery: PartListUnion | null; // Query for Gemini (null on error/no-proceed)
   shouldProceed: boolean; // Whether the main hook should continue processing
 }
 
 /**
- * Processes user input that might start with the '@' command to read files/directories.
- * If it's an '@' command, it attempts to read the specified path, updates the UI
- * with the tool call status, and prepares the query to be sent to the LLM.
+ * Processes user input starting with '@' to read files/directories.
+ * Assumes the input query is confirmed to start with '@'.
+ * It attempts to read the specified path, updates the UI with the tool call status,
+ * and prepares the query to be sent to the LLM.
  *
- * @returns An object containing the potentially modified query and a flag
- *          indicating if the main hook should proceed with the Gemini API call.
+ * @returns An object containing the potentially modified query (or null)
+ *          and a flag indicating if the main hook should proceed.
  */
 export async function handleAtCommand({
   query,
@@ -54,43 +55,28 @@ export async function handleAtCommand({
   getNextMessageId,
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
-  const trimmedQuery = query.trim();
+  const filePath = query.trim().substring(1);
 
-  if (!trimmedQuery.startsWith('@')) {
-    // Not an '@' command, proceed as normal
-    // Add the user message here before returning
-    addHistoryItem(
-      setHistory,
-      { type: 'user', text: query },
-      userMessageTimestamp,
-    );
-    // Use property shorthand for processedQuery
-    return { processedQuery: query, shouldProceed: true };
-  }
-
-  // --- It is an '@' command ---
-  const filePath = trimmedQuery.substring(1);
-
-  if (!filePath) {
-    // Handle case where it's just "@" - treat as normal input
-    addHistoryItem(
-      setHistory,
-      { type: 'user', text: query },
-      userMessageTimestamp,
-    );
-    // Use property shorthand for processedQuery
-    return { processedQuery: query, shouldProceed: true }; // Send the "@" to the model
-  }
-
-  const toolRegistry = config.getToolRegistry();
-  const readManyFilesTool = toolRegistry.getTool('read_many_files');
-
-  // Add user message first, so it appears before potential errors/tool UI
+  // Add user message for the @ command itself first
   addHistoryItem(
     setHistory,
     { type: 'user', text: query },
     userMessageTimestamp,
   );
+
+  if (!filePath) {
+    // Handle case where it's just "@" - treat as error/don't proceed
+    const errorTimestamp = getNextMessageId(userMessageTimestamp);
+    addHistoryItem(
+      setHistory,
+      { type: 'error', text: 'Error: No path specified after @.' },
+      errorTimestamp,
+    );
+    return { processedQuery: null, shouldProceed: false };
+  }
+
+  const toolRegistry = config.getToolRegistry();
+  const readManyFilesTool = toolRegistry.getTool('read_many_files');
 
   if (!readManyFilesTool) {
     const errorTimestamp = getNextMessageId(userMessageTimestamp);
@@ -99,8 +85,7 @@ export async function handleAtCommand({
       { type: 'error', text: 'Error: read_many_files tool not found.' },
       errorTimestamp,
     );
-    // Use property shorthand for processedQuery
-    return { processedQuery: query, shouldProceed: false }; // Don't proceed if tool is missing
+    return { processedQuery: null, shouldProceed: false }; // Don't proceed if tool is missing
   }
 
   // --- Path Handling for @ command ---
@@ -115,7 +100,6 @@ export async function handleAtCommand({
   // --- End Path Handling ---
 
   let toolCallDisplay: IndividualToolCallDisplay;
-  let processedQuery: PartListUnion = query; // Default to original query
 
   try {
     setDebugMessage(`Reading via @ command: ${pathSpec}`);
@@ -133,13 +117,13 @@ export async function handleAtCommand({
     };
 
     // Prepend file content to the query sent to the model
-    processedQuery = [
+    // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
+    const processedQuery: PartListUnion = [
       {
         text: `--- Content from: ${contentLabel} ---
 ${fileContent}
 --- End Content ---`,
       },
-      // TODO: Handle cases like "@README.md explain this" by appending the rest of the query
     ];
 
     // Add the tool group UI
@@ -153,7 +137,6 @@ ${fileContent}
       toolGroupId,
     );
 
-    // Use property shorthand for processedQuery
     return { processedQuery, shouldProceed: true }; // Proceed to Gemini
   } catch (error) {
     // Construct error UI
@@ -177,7 +160,6 @@ ${fileContent}
       toolGroupId,
     );
 
-    // Use property shorthand for processedQuery
-    return { processedQuery: query, shouldProceed: false }; // Don't proceed on error
+    return { processedQuery: null, shouldProceed: false }; // Don't proceed on error
   }
 }
