@@ -27,7 +27,7 @@ import {
   IndividualToolCallDisplay,
   ToolCallStatus,
 } from '../types.js';
-import { isPotentiallyAtCommand } from '../utils/commandUtils.js'; // Import the @ command checker
+import { isAtCommand } from '../utils/commandUtils.js'; // Import the @ command checker
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { usePassthroughProcessor } from './passthroughCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js'; // Import the @ command handler
@@ -165,7 +165,7 @@ export const useGeminiStream = (
         }
 
         // 3. Check for @ Commands using the utility function
-        if (isPotentiallyAtCommand(trimmedQuery)) {
+        if (isAtCommand(trimmedQuery)) {
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
             config,
