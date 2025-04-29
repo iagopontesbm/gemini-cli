@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback } from 'react'; // Import useCallback
-import { Text, Box, useInput, useFocus, Key } from 'ink'; // Import Key
+import React, { useCallback } from 'react';
+import { Text, Box, useInput, useFocus, Key } from 'ink';
 import TextInput from 'ink-text-input';
 import { Colors } from '../colors.js';
 
 interface InputPromptProps {
   query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
-  inputKey: number; // Key to force TextInput reset on history navigation
-  setInputKey: React.Dispatch<React.SetStateAction<number>>; // Setter for the key
+  inputKey: number;
+  setInputKey: React.Dispatch<React.SetStateAction<number>>;
   onSubmit: (value: string) => void;
   // Completion props
   showSuggestions: boolean;
@@ -28,7 +28,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   query,
   setQuery,
   inputKey,
-  setInputKey, // Destructure setInputKey
+  setInputKey,
   onSubmit,
   showSuggestions,
   suggestions,
@@ -40,12 +40,15 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   const { isFocused } = useFocus({ autoFocus: true });
 
   const handleAutocomplete = useCallback(() => {
-    if (activeSuggestionIndex < 0 || activeSuggestionIndex >= suggestions.length) {
+    if (
+      activeSuggestionIndex < 0 ||
+      activeSuggestionIndex >= suggestions.length
+    ) {
       return;
     }
     const selectedSuggestion = suggestions[activeSuggestionIndex];
     const atIndex = query.lastIndexOf('@');
-    if (atIndex === -1) return; // Should not happen if suggestions are shown
+    if (atIndex === -1) return;
 
     // Find the part of the query after the '@'
     const pathPart = query.substring(atIndex + 1);
@@ -71,11 +74,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     suggestions,
     activeSuggestionIndex,
     resetCompletion,
-    setInputKey, // Add dependency
+    setInputKey,
   ]);
 
   useInput(
-    (input: string, key: Key) => { // Add types for input and key
+    (input: string, key: Key) => {
       let handled = false;
 
       if (showSuggestions) {
@@ -85,7 +88,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         } else if (key.downArrow) {
           navigateDown();
           handled = true;
-        // Handle Tab OR Enter when a suggestion is active
+          // Handle Tab OR Enter when a suggestion is active
         } else if ((key.tab || key.return) && activeSuggestionIndex >= 0) {
           handleAutocomplete();
           handled = true;
@@ -95,21 +98,22 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
       }
 
-      // Only submit on Enter if it wasn't handled above (i.e., wasn't used for autocomplete)
+      // Only submit on Enter if it wasn't handled above
       if (!handled && key.return) {
         if (query.trim()) {
           onSubmit(query);
-          // Query clearing is handled by useInputHistory's handleSubmit wrapper
         }
-        handled = true; // Mark as handled even if query was empty
+        handled = true;
       }
 
       // Prevent default behavior for handled keys when suggestions are active
-      // (This comment remains, the logic implicitly handles it by setting `handled`)
-      if (handled && showSuggestions && (key.upArrow || key.downArrow || key.tab || key.escape || key.return)) {
+      if (
+        handled &&
+        showSuggestions &&
+        (key.upArrow || key.downArrow || key.tab || key.escape || key.return)
+      ) {
         // No explicit preventDefault needed, handled flag stops further processing
       }
-
     },
     { isActive: isFocused },
   );
@@ -119,7 +123,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       <Text color={Colors.AccentPurple}>&gt; </Text>
       <Box flexGrow={1}>
         <TextInput
-          key={inputKey.toString()} // Use key to force re-render on history nav
+          key={inputKey.toString()}
           value={query}
           onChange={setQuery}
           placeholder="Enter your message or use tools (e.g., @src/file.txt)..."

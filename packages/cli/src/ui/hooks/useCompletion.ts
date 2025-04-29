@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { isNodeError } from '@gemini-code/server';
-import { MAX_SUGGESTIONS_TO_SHOW } from '../components/SuggestionsDisplay.js'; // Import constant
+import { MAX_SUGGESTIONS_TO_SHOW } from '../components/SuggestionsDisplay.js';
 
 export interface UseCompletionReturn {
   suggestions: string[];
@@ -48,54 +48,61 @@ export function useCompletion(
   const navigateUp = useCallback(() => {
     if (suggestions.length === 0) return;
 
-    setActiveSuggestionIndex(prevActiveIndex => {
+    setActiveSuggestionIndex((prevActiveIndex) => {
       // Calculate new active index, handling wrap-around
-      const newActiveIndex = prevActiveIndex <= 0 ? suggestions.length - 1 : prevActiveIndex - 1;
+      const newActiveIndex =
+        prevActiveIndex <= 0 ? suggestions.length - 1 : prevActiveIndex - 1;
 
       // Adjust scroll position based on the new active index
-      setVisibleStartIndex(prevVisibleStart => {
+      setVisibleStartIndex((prevVisibleStart) => {
         // Case 1: Wrapped around to the last item
-        if (newActiveIndex === suggestions.length - 1 && suggestions.length > MAX_SUGGESTIONS_TO_SHOW) {
+        if (
+          newActiveIndex === suggestions.length - 1 &&
+          suggestions.length > MAX_SUGGESTIONS_TO_SHOW
+        ) {
           return Math.max(0, suggestions.length - MAX_SUGGESTIONS_TO_SHOW);
         }
         // Case 2: Scrolled above the current visible window
         if (newActiveIndex < prevVisibleStart) {
-          return newActiveIndex; // Make the new item the top of the visible list
+          return newActiveIndex;
         }
         // Otherwise, keep the current scroll position
         return prevVisibleStart;
       });
 
-      return newActiveIndex; // Update the active index state
+      return newActiveIndex;
     });
-  }, [suggestions.length]); // Dependencies are stable setters
+  }, [suggestions.length]);
 
   const navigateDown = useCallback(() => {
     if (suggestions.length === 0) return;
 
-    setActiveSuggestionIndex(prevActiveIndex => {
+    setActiveSuggestionIndex((prevActiveIndex) => {
       // Calculate new active index, handling wrap-around
-      const newActiveIndex = prevActiveIndex >= suggestions.length - 1 ? 0 : prevActiveIndex + 1;
+      const newActiveIndex =
+        prevActiveIndex >= suggestions.length - 1 ? 0 : prevActiveIndex + 1;
 
       // Adjust scroll position based on the new active index
-      setVisibleStartIndex(prevVisibleStart => {
+      setVisibleStartIndex((prevVisibleStart) => {
         // Case 1: Wrapped around to the first item
-        if (newActiveIndex === 0 && suggestions.length > MAX_SUGGESTIONS_TO_SHOW) {
+        if (
+          newActiveIndex === 0 &&
+          suggestions.length > MAX_SUGGESTIONS_TO_SHOW
+        ) {
           return 0;
         }
         // Case 2: Scrolled below the current visible window
         const visibleEndIndex = prevVisibleStart + MAX_SUGGESTIONS_TO_SHOW;
         if (newActiveIndex >= visibleEndIndex) {
-          // Adjust start so the new item is the last visible item
           return newActiveIndex - MAX_SUGGESTIONS_TO_SHOW + 1;
         }
         // Otherwise, keep the current scroll position
         return prevVisibleStart;
       });
 
-      return newActiveIndex; // Update the active index state
+      return newActiveIndex;
     });
-  }, [suggestions.length]); // Dependencies are stable setters
+  }, [suggestions.length]);
   // --- End Navigation Logic ---
 
   useEffect(() => {
@@ -144,8 +151,8 @@ export function useCompletion(
         if (isMounted) {
           setSuggestions(filteredSuggestions);
           setShowSuggestions(filteredSuggestions.length > 0);
-          setActiveSuggestionIndex(-1); // Reset selection on new suggestions
-          setVisibleStartIndex(0); // Reset scroll on new suggestions
+          setActiveSuggestionIndex(-1);
+          setVisibleStartIndex(0);
         }
       } catch (error) {
         if (isNodeError(error) && error.code === 'ENOENT') {
@@ -169,13 +176,11 @@ export function useCompletion(
       }
     };
 
-    // Debounce the fetch slightly
     const debounceTimeout = setTimeout(fetchSuggestions, 100);
 
     return () => {
       isMounted = false;
       clearTimeout(debounceTimeout);
-      // Don't reset loading state here, let the next effect handle it or resetCompletionState
     };
   }, [query, cwd, isActive, resetCompletionState]);
 
