@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Box, Static, Text } from 'ink';
+import { Box, Static, Text, useStdout } from 'ink'; // Import useStdout
 import { StreamingState, type HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -22,6 +22,15 @@ import { Colors } from './colors.js';
 import { Tips } from './components/Tips.js';
 import { ConsoleOutput } from './components/ConsolePatcher.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
+import {
+  useCompletion,
+  type UseCompletionReturn,
+} from './hooks/useCompletion.js';
+import {
+  SuggestionsDisplay,
+  MAX_SUGGESTIONS_TO_SHOW,
+} from './components/SuggestionsDisplay.js';
+import { isAtCommand } from './utils/commandUtils.js'; // Assuming it's here, adjust if needed
 
 interface AppProps {
   config: Config;
@@ -72,16 +81,29 @@ export const App = ({ config, cliVersion }: AppProps) => {
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
-  const { query, handleSubmit: handleHistorySubmit } = useInputHistory({
+  // Destructure setInputKey from useInputHistory
+  const { query, setQuery, handleSubmit: handleHistorySubmit, inputKey, setInputKey } = useInputHistory({
     userMessages,
     onSubmit: handleFinalSubmit,
     isActive: isInputActive,
   });
 
+  const completion = useCompletion(
+    query,
+    config.getTargetDir(),
+    isInputActive && isAtCommand(query), // Only activate completion for @ commands
+  );
+
   // --- Render Logic ---
 
   const { staticallyRenderedHistoryItems, updatableHistoryItems } =
     getHistoryRenderSlices(history);
+
+  // Get terminal width
+  const { stdout } = useStdout();
+  const terminalWidth = stdout?.columns ?? 80; // Default to 80 if undefined
+  // Calculate width for suggestions, leave some padding
+  const suggestionsWidth = Math.max(60, Math.floor(terminalWidth * 0.8));
 
   return (
     <Box flexDirection="column" marginBottom={1} width="90%">
@@ -167,7 +189,32 @@ export const App = ({ config, cliVersion }: AppProps) => {
                 </Text>
               </Box>
 
-              <InputPrompt onSubmit={handleHistorySubmit} />
+              <InputPrompt
+                // Pass query and setQuery from useInputHistory
+                query={query}
+                setQuery={setQuery}
+                inputKey={inputKey} // Pass key to reset TextInput
+                setInputKey={setInputKey} // Pass setInputKey
+                onSubmit={handleHistorySubmit}
+                // Pass completion props
+                showSuggestions={completion.showSuggestions}
+                suggestions={completion.suggestions}
+                activeSuggestionIndex={completion.activeSuggestionIndex}
+                navigateUp={completion.navigateUp}
+                navigateDown={completion.navigateDown}
+                resetCompletion={completion.resetCompletionState}
+              />
+              {completion.showSuggestions && (
+                 <Box marginTop={1}>
+                   <SuggestionsDisplay
+                     suggestions={completion.suggestions}
+                     activeIndex={completion.activeSuggestionIndex}
+                     isLoading={completion.isLoadingSuggestions}
+                     width={suggestionsWidth} // Use calculated width
+                     scrollOffset={completion.visibleStartIndex}
+                   />
+                 </Box>
+              )}
             </>
           )}
         </>

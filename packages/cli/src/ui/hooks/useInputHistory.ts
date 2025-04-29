@@ -20,6 +20,7 @@ interface UseInputHistoryReturn {
   setQuery: React.Dispatch<React.SetStateAction<string>>; // Setter for the query
   handleSubmit: (value: string) => void; // Wrapped submit handler
   inputKey: number; // Key to force input reset
+  setInputKey: React.Dispatch<React.SetStateAction<number>>; // Setter for the key
 }
 
 export function useInputHistory({
@@ -121,5 +122,6 @@ export function useInputHistory({
     setQuery, // Return the hook's setQuery
     handleSubmit, // Return the wrapped submit handler
     inputKey, // Return the key
+    setInputKey, // Return the setter for the key
   };
 }

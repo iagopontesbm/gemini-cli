@@ -8,8 +8,7 @@ import { useState, useEffect, useCallback } from 'react';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { isNodeError } from '@gemini-code/server';
-
-const MAX_SUGGESTIONS_TO_SHOW = 8;
+import { MAX_SUGGESTIONS_TO_SHOW } from '../components/SuggestionsDisplay.js'; // Import constant
 
 export interface UseCompletionReturn {
   suggestions: string[];
@@ -49,46 +48,54 @@ export function useCompletion(
   const navigateUp = useCallback(() => {
     if (suggestions.length === 0) return;
 
-    setActiveSuggestionIndex((prevIndex) => {
-      const newIndex = prevIndex <= 0 ? suggestions.length - 1 : prevIndex - 1;
+    setActiveSuggestionIndex(prevActiveIndex => {
+      // Calculate new active index, handling wrap-around
+      const newActiveIndex = prevActiveIndex <= 0 ? suggestions.length - 1 : prevActiveIndex - 1;
 
-      // Adjust visible window if needed (scrolling up)
-      if (newIndex < visibleStartIndex) {
-        setVisibleStartIndex(newIndex);
-      } else if (
-        newIndex === suggestions.length - 1 &&
-        suggestions.length > MAX_SUGGESTIONS_TO_SHOW
-      ) {
-        // Handle wrapping from first to last item
-        setVisibleStartIndex(
-          Math.max(0, suggestions.length - MAX_SUGGESTIONS_TO_SHOW),
-        );
-      }
+      // Adjust scroll position based on the new active index
+      setVisibleStartIndex(prevVisibleStart => {
+        // Case 1: Wrapped around to the last item
+        if (newActiveIndex === suggestions.length - 1 && suggestions.length > MAX_SUGGESTIONS_TO_SHOW) {
+          return Math.max(0, suggestions.length - MAX_SUGGESTIONS_TO_SHOW);
+        }
+        // Case 2: Scrolled above the current visible window
+        if (newActiveIndex < prevVisibleStart) {
+          return newActiveIndex; // Make the new item the top of the visible list
+        }
+        // Otherwise, keep the current scroll position
+        return prevVisibleStart;
+      });
 
-      return newIndex;
+      return newActiveIndex; // Update the active index state
     });
-  }, [suggestions.length, visibleStartIndex]);
+  }, [suggestions.length]); // Dependencies are stable setters
 
   const navigateDown = useCallback(() => {
     if (suggestions.length === 0) return;
 
-    setActiveSuggestionIndex((prevIndex) => {
-      const newIndex = prevIndex >= suggestions.length - 1 ? 0 : prevIndex + 1;
+    setActiveSuggestionIndex(prevActiveIndex => {
+      // Calculate new active index, handling wrap-around
+      const newActiveIndex = prevActiveIndex >= suggestions.length - 1 ? 0 : prevActiveIndex + 1;
 
-      // Adjust visible window if needed (scrolling down)
-      if (newIndex >= visibleStartIndex + MAX_SUGGESTIONS_TO_SHOW) {
-        setVisibleStartIndex(visibleStartIndex + 1);
-      } else if (
-        newIndex === 0 &&
-        suggestions.length > MAX_SUGGESTIONS_TO_SHOW
-      ) {
-        // Handle wrapping from last to first item
-        setVisibleStartIndex(0);
-      }
+      // Adjust scroll position based on the new active index
+      setVisibleStartIndex(prevVisibleStart => {
+        // Case 1: Wrapped around to the first item
+        if (newActiveIndex === 0 && suggestions.length > MAX_SUGGESTIONS_TO_SHOW) {
+          return 0;
+        }
+        // Case 2: Scrolled below the current visible window
+        const visibleEndIndex = prevVisibleStart + MAX_SUGGESTIONS_TO_SHOW;
+        if (newActiveIndex >= visibleEndIndex) {
+          // Adjust start so the new item is the last visible item
+          return newActiveIndex - MAX_SUGGESTIONS_TO_SHOW + 1;
+        }
+        // Otherwise, keep the current scroll position
+        return prevVisibleStart;
+      });
 
-      return newIndex;
+      return newActiveIndex; // Update the active index state
     });
-  }, [suggestions.length, visibleStartIndex]);
+  }, [suggestions.length]); // Dependencies are stable setters
   // --- End Navigation Logic ---
 
   useEffect(() => {
