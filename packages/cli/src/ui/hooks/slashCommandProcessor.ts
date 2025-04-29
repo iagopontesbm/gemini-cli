@@ -7,6 +7,7 @@
 import { useCallback } from 'react';
 import { type PartListUnion } from '@google/genai';
 import { HistoryItem } from '../types.js';
+import { isSlashCommand } from '../utils/commandUtils.js';
 
 interface SlashCommand {
   name: string; // slash command
@@ -80,7 +81,7 @@ export const useSlashCommandProcessor = (
       }
 
       const trimmedQuery = rawQuery.trim();
-      if (!trimmedQuery.startsWith('/')) {
+      if (!isSlashCommand(trimmedQuery)) {
         return false; // Not a slash command
       }
 

@@ -479,7 +479,7 @@ export const useGeminiStream = (
         };
       }
     },
-    // Dependencies
+    // Dependencies need careful review
     [
       streamingState,
       setHistory,
