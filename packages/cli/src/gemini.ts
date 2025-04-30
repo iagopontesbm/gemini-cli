@@ -14,12 +14,19 @@ import { readPackageUp } from 'read-package-up';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
+import { loadSettings } from './config/settings.js';
+import { themeManager } from './ui/themes/theme-manager.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function main() {
   const config = await loadCliConfig();
+  const settings = loadSettings(config);
+  if (settings.merged.theme.value) {
+    themeManager.setActiveTheme(settings.merged.theme.value);
+  }
+
   let input = config.getQuestion();
 
   // hop into sandbox if we are outside and sandboxing is enabled
@@ -41,6 +48,7 @@ async function main() {
     render(
       React.createElement(App, {
         config,
+        settings,
         cliVersion,
       }),
     );
