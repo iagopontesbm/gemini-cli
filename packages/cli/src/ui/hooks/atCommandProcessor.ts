@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'fs/promises'; 
+import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PartListUnion } from '@google/genai';
-import { Config, getErrorMessage, isNodeError } from '@gemini-code/server'; 
+import { Config, getErrorMessage, isNodeError } from '@gemini-code/server';
 import {
   HistoryItem,
   IndividualToolCallDisplay,
@@ -109,7 +109,7 @@ export async function handleAtCommand({
 
   // --- Path Handling for @ command ---
   let pathSpec = pathPart;
-  const contentLabel = pathPart; 
+  const contentLabel = pathPart;
 
   try {
     // Resolve the path relative to the target directory
@@ -128,11 +128,13 @@ export async function handleAtCommand({
     // If stat fails (e.g., file/dir not found), proceed with the original pathPart.
     // The read_many_files tool will handle the error if it's invalid.
     if (isNodeError(error) && error.code === 'ENOENT') {
-       setDebugMessage(`Path not found, proceeding with original: ${pathSpec}`);
+      setDebugMessage(`Path not found, proceeding with original: ${pathSpec}`);
     } else {
-       // Log other stat errors but still proceed
-       console.error(`Error stating path ${pathPart}:`, error);
-       setDebugMessage(`Error stating path, proceeding with original: ${pathSpec}`);
+      // Log other stat errors but still proceed
+      console.error(`Error stating path ${pathPart}:`, error);
+      setDebugMessage(
+        `Error stating path, proceeding with original: ${pathSpec}`,
+      );
     }
   }
 
