@@ -17,81 +17,37 @@ export enum SettingScope {
   Workspace = 'Workspace',
 }
 
-export class MergedSetting {
-  // Private members to hold context needed for updates
-  private _loadedSettings: LoadedSettings;
-  private _key: keyof SettingProperties<string | undefined>; // Use the base type for keys
-
-  // Public properties representing the merged state
-  get value(): string | undefined {
-    // Check workspace first
-    const workspaceValue =
-      this._loadedSettings.workspace?.settings?.[this._key];
-    if (workspaceValue !== undefined) {
-      // No need for cast if workspaceValue is already string | undefined
-      return workspaceValue;
-    }
-
-    // Check user next
-    const userValue = this._loadedSettings.user?.settings?.[this._key];
-    if (userValue !== undefined) {
-      // No need for cast if userValue is already string | undefined
-      return userValue;
-    }
-
-    // Default (undefined)
-    return undefined;
-  }
-
-  /**
-   * Creates an instance of MergedSetting.
-   * @param key The key of the setting this instance represents.
-   * @param loadedSettings The LoadedSettings instance containing the raw settings data.
-   */
-  constructor(
-    key: keyof SettingProperties<string | undefined>, // Accept the base key type
-    loadedSettings: LoadedSettings,
-  ) {
-    this._key = key;
-    this._loadedSettings = loadedSettings;
-  }
-
-  /**
-   * Sets the value of this setting in the specified scope ('user' or 'workspace')
-   * and saves the corresponding settings file.
-   * Updates the current MergedSetting instance to reflect the new merged state.
-   * @param value The new value for the setting. Use `undefined` to unset.
-   * @param scope The configuration scope ('user' or 'workspace') to modify.
-   */
-  setValue(value: string | undefined, scope: SettingScope): void {
-    const settingsForScope = this._loadedSettings.forScope(scope);
-    settingsForScope.settings[this._key] = value;
-    saveSettings(settingsForScope);
-  }
-}
-
-export interface SettingProperties<T> {
-  theme: T;
-  // Add other settings here
+export interface Settings {
+  theme?: string;
+  // Add other settings here.
 }
 
 export interface SettingsFile {
-  settings: SettingProperties<string | undefined>;
+  settings: Settings;
   path: string;
 }
-
-export type MergedSettings = SettingProperties<MergedSetting>;
-
 export class LoadedSettings {
   constructor(user: SettingsFile, workspace: SettingsFile) {
     this.user = user;
     this.workspace = workspace;
-    this.merged = { theme: new MergedSetting('theme', this) };
+    this.merged = this.computeMergedSettings();
   }
 
   readonly user: SettingsFile;
   readonly workspace: SettingsFile;
-  readonly merged: MergedSettings;
+
+  private merged: Settings;
+
+  getMerged(): Settings {
+    return this.merged;
+  }
+
+  private computeMergedSettings(): Settings {
+    return {
+      ...this.user.settings,
+      ...this.workspace.settings,
+    };
+  }
 
   forScope(scope: SettingScope): SettingsFile {
     switch (scope) {
@@ -103,6 +59,17 @@ export class LoadedSettings {
         throw new Error(`Invalid scope: ${scope}`);
     }
   }
+
+  setValue(
+    scope: SettingScope,
+    key: keyof Settings,
+    value: string | undefined,
+  ): void {
+    const settingsFile = this.forScope(scope);
+    settingsFile.settings[key] = value;
+    this.merged = this.computeMergedSettings();
+    saveSettings(settingsFile);
+  }
 }
 
 /**
@@ -110,12 +77,8 @@ export class LoadedSettings {
  * Project settings override user settings.
  */
 export function loadSettings(config: Config): LoadedSettings {
-  let userSettings: SettingProperties<string | undefined> = {
-    theme: undefined,
-  };
-  let workspaceSettings: SettingProperties<string | undefined> = {
-    theme: undefined,
-  };
+  let userSettings: Settings = {};
+  let workspaceSettings = {};
 
   // Load user settings
   try {

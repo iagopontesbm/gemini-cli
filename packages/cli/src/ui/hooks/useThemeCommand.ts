@@ -22,12 +22,13 @@ export const useThemeCommand = (
   loadedSettings: LoadedSettings, // Changed parameter
 ): UseThemeCommandReturn => {
   // Determine the effective theme
-  const effectiveTheme = loadedSettings.merged.theme.value;
+  const effectiveTheme = loadedSettings.getMerged().theme;
 
   // Initial state: Open dialog if no theme is set in either user or workspace settings
   const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(
     effectiveTheme === undefined,
   );
+  // TODO: refactor how theme's are accessed to avoid requiring a forced render.
   const [, setForceRender] = useState(0);
 
   const openThemeDialog = useCallback(() => {
@@ -54,8 +55,8 @@ export const useThemeCommand = (
     (themeName: string | undefined, scope: SettingScope) => {
       // Added scope parameter
       try {
-        loadedSettings.merged.theme.setValue(themeName, scope); // Update the merged settings
-        applyTheme(loadedSettings.merged.theme.value); // Apply the current theme
+        loadedSettings.setValue(scope, 'theme', themeName); // Update the merged settings
+        applyTheme(loadedSettings.getMerged().theme); // Apply the current theme
       } finally {
         setIsThemeDialogOpen(false); // Close the dialog
       }

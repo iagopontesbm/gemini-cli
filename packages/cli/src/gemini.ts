@@ -23,8 +23,9 @@ const __dirname = dirname(__filename);
 async function main() {
   const config = await loadCliConfig();
   const settings = loadSettings(config);
-  if (settings.merged.theme.value) {
-    themeManager.setActiveTheme(settings.merged.theme.value);
+  const theme = settings.getMerged().theme;
+  if (theme) {
+    themeManager.setActiveTheme(theme);
   }
 
   let input = config.getQuestion();
