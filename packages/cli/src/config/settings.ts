@@ -9,7 +9,8 @@ import * as path from 'path';
 import { homedir } from 'os';
 import { Config } from '@gemini-code/server';
 
-const USER_SETTINGS_DIR = path.join(homedir(), '.gemini_config');
+const SETTINGS_DIRECTORY_NAME = '.gemini';
+const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
 const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'settings.json');
 
 export enum SettingScope {
@@ -92,7 +93,7 @@ export function loadSettings(config: Config): LoadedSettings {
 
   const workspaceSettingsPath = path.join(
     config.getTargetDir(),
-    '.gemini_config',
+    SETTINGS_DIRECTORY_NAME,
     'settings.json',
   );
 
