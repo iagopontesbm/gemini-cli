@@ -5,36 +5,45 @@
  */
 
 import React, { useCallback } from 'react';
-import { Text, Box, useInput, useFocus, Key } from 'ink';
-import TextInput from 'ink-text-input';
+import { Text, Box, useFocus, Key } from 'ink';
 import { Colors } from '../colors.js';
 import { Suggestion } from './SuggestionsDisplay.js';
+import { MultilineTextEditor } from './shared/multiline-editor.js';
 
 interface InputPromptProps {
   query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
-  inputKey: number;
-  setInputKey: React.Dispatch<React.SetStateAction<number>>;
+  editorState: EditorState;
+  setEditorState: React.Dispatch<React.SetStateAction<EditorState>>;
   onSubmit: (value: string) => void;
   showSuggestions: boolean;
   suggestions: Suggestion[];
   activeSuggestionIndex: number;
-  navigateUp: () => void;
-  navigateDown: () => void;
   resetCompletion: () => void;
+  navigateHistoryUp: () => void;
+  navigateHistoryDown: () => void;
+  navigateSuggestionUp: () => void;
+  navigateSuggestionDown: () => void;
+}
+
+export interface EditorState {
+  key: number;
+  initialCursorOffset?: number;
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
   query,
   setQuery,
-  inputKey,
-  setInputKey,
+  editorState,
+  setEditorState,
   onSubmit,
   showSuggestions,
   suggestions,
   activeSuggestionIndex,
-  navigateUp,
-  navigateDown,
+  navigateHistoryUp,
+  navigateHistoryDown,
+  navigateSuggestionUp,
+  navigateSuggestionDown,
   resetCompletion,
 }) => {
   const { isFocused } = useFocus({ autoFocus: true });
@@ -44,6 +53,13 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       if (indexToUse < 0 || indexToUse >= suggestions.length) {
         return;
       }
+      function setQueryAndMoveCursor(value: string) {
+        setQuery(value);
+        setEditorState((s) => ({
+          key: s.key + 1,
+          initialCursorOffset: value.length,
+        }));
+      }
       const selectedSuggestion = suggestions[indexToUse];
       const trimmedQuery = query.trimStart();
 
@@ -52,7 +68,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         const slashIndex = query.indexOf('/');
         const base = query.substring(0, slashIndex + 1);
         const newValue = base + selectedSuggestion.value;
-        setQuery(newValue);
+        setQueryAndMoveCursor(newValue);
       } else {
         // Handle @ command completion
         const atIndex = query.lastIndexOf('@');
@@ -73,32 +89,30 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
 
         const newValue = base + selectedSuggestion.value;
-        setQuery(newValue);
+        setQueryAndMoveCursor(newValue);
       }
 
       resetCompletion(); // Hide suggestions after selection
-      setInputKey((k) => k + 1); // Increment key to force re-render and cursor reset
     },
-    [query, setQuery, suggestions, resetCompletion, setInputKey],
+    [query, setQuery, suggestions, resetCompletion, setEditorState],
   );
 
-  useInput(
+  const inputPreprocessor = useCallback(
     (input: string, key: Key) => {
-      if (!isFocused) {
-        return;
-      }
-
       if (showSuggestions) {
         if (key.upArrow) {
-          navigateUp();
+          navigateSuggestionUp();
+          return true;
         } else if (key.downArrow) {
-          navigateDown();
+          navigateSuggestionDown();
+          return true;
         } else if (key.tab) {
           if (suggestions.length > 0) {
             const targetIndex =
               activeSuggestionIndex === -1 ? 0 : activeSuggestionIndex;
             if (targetIndex < suggestions.length) {
               handleAutocomplete(targetIndex);
+              return true;
             }
           }
         } else if (key.return) {
@@ -109,34 +123,51 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
               onSubmit(query);
             }
           }
+          return true;
         } else if (key.escape) {
           resetCompletion();
+          return true;
         }
       }
-      // Enter key when suggestions are NOT showing is handled by TextInput's onSubmit prop below
+      return false;
     },
-    { isActive: true },
+    [
+      handleAutocomplete,
+      navigateSuggestionDown,
+      navigateSuggestionUp,
+      query,
+      suggestions,
+      showSuggestions,
+      resetCompletion,
+      activeSuggestionIndex,
+      onSubmit,
+    ],
   );
 
   return (
     <Box borderStyle="round" borderColor={Colors.AccentBlue} paddingX={1}>
       <Text color={Colors.AccentPurple}>&gt; </Text>
       <Box flexGrow={1}>
-        <TextInput
-          key={inputKey.toString()}
-          value={query}
+        <MultilineTextEditor
+          key={editorState.key.toString()}
+          focus={isFocused}
+          initialCursorOffset={editorState.initialCursorOffset}
+          initialText={query}
           onChange={setQuery}
           placeholder="Enter your message or use tools (e.g., @src/file.txt)..."
+          /* Account for width used by the box and &gt; */
+          navigateUp={navigateHistoryUp}
+          navigateDown={navigateHistoryDown}
+          inputPreprocessor={inputPreprocessor}
+          widthUsedByParent={13}
           onSubmit={() => {
             // This onSubmit is for the TextInput component itself.
             // It should only fire if suggestions are NOT showing,
-            // as useInput handles Enter when suggestions are visible.
+            // as inputPreprocessor handles Enter when suggestions are visible.
             const trimmedQuery = query.trim();
             if (!showSuggestions && trimmedQuery) {
               onSubmit(trimmedQuery);
             }
-            // If suggestions ARE showing, useInput's Enter handler
-            // would have already dealt with it (either completing or submitting).
           }}
         />
       </Box>

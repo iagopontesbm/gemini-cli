@@ -13,7 +13,7 @@ import { useInputHistory } from './hooks/useInputHistory.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
-import { InputPrompt } from './components/InputPrompt.js';
+import { EditorState, InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { useStartupWarnings } from './hooks/useAppEffects.js';
@@ -99,6 +99,10 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
 
   // query and setQuery are now managed by useState here
   const [query, setQuery] = useState('');
+  const [editorState, setEditorState] = useState<EditorState>({
+    key: 0,
+    initialCursorOffset: undefined,
+  });
 
   const completion = useCompletion(
     query,
@@ -107,11 +111,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     slashCommands,
   );
 
-  const {
-    handleSubmit: handleHistorySubmit,
-    inputKey,
-    setInputKey,
-  } = useInputHistory({
+  const inputHistory = useInputHistory({
     userMessages,
     onSubmit: (value) => {
       // Adapt onSubmit to use the lifted setQuery
@@ -121,6 +121,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     isActive: isInputActive && !completion.showSuggestions,
     query,
     setQuery,
+    setEditorState,
   });
 
   // --- Render Logic ---
@@ -224,14 +225,16 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
               <InputPrompt
                 query={query}
                 setQuery={setQuery}
-                inputKey={inputKey}
-                setInputKey={setInputKey}
-                onSubmit={handleHistorySubmit}
+                editorState={editorState}
+                setEditorState={setEditorState}
+                onSubmit={inputHistory.handleSubmit}
                 showSuggestions={completion.showSuggestions}
                 suggestions={completion.suggestions}
                 activeSuggestionIndex={completion.activeSuggestionIndex}
-                navigateUp={completion.navigateUp}
-                navigateDown={completion.navigateDown}
+                navigateHistoryUp={inputHistory.navigateUp}
+                navigateHistoryDown={inputHistory.navigateDown}
+                navigateSuggestionUp={completion.navigateUp}
+                navigateSuggestionDown={completion.navigateDown}
                 resetCompletion={completion.resetCompletionState}
               />
               {completion.showSuggestions && (

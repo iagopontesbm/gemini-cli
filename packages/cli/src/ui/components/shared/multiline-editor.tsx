@@ -9,11 +9,10 @@
 
 import { TextBuffer } from './text-buffer.js';
 import chalk from 'chalk';
-import { Box, Text, useInput, useStdin } from 'ink';
+import { Box, Text, useInput, useStdin, Key } from 'ink';
 import { EventEmitter } from 'node:events';
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
-import { Suggestion } from '../SuggestionsDisplay.js';
 import { Colors } from '../../colors.js';
 
 /* --------------------------------------------------------------------------
@@ -129,6 +128,9 @@ export interface MultilineTextEditorProps {
   // Initial contents.
   readonly initialText?: string;
 
+  // Placeholder text.
+  readonly placeholder?: string;
+
   // Visible width.
   readonly width?: number;
 
@@ -144,14 +146,22 @@ export interface MultilineTextEditorProps {
   // Called when the internal text buffer updates.
   readonly onChange?: (text: string) => void;
 
-  inputKey: number;
-  setInputKey: React.Dispatch<React.SetStateAction<number>>;
-  showSuggestions: boolean;
-  suggestions: Suggestion[];
-  activeSuggestionIndex: number;
-  navigateUp: () => void;
-  navigateDown: () => void;
-  resetCompletion: () => void;
+  // Called when the user attempts to navigate past the start of the editor
+  // with the up arrow.
+  readonly navigateUp?: () => void;
+
+  // Called when the user attempts to navigate past the end of the editor
+  // with the down arrow.
+  readonly navigateDown?: () => void;
+
+  // Called on all key events to allow the caller. Returns true if the
+  // event was handled and should not be passed to the editor.
+  readonly inputPreprocessor?: (input: string, key: Key) => boolean;
+
+  // Optional initial cursor position (character offset)
+  readonly initialCursorOffset?: number;
+
+  readonly widthUsedByParent: number;
 }
 
 // Expose a minimal imperative API so parent components (e.g. TerminalChatInput)
@@ -177,6 +187,7 @@ export interface MultilineTextEditorHandle {
 const MultilineTextEditorInner = (
   {
     initialText = '',
+    placeholder = '',
     // Width can be provided by the caller.  When omitted we fall back to the
     // current terminal size (minus some padding handled by `useTerminalSize`).
     width,
@@ -184,14 +195,11 @@ const MultilineTextEditorInner = (
     onSubmit,
     focus = true,
     onChange,
-    inputKey,
-    setInputKey,
-    showSuggestions,
-    suggestions,
-    activeSuggestionIndex,
+    initialCursorOffset,
+    widthUsedByParent,
     navigateUp,
     navigateDown,
-    resetCompletion,
+    inputPreprocessor,
   }: MultilineTextEditorProps,
   ref: React.Ref<MultilineTextEditorHandle | null>,
 ): React.ReactElement => {
@@ -199,7 +207,7 @@ const MultilineTextEditorInner = (
   // Editor State
   // ---------------------------------------------------------------------------
 
-  const buffer = useRef(new TextBuffer(initialText));
+  const buffer = useRef(new TextBuffer(initialText, initialCursorOffset));
   const [version, setVersion] = useState(0);
 
   // Keep track of the current terminal size so that the editor grows/shrinks
@@ -207,16 +215,9 @@ const MultilineTextEditorInner = (
   // padding so that we don't butt up right against the edge.
   const terminalSize = useTerminalSize();
 
-  // If the caller didn't specify a width we dynamically choose one based on
-  // the terminal's current column count.  We still enforce a reasonable
-  // minimum so that the UI never becomes unusably small.
-  // TODO(jacobr): requring a borderAndPadding doesn't seem right. A value of
-  // 4 should be sufficient to account for the border and padding. Unfortunately
-  // without this, we wrap and show an extra line.
-  const borderAndPadding = 10;
   const effectiveWidth = Math.max(
     20,
-    width ?? terminalSize.columns - borderAndPadding,
+    width ?? terminalSize.columns - widthUsedByParent,
   );
 
   // ---------------------------------------------------------------------------
@@ -254,65 +255,6 @@ const MultilineTextEditorInner = (
     }
   }, [buffer, stdin, setRawMode]);
 
-  const handleAutocomplete = useCallback(() => {
-    if (
-      activeSuggestionIndex < 0 ||
-      activeSuggestionIndex >= suggestions.length
-    ) {
-      return;
-    }
-
-    const query = buffer.current.getText();
-    const selectedSuggestion = suggestions[activeSuggestionIndex];
-    const trimmedQuery = query.trimStart();
-
-    buffer.current;
-    if (trimmedQuery.startsWith('/') && buffer.current.getLines().length == 1) {
-      // Handle / command completion
-      const slashIndex = query.indexOf('/');
-      const base = query.substring(0, slashIndex + 1);
-      const newValue = base + selectedSuggestion.value;
-      buffer.current.setText(newValue);
-      if (onChange) {
-        onChange(newValue);
-      }
-    } else {
-      // Handle @ command completion
-      const atIndex = query.lastIndexOf('@');
-      if (atIndex === -1) return;
-
-      // Find the part of the query after the '@'
-      const pathPart = query.substring(atIndex + 1);
-      // Find the last slash within that part
-      const lastSlashIndexInPath = pathPart.lastIndexOf('/');
-
-      let base = '';
-      if (lastSlashIndexInPath === -1) {
-        // No slash after '@', replace everything after '@'
-        base = query.substring(0, atIndex + 1);
-      } else {
-        // Slash found, keep everything up to and including the last slash
-        base = query.substring(0, atIndex + 1 + lastSlashIndexInPath + 1);
-      }
-
-      const newValue = base + selectedSuggestion.value;
-      buffer.current.setText(newValue);
-      if (onChange) {
-        onChange(newValue);
-      }
-    }
-
-    resetCompletion(); // Hide suggestions after selection
-    setInputKey((k) => k + 1); // Increment key to force re-render and cursor reset
-  }, [
-    initialText,
-    onChange,
-    suggestions,
-    activeSuggestionIndex,
-    resetCompletion,
-    setInputKey,
-  ]);
-
   // ---------------------------------------------------------------------------
   // Keyboard handling.
   // ---------------------------------------------------------------------------
@@ -323,20 +265,8 @@ const MultilineTextEditorInner = (
         return;
       }
 
-      if (showSuggestions) {
-        if (key.upArrow) {
-          navigateUp();
-          return;
-        } else if (key.downArrow) {
-          navigateDown();
-          return;
-        } else if ((key.tab || key.return) && activeSuggestionIndex >= 0) {
-          handleAutocomplete();
-          return;
-        } else if (key.escape) {
-          resetCompletion();
-          return;
-        }
+      if (inputPreprocessor?.(input, key) === true) {
+        return;
       }
 
       // Single‑step editor shortcut: Ctrl+X or Ctrl+E
@@ -439,6 +369,26 @@ const MultilineTextEditorInner = (
         console.log('[MultilineTextEditor] key event', { input, key });
       }
 
+      // Up arrow - check for navigation override.
+      if (key.upArrow) {
+        if (buffer.current.getCursor()[0] === 0 && navigateUp) {
+          navigateUp();
+          return;
+        }
+      }
+
+      // Down arrow - check for navigation override.
+      if (key.downArrow) {
+        if (
+          buffer.current.getCursor()[0] ===
+            buffer.current.getText().split('\n').length - 1 &&
+          navigateDown
+        ) {
+          navigateDown();
+          return;
+        }
+      }
+
       const modified = buffer.current.handleInput(
         input,
         key as Record<string, boolean>,
@@ -501,48 +451,47 @@ const MultilineTextEditorInner = (
   const scrollCol = (buffer.current as any).scrollCol as number;
 
   return (
-    <Box
-      borderStyle="round"
-      borderColor={Colors.AccentBlue}
-      paddingX={1}
-      flexDirection="column"
-      key={version}
-    >
-      {visibleLines.map((lineText, idx) => {
-        const absoluteRow = scrollRow + idx;
+    <Box key={version} flexDirection="column">
+      {buffer.current.getText().length === 0 && placeholder ? (
+        <Text color={Colors.SubtleComment}>{placeholder}</Text>
+      ) : (
+        visibleLines.map((lineText, idx) => {
+          const absoluteRow = scrollRow + idx;
 
-        // apply horizontal slice
-        let display = lineText.slice(scrollCol, scrollCol + effectiveWidth);
-        if (display.length < effectiveWidth) {
-          display = display.padEnd(effectiveWidth, ' ');
-        }
-
-        // Highlight the *character under the caret* (i.e. the one immediately
-        // to the right of the insertion position) so that the block cursor
-        // visually matches the logical caret location.  This makes the
-        // highlighted glyph the one that would be replaced by `insert()` and
-        // *not* the one that would be removed by `backspace()`.
-
-        if (absoluteRow === cursorRow) {
-          const relativeCol = cursorCol - scrollCol;
-          const highlightCol = relativeCol;
-
-          if (highlightCol >= 0 && highlightCol < effectiveWidth) {
-            const charToHighlight = display[highlightCol] || ' ';
-            const highlighted = chalk.inverse(charToHighlight);
-            display =
-              display.slice(0, highlightCol) +
-              highlighted +
-              display.slice(highlightCol + 1);
-          } else if (relativeCol === effectiveWidth) {
-            // Caret sits just past the right edge; show a block cursor in the
-            // gutter so the user still sees it.
-            display = display.slice(0, effectiveWidth - 1) + chalk.inverse(' ');
+          // apply horizontal slice
+          let display = lineText.slice(scrollCol, scrollCol + effectiveWidth);
+          if (display.length < effectiveWidth) {
+            display = display.padEnd(effectiveWidth, ' ');
           }
-        }
 
-        return <Text key={idx}>{display}</Text>;
-      })}
+          // Highlight the *character under the caret* (i.e. the one immediately
+          // to the right of the insertion position) so that the block cursor
+          // visually matches the logical caret location.  This makes the
+          // highlighted glyph the one that would be replaced by `insert()` and
+          // *not* the one that would be removed by `backspace()`.
+
+          if (absoluteRow === cursorRow) {
+            const relativeCol = cursorCol - scrollCol;
+            const highlightCol = relativeCol;
+
+            if (highlightCol >= 0 && highlightCol < effectiveWidth) {
+              const charToHighlight = display[highlightCol] || ' ';
+              const highlighted = chalk.inverse(charToHighlight);
+              display =
+                display.slice(0, highlightCol) +
+                highlighted +
+                display.slice(highlightCol + 1);
+            } else if (relativeCol === effectiveWidth) {
+              // Caret sits just past the right edge; show a block cursor in the
+              // gutter so the user still sees it.
+              display =
+                display.slice(0, effectiveWidth - 1) + chalk.inverse(' ');
+            }
+          }
+
+          return <Text key={idx}>{display}</Text>;
+        })
+      )}
     </Box>
   );
 };
