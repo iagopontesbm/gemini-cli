@@ -90,5 +90,7 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     argv.question || '',
     undefined, // TODO: load passthroughCommands from .env file
     argv.full_context || false,
+    settings.toolDiscoveryCommand,
+    settings.toolCallCommand,
   );
 }
