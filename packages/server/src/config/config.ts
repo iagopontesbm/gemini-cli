@@ -37,6 +37,7 @@ export class Config {
     private readonly fullContext: boolean = false, // Default value here
     private readonly toolDiscoveryCommand: string | undefined,
     private readonly toolCallCommand: string | undefined,
+    private readonly mcpServerCommand: string | undefined,
   ) {
     // toolRegistry still needs initialization based on the instance
     this.toolRegistry = createToolRegistry(this);
@@ -84,6 +85,10 @@ export class Config {
   getToolCallCommand(): string | undefined {
     return this.toolCallCommand;
   }
+
+  getMcpServerCommand(): string | undefined {
+    return this.mcpServerCommand;
+  }
 }
 
 function findEnvFile(startDir: string): string | null {
@@ -120,6 +125,7 @@ export function createServerConfig(
   fullContext?: boolean,
   toolDiscoveryCommand?: string,
   toolCallCommand?: string,
+  mcpServerCommand?: string,
 ): Config {
   return new Config(
     apiKey,
@@ -132,6 +138,7 @@ export function createServerConfig(
     fullContext,
     toolDiscoveryCommand,
     toolCallCommand,
+    mcpServerCommand,
   );
 }
 
