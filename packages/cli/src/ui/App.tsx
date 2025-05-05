@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { Box, Static, Text, useStdout } from 'ink';
 import { StreamingState, type HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
@@ -36,7 +36,6 @@ interface AppProps {
 }
 
 export const App = ({ config, settings, cliVersion }: AppProps) => {
-  // Removed: const [history, setHistory] = useState<HistoryItem[]>([]);
   const { history, addItemToHistory, updateHistoryItem, clearHistory } = useHistoryManager(); // Added hook instantiation
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const {
@@ -45,6 +44,11 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     handleThemeSelect,
     handleThemeHighlight,
   } = useThemeCommand(settings);
+
+  const [staticKey, setStaticKey] = useState(0);
+  const refreshStatic = useCallback(() => {
+    setStaticKey((prev) => prev + 1);
+  }, [setStaticKey]);
 
   const {
     streamingState,
@@ -55,13 +59,14 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
   } = useGeminiStream({
     // Keep setHistory for now, will be removed in Phase 2
     // @ts-expect-error - Temporarily passing setHistory until Phase 2
-    setHistory,
+    setHistory: () => {}, // Provide a dummy function for now
     config,
     openThemeDialog,
     // Pass new history management functions
     addItemToHistory,
     updateHistoryItem,
     clearHistory,
+    refreshStatic, // Pass refreshStatic
    });
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
@@ -136,7 +141,10 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
        * content is set it'll flush content to the terminal and move the area which it's "clearing"
        * down a notch. Without Static the area which gets erased and redrawn continuously grows.
        */}
-      <Static items={['header', ...staticallyRenderedHistoryItems]}>
+      <Static
+        key={'static-key-' + staticKey}
+        items={['header', ...staticallyRenderedHistoryItems]}
+      >
         {(item, index) => {
           if (item === 'header') {
             return (

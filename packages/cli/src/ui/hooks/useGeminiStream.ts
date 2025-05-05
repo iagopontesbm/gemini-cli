@@ -33,19 +33,6 @@ import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { usePassthroughProcessor } from './passthroughCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
-
-const addHistoryItem = (
-  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  itemData: Omit<HistoryItem, 'id'>,
-  id: number,
-) => {
-  setHistory((prevHistory) => [
-    ...prevHistory,
-    { ...itemData, id } as HistoryItem,
-  ]);
-};
-
-// Hook now accepts apiKey and model
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 // Define the props type for clarity
@@ -56,6 +43,7 @@ interface UseGeminiStreamProps {
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'];
   updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'];
   clearHistory: UseHistoryManagerReturn['clearHistory'];
+  refreshStatic: () => void; // Added refreshStatic
 }
 
 export const useGeminiStream = ({
@@ -65,6 +53,7 @@ export const useGeminiStream = ({
   addItemToHistory, // Will be used in Phase 2
   updateHistoryItem, // Will be used in Phase 2
   clearHistory, // Will be used in Phase 2
+  refreshStatic, // Added refreshStatic
 }: UseGeminiStreamProps) => {
   const toolRegistry = config.getToolRegistry();
   const [streamingState, setStreamingState] = useState<StreamingState>(
@@ -87,14 +76,16 @@ export const useGeminiStream = ({
 
   // Instantiate command processors
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    setHistory,
+    setHistory, // TODO(phase2): Replace with addItemToHistory
+    refreshStatic,
     setDebugMessage,
     getNextMessageId,
     openThemeDialog,
+    clearHistory, // Pass clearHistory
   );
 
   const { handleShellCommand } = useShellCommandProcessor(
-    setHistory,
+    setHistory, // TODO(phase2): Replace with addItemToHistory
     setStreamingState,
     setDebugMessage,
     getNextMessageId,
@@ -102,7 +93,7 @@ export const useGeminiStream = ({
   );
 
   const { handlePassthroughCommand } = usePassthroughProcessor(
-    setHistory,
+    setHistory, // TODO(phase2): Replace with addItemToHistory
     setStreamingState,
     setDebugMessage,
     getNextMessageId,
@@ -130,8 +121,19 @@ export const useGeminiStream = ({
     }
   });
 
-  // Helper function to update Gemini message content
-  const updateGeminiMessage = useCallback(
+  // Helper function to add history item (temporary for Phase 1)
+  const addHistoryItemTemp = useCallback(
+    (itemData: Omit<HistoryItem, 'id'>, id: number) => {
+      setHistory((prevHistory) => [
+        ...prevHistory,
+        { ...itemData, id } as HistoryItem,
+      ]);
+    },
+    [setHistory],
+  );
+
+  // Helper function to update Gemini message content (temporary for Phase 1)
+  const updateGeminiMessageTemp = useCallback(
     (messageId: number, newContent: string) => {
       setHistory((prevHistory) =>
         prevHistory.map((item) =>
@@ -144,8 +146,8 @@ export const useGeminiStream = ({
     [setHistory],
   );
 
-  // Helper function to update Gemini message content
-  const updateAndAddGeminiMessageContent = useCallback(
+  // Helper function to update and add Gemini message content (temporary for Phase 1)
+  const updateAndAddGeminiMessageContentTemp = useCallback(
     (
       messageId: number,
       previousContent: string,
@@ -162,6 +164,28 @@ export const useGeminiStream = ({
           { id: nextId, type: 'gemini_content', text: nextContent },
         ];
       });
+    },
+    [setHistory],
+  );
+
+  // Helper function to update tool group UI (temporary for Phase 1)
+  const updateToolGroupUITemp = useCallback(
+    (
+      currentToolGroupId: number | null,
+      updater: (tool: IndividualToolCallDisplay) => IndividualToolCallDisplay,
+    ) => {
+      if (currentToolGroupId === null) return;
+      setHistory((prevHistory) =>
+        prevHistory.map((item) => {
+          if (item.id === currentToolGroupId && item.type === 'tool_group') {
+            return {
+              ...item,
+              tools: item.tools.map(updater),
+            };
+          }
+          return item;
+        }),
+      );
     },
     [setHistory],
   );
@@ -195,12 +219,12 @@ export const useGeminiStream = ({
           return;
         }
 
-        // 3. Check for @ Commands using the utility function
+        // 4. Check for @ Commands using the utility function
         if (isAtCommand(trimmedQuery)) {
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
             config,
-            setHistory,
+            setHistory, // TODO(phase2): Replace with addItemToHistory
             setDebugMessage,
             getNextMessageId,
             userMessageTimestamp,
@@ -212,16 +236,15 @@ export const useGeminiStream = ({
           queryToSendToGemini = atCommandResult.processedQuery;
           // User message and tool UI were added by handleAtCommand
         } else {
-          // 4. It's a normal query for Gemini
-          addHistoryItem(
-            setHistory,
+          // 5. It's a normal query for Gemini
+          addHistoryItemTemp(
             { type: 'user', text: trimmedQuery },
             userMessageTimestamp,
           );
           queryToSendToGemini = trimmedQuery;
         }
       } else {
-        // 5. It's a function response (PartListUnion that isn't a string)
+        // 6. It's a function response (PartListUnion that isn't a string)
         // Tool call/response UI handles history. Always proceed.
         queryToSendToGemini = query;
       }
@@ -289,8 +312,7 @@ export const useGeminiStream = ({
               const eventTimestamp = getNextMessageId(userMessageTimestamp);
               currentGeminiMessageIdRef.current = eventTimestamp;
 
-              addHistoryItem(
-                setHistory,
+              addHistoryItemTemp(
                 { type: 'gemini', text: currentGeminiText },
                 eventTimestamp,
               );
@@ -299,7 +321,7 @@ export const useGeminiStream = ({
 
               if (splitPoint === currentGeminiText.length) {
                 // Update the existing message with accumulated content
-                updateGeminiMessage(
+                updateGeminiMessageTemp(
                   currentGeminiMessageIdRef.current,
                   currentGeminiText,
                 );
@@ -319,7 +341,7 @@ export const useGeminiStream = ({
                   getNextMessageId(userMessageTimestamp);
                 const afterText = currentGeminiText.substring(splitPoint);
                 currentGeminiText = afterText;
-                updateAndAddGeminiMessageContent(
+                updateAndAddGeminiMessageContentTemp(
                   originalMessageRef,
                   beforeText,
                   currentGeminiMessageIdRef.current,
@@ -344,8 +366,7 @@ export const useGeminiStream = ({
             if (currentToolGroupId === null) {
               currentToolGroupId = getNextMessageId(userMessageTimestamp);
               // Add explicit cast to Omit<HistoryItem, 'id'>
-              addHistoryItem(
-                setHistory,
+              addHistoryItemTemp(
                 { type: 'tool_group', tools: [] } as Omit<HistoryItem, 'id'>,
                 currentToolGroupId,
               );
@@ -409,8 +430,7 @@ export const useGeminiStream = ({
       } catch (error: unknown) {
         if (!isNodeError(error) || error.name !== 'AbortError') {
           console.error('Error processing stream or executing tool:', error);
-          addHistoryItem(
-            setHistory,
+          addHistoryItemTemp(
             {
               type: 'error',
               text: `[Error: ${getErrorMessage(error)}]`,
@@ -427,24 +447,14 @@ export const useGeminiStream = ({
         callId: string,
         confirmationDetails: ToolCallConfirmationDetails | undefined,
       ) {
-        setHistory((prevHistory) =>
-          prevHistory.map((item) => {
-            if (item.id === currentToolGroupId && item.type === 'tool_group') {
-              return {
-                ...item,
-                tools: item.tools.map((tool) =>
-                  tool.callId === callId
-                    ? {
-                        ...tool,
-                        status: ToolCallStatus.Confirming,
-                        confirmationDetails,
-                      }
-                    : tool,
-                ),
-              };
-            }
-            return item;
-          }),
+        updateToolGroupUITemp(currentToolGroupId, (tool) =>
+          tool.callId === callId
+            ? {
+                ...tool,
+                status: ToolCallStatus.Confirming,
+                confirmationDetails,
+              }
+            : tool,
         );
       }
 
@@ -452,27 +462,17 @@ export const useGeminiStream = ({
         toolResponse: ToolCallResponseInfo,
         status: ToolCallStatus,
       ) {
-        setHistory((prevHistory) =>
-          prevHistory.map((item) => {
-            if (item.id === currentToolGroupId && item.type === 'tool_group') {
-              return {
-                ...item,
-                tools: item.tools.map((tool) => {
-                  if (tool.callId === toolResponse.callId) {
-                    return {
-                      ...tool,
-                      status,
-                      resultDisplay: toolResponse.resultDisplay,
-                    };
-                  } else {
-                    return tool;
-                  }
-                }),
-              };
-            }
-            return item;
-          }),
-        );
+        updateToolGroupUITemp(currentToolGroupId, (tool) => {
+          if (tool.callId === toolResponse.callId) {
+            return {
+              ...tool,
+              status,
+              resultDisplay: toolResponse.resultDisplay,
+            };
+          } else {
+            return tool;
+          }
+        });
       }
 
       function wireConfirmationSubmission(
@@ -550,16 +550,19 @@ export const useGeminiStream = ({
     // Dependencies need careful review
     [
       streamingState,
-      setHistory,
+      setHistory, // TODO(phase2): Remove
       config,
       getNextMessageId,
-      updateGeminiMessage,
+      updateGeminiMessageTemp, // TODO(phase2): Replace
       handleSlashCommand,
       handlePassthroughCommand,
+      handleShellCommand, // Added handleShellCommand
       // handleAtCommand is implicitly included via its direct call
       setDebugMessage, // Added dependency for handleAtCommand & passthrough
       setStreamingState, // Added dependency for handlePassthroughCommand
-      updateAndAddGeminiMessageContent,
+      updateAndAddGeminiMessageContentTemp, // TODO(phase2): Replace
+      addHistoryItemTemp, // TODO(phase2): Replace
+      updateToolGroupUITemp, // TODO(phase2): Replace
     ],
   );
 
