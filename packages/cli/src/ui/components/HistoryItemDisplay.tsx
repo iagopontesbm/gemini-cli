@@ -31,7 +31,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
     {item.type === 'gemini_content' && (
       <GeminiMessageContent text={item.text} />
     )}
-    {item.type === 'info' && <InfoMessage text={item.text} />}
+    {item.type === 'info' && <InfoMessage text={item.text} style={item.style} />}
     {item.type === 'error' && <ErrorMessage text={item.text} />}
     {item.type === 'tool_group' && (
       <ToolGroupMessage

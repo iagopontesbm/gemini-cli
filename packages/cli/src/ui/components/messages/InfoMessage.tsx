@@ -6,13 +6,16 @@
 
 import React from 'react';
 import { Text, Box } from 'ink';
+import { MarkdownRenderer } from '../../utils/MarkdownRenderer.js';
 import { Colors } from '../../colors.js';
+
 
 interface InfoMessageProps {
   text: string;
+  style: 'markdown' | 'text' | undefined;
 }
 
-export const InfoMessage: React.FC<InfoMessageProps> = ({ text }) => {
+export const InfoMessage: React.FC<InfoMessageProps> = ({ text, style }) => {
   const prefix = 'ℹ ';
   const prefixWidth = prefix.length;
 
@@ -21,11 +24,17 @@ export const InfoMessage: React.FC<InfoMessageProps> = ({ text }) => {
       <Box width={prefixWidth}>
         <Text color={Colors.AccentYellow}>{prefix}</Text>
       </Box>
+      {style === 'markdown' ? (
+      <Box flexGrow={1} flexDirection="column">
+        {MarkdownRenderer.render(text)}
+      </Box>
+      ) : (
       <Box flexGrow={1}>
-        <Text wrap="wrap" color={Colors.AccentYellow}>
+        <Text color={Colors.AccentYellow}>
           {text}
         </Text>
       </Box>
+      )}
     </Box>
   );
 };

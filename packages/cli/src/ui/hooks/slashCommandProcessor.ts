@@ -44,9 +44,17 @@ export const useSlashCommandProcessor = (
           'and write files, search code, execute bash commands, and more ' +
           'to assist with development workflows. I will explain commands ' +
           'and ask for permission before running them and will not ' +
-          'commit changes unless explicitly instructed.';
+          'commit changes unless explicitly instructed.' +
+          '\n\n' +
+          ' * /help\n' +
+          ' * /clear\n' +
+          ' * /theme\n' +
+          ' * /exit or /quit\n' +
+          '\n\n';
         const timestamp = getNextMessageId(Date.now());
-        addHistoryItem(setHistory, { type: 'info', text: helpText }, timestamp);
+        addHistoryItem(setHistory,
+          { type: 'info', style: 'markdown', text: helpText } as Omit<HistoryItem, 'id'>,
+          timestamp);
       },
     },
     {

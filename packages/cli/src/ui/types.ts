@@ -60,7 +60,7 @@ export type HistoryItem = HistoryItemBase &
     | { type: 'user'; text: string }
     | { type: 'gemini'; text: string }
     | { type: 'gemini_content'; text: string }
-    | { type: 'info'; text: string }
+    | { type: 'info'; style: 'markdown' | 'text' | undefined; text: string }
     | { type: 'error'; text: string }
     | { type: 'tool_group'; tools: IndividualToolCallDisplay[] }
   );
