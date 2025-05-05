@@ -44,10 +44,10 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     handleThemeHighlight,
   } = useThemeCommand(settings);
 
-  const staticKeyCounterRef = useRef(0);
-  const clearStatic = useCallback(()=> {
-    staticKeyCounterRef.current += 1;
-  }, []);
+  const [staticKey, setStaticKey] = useState(0);
+  const refreshStatic = useCallback(() => {
+    setStaticKey((prev) => prev + 1);
+  }, [setStaticKey]);
 
   const {
     streamingState,
@@ -55,7 +55,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     initError,
     debugMessage,
     slashCommands,
-  } = useGeminiStream(setHistory, clearStatic, config, openThemeDialog);
+  } = useGeminiStream(setHistory, refreshStatic, config, openThemeDialog);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
@@ -129,7 +129,10 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
        * content is set it'll flush content to the terminal and move the area which it's "clearing"
        * down a notch. Without Static the area which gets erased and redrawn continuously grows.
        */}
-      <Static key={'static-key-' + staticKeyCounterRef.current} items={['header', ...staticallyRenderedHistoryItems]}>
+      <Static
+        key={'static-key-' + staticKey}
+        items={['header', ...staticallyRenderedHistoryItems]}
+      >
         {(item, index) => {
           if (item === 'header') {
             return (
