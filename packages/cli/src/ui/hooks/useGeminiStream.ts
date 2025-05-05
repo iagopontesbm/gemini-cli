@@ -15,14 +15,12 @@ import {
   ServerGeminiToolCallResponseEvent as ToolCallResponseEvent,
   ServerGeminiToolCallConfirmationEvent as ToolCallConfirmationEvent,
   ServerGeminiErrorEvent as ErrorEvent,
-  getErrorMessage,
-  isNodeError,
   Config,
+  Logger,
+  ServerToolCallConfirmationDetails,
   ToolCallConfirmationDetails,
   ToolCallResponseInfo,
-  ServerToolCallConfirmationDetails,
   ToolConfirmationOutcome,
-  ToolResultDisplay,
   ToolEditConfirmationDetails,
   ToolExecuteConfirmationDetails,
   partListUnionToString,
@@ -117,6 +115,7 @@ export const useGeminiStream = (
     if (typeof query === 'string') {
       const trimmedQuery = query.trim();
       onDebugMessage(`User query: '${trimmedQuery}'`);
+      Logger.getInstance().logMessage('user', trimmedQuery);
 
       // Handle UI-only commands first
       if (handleSlashCommand(trimmedQuery)) {
