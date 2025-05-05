@@ -46,11 +46,26 @@ const addHistoryItem = (
 };
 
 // Hook now accepts apiKey and model
-export const useGeminiStream = (
-  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  config: Config,
-  openThemeDialog: () => void,
-) => {
+import { UseHistoryManagerReturn } from './useHistoryManager.js';
+
+// Define the props type for clarity
+interface UseGeminiStreamProps {
+  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>; // Keep for Phase 1
+  config: Config;
+  openThemeDialog: () => void;
+  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'];
+  updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'];
+  clearHistory: UseHistoryManagerReturn['clearHistory'];
+}
+
+export const useGeminiStream = ({
+  setHistory, // Keep for Phase 1
+  config,
+  openThemeDialog,
+  addItemToHistory, // Will be used in Phase 2
+  updateHistoryItem, // Will be used in Phase 2
+  clearHistory, // Will be used in Phase 2
+}: UseGeminiStreamProps) => {
   const toolRegistry = config.getToolRegistry();
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,

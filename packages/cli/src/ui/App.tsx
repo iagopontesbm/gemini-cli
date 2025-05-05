@@ -52,17 +52,17 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     initError,
     debugMessage,
     slashCommands,
-  } = useGeminiStream(
+  } = useGeminiStream({
     // Keep setHistory for now, will be removed in Phase 2
     // @ts-expect-error - Temporarily passing setHistory until Phase 2
-    setHistory, // This line will cause a temporary error until setHistory is removed below
+    setHistory,
     config,
     openThemeDialog,
     // Pass new history management functions
     addItemToHistory,
     updateHistoryItem,
     clearHistory,
-   );
+   });
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
