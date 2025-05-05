@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useHistoryManager } from './useHistoryManager.js';
-import { HistoryItem } from '../types.js'; 
+import { HistoryItem } from '../types.js';
 
 describe('useHistoryManager', () => {
   it('should initialize with an empty history', () => {
