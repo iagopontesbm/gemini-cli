@@ -30,7 +30,6 @@ import {
 import { isAtCommand } from '../utils/commandUtils.js';
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
-import { usePassthroughProcessor } from './passthroughCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
 
@@ -48,6 +47,7 @@ const addHistoryItem = (
 // Hook now accepts apiKey and model
 export const useGeminiStream = (
   setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
+  refreshStatic: () => void,
   config: Config,
   openThemeDialog: () => void,
 ) => {
@@ -73,20 +73,13 @@ export const useGeminiStream = (
   // Instantiate command processors
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     setHistory,
+    refreshStatic,
     setDebugMessage,
     getNextMessageId,
     openThemeDialog,
   );
 
   const { handleShellCommand } = useShellCommandProcessor(
-    setHistory,
-    setStreamingState,
-    setDebugMessage,
-    getNextMessageId,
-    config,
-  );
-
-  const { handlePassthroughCommand } = usePassthroughProcessor(
     setHistory,
     setStreamingState,
     setDebugMessage,
@@ -172,11 +165,6 @@ export const useGeminiStream = (
 
         // 2. Check for Shell Commands (! or $)
         if (handleShellCommand(trimmedQuery)) {
-          return;
-        }
-
-        // 3. Check for Passthrough Commands
-        if (handlePassthroughCommand(trimmedQuery)) {
           return;
         }
 
@@ -540,7 +528,6 @@ export const useGeminiStream = (
       getNextMessageId,
       updateGeminiMessage,
       handleSlashCommand,
-      handlePassthroughCommand,
       // handleAtCommand is implicitly included via its direct call
       setDebugMessage, // Added dependency for handleAtCommand & passthrough
       setStreamingState, // Added dependency for handlePassthroughCommand

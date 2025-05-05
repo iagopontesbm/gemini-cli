@@ -21,8 +21,6 @@ import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { BaseTool, ToolResult } from '../tools/tools.js';
 
-const DEFAULT_PASSTHROUGH_COMMANDS = ['ls', 'git', 'npm'];
-
 export class Config {
   private toolRegistry: ToolRegistry;
 
@@ -33,7 +31,6 @@ export class Config {
     private readonly targetDir: string,
     private readonly debugMode: boolean,
     private readonly question: string | undefined, // Keep undefined possibility
-    private readonly passthroughCommands: string[] = DEFAULT_PASSTHROUGH_COMMANDS, // Default value here
     private readonly fullContext: boolean = false, // Default value here
     private readonly toolDiscoveryCommand: string | undefined,
     private readonly toolCallCommand: string | undefined,
@@ -68,10 +65,6 @@ export class Config {
   }
   getQuestion(): string | undefined {
     return this.question;
-  }
-
-  getPassthroughCommands(): string[] {
-    return this.passthroughCommands;
   }
 
   getFullContext(): boolean {
@@ -121,7 +114,6 @@ export function createServerConfig(
   targetDir: string,
   debugMode: boolean,
   question: string,
-  passthroughCommands?: string[],
   fullContext?: boolean,
   toolDiscoveryCommand?: string,
   toolCallCommand?: string,
@@ -134,7 +126,6 @@ export function createServerConfig(
     path.resolve(targetDir),
     debugMode,
     question,
-    passthroughCommands,
     fullContext,
     toolDiscoveryCommand,
     toolCallCommand,
