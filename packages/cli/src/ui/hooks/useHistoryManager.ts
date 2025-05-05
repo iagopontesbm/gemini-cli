@@ -41,7 +41,7 @@ export function useHistoryManager(): UseHistoryManagerReturn {
   const addItemToHistory = useCallback(
     (itemData: Omit<HistoryItem, 'id'>, baseTimestamp: number): number => {
       const id = getNextMessageId(baseTimestamp);
-      const newItem: HistoryItem = { ...itemData, id };
+      const newItem: HistoryItem = { ...itemData, id } as HistoryItem;
       setHistory((prevHistory) => [...prevHistory, newItem]);
       return id; // Return the generated ID
     },
