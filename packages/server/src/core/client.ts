@@ -23,15 +23,18 @@ import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { checkNextSpeaker } from '../utils/nextSpeakerChecker.js';
 import { reportError } from '../utils/errorReporting.js';
+import { Logger } from './logger.js';
 
 export class GeminiClient {
   private client: GoogleGenAI;
+  private logger: Logger;
   private model: string;
   private generateContentConfig: GenerateContentConfig = {
     temperature: 0,
     topP: 1,
   };
   private readonly MAX_TURNS = 100;
+  private userMessageCounter = 0;
 
   constructor(private config: Config) {
     const userAgent = config.getUserAgent();
@@ -44,6 +47,7 @@ export class GeminiClient {
         },
       },
     });
+    this.logger = Logger.getInstance();
     this.model = config.getModel();
   }
 
@@ -110,6 +114,7 @@ export class GeminiClient {
 
   async startChat(): Promise<Chat> {
     const envParts = await this.getEnvironment();
+    this.userMessageCounter = 0; // Added - reset counter for new chat
     const toolDeclarations = this.config
       .getToolRegistry()
       .getFunctionDeclarations();

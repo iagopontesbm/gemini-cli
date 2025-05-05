@@ -32,9 +32,10 @@ import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
 import { useHistory } from './hooks/useHistoryManager.js';
-import process from 'node:process'; // For performMemoryRefresh
-import { MessageType } from './types.js'; // For performMemoryRefresh
-import { getErrorMessage } from '@gemini-code/server'; // For performMemoryRefresh
+import process from 'node:process';
+import { MessageType } from './types.js';
+import { getErrorMessage } from '@gemini-code/server';
+import { Logger } from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
@@ -166,18 +167,31 @@ export const App = ({
     [submitQuery, shellModeActive],
   );
 
+  const [pastMessages, setPastMessages] = useState<string[]>([]);
+  useEffect(() => {
+    const logger = Logger.getInstance();
+    logger.getPreviousMessages().then((messages: string[]) => {
+      if (messages.length > 0) {
+        setPastMessages(messages.reverse());
+      }
+    });
+  }, []);
+
   const userMessages = useMemo(
     () =>
-      history
-        .filter(
-          (item): item is HistoryItem & { type: 'user'; text: string } =>
-            item.type === 'user' &&
-            typeof item.text === 'string' &&
-            item.text.trim() !== '',
-        )
-        .map((item) => item.text),
-    [history],
+      pastMessages.concat(
+        history
+          .filter(
+            (item): item is HistoryItem & { type: 'user'; text: string } =>
+              item.type === 'user' &&
+              typeof item.text === 'string' &&
+              item.text.trim() !== '',
+          )
+          .map((item) => item.text)
+      ),
+    [history, pastMessages],
   );
+
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
