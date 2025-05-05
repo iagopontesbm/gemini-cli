@@ -30,7 +30,6 @@ import {
 import { isAtCommand } from '../utils/commandUtils.js';
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
-import { usePassthroughProcessor } from './passthroughCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
@@ -85,14 +84,6 @@ export const useGeminiStream = ({
   );
 
   const { handleShellCommand } = useShellCommandProcessor(
-    setHistory, // TODO(phase2): Replace with addItemToHistory
-    setStreamingState,
-    setDebugMessage,
-    getNextMessageId,
-    config,
-  );
-
-  const { handlePassthroughCommand } = usePassthroughProcessor(
     setHistory, // TODO(phase2): Replace with addItemToHistory
     setStreamingState,
     setDebugMessage,
@@ -214,12 +205,7 @@ export const useGeminiStream = ({
           return;
         }
 
-        // 3. Check for Passthrough Commands
-        if (handlePassthroughCommand(trimmedQuery)) {
-          return;
-        }
-
-        // 4. Check for @ Commands using the utility function
+        // 3. Check for @ Commands using the utility function
         if (isAtCommand(trimmedQuery)) {
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
@@ -236,7 +222,7 @@ export const useGeminiStream = ({
           queryToSendToGemini = atCommandResult.processedQuery;
           // User message and tool UI were added by handleAtCommand
         } else {
-          // 5. It's a normal query for Gemini
+          // 4. It's a normal query for Gemini
           addHistoryItemTemp(
             { type: 'user', text: trimmedQuery },
             userMessageTimestamp,
@@ -244,7 +230,7 @@ export const useGeminiStream = ({
           queryToSendToGemini = trimmedQuery;
         }
       } else {
-        // 6. It's a function response (PartListUnion that isn't a string)
+        // 5. It's a function response (PartListUnion that isn't a string)
         // Tool call/response UI handles history. Always proceed.
         queryToSendToGemini = query;
       }
@@ -555,8 +541,7 @@ export const useGeminiStream = ({
       getNextMessageId,
       updateGeminiMessageTemp, // TODO(phase2): Replace
       handleSlashCommand,
-      handlePassthroughCommand,
-      handleShellCommand, // Added handleShellCommand
+      handleShellCommand,
       // handleAtCommand is implicitly included via its direct call
       setDebugMessage, // Added dependency for handleAtCommand & passthrough
       setStreamingState, // Added dependency for handlePassthroughCommand
