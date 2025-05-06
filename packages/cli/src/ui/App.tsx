@@ -56,6 +56,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     initError,
     debugMessage,
     slashCommands,
+    pendingHistoryItem,
   } = useGeminiStream(
     setHistory,
     refreshStatic,
@@ -114,9 +115,6 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
 
   // --- Render Logic ---
 
-  const { staticallyRenderedHistoryItems, updatableHistoryItems } =
-    getHistoryRenderSlices(history);
-
   // Get terminal width
   const { stdout } = useStdout();
   const terminalWidth = stdout?.columns ?? 80;
@@ -136,10 +134,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
        * content is set it'll flush content to the terminal and move the area which it's "clearing"
        * down a notch. Without Static the area which gets erased and redrawn continuously grows.
        */}
-      <Static
-        key={'static-key-' + staticKey}
-        items={['header', ...staticallyRenderedHistoryItems]}
-      >
+      <Static key={'static-key-' + staticKey} items={['header', ...history]}>
         {(item, index) => {
           if (item === 'header') {
             return (
@@ -160,19 +155,15 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
           );
         }}
       </Static>
-
-      {updatableHistoryItems.length > 0 && (
+      {pendingHistoryItem && (
         <Box flexDirection="column" alignItems="flex-start">
-          {updatableHistoryItems.map((historyItem) => (
-            <HistoryItemDisplay
-              key={'history-' + historyItem.id}
-              item={historyItem}
-              onSubmit={submitQuery}
-            />
-          ))}
+          <HistoryItemDisplay
+            key={'history-' + pendingHistoryItem.id}
+            item={pendingHistoryItem}
+            onSubmit={submitQuery}
+          />
         </Box>
       )}
-
       {showHelp && <Help commands={slashCommands} />}
 
       {startupWarnings.length > 0 && (
@@ -285,21 +276,3 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     </Box>
   );
 };
-
-function getHistoryRenderSlices(history: HistoryItem[]) {
-  let staticallyRenderedHistoryItems: HistoryItem[] = [];
-  let updatableHistoryItems: HistoryItem[] = [];
-  if (
-    history.length > 1 &&
-    history[history.length - 2]?.type === 'tool_group'
-  ) {
-    // If the second-to-last item is a tool_group, it and the last item are updateable
-    staticallyRenderedHistoryItems = history.slice(0, -2);
-    updatableHistoryItems = history.slice(-2);
-  } else {
-    // Otherwise, only the last item is updateable
-    staticallyRenderedHistoryItems = history.slice(0, -1);
-    updatableHistoryItems = history.slice(-1);
-  }
-  return { staticallyRenderedHistoryItems, updatableHistoryItems };
-}
