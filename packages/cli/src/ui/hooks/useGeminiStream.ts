@@ -538,7 +538,7 @@ export const useGeminiStream = (
       setStreamingState, // Added dependency for handlePassthroughCommand
       updateAndAddGeminiMessageContent,
       setShowHelp,
-      toolRegistry, // Added missing dependency
+      toolRegistry,
     ],
   );
 
