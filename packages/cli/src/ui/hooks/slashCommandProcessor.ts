@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
 import { getCommandFromQuery } from '../utils/commandUtils.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
@@ -20,50 +20,52 @@ export interface SlashCommand {
  * Hook to define and process slash commands (e.g., /help, /clear).
  */
 export const useSlashCommandProcessor = (
-  addItemToHistory: UseHistoryManagerReturn['addItem'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateItem'], // Included for potential future use
-  clearHistory: UseHistoryManagerReturn['clearItems'],
+  addItem: UseHistoryManagerReturn['addItem'],
+  clearItems: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
   openThemeDialog: () => void,
 ) => {
-  const slashCommands: SlashCommand[] = [
-    {
-      name: 'help',
-      altName: '?',
-      description: 'for help on gemini-code',
-      action: (_value: PartListUnion) => {
-        setDebugMessage('Opening help.');
-        setShowHelp(true);
+  const slashCommands: SlashCommand[] = useMemo(
+    () => [
+      {
+        name: 'help',
+        altName: '?',
+        description: 'for help on gemini-code',
+        action: (_value: PartListUnion) => {
+          setDebugMessage('Opening help.');
+          setShowHelp(true);
+        },
       },
-    },
-    {
-      name: 'clear',
-      description: 'clear the screen',
-      action: (_value: PartListUnion) => {
-        setDebugMessage('Clearing terminal.');
-        clearHistory();
-        refreshStatic();
+      {
+        name: 'clear',
+        description: 'clear the screen',
+        action: (_value: PartListUnion) => {
+          setDebugMessage('Clearing terminal.');
+          clearItems();
+          refreshStatic();
+        },
       },
-    },
-    {
-      name: 'theme',
-      description: 'change the theme',
-      action: (_value: PartListUnion) => {
-        openThemeDialog();
+      {
+        name: 'theme',
+        description: 'change the theme',
+        action: (_value: PartListUnion) => {
+          openThemeDialog();
+        },
       },
-    },
-    {
-      name: 'quit',
-      altName: 'exit',
-      description: '',
-      action: (_value: PartListUnion) => {
-        setDebugMessage('Quitting. Good-bye.');
-        process.exit(0);
+      {
+        name: 'quit',
+        altName: 'exit',
+        description: '',
+        action: (_value: PartListUnion) => {
+          setDebugMessage('Quitting. Good-bye.');
+          process.exit(0);
+        },
       },
-    },
-  ];
+    ],
+    [setDebugMessage, setShowHelp, refreshStatic, openThemeDialog, clearItems],
+  );
 
   /**
    * Checks if the query is a slash command and executes it if found.
@@ -85,7 +87,7 @@ export const useSlashCommandProcessor = (
       }
 
       const userMessageTimestamp = Date.now();
-      addItemToHistory({ type: 'user', text: trimmed }, userMessageTimestamp);
+      addItem({ type: 'user', text: trimmed }, userMessageTimestamp);
 
       for (const cmd of slashCommands) {
         if (
@@ -99,22 +101,14 @@ export const useSlashCommandProcessor = (
       }
 
       // Unknown command: Add error message
-      addItemToHistory(
+      addItem(
         { type: 'error', text: `Unknown command: ${trimmed}` },
         userMessageTimestamp, // Use same base timestamp for related error
       );
 
       return true; // Indicate command was processed (even though invalid)
     },
-    [
-      setDebugMessage,
-      addItemToHistory,
-      slashCommands,
-      setShowHelp,
-      clearHistory,
-      refreshStatic,
-      openThemeDialog,
-    ],
+    [addItem, slashCommands],
   );
 
   return { handleSlashCommand, slashCommands };

@@ -123,8 +123,8 @@ export const useGeminiStream = (
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
             config,
-            addItem: addItem,
-            updateItem: updateItem,
+            addItem,
+            updateItem,
             setDebugMessage,
             messageId: userMessageTimestamp,
           });
@@ -447,10 +447,7 @@ export const useGeminiStream = (
       updateItem,
       setShowHelp,
       toolRegistry,
-      openThemeDialog,
-      refreshStatic,
       setInitError,
-      clearItems,
     ],
   );
 
