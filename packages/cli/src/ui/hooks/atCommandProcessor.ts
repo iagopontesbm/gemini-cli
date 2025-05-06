@@ -89,7 +89,6 @@ export async function handleAtCommand({
   query,
   config,
   addItemToHistory,
-  // updateHistoryItem is passed but not currently used here
   setDebugMessage,
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
@@ -157,7 +156,6 @@ export async function handleAtCommand({
   let toolCallDisplay: IndividualToolCallDisplay;
 
   try {
-    // Execute the read_many_files tool
     const result = await readManyFilesTool.execute(toolArgs);
     const fileContent = result.llmContent || '';
 

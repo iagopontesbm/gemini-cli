@@ -18,7 +18,6 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  */
 export const useShellCommandProcessor = (
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Included for potential future use
   setStreamingState: React.Dispatch<React.SetStateAction<StreamingState>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
   config: Config,

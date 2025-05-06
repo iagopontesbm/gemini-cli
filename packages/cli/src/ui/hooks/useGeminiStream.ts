@@ -70,7 +70,6 @@ export const useGeminiStream = (
 
   const { handleShellCommand } = useShellCommandProcessor(
     addItemToHistory,
-    updateHistoryItem,
     setStreamingState,
     setDebugMessage,
     config,
@@ -213,6 +212,14 @@ export const useGeminiStream = (
                   currentGeminiText,
                 );
               } else {
+                // This indicates that we need to split up this Gemini Message.
+                // Splitting a message is primarily a performance consideration. There is a
+                // <Static> component at the root of App.tsx which takes care of rendering
+                // content statically or dynamically. Everything but the last message is
+                // treated as static in order to prevent re-rendering an entire message history
+                // multiple times per-second (as streaming occurs). Prior to this change you'd
+                // see heavy flickering of the terminal. This ensures that larger messages get
+                // broken up so that there are more "statically" rendered.
                 const originalMessageRef = currentGeminiMessageIdRef.current;
                 const beforeText = currentGeminiText.substring(0, splitPoint);
                 const afterText = currentGeminiText.substring(splitPoint);
