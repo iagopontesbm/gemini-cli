@@ -60,6 +60,7 @@ export const useSlashCommandProcessor = (
       description: '',
       action: (_value: PartListUnion) => {
         setDebugMessage('Quitting. Good-bye.');
+        getNextMessageId(Date.now());
         process.exit(0);
       },
     },

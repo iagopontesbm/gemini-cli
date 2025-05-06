@@ -20,6 +20,9 @@ export enum SettingScope {
 export interface Settings {
   theme?: string;
   sandbox?: boolean | string;
+  toolDiscoveryCommand?: string;
+  toolCallCommand?: string;
+  mcpServerCommand?: string;
   // Add other settings here.
 }
 
