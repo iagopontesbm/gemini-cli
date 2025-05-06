@@ -39,9 +39,9 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  * and interact with the Gemini API and history manager.
  */
 export const useGeminiStream = (
-  addItemToHistory: UseHistoryManagerReturn['addItem'],
-  updateHistoryItem: UseHistoryManagerReturn['updateItem'],
-  clearHistory: UseHistoryManagerReturn['clearItems'],
+  addItem: UseHistoryManagerReturn['addItem'],
+  updateItem: UseHistoryManagerReturn['updateItem'],
+  clearItems: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
@@ -59,9 +59,8 @@ export const useGeminiStream = (
   const currentGeminiMessageIdRef = useRef<number | null>(null);
 
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    addItemToHistory,
-    updateHistoryItem,
-    clearHistory,
+    addItem,
+    clearItems,
     refreshStatic,
     setShowHelp,
     setDebugMessage,
@@ -69,7 +68,7 @@ export const useGeminiStream = (
   );
 
   const { handleShellCommand } = useShellCommandProcessor(
-    addItemToHistory,
+    addItem,
     setStreamingState,
     setDebugMessage,
     config,
@@ -83,10 +82,10 @@ export const useGeminiStream = (
       } catch (error: unknown) {
         const errorMsg = `Failed to initialize client: ${getErrorMessage(error) || 'Unknown error'}`;
         setInitError(errorMsg);
-        addItemToHistory({ type: 'error', text: errorMsg }, Date.now());
+        addItem({ type: 'error', text: errorMsg }, Date.now());
       }
     }
-  }, [config, addItemToHistory]);
+  }, [config, addItem]);
 
   useInput((_input, key) => {
     if (streamingState === StreamingState.Responding && key.escape) {
@@ -96,9 +95,9 @@ export const useGeminiStream = (
 
   const updateGeminiMessage = useCallback(
     (messageId: number, newContent: string) => {
-      updateHistoryItem(messageId, { text: newContent });
+      updateItem(messageId, { text: newContent });
     },
-    [updateHistoryItem],
+    [updateItem],
   );
 
   const submitQuery = useCallback(
@@ -124,8 +123,8 @@ export const useGeminiStream = (
           const atCommandResult = await handleAtCommand({
             query: trimmedQuery,
             config,
-            addItemToHistory,
-            updateHistoryItem,
+            addItem: addItem,
+            updateItem: updateItem,
             setDebugMessage,
             messageId: userMessageTimestamp,
           });
@@ -133,10 +132,7 @@ export const useGeminiStream = (
           queryToSendToGemini = atCommandResult.processedQuery;
         } else {
           // Normal query for Gemini
-          addItemToHistory(
-            { type: 'user', text: trimmedQuery },
-            userMessageTimestamp,
-          );
+          addItem({ type: 'user', text: trimmedQuery }, userMessageTimestamp);
           queryToSendToGemini = trimmedQuery;
         }
       } else {
@@ -155,7 +151,7 @@ export const useGeminiStream = (
       if (!client) {
         const errorMsg = 'Gemini client is not available.';
         setInitError(errorMsg);
-        addItemToHistory({ type: 'error', text: errorMsg }, Date.now());
+        addItem({ type: 'error', text: errorMsg }, Date.now());
         return;
       }
 
@@ -165,7 +161,7 @@ export const useGeminiStream = (
         } catch (err: unknown) {
           const errorMsg = `Failed to start chat: ${getErrorMessage(err)}`;
           setInitError(errorMsg);
-          addItemToHistory({ type: 'error', text: errorMsg }, Date.now());
+          addItem({ type: 'error', text: errorMsg }, Date.now());
           setStreamingState(StreamingState.Idle);
           return;
         }
@@ -198,7 +194,7 @@ export const useGeminiStream = (
 
             if (!hasInitialGeminiResponse) {
               hasInitialGeminiResponse = true;
-              const eventId = addItemToHistory(
+              const eventId = addItem(
                 { type: 'gemini', text: currentGeminiText },
                 userMessageTimestamp,
               );
@@ -224,8 +220,8 @@ export const useGeminiStream = (
                 const beforeText = currentGeminiText.substring(0, splitPoint);
                 const afterText = currentGeminiText.substring(splitPoint);
                 currentGeminiText = afterText; // Continue accumulating from split point
-                updateHistoryItem(originalMessageRef, { text: beforeText });
-                const nextId = addItemToHistory(
+                updateItem(originalMessageRef, { text: beforeText });
+                const nextId = addItem(
                   { type: 'gemini_content', text: afterText },
                   userMessageTimestamp,
                 );
@@ -246,7 +242,7 @@ export const useGeminiStream = (
 
             // Create a new tool group if needed
             if (currentToolGroupMessageId === null) {
-              currentToolGroupMessageId = addItemToHistory(
+              currentToolGroupMessageId = addItem(
                 { type: 'tool_group', tools: [] } as Omit<HistoryItem, 'id'>,
                 userMessageTimestamp,
               );
@@ -270,7 +266,7 @@ export const useGeminiStream = (
 
             // Add the pending tool call to the current group
             if (currentToolGroupMessageId !== null) {
-              updateHistoryItem(
+              updateItem(
                 currentToolGroupMessageId,
                 (
                   currentItem: HistoryItem,
@@ -311,7 +307,7 @@ export const useGeminiStream = (
       } catch (error: unknown) {
         if (!isNodeError(error) || error.name !== 'AbortError') {
           console.error('Error processing stream or executing tool:', error);
-          addItemToHistory(
+          addItem(
             {
               type: 'error',
               text: `[Stream Error: ${getErrorMessage(error)}]`,
@@ -331,7 +327,7 @@ export const useGeminiStream = (
         confirmationDetails: ToolCallConfirmationDetails | undefined,
       ) {
         if (currentToolGroupMessageId === null) return;
-        updateHistoryItem(
+        updateItem(
           currentToolGroupMessageId,
           (currentItem: HistoryItem): Partial<Omit<HistoryItem, 'id'>> => {
             if (currentItem?.type !== 'tool_group') {
@@ -361,7 +357,7 @@ export const useGeminiStream = (
         status: ToolCallStatus,
       ) {
         if (currentToolGroupMessageId === null) return;
-        updateHistoryItem(
+        updateItem(
           currentToolGroupMessageId,
           (currentItem: HistoryItem): Partial<Omit<HistoryItem, 'id'>> => {
             if (currentItem?.type !== 'tool_group') {
@@ -447,14 +443,14 @@ export const useGeminiStream = (
       handleShellCommand,
       setDebugMessage,
       setStreamingState,
-      addItemToHistory,
-      updateHistoryItem,
+      addItem,
+      updateItem,
       setShowHelp,
       toolRegistry,
       openThemeDialog,
       refreshStatic,
       setInitError,
-      clearHistory,
+      clearItems,
     ],
   );
 

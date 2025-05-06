@@ -23,8 +23,8 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
 interface HandleAtCommandParams {
   query: string;
   config: Config;
-  addItemToHistory: UseHistoryManagerReturn['addItem'];
-  updateHistoryItem: UseHistoryManagerReturn['updateItem'];
+  addItem: UseHistoryManagerReturn['addItem'];
+  updateItem: UseHistoryManagerReturn['updateItem'];
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
   messageId: number;
 }
@@ -88,7 +88,7 @@ function parseAtCommand(
 export async function handleAtCommand({
   query,
   config,
-  addItemToHistory,
+  addItem: addItem,
   setDebugMessage,
   messageId: userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
@@ -97,19 +97,19 @@ export async function handleAtCommand({
 
   // If no @ command, add user query normally and proceed to LLM
   if (!parsedCommand) {
-    addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
+    addItem({ type: 'user', text: query }, userMessageTimestamp);
     return { processedQuery: [{ text: query }], shouldProceed: true };
   }
 
   const { textBefore, atPath, textAfter } = parsedCommand;
 
   // Add the original user query to history first
-  addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
+  addItem({ type: 'user', text: query }, userMessageTimestamp);
 
   const pathPart = atPath.substring(1); // Remove leading '@'
 
   if (!pathPart) {
-    addItemToHistory(
+    addItem(
       { type: 'error', text: 'Error: No path specified after @.' },
       userMessageTimestamp,
     );
@@ -120,7 +120,7 @@ export async function handleAtCommand({
   const readManyFilesTool = toolRegistry.getTool('read_many_files');
 
   if (!readManyFilesTool) {
-    addItemToHistory(
+    addItem(
       { type: 'error', text: 'Error: read_many_files tool not found.' },
       userMessageTimestamp,
     );
@@ -182,7 +182,7 @@ export async function handleAtCommand({
     const processedQuery: PartListUnion = processedQueryParts;
 
     // Add the successful tool result to history
-    addItemToHistory(
+    addItem(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'
@@ -203,7 +203,7 @@ export async function handleAtCommand({
     };
 
     // Add the error tool result to history
-    addItemToHistory(
+    addItem(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'

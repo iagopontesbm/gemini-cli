@@ -36,8 +36,7 @@ interface AppProps {
 }
 
 export const App = ({ config, settings, cliVersion }: AppProps) => {
-  const { history, addItem, updateItem, clearItems } =
-    useHistory();
+  const { history, addItem, updateItem, clearItems } = useHistory();
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const {

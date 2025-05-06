@@ -14,10 +14,7 @@ type HistoryItemUpdater = (
 
 export interface UseHistoryManagerReturn {
   history: HistoryItem[];
-  addItem: (
-    itemData: Omit<HistoryItem, 'id'>,
-    baseTimestamp: number,
-  ) => number; // Returns the generated ID
+  addItem: (itemData: Omit<HistoryItem, 'id'>, baseTimestamp: number) => number; // Returns the generated ID
   updateItem: (
     id: number,
     updates: Partial<Omit<HistoryItem, 'id'>> | HistoryItemUpdater,
