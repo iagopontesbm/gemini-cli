@@ -12,14 +12,21 @@ import { StreamingState } from '../types.js';
 import { getCommandFromQuery } from '../utils/commandUtils.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
+/**
+ * Hook to process shell commands (e.g., !ls, $pwd).
+ * Executes the command in the target directory and adds output/errors to history.
+ */
 export const useShellCommandProcessor = (
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'],
+  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Included for potential future use
   setStreamingState: React.Dispatch<React.SetStateAction<StreamingState>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
-  // Removed getNextMessageId
   config: Config,
 ) => {
+  /**
+   * Checks if the query is a shell command, executes it, and adds results to history.
+   * @returns True if the query was handled as a shell command, false otherwise.
+   */
   const handleShellCommand = useCallback(
     (rawQuery: PartListUnion): boolean => {
       if (typeof rawQuery !== 'string') {
@@ -30,56 +37,51 @@ export const useShellCommandProcessor = (
       if (symbol !== '!' && symbol !== '$') {
         return false;
       }
-      const trimmed = rawQuery.trim().slice(1).trimStart();
+      const commandToExecute = rawQuery.trim().slice(1).trimStart();
 
       const userMessageTimestamp = Date.now();
       addItemToHistory({ type: 'user', text: rawQuery }, userMessageTimestamp);
 
-      if (!trimmed) {
+      if (!commandToExecute) {
         addItemToHistory(
           { type: 'error', text: 'Empty shell command.' },
-          userMessageTimestamp, // Use same base timestamp
+          userMessageTimestamp,
         );
-        return true;
+        return true; // Handled (by showing error)
       }
 
       const targetDir = config.getTargetDir();
-      setDebugMessage(`Executing shell command in ${targetDir}: ${trimmed}`);
+      setDebugMessage(
+        `Executing shell command in ${targetDir}: ${commandToExecute}`,
+      );
       const execOptions = {
         cwd: targetDir,
       };
 
       setStreamingState(StreamingState.Responding);
 
-      _exec(trimmed, execOptions, (error, stdout, stderr) => {
-        // Use addItemToHistory for all subsequent items
+      _exec(commandToExecute, execOptions, (error, stdout, stderr) => {
         if (error) {
           addItemToHistory(
             { type: 'error', text: error.message },
-            userMessageTimestamp, // Use same base timestamp
+            userMessageTimestamp,
           );
         } else {
           let output = '';
           if (stdout) output += stdout;
-          if (stderr) output += (output ? '\n' : '') + stderr;
+          if (stderr) output += (output ? '\n' : '') + stderr; // Include stderr as info
 
           addItemToHistory(
             { type: 'info', text: output || '(Command produced no output)' },
-            userMessageTimestamp, // Use same base timestamp
+            userMessageTimestamp,
           );
         }
         setStreamingState(StreamingState.Idle);
       });
 
-      return true;
+      return true; // Command was initiated
     },
-    [
-      config,
-      setDebugMessage,
-      addItemToHistory,
-      setStreamingState,
-      // Removed getNextMessageId
-    ],
+    [config, setDebugMessage, addItemToHistory, setStreamingState],
   );
 
   return { handleShellCommand };

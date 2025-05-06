@@ -26,7 +26,6 @@ interface HandleAtCommandParams {
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'];
   updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'];
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
-  // Removed getNextMessageId
   userMessageTimestamp: number;
 }
 
@@ -79,18 +78,25 @@ function parseAtCommand(
 
 /**
  * Processes user input potentially containing an '@<path>' command.
+ * If found, it attempts to read the specified file/directory using the
+ * 'read_many_files' tool, adds the user query and tool result/error to history,
+ * and prepares the content for the LLM.
+ *
+ * @returns An object indicating whether the main hook should proceed with an
+ *          LLM call and the processed query parts (including file content).
  */
 export async function handleAtCommand({
   query,
   config,
   addItemToHistory,
-  // updateHistoryItem, // Not currently used here
+  // updateHistoryItem is passed but not currently used here
   setDebugMessage,
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const trimmedQuery = query.trim();
   const parsedCommand = parseAtCommand(trimmedQuery);
 
+  // If no @ command, add user query normally and proceed to LLM
   if (!parsedCommand) {
     addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
     return { processedQuery: [{ text: query }], shouldProceed: true };
@@ -98,15 +104,15 @@ export async function handleAtCommand({
 
   const { textBefore, atPath, textAfter } = parsedCommand;
 
+  // Add the original user query to history first
   addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
 
-  const pathPart = atPath.substring(1);
+  const pathPart = atPath.substring(1); // Remove leading '@'
 
   if (!pathPart) {
-    // Use addItemToHistory for error
     addItemToHistory(
       { type: 'error', text: 'Error: No path specified after @.' },
-      userMessageTimestamp, // Use same base timestamp
+      userMessageTimestamp,
     );
     return { processedQuery: null, shouldProceed: false };
   }
@@ -115,18 +121,16 @@ export async function handleAtCommand({
   const readManyFilesTool = toolRegistry.getTool('read_many_files');
 
   if (!readManyFilesTool) {
-    // Use addItemToHistory for error
     addItemToHistory(
       { type: 'error', text: 'Error: read_many_files tool not found.' },
-      userMessageTimestamp, // Use same base timestamp
+      userMessageTimestamp,
     );
     return { processedQuery: null, shouldProceed: false };
   }
 
-  // --- Path Handling ---
+  // Determine path spec (file or directory glob)
   let pathSpec = pathPart;
   const contentLabel = pathPart;
-
   try {
     const absolutePath = path.resolve(config.getTargetDir(), pathPart);
     const stats = await fs.stat(absolutePath);
@@ -137,6 +141,8 @@ export async function handleAtCommand({
       setDebugMessage(`Path resolved to file: ${pathSpec}`);
     }
   } catch (error) {
+    // If stat fails (e.g., not found), proceed with original path.
+    // The tool itself will handle the error during execution.
     if (isNodeError(error) && error.code === 'ENOENT') {
       setDebugMessage(`Path not found, proceeding with original: ${pathSpec}`);
     } else {
@@ -148,11 +154,10 @@ export async function handleAtCommand({
   }
 
   const toolArgs = { paths: [pathSpec] };
-  // --- End Path Handling ---
-
   let toolCallDisplay: IndividualToolCallDisplay;
 
   try {
+    // Execute the read_many_files tool
     const result = await readManyFilesTool.execute(toolArgs);
     const fileContent = result.llmContent || '';
 
@@ -165,6 +170,7 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
+    // Prepare the query parts for the LLM
     const processedQueryParts = [];
     if (textBefore) {
       processedQueryParts.push({ text: textBefore });
@@ -175,20 +181,20 @@ export async function handleAtCommand({
     if (textAfter) {
       processedQueryParts.push({ text: textAfter });
     }
-
     const processedQuery: PartListUnion = processedQueryParts;
 
-    // Add the tool group with the successful tool result using addItemToHistory
+    // Add the successful tool result to history
     addItemToHistory(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'
       >,
-      userMessageTimestamp, // Use same base timestamp
+      userMessageTimestamp,
     );
 
     return { processedQuery, shouldProceed: true };
   } catch (error) {
+    // Handle errors during tool execution
     toolCallDisplay = {
       callId: `client-read-${userMessageTimestamp}`,
       name: readManyFilesTool.displayName,
@@ -198,13 +204,13 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    // Add the tool group with the error tool result using addItemToHistory
+    // Add the error tool result to history
     addItemToHistory(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'
       >,
-      userMessageTimestamp, // Use same base timestamp
+      userMessageTimestamp,
     );
 
     return { processedQuery: null, shouldProceed: false };

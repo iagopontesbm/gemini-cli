@@ -16,14 +16,16 @@ export interface SlashCommand {
   action: (value: PartListUnion) => void;
 }
 
+/**
+ * Hook to define and process slash commands (e.g., /help, /clear).
+ */
 export const useSlashCommandProcessor = (
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'],
+  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Included for potential future use
   clearHistory: UseHistoryManagerReturn['clearHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
-  // Removed getNextMessageId
   openThemeDialog: () => void,
 ) => {
   const slashCommands: SlashCommand[] = [
@@ -63,6 +65,12 @@ export const useSlashCommandProcessor = (
     },
   ];
 
+  /**
+   * Checks if the query is a slash command and executes it if found.
+   * Adds user query and potential error messages to history.
+   * @returns True if the query was handled as a slash command (valid or invalid),
+   *          false otherwise.
+   */
   const handleSlashCommand = useCallback(
     (rawQuery: PartListUnion): boolean => {
       if (typeof rawQuery !== 'string') {
@@ -76,37 +84,31 @@ export const useSlashCommandProcessor = (
         return false;
       }
 
+      const userMessageTimestamp = Date.now();
+      addItemToHistory({ type: 'user', text: trimmed }, userMessageTimestamp);
+
       for (const cmd of slashCommands) {
         if (
           test === cmd.name ||
           test === cmd.altName ||
           symbol === cmd.altName
         ) {
-          const userMessageTimestamp = Date.now();
-          addItemToHistory(
-            { type: 'user', text: trimmed },
-            userMessageTimestamp,
-          );
           cmd.action(trimmed);
           return true;
         }
       }
 
-      // Unknown command: Add user message and error message
-      const userMessageTimestamp = Date.now();
-      addItemToHistory({ type: 'user', text: trimmed }, userMessageTimestamp);
-      // Use addItemToHistory for the error message, relying on its internal ID generation
+      // Unknown command: Add error message
       addItemToHistory(
         { type: 'error', text: `Unknown command: ${trimmed}` },
-        userMessageTimestamp, // Use same base timestamp
+        userMessageTimestamp, // Use same base timestamp for related error
       );
 
-      return true;
+      return true; // Indicate command was processed (even though invalid)
     },
     [
       setDebugMessage,
       addItemToHistory,
-      // Removed getNextMessageId
       slashCommands,
       setShowHelp,
       clearHistory,
