@@ -23,10 +23,10 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
 interface HandleAtCommandParams {
   query: string;
   config: Config;
-  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'];
-  updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'];
+  addItemToHistory: UseHistoryManagerReturn['addItem'];
+  updateHistoryItem: UseHistoryManagerReturn['updateItem'];
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
-  userMessageTimestamp: number;
+  messageId: number;
 }
 
 interface HandleAtCommandResult {
@@ -90,7 +90,7 @@ export async function handleAtCommand({
   config,
   addItemToHistory,
   setDebugMessage,
-  userMessageTimestamp,
+  messageId: userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const trimmedQuery = query.trim();
   const parsedCommand = parseAtCommand(trimmedQuery);

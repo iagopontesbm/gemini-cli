@@ -39,9 +39,9 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  * and interact with the Gemini API and history manager.
  */
 export const useGeminiStream = (
-  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'],
-  clearHistory: UseHistoryManagerReturn['clearHistory'],
+  addItemToHistory: UseHistoryManagerReturn['addItem'],
+  updateHistoryItem: UseHistoryManagerReturn['updateItem'],
+  clearHistory: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
@@ -127,7 +127,7 @@ export const useGeminiStream = (
             addItemToHistory,
             updateHistoryItem,
             setDebugMessage,
-            userMessageTimestamp,
+            messageId: userMessageTimestamp,
           });
           if (!atCommandResult.shouldProceed) return;
           queryToSendToGemini = atCommandResult.processedQuery;
@@ -174,7 +174,7 @@ export const useGeminiStream = (
       setStreamingState(StreamingState.Responding);
       setInitError(null);
       const chat = chatSessionRef.current;
-      let currentToolGroupId: number | null = null;
+      let currentToolGroupMessageId: number | null = null;
 
       try {
         abortControllerRef.current = new AbortController();
@@ -194,7 +194,7 @@ export const useGeminiStream = (
 
           if (event.type === ServerGeminiEventType.Content) {
             currentGeminiText += event.value;
-            currentToolGroupId = null; // Reset group on new text content
+            currentToolGroupMessageId = null; // Reset group on new text content
 
             if (!hasInitialGeminiResponse) {
               hasInitialGeminiResponse = true;
@@ -245,8 +245,8 @@ export const useGeminiStream = (
             }
 
             // Create a new tool group if needed
-            if (currentToolGroupId === null) {
-              currentToolGroupId = addItemToHistory(
+            if (currentToolGroupMessageId === null) {
+              currentToolGroupMessageId = addItemToHistory(
                 { type: 'tool_group', tools: [] } as Omit<HistoryItem, 'id'>,
                 userMessageTimestamp,
               );
@@ -269,9 +269,9 @@ export const useGeminiStream = (
             };
 
             // Add the pending tool call to the current group
-            if (currentToolGroupId !== null) {
+            if (currentToolGroupMessageId !== null) {
               updateHistoryItem(
-                currentToolGroupId,
+                currentToolGroupMessageId,
                 (
                   currentItem: HistoryItem,
                 ): Partial<Omit<HistoryItem, 'id'>> => {
@@ -281,7 +281,7 @@ export const useGeminiStream = (
                     );
                     return currentItem as Partial<Omit<HistoryItem, 'id'>>;
                   }
-                  const currentTools = currentItem.tools || [];
+                  const currentTools = currentItem.tools;
                   return {
                     ...currentItem,
                     tools: [...currentTools, toolCallDisplay],
@@ -330,9 +330,9 @@ export const useGeminiStream = (
         callId: string,
         confirmationDetails: ToolCallConfirmationDetails | undefined,
       ) {
-        if (currentToolGroupId === null) return;
+        if (currentToolGroupMessageId === null) return;
         updateHistoryItem(
-          currentToolGroupId,
+          currentToolGroupMessageId,
           (currentItem: HistoryItem): Partial<Omit<HistoryItem, 'id'>> => {
             if (currentItem?.type !== 'tool_group') {
               console.error(
@@ -360,9 +360,9 @@ export const useGeminiStream = (
         toolResponse: ToolCallResponseInfo,
         status: ToolCallStatus,
       ) {
-        if (currentToolGroupId === null) return;
+        if (currentToolGroupMessageId === null) return;
         updateHistoryItem(
-          currentToolGroupId,
+          currentToolGroupMessageId,
           (currentItem: HistoryItem): Partial<Omit<HistoryItem, 'id'>> => {
             if (currentItem?.type !== 'tool_group') {
               console.error(

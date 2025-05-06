@@ -17,7 +17,7 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  * Executes the command in the target directory and adds output/errors to history.
  */
 export const useShellCommandProcessor = (
-  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
+  addItemToHistory: UseHistoryManagerReturn['addItem'],
   setStreamingState: React.Dispatch<React.SetStateAction<StreamingState>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
   config: Config,

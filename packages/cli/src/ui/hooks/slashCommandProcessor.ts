@@ -20,9 +20,9 @@ export interface SlashCommand {
  * Hook to define and process slash commands (e.g., /help, /clear).
  */
 export const useSlashCommandProcessor = (
-  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Included for potential future use
-  clearHistory: UseHistoryManagerReturn['clearHistory'],
+  addItemToHistory: UseHistoryManagerReturn['addItem'],
+  _updateHistoryItem: UseHistoryManagerReturn['updateItem'], // Included for potential future use
+  clearHistory: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
@@ -60,7 +60,6 @@ export const useSlashCommandProcessor = (
       description: '',
       action: (_value: PartListUnion) => {
         setDebugMessage('Quitting. Good-bye.');
-        getNextMessageId(Date.now());
         process.exit(0);
       },
     },

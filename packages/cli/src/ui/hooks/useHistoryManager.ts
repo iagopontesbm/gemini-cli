@@ -14,15 +14,15 @@ type HistoryItemUpdater = (
 
 export interface UseHistoryManagerReturn {
   history: HistoryItem[];
-  addItemToHistory: (
+  addItem: (
     itemData: Omit<HistoryItem, 'id'>,
     baseTimestamp: number,
   ) => number; // Returns the generated ID
-  updateHistoryItem: (
+  updateItem: (
     id: number,
     updates: Partial<Omit<HistoryItem, 'id'>> | HistoryItemUpdater,
   ) => void;
-  clearHistory: () => void;
+  clearItems: () => void;
 }
 
 /**
@@ -31,7 +31,7 @@ export interface UseHistoryManagerReturn {
  * Encapsulates the history array, message ID generation, adding items,
  * updating items, and clearing the history.
  */
-export function useHistoryManager(): UseHistoryManagerReturn {
+export function useHistory(): UseHistoryManagerReturn {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const messageIdCounterRef = useRef(0);
 
@@ -42,7 +42,7 @@ export function useHistoryManager(): UseHistoryManagerReturn {
   }, []);
 
   // Adds a new item to the history state with a unique ID.
-  const addItemToHistory = useCallback(
+  const addItem = useCallback(
     (itemData: Omit<HistoryItem, 'id'>, baseTimestamp: number): number => {
       const id = getNextMessageId(baseTimestamp);
       const newItem: HistoryItem = { ...itemData, id } as HistoryItem;
@@ -53,7 +53,7 @@ export function useHistoryManager(): UseHistoryManagerReturn {
   );
 
   // Updates an existing history item identified by its ID.
-  const updateHistoryItem = useCallback(
+  const updateItem = useCallback(
     (
       id: number,
       updates: Partial<Omit<HistoryItem, 'id'>> | HistoryItemUpdater,
@@ -74,10 +74,15 @@ export function useHistoryManager(): UseHistoryManagerReturn {
   );
 
   // Clears the entire history state and resets the ID counter.
-  const clearHistory = useCallback(() => {
+  const clearItems = useCallback(() => {
     setHistory([]);
     messageIdCounterRef.current = 0;
   }, []);
 
-  return { history, addItemToHistory, updateHistoryItem, clearHistory };
+  return {
+    history,
+    addItem,
+    updateItem,
+    clearItems,
+  };
 }
