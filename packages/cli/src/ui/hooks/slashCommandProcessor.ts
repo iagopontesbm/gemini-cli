@@ -6,8 +6,9 @@
 
 import { useCallback } from 'react';
 import { type PartListUnion } from '@google/genai';
-import { HistoryItem } from '../types.js';
+// Removed HistoryItem import
 import { getCommandFromQuery } from '../utils/commandUtils.js';
+import { UseHistoryManagerReturn } from './useHistoryManager.js'; // Import the type
 
 export interface SlashCommand {
   name: string; // slash command
@@ -16,23 +17,17 @@ export interface SlashCommand {
   action: (value: PartListUnion) => void;
 }
 
-const addHistoryItem = (
-  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
-  itemData: Omit<HistoryItem, 'id'>,
-  id: number,
-) => {
-  setHistory((prevHistory) => [
-    ...prevHistory,
-    { ...itemData, id } as HistoryItem,
-  ]);
-};
+// Remove local addHistoryItem helper
 
 export const useSlashCommandProcessor = (
-  setHistory: React.Dispatch<React.SetStateAction<HistoryItem[]>>,
+  // Use functions from useHistoryManager
+  addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
+  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Keep signature consistent, even if unused
+  clearHistory: UseHistoryManagerReturn['clearHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
-  getNextMessageId: (baseTimestamp: number) => number,
+  getNextMessageId: (baseTimestamp: number) => number, // Keep if needed for specific ID logic, though addItemToHistory handles it
   openThemeDialog: () => void,
 ) => {
   const slashCommands: SlashCommand[] = [
@@ -49,9 +44,9 @@ export const useSlashCommandProcessor = (
       name: 'clear',
       description: 'clear the screen',
       action: (_value: PartListUnion) => {
-        // This just clears the *UI* history, not the model history.
         setDebugMessage('Clearing terminal.');
-        setHistory((_) => []);
+        // Use clearHistory from the hook
+        clearHistory();
         refreshStatic();
       },
     },
@@ -68,7 +63,7 @@ export const useSlashCommandProcessor = (
       description: '',
       action: (_value: PartListUnion) => {
         setDebugMessage('Quitting. Good-bye.');
-        const timestamp = getNextMessageId(Date.now());
+        // No history item needed for quit, just exit
         process.exit(0);
       },
     },
@@ -95,10 +90,9 @@ export const useSlashCommandProcessor = (
           test === cmd.altName ||
           symbol === cmd.altName
         ) {
-          // Add user message *before* execution
+          // Add user message *before* execution using the hook function
           const userMessageTimestamp = Date.now();
-          addHistoryItem(
-            setHistory,
+          addItemToHistory(
             { type: 'user', text: trimmed },
             userMessageTimestamp,
           );
@@ -107,9 +101,26 @@ export const useSlashCommandProcessor = (
         }
       }
 
-      return false; // Not a recognized slash command
+      // If no command matched, add an error message
+      const userMessageTimestamp = Date.now();
+      addItemToHistory({ type: 'user', text: trimmed }, userMessageTimestamp);
+      addItemToHistory(
+        { type: 'error', text: `Unknown command: ${trimmed}` },
+        getNextMessageId(userMessageTimestamp), // Use next ID for error
+      );
+
+      return true; // Indicate command was processed (even if invalid)
     },
-    [setDebugMessage, setHistory, getNextMessageId, slashCommands],
+    [
+      setDebugMessage,
+      addItemToHistory, // Updated dependency
+      getNextMessageId,
+      slashCommands,
+      setShowHelp, // Added missing dependency
+      clearHistory, // Added missing dependency
+      refreshStatic, // Added missing dependency
+      openThemeDialog, // Added missing dependency
+    ],
   );
 
   return { handleSlashCommand, slashCommands };

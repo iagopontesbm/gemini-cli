@@ -27,6 +27,7 @@ import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
+import { useHistoryManager } from './hooks/useHistoryManager.js';
 
 interface AppProps {
   config: Config;
@@ -35,7 +36,8 @@ interface AppProps {
 }
 
 export const App = ({ config, settings, cliVersion }: AppProps) => {
-  const [history, setHistory] = useState<HistoryItem[]>([]);
+  const { history, addItemToHistory, updateHistoryItem, clearHistory } =
+    useHistoryManager();
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const {
@@ -57,7 +59,9 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     debugMessage,
     slashCommands,
   } = useGeminiStream(
-    setHistory,
+    addItemToHistory,
+    updateHistoryItem,
+    clearHistory,
     refreshStatic,
     setShowHelp,
     config,
