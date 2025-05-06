@@ -532,7 +532,7 @@ export const useGeminiStream = (
       getNextMessageId,
       updateGeminiMessage,
       handleSlashCommand,
-      handleShellCommand, // Added missing dependency
+      handleShellCommand,
       // handleAtCommand is implicitly included via its direct call
       setDebugMessage, // Added dependency for handleAtCommand & passthrough
       setStreamingState, // Added dependency for handlePassthroughCommand
