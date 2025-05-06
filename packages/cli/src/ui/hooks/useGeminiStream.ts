@@ -53,14 +53,12 @@ export const useGeminiStream = (
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
   const geminiClientRef = useRef<GeminiClient | null>(null);
-  const messageIdCounterRef = useRef(0);
+  // Removed redundant messageIdCounterRef
   const currentGeminiMessageIdRef = useRef<number | null>(null);
 
-  const getNextMessageId = useCallback((baseTimestamp: number): number => {
-    messageIdCounterRef.current += 1;
-    return baseTimestamp + messageIdCounterRef.current;
-  }, []);
+  // Removed redundant getNextMessageId
 
+  // Instantiate command processors, removing getNextMessageId prop
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     addItemToHistory,
     updateHistoryItem,
@@ -68,7 +66,7 @@ export const useGeminiStream = (
     refreshStatic,
     setShowHelp,
     setDebugMessage,
-    getNextMessageId,
+    // Removed getNextMessageId
     openThemeDialog,
   );
 
@@ -77,7 +75,7 @@ export const useGeminiStream = (
     updateHistoryItem,
     setStreamingState,
     setDebugMessage,
-    getNextMessageId,
+    // Removed getNextMessageId
     config,
   );
 
@@ -113,7 +111,7 @@ export const useGeminiStream = (
       if (typeof query === 'string' && query.trim().length === 0) return;
 
       const userMessageTimestamp = Date.now();
-      messageIdCounterRef.current = 0;
+      // Removed counter reset as it's managed solely in useHistoryManager
       let queryToSendToGemini: PartListUnion | null = null;
 
       setShowHelp(false);
@@ -132,7 +130,7 @@ export const useGeminiStream = (
             addItemToHistory,
             updateHistoryItem,
             setDebugMessage,
-            getNextMessageId,
+            // Removed getNextMessageId
             userMessageTimestamp,
           });
           if (!atCommandResult.shouldProceed) return;
@@ -262,7 +260,6 @@ export const useGeminiStream = (
               confirmationDetails: undefined,
             };
 
-            // Use functional update, returning the *entire* updated item
             if (currentToolGroupId !== null) {
               updateHistoryItem(
                 currentToolGroupId,
@@ -273,12 +270,9 @@ export const useGeminiStream = (
                     console.error(
                       `Attempted to update non-tool-group item ${currentItem?.id} as tool group.`,
                     );
-                    // Return the original item if type doesn't match
-                    // Cast to Partial to satisfy the return type signature
                     return currentItem as Partial<Omit<HistoryItem, 'id'>>;
                   }
                   const currentTools = currentItem.tools || [];
-                  // Return the full updated item, cast to Partial
                   return {
                     ...currentItem,
                     tools: [...currentTools, toolCallDisplay],
@@ -337,7 +331,6 @@ export const useGeminiStream = (
               );
               return currentItem as Partial<Omit<HistoryItem, 'id'>>;
             }
-            // Return the full updated item, cast to Partial
             return {
               ...currentItem,
               tools: (currentItem.tools || []).map((tool) =>
@@ -368,7 +361,6 @@ export const useGeminiStream = (
               );
               return currentItem as Partial<Omit<HistoryItem, 'id'>>;
             }
-            // Return the full updated item, cast to Partial
             return {
               ...currentItem,
               tools: (currentItem.tools || []).map((tool) => {
@@ -438,7 +430,7 @@ export const useGeminiStream = (
     [
       streamingState,
       config,
-      getNextMessageId,
+      // Removed getNextMessageId
       updateGeminiMessage,
       handleSlashCommand,
       handleShellCommand,

@@ -6,28 +6,24 @@
 
 import { useCallback } from 'react';
 import { type PartListUnion } from '@google/genai';
-// Removed HistoryItem import
 import { getCommandFromQuery } from '../utils/commandUtils.js';
-import { UseHistoryManagerReturn } from './useHistoryManager.js'; // Import the type
+import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 export interface SlashCommand {
-  name: string; // slash command
-  altName?: string; // alternative name for the command
-  description: string; // flavor text in UI
+  name: string;
+  altName?: string;
+  description: string;
   action: (value: PartListUnion) => void;
 }
 
-// Remove local addHistoryItem helper
-
 export const useSlashCommandProcessor = (
-  // Use functions from useHistoryManager
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Keep signature consistent, even if unused
+  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'],
   clearHistory: UseHistoryManagerReturn['clearHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
-  getNextMessageId: (baseTimestamp: number) => number, // Keep if needed for specific ID logic, though addItemToHistory handles it
+  // Removed getNextMessageId
   openThemeDialog: () => void,
 ) => {
   const slashCommands: SlashCommand[] = [
@@ -45,7 +41,6 @@ export const useSlashCommandProcessor = (
       description: 'clear the screen',
       action: (_value: PartListUnion) => {
         setDebugMessage('Clearing terminal.');
-        // Use clearHistory from the hook
         clearHistory();
         refreshStatic();
       },
@@ -63,13 +58,11 @@ export const useSlashCommandProcessor = (
       description: '',
       action: (_value: PartListUnion) => {
         setDebugMessage('Quitting. Good-bye.');
-        // No history item needed for quit, just exit
         process.exit(0);
       },
     },
   ];
 
-  // Checks if the query is a slash command and executes the command if it is.
   const handleSlashCommand = useCallback(
     (rawQuery: PartListUnion): boolean => {
       if (typeof rawQuery !== 'string') {
@@ -79,7 +72,6 @@ export const useSlashCommandProcessor = (
       const trimmed = rawQuery.trim();
       const [symbol, test] = getCommandFromQuery(trimmed);
 
-      // Skip non slash commands
       if (symbol !== '/' && symbol !== '?') {
         return false;
       }
@@ -90,36 +82,36 @@ export const useSlashCommandProcessor = (
           test === cmd.altName ||
           symbol === cmd.altName
         ) {
-          // Add user message *before* execution using the hook function
           const userMessageTimestamp = Date.now();
           addItemToHistory(
             { type: 'user', text: trimmed },
             userMessageTimestamp,
           );
           cmd.action(trimmed);
-          return true; // Command was handled
+          return true;
         }
       }
 
-      // If no command matched, add an error message
+      // Unknown command: Add user message and error message
       const userMessageTimestamp = Date.now();
       addItemToHistory({ type: 'user', text: trimmed }, userMessageTimestamp);
+      // Use addItemToHistory for the error message, relying on its internal ID generation
       addItemToHistory(
         { type: 'error', text: `Unknown command: ${trimmed}` },
-        getNextMessageId(userMessageTimestamp), // Use next ID for error
+        userMessageTimestamp, // Use same base timestamp
       );
 
-      return true; // Indicate command was processed (even if invalid)
+      return true;
     },
     [
       setDebugMessage,
-      addItemToHistory, // Updated dependency
-      getNextMessageId,
+      addItemToHistory,
+      // Removed getNextMessageId
       slashCommands,
-      setShowHelp, // Added missing dependency
-      clearHistory, // Added missing dependency
-      refreshStatic, // Added missing dependency
-      openThemeDialog, // Added missing dependency
+      setShowHelp,
+      clearHistory,
+      refreshStatic,
+      openThemeDialog,
     ],
   );
 

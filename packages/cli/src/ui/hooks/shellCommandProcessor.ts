@@ -8,25 +8,22 @@ import { exec as _exec } from 'child_process';
 import { useCallback } from 'react';
 import { Config } from '@gemini-code/server';
 import { type PartListUnion } from '@google/genai';
-import { StreamingState } from '../types.js'; // Removed HistoryItem import
+import { StreamingState } from '../types.js';
 import { getCommandFromQuery } from '../utils/commandUtils.js';
-import { UseHistoryManagerReturn } from './useHistoryManager.js'; // Import the type
-
-// Remove local addHistoryItem helper
+import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 export const useShellCommandProcessor = (
-  // Use functions from useHistoryManager
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'],
-  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'], // Keep signature consistent
+  _updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'],
   setStreamingState: React.Dispatch<React.SetStateAction<StreamingState>>,
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>,
-  getNextMessageId: (baseTimestamp: number) => number, // Keep if needed for specific ID logic
+  // Removed getNextMessageId
   config: Config,
 ) => {
   const handleShellCommand = useCallback(
     (rawQuery: PartListUnion): boolean => {
       if (typeof rawQuery !== 'string') {
-        return false; // Shell commands must be strings
+        return false;
       }
 
       const [symbol] = getCommandFromQuery(rawQuery);
@@ -35,25 +32,17 @@ export const useShellCommandProcessor = (
       }
       const trimmed = rawQuery.trim().slice(1).trimStart();
 
-      if (!trimmed) {
-        // Add user message even if command is empty, then show error
-        const userMessageTimestamp = Date.now();
-        addItemToHistory(
-          { type: 'user', text: rawQuery },
-          userMessageTimestamp,
-        );
-        addItemToHistory(
-          { type: 'error', text: 'Empty shell command.' },
-          getNextMessageId(userMessageTimestamp),
-        );
-        return true; // Handled (by showing error)
-      }
-
-      // Add user message *before* execution starts
       const userMessageTimestamp = Date.now();
       addItemToHistory({ type: 'user', text: rawQuery }, userMessageTimestamp);
 
-      // Execute and capture output
+      if (!trimmed) {
+        addItemToHistory(
+          { type: 'error', text: 'Empty shell command.' },
+          userMessageTimestamp, // Use same base timestamp
+        );
+        return true;
+      }
+
       const targetDir = config.getTargetDir();
       setDebugMessage(`Executing shell command in ${targetDir}: ${trimmed}`);
       const execOptions = {
@@ -63,31 +52,33 @@ export const useShellCommandProcessor = (
       setStreamingState(StreamingState.Responding);
 
       _exec(trimmed, execOptions, (error, stdout, stderr) => {
-        const timestamp = getNextMessageId(userMessageTimestamp); // Use user message time as base
+        // Use addItemToHistory for all subsequent items
         if (error) {
-          addItemToHistory({ type: 'error', text: error.message }, timestamp);
+          addItemToHistory(
+            { type: 'error', text: error.message },
+            userMessageTimestamp, // Use same base timestamp
+          );
         } else {
-          // Combine stdout and stderr into a single info message
           let output = '';
           if (stdout) output += stdout;
-          if (stderr) output += (output ? '\n' : '') + stderr; // Add stderr if present
+          if (stderr) output += (output ? '\n' : '') + stderr;
 
           addItemToHistory(
             { type: 'info', text: output || '(Command produced no output)' },
-            timestamp,
+            userMessageTimestamp, // Use same base timestamp
           );
         }
         setStreamingState(StreamingState.Idle);
       });
 
-      return true; // Command was handled
+      return true;
     },
     [
       config,
       setDebugMessage,
-      addItemToHistory, // Updated dependency
+      addItemToHistory,
       setStreamingState,
-      getNextMessageId,
+      // Removed getNextMessageId
     ],
   );
 

@@ -18,18 +18,15 @@ import {
   IndividualToolCallDisplay,
   ToolCallStatus,
 } from '../types.js';
-import { UseHistoryManagerReturn } from './useHistoryManager.js'; // Import the type
-
-// Remove local addHistoryItem helper
+import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 interface HandleAtCommandParams {
   query: string;
   config: Config;
-  // Use functions from useHistoryManager
   addItemToHistory: UseHistoryManagerReturn['addItemToHistory'];
-  updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem']; // Add update function
+  updateHistoryItem: UseHistoryManagerReturn['updateHistoryItem'];
   setDebugMessage: React.Dispatch<React.SetStateAction<string>>;
-  getNextMessageId: (baseTimestamp: number) => number; // Keep if needed for specific ID logic
+  // Removed getNextMessageId
   userMessageTimestamp: number;
 }
 
@@ -47,7 +44,6 @@ function parseAtCommand(
 ): { textBefore: string; atPath: string; textAfter: string } | null {
   let atIndex = -1;
   for (let i = 0; i < query.length; i++) {
-    // Find the first '@' that is not preceded by a '\'
     if (query[i] === '@' && (i === 0 || query[i - 1] !== '\\')) {
       atIndex = i;
       break;
@@ -55,7 +51,7 @@ function parseAtCommand(
   }
 
   if (atIndex === -1) {
-    return null; // No '@' command found
+    return null;
   }
 
   const textBefore = query.substring(0, atIndex).trim();
@@ -64,7 +60,6 @@ function parseAtCommand(
 
   while (pathEndIndex < query.length) {
     const char = query[pathEndIndex];
-
     if (inEscape) {
       inEscape = false;
     } else if (char === '\\') {
@@ -77,7 +72,6 @@ function parseAtCommand(
 
   const rawAtPath = query.substring(atIndex, pathEndIndex);
   const textAfter = query.substring(pathEndIndex).trim();
-
   const atPath = unescapePath(rawAtPath);
 
   return { textBefore, atPath, textAfter };
@@ -89,34 +83,30 @@ function parseAtCommand(
 export async function handleAtCommand({
   query,
   config,
-  // Destructure history manager functions
   addItemToHistory,
-  // updateHistoryItem, // Not currently used here, but available
+  // updateHistoryItem, // Not currently used here
   setDebugMessage,
-  getNextMessageId,
   userMessageTimestamp,
 }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const trimmedQuery = query.trim();
   const parsedCommand = parseAtCommand(trimmedQuery);
 
   if (!parsedCommand) {
-    // No @ command found, add user query and proceed
     addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
     return { processedQuery: [{ text: query }], shouldProceed: true };
   }
 
   const { textBefore, atPath, textAfter } = parsedCommand;
 
-  // Add the original user query to history *before* processing
   addItemToHistory({ type: 'user', text: query }, userMessageTimestamp);
 
-  const pathPart = atPath.substring(1); // Remove the leading '@'
+  const pathPart = atPath.substring(1);
 
   if (!pathPart) {
-    const errorTimestamp = getNextMessageId(userMessageTimestamp);
+    // Use addItemToHistory for error
     addItemToHistory(
       { type: 'error', text: 'Error: No path specified after @.' },
-      errorTimestamp,
+      userMessageTimestamp, // Use same base timestamp
     );
     return { processedQuery: null, shouldProceed: false };
   }
@@ -125,10 +115,10 @@ export async function handleAtCommand({
   const readManyFilesTool = toolRegistry.getTool('read_many_files');
 
   if (!readManyFilesTool) {
-    const errorTimestamp = getNextMessageId(userMessageTimestamp);
+    // Use addItemToHistory for error
     addItemToHistory(
       { type: 'error', text: 'Error: read_many_files tool not found.' },
-      errorTimestamp,
+      userMessageTimestamp, // Use same base timestamp
     );
     return { processedQuery: null, shouldProceed: false };
   }
@@ -161,13 +151,6 @@ export async function handleAtCommand({
   // --- End Path Handling ---
 
   let toolCallDisplay: IndividualToolCallDisplay;
-  const toolGroupId = getNextMessageId(userMessageTimestamp);
-
-  // Add the tool group placeholder immediately
-  addItemToHistory(
-    { type: 'tool_group', tools: [] } as Omit<HistoryItem, 'id'>,
-    toolGroupId,
-  );
 
   try {
     const result = await readManyFilesTool.execute(toolArgs);
@@ -182,21 +165,6 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    // Update the tool group with the successful result
-    // Assuming updateHistoryItem can handle this update correctly
-    // (May need refinement in useHistoryManager if it only replaces)
-    // updateHistoryItem(toolGroupId, { tools: [toolCallDisplay] });
-    // Safer: Use functional update form if available in useHistoryManager
-    // updateHistoryItem(toolGroupId, (prevItem) => ({ ...prevItem, tools: [toolCallDisplay] }));
-    // Simplest if updateHistoryItem replaces: Just set the tools array
-    // This requires updateHistoryItem to be passed in HandleAtCommandParams
-    // Let's assume updateHistoryItem is available and works by replacement for now:
-    // *** Correction: updateHistoryItem *was* added to params, let's use it ***
-    // updateHistoryItem(toolGroupId, { tools: [toolCallDisplay] });
-    // *** Reconsidering: It's better to add the item directly with the tool ***
-    // Remove the placeholder addHistoryItem above and add it here with the tool.
-    // *** Revised Plan: Remove placeholder, add group with tool here. ***
-
     const processedQueryParts = [];
     if (textBefore) {
       processedQueryParts.push({ text: textBefore });
@@ -210,13 +178,13 @@ export async function handleAtCommand({
 
     const processedQuery: PartListUnion = processedQueryParts;
 
-    // *** Add the tool group with the successful tool result ***
+    // Add the tool group with the successful tool result using addItemToHistory
     addItemToHistory(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'
       >,
-      toolGroupId, // Use the pre-calculated ID
+      userMessageTimestamp, // Use same base timestamp
     );
 
     return { processedQuery, shouldProceed: true };
@@ -230,13 +198,13 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    // *** Add the tool group with the error tool result ***
+    // Add the tool group with the error tool result using addItemToHistory
     addItemToHistory(
       { type: 'tool_group', tools: [toolCallDisplay] } as Omit<
         HistoryItem,
         'id'
       >,
-      toolGroupId, // Use the pre-calculated ID
+      userMessageTimestamp, // Use same base timestamp
     );
 
     return { processedQuery: null, shouldProceed: false };
