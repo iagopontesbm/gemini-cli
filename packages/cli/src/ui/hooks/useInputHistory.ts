@@ -11,7 +11,7 @@ interface UseInputHistoryProps {
   userMessages: readonly string[];
   onSubmit: (value: string) => void;
   isActive: boolean;
-  query: string; // Added
+  query: string;
   setQuery: React.Dispatch<React.SetStateAction<string>>;
 }
 

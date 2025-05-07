@@ -131,8 +131,9 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             // This onSubmit is for the TextInput component itself.
             // It should only fire if suggestions are NOT showing,
             // as useInput handles Enter when suggestions are visible.
-            if (!showSuggestions && query.trim()) {
-              onSubmit(query.trim());
+            const trimmedQuery = query.trim();
+            if (!showSuggestions && trimmedQuery) {
+              onSubmit(trimmedQuery);
             }
             // If suggestions ARE showing, useInput's Enter handler
             // would have already dealt with it (either completing or submitting).
