@@ -23,7 +23,6 @@ import {
 import { type Chat, type PartListUnion, type Part } from '@google/genai';
 import {
   StreamingState,
-  HistoryItem,
   IndividualToolCallDisplay,
   ToolCallStatus,
   HistoryItemWithoutId,
@@ -459,15 +458,14 @@ export const useGeminiStream = (
     },
     [
       streamingState,
-      config,
+      setShowHelp,
       handleSlashCommand,
       handleShellCommand,
-      setDebugMessage,
-      setStreamingState,
+      config,
       addItem,
-      setShowHelp,
+      pendingHistoryItemRef,
+      setPendingHistoryItem,
       toolRegistry,
-      setInitError,
       refreshStatic,
     ],
   );
