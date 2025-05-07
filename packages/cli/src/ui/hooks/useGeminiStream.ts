@@ -96,7 +96,6 @@ export const useGeminiStream = (
     }
   });
 
-  // Improved submit query function
   const submitQuery = useCallback(
     async (query: PartListUnion) => {
       if (streamingState === StreamingState.Responding) return;
@@ -187,14 +186,11 @@ export const useGeminiStream = (
           if (event.type === ServerGeminiEventType.Content) {
             currentGeminiText += event.value;
 
-            // Reset group because we're now adding a user message to the history. If we didn't reset the
-            // group here then any subsequent tool calls would get grouped before this message resulting in
-            // a misordering of history.
-            if (
-              pendingHistoryItemRef.current?.type &&
-              pendingHistoryItemRef.current?.type !== 'gemini'
-            ) {
-              addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+            if (pendingHistoryItemRef.current?.type !== 'gemini') {
+              // Flush out existing pending history item.
+              if (pendingHistoryItemRef.current) {
+                addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+              }
               setPendingHistoryItem({
                 type: 'gemini',
                 text: currentGeminiText,
@@ -241,7 +237,11 @@ export const useGeminiStream = (
               continue;
             }
 
-            if (pendingHistoryItemRef.current === null) {
+            if (pendingHistoryItemRef.current?.type !== 'tool_group') {
+              // Flush out existing pending history item.
+              if (pendingHistoryItemRef.current) {
+                addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+              }
               setPendingHistoryItem({
                 type: 'tool_group',
                 tools: [],
