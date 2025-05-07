@@ -156,13 +156,11 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
         }}
       </Static>
       {pendingHistoryItem && (
-        <Box flexDirection="column" alignItems="flex-start">
-          <HistoryItemDisplay
-            key={'history-' + pendingHistoryItem.id}
-            item={pendingHistoryItem}
-            onSubmit={submitQuery}
-          />
-        </Box>
+        <HistoryItemDisplay
+          key={'history-' + pendingHistoryItem.id}
+          item={pendingHistoryItem}
+          onSubmit={submitQuery}
+        />
       )}
       {showHelp && <Help commands={slashCommands} />}
 
