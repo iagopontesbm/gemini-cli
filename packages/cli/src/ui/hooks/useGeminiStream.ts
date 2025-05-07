@@ -166,7 +166,6 @@ export const useGeminiStream = (
       setStreamingState(StreamingState.Responding);
       setInitError(null);
       const chat = chatSessionRef.current;
-      let currentToolGroupMessageId: number | null = null;
 
       try {
         abortControllerRef.current = new AbortController();
