@@ -36,7 +36,7 @@ interface AppProps {
 }
 
 export const App = ({ config, settings, cliVersion }: AppProps) => {
-  const { history, addItem, updateItem, clearItems } = useHistory();
+  const { history, addItem, clearItems } = useHistory();
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const {
@@ -60,7 +60,6 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     pendingHistoryItem,
   } = useGeminiStream(
     addItem,
-    updateItem,
     clearItems,
     refreshStatic,
     setShowHelp,
@@ -160,8 +159,9 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
       </Static>
       {pendingHistoryItem && (
         <HistoryItemDisplay
-          key={'history-' + pendingHistoryItem.id}
-          item={pendingHistoryItem}
+          // TODO(taehykim): It seems like references to ids aren't necessary in
+          // HistoryItemDisplay. Refactor later. Use a fake id for now.
+          item={{ ...pendingHistoryItem, id: 0 }}
           onSubmit={submitQuery}
         />
       )}

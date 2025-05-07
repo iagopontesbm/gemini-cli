@@ -42,7 +42,6 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  */
 export const useGeminiStream = (
   addItem: UseHistoryManagerReturn['addItem'],
-  updateItem: UseHistoryManagerReturn['updateItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
@@ -120,7 +119,6 @@ export const useGeminiStream = (
             query: trimmedQuery,
             config,
             addItem,
-            updateItem,
             setDebugMessage,
             messageId: userMessageTimestamp,
           });
@@ -376,25 +374,22 @@ export const useGeminiStream = (
           originalConfirmationDetails.onConfirm(outcome);
 
           // Ensure UI updates before potentially long-running operations
-          if (currentToolGroupMessageId !== null) {
-            updateItem(
-              currentToolGroupMessageId,
-              (currentItem: HistoryItem) => {
-                if (currentItem?.type !== 'tool_group')
-                  return currentItem as Partial<Omit<HistoryItem, 'id'>>;
-                return {
-                  ...currentItem,
-                  tools: (currentItem.tools || []).map((tool) =>
-                    tool.callId === request.callId
-                      ? {
-                          ...tool,
-                          confirmationDetails: undefined,
-                          status: ToolCallStatus.Executing,
-                        }
-                      : tool,
-                  ),
-                } as Partial<Omit<HistoryItem, 'id'>>;
-              },
+          if (pendingHistoryItemRef?.current?.type === 'tool_group') {
+            setPendingHistoryItem((item) =>
+              item?.type === 'tool_group'
+                ? {
+                    ...item,
+                    tools: item.tools.map((tool) =>
+                      tool.callId === request.callId
+                        ? {
+                            ...tool,
+                            confirmationDetails: undefined,
+                            status: ToolCallStatus.Executing,
+                          }
+                        : tool,
+                    ),
+                  }
+                : item,
             );
             refreshStatic();
           }
@@ -470,7 +465,6 @@ export const useGeminiStream = (
       setDebugMessage,
       setStreamingState,
       addItem,
-      updateItem,
       setShowHelp,
       toolRegistry,
       setInitError,
