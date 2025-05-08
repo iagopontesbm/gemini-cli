@@ -27,7 +27,12 @@ export interface RadioSelectItem<T> {
  */
 export interface RadioButtonSelectProps<T> {
   /** An array of items to display as radio options. */
-  items: Array<RadioSelectItem<T> & { themeNameDisplay?: string; themeTypeDisplay?: string }>;
+  items: Array<
+    RadioSelectItem<T> & {
+      themeNameDisplay?: string;
+      themeTypeDisplay?: string;
+    }
+  >;
 
   /** The initial index selected */
   initialIndex?: number;
@@ -121,11 +126,7 @@ export function RadioButtonSelect<T>({
       );
     }
 
-    return (
-      <Text color={textColor}>
-        {label}
-      </Text>
-    );
+    return <Text color={textColor}>{label}</Text>;
   }
 
   initialIndex = initialIndex ?? 0;
