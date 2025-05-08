@@ -136,7 +136,7 @@ export function RadioButtonSelect<T>({
   return (
     <SelectInput
       indicatorComponent={DynamicRadioIndicator}
-      itemComponent={CustomThemeItemComponent} // Use the new custom item component
+      itemComponent={CustomThemeItemComponent}
       items={items}
       initialIndex={initialIndex}
       onSelect={handleSelect}

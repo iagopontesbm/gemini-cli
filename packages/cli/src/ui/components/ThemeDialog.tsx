@@ -111,9 +111,9 @@ export function ThemeDialog({
     <Box
       borderStyle="round"
       borderColor={Colors.AccentPurple}
-      flexDirection="row" // Changed to row for side-by-side layout
+      flexDirection="row"
       padding={1}
-      width="90%" // Increased width to accommodate side-by-side
+      width="90%"
     >
       {/* Left Column: Selection */}
       <Box flexDirection="column" width="50%" paddingRight={2}>
