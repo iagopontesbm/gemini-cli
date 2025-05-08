@@ -32,13 +32,25 @@ export function ThemeDialog({
     SettingScope.User,
   );
 
-  const activeThemeName = settings.merged.theme || DEFAULT_THEME.name;
+  // Determine the theme that is effectively active for the *currently selected scope*
+  const themeExplicitlySetForScope = settings.forScope(selectedScope).settings.theme;
+  const currentThemeForScope =
+    themeExplicitlySetForScope !== undefined
+      ? themeExplicitlySetForScope
+      : settings.merged.theme || DEFAULT_THEME.name;
+
+  // Generate theme items, marking the one active for the current scope
   const themeItems = themeManager.getAvailableThemes().map((theme) => ({
-    label: theme.name === activeThemeName ? `${theme.name} (Current)` : theme.name,
+    label:
+      theme.name === currentThemeForScope
+        ? `${theme.name} (Current)`
+        : theme.name,
     value: theme.name,
   }));
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
+  // Determine which radio button should be initially selected in the theme list
+  // This should reflect the theme *saved* for the selected scope, or the default
   const initialThemeIndex = themeItems.findIndex(
     (item) =>
       item.value ===
