@@ -24,6 +24,11 @@
     "auth": "npm run auth:npm && npm run auth:docker",
     "prerelease:dev": "npm run prerelease:version --workspaces && npm run prerelease:deps --workspaces"
   },
+  "overrides": {
+    "node-fetch": {
+      "whatwg-url": "14.2.0"
+    }
+  },
   "devDependencies": {
     "eslint": "^9.24.0",
     "eslint-config-prettier": "^10.1.2",
