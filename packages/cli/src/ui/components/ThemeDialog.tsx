@@ -32,8 +32,9 @@ export function ThemeDialog({
     SettingScope.User,
   );
 
+  const activeThemeName = settings.merged.theme || DEFAULT_THEME.name;
   const themeItems = themeManager.getAvailableThemes().map((theme) => ({
-    label: theme.active ? `${theme.name} (Active)` : theme.name,
+    label: theme.name === activeThemeName ? `${theme.name} (Current)` : theme.name,
     value: theme.name,
   }));
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
