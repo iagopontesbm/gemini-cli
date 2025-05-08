@@ -51,7 +51,7 @@ function RadioIndicator({
   return (
     <Box marginRight={1}>
       <Text color={isSelected ? Colors.AccentGreen : Colors.Gray}>
-        {isSelected ? '◉' : '○'}
+        {isSelected ? '●' : '○'}
       </Text>
     </Box>
   );
