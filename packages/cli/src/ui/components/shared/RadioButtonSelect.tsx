@@ -43,33 +43,6 @@ export interface RadioButtonSelectProps<T> {
 }
 
 /**
- * Custom indicator component displaying radio button style (◉/○).
- */
-function RadioIndicator({
-  isSelected = false,
-}: InkSelectIndicatorProps): React.JSX.Element {
-  return (
-    <Box marginRight={1}>
-      <Text color={isSelected ? Colors.AccentGreen : Colors.Gray}>
-        {isSelected ? '●' : '○'}
-      </Text>
-    </Box>
-  );
-}
-
-/**
- * Custom item component for displaying the label with appropriate color.
- */
-function RadioItem({
-  isSelected = false,
-  label,
-}: InkSelectItemProps): React.JSX.Element {
-  return (
-    <Text color={isSelected ? Colors.AccentGreen : Colors.Gray}>{label}</Text>
-  );
-}
-
-/**
  * A specialized SelectInput component styled to look like radio buttons.
  * It uses '◉' for selected and '○' for unselected items.
  *
@@ -80,7 +53,7 @@ export function RadioButtonSelect<T>({
   initialIndex,
   onSelect,
   onHighlight,
-  isFocused,
+  isFocused, // This prop indicates if the current RadioButtonSelect group is focused
 }: RadioButtonSelectProps<T>): React.JSX.Element {
   const handleSelect = (item: RadioSelectItem<T>) => {
     onSelect(item.value);
@@ -90,16 +63,62 @@ export function RadioButtonSelect<T>({
       onHighlight(item.value);
     }
   };
+
+  /**
+   * Custom indicator component displaying radio button style (◉/○).
+   * Color changes based on whether the item is selected and if its group is focused.
+   */
+  function DynamicRadioIndicator({
+    isSelected = false,
+  }: InkSelectIndicatorProps): React.JSX.Element {
+    let indicatorColor = Colors.Foreground; // Default for not selected
+    if (isSelected) {
+      if (isFocused) {
+        // Group is focused, selected item is AccentGreen
+        indicatorColor = Colors.AccentGreen;
+      } else {
+        // Group is NOT focused, selected item is Foreground
+        indicatorColor = Colors.Foreground;
+      }
+    }
+    return (
+      <Box marginRight={1}>
+        <Text color={indicatorColor}>{isSelected ? '●' : '○'}</Text>
+      </Box>
+    );
+  }
+
+  /**
+   * Custom item component for displaying the label.
+   * Color changes based on whether the item is selected and if its group is focused.
+   */
+  function DynamicRadioItem({
+    isSelected = false,
+    label,
+  }: InkSelectItemProps): React.JSX.Element {
+    let textColor = Colors.Foreground; // Default for not selected
+    if (isSelected) {
+      if (isFocused) {
+        // Group is focused, selected item is AccentGreen
+        textColor = Colors.AccentGreen;
+      } else {
+        // Group is NOT focused, selected item is Foreground
+        textColor = Colors.Foreground;
+      }
+    }
+    return <Text color={textColor}>{label}</Text>;
+  }
+
   initialIndex = initialIndex ?? 0;
   return (
     <SelectInput
-      indicatorComponent={RadioIndicator}
-      itemComponent={RadioItem}
+      indicatorComponent={DynamicRadioIndicator} // Use the new dynamic indicator
+      itemComponent={DynamicRadioItem} // Use the new dynamic item
       items={items}
       initialIndex={initialIndex}
       onSelect={handleSelect}
       onHighlight={handleHighlight}
-      isFocused={isFocused}
+      isFocused={isFocused} // This prop is for ink-select-input to handle keyboard input
     />
   );
 }
