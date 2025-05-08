@@ -33,7 +33,8 @@ export function ThemeDialog({
   );
 
   // Determine the theme that is effectively active for the *currently selected scope*
-  const themeExplicitlySetForScope = settings.forScope(selectedScope).settings.theme;
+  const themeExplicitlySetForScope =
+    settings.forScope(selectedScope).settings.theme;
   const currentThemeForScope =
     themeExplicitlySetForScope !== undefined
       ? themeExplicitlySetForScope

@@ -93,7 +93,9 @@ export function RadioButtonSelect<T>({
    * Color changes based on whether the item is selected and if its group is focused.
    * Now also handles displaying theme type with custom color.
    */
-  function CustomThemeItemComponent(props: InkSelectItemProps): React.JSX.Element {
+  function CustomThemeItemComponent(
+    props: InkSelectItemProps,
+  ): React.JSX.Element {
     const { isSelected = false, label } = props;
     // Attempt to access custom properties passed via items
     // These might not exist on all items (e.g. scope selection uses simple strings)
@@ -109,12 +111,19 @@ export function RadioButtonSelect<T>({
     }
 
     // If custom theme properties are available, use them for richer display
-    if (itemWithThemeProps.themeNameDisplay && itemWithThemeProps.themeTypeDisplay) {
+    if (
+      itemWithThemeProps.themeNameDisplay &&
+      itemWithThemeProps.themeTypeDisplay
+    ) {
       return (
         <Text color={textColor}>
           {itemWithThemeProps.themeNameDisplay}{' '}
-          <Text color={Colors.SubtleComment}>{itemWithThemeProps.themeTypeDisplay}</Text>
-          {itemWithThemeProps.isCurrentDisplay && <Text color={Colors.Foreground}> Active</Text>}
+          <Text color={Colors.SubtleComment}>
+            {itemWithThemeProps.themeTypeDisplay}
+          </Text>
+          {itemWithThemeProps.isCurrentDisplay && (
+            <Text color={Colors.Foreground}> Active</Text>
+          )}
         </Text>
       );
     }
