@@ -32,9 +32,8 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
     const toolDisplayName = 'Shell';
     const descriptionUrl = new URL('shell.md', import.meta.url);
     const toolDescription = fs.readFileSync(descriptionUrl, 'utf-8');
-    const toolParameterSchema = JSON.parse(
-      fs.readFileSync(new URL('shell.json', import.meta.url), 'utf-8'),
-    );
+    const schemaUrl = new URL('shell.json', import.meta.url);
+    const toolParameterSchema = JSON.parse(fs.readFileSync(schemaUrl, 'utf-8'));
     super(
       ShellTool.Name,
       toolDisplayName,
