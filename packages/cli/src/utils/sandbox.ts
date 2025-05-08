@@ -345,6 +345,11 @@ export async function start_sandbox(sandbox: string) {
     }
   }
 
+  // copy NODE_OPTIONS
+  if (process.env.NODE_OPTIONS) {
+    args.push('--env', `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`);
+  }
+
   // set SANDBOX as container name
   args.push('--env', `SANDBOX=${containerName}-${index}`);
 
