@@ -97,7 +97,7 @@ export function ThemeDialog({
       borderColor={Colors.AccentPurple}
       flexDirection="row"
       padding={1}
-      width="90%"
+      width="100%"
     >
       {/* Left Column: Selection */}
       <Box flexDirection="column" width="50%" paddingRight={2}>
@@ -136,7 +136,7 @@ export function ThemeDialog({
       </Box>
 
       {/* Right Column: Preview */}
-      <Box flexDirection="column" width="50%" paddingLeft={2}>
+      <Box flexDirection="column" width="50%" paddingLeft={3}>
         <Text bold>Preview</Text>
         <Box
           borderStyle="single"
