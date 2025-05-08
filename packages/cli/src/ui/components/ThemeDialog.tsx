@@ -40,13 +40,21 @@ export function ThemeDialog({
       : settings.merged.theme || DEFAULT_THEME.name;
 
   // Generate theme items, marking the one active for the current scope
-  const themeItems = themeManager.getAvailableThemes().map((theme) => ({
-    label:
-      theme.name === currentThemeForScope
-        ? `${theme.name} (Current)`
-        : theme.name,
-    value: theme.name,
-  }));
+  const themeItems = themeManager.getAvailableThemes().map((theme) => {
+    const typeString = theme.type.charAt(0).toUpperCase() + theme.type.slice(1);
+    const isCurrent = theme.name === currentThemeForScope;
+    // Keep the primary label as a simple string for compatibility with RadioButtonSelect
+    const labelString = theme.name + (isCurrent ? ' - Current' : '');
+
+    return {
+      label: labelString, // This will be used by the default itemComponent
+      value: theme.name,
+      // Add custom properties for our enhanced itemComponent
+      themeNameDisplay: theme.name, // The base name of the theme
+      themeTypeDisplay: typeString, // The type string (e.g., "Dark")
+      isCurrentDisplay: isCurrent, // Boolean to indicate if it's the current theme
+    };
+  });
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
   // Determine which radio button should be initially selected in the theme list
@@ -101,7 +109,7 @@ export function ThemeDialog({
   return (
     <Box
       borderStyle="round"
-      borderColor={Colors.AccentCyan}
+      borderColor={Colors.AccentPurple}
       flexDirection="row" // Changed to row for side-by-side layout
       padding={1}
       width="90%" // Increased width to accommodate side-by-side
@@ -143,7 +151,7 @@ export function ThemeDialog({
       </Box>
 
       {/* Right Column: Preview */}
-      <Box flexDirection="column" width="50%">
+      <Box flexDirection="column" width="50%" paddingLeft={2}>
         <Text bold>Preview</Text>
         <Box
           borderStyle="single"

@@ -91,34 +91,48 @@ export function RadioButtonSelect<T>({
   /**
    * Custom item component for displaying the label.
    * Color changes based on whether the item is selected and if its group is focused.
+   * Now also handles displaying theme type with custom color.
    */
-  function DynamicRadioItem({
-    isSelected = false,
-    label,
-  }: InkSelectItemProps): React.JSX.Element {
+  function CustomThemeItemComponent(props: InkSelectItemProps): React.JSX.Element {
+    const { isSelected = false, label } = props;
+    // Attempt to access custom properties passed via items
+    // These might not exist on all items (e.g. scope selection uses simple strings)
+    const itemWithThemeProps = props as typeof props & {
+      themeNameDisplay?: string;
+      themeTypeDisplay?: string;
+      isCurrentDisplay?: boolean;
+    };
+
     let textColor = Colors.Foreground; // Default for not selected
     if (isSelected) {
-      if (isFocused) {
-        // Group is focused, selected item is AccentGreen
-        textColor = Colors.AccentGreen;
-      } else {
-        // Group is NOT focused, selected item is Foreground
-        textColor = Colors.Foreground;
-      }
+      textColor = isFocused ? Colors.AccentGreen : Colors.Foreground;
     }
+
+    // If custom theme properties are available, use them for richer display
+    if (itemWithThemeProps.themeNameDisplay && itemWithThemeProps.themeTypeDisplay) {
+      return (
+        <Text color={textColor}>
+          {itemWithThemeProps.themeNameDisplay}{' '}
+          <Text color={Colors.SubtleComment}>{itemWithThemeProps.themeTypeDisplay}</Text>
+          {itemWithThemeProps.isCurrentDisplay && <Text color={Colors.Foreground}> Active</Text>}
+        </Text>
+      );
+    }
+
+    // Fallback to simple label if custom props aren't there
     return <Text color={textColor}>{label}</Text>;
   }
 
   initialIndex = initialIndex ?? 0;
   return (
     <SelectInput
-      indicatorComponent={DynamicRadioIndicator} // Use the new dynamic indicator
-      itemComponent={DynamicRadioItem} // Use the new dynamic item
+      indicatorComponent={DynamicRadioIndicator}
+      itemComponent={CustomThemeItemComponent} // Use the new custom item component
       items={items}
       initialIndex={initialIndex}
       onSelect={handleSelect}
       onHighlight={handleHighlight}
-      isFocused={isFocused} // This prop is for ink-select-input to handle keyboard input
+      isFocused={isFocused}
     />
   );
 }
