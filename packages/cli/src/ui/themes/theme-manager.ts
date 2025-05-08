@@ -17,7 +17,6 @@ import { ANSI } from './ansi.js';
 export interface ThemeDisplay {
   name: string;
   type: ThemeType;
-  active: boolean;
 }
 
 export const DEFAULT_THEME: Theme = VS2015;
@@ -68,7 +67,6 @@ class ThemeManager {
     return sortedThemes.map((theme) => ({
       name: theme.name,
       type: theme.type,
-      active: theme === this.activeTheme,
     }));
   }
 

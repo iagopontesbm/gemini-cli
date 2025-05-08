@@ -27,7 +27,7 @@ export interface RadioSelectItem<T> {
  */
 export interface RadioButtonSelectProps<T> {
   /** An array of items to display as radio options. */
-  items: Array<RadioSelectItem<T>>;
+  items: Array<RadioSelectItem<T> & { themeNameDisplay?: string; themeTypeDisplay?: string }>;
 
   /** The initial index selected */
   initialIndex?: number;
@@ -97,20 +97,16 @@ export function RadioButtonSelect<T>({
     props: InkSelectItemProps,
   ): React.JSX.Element {
     const { isSelected = false, label } = props;
-    // Attempt to access custom properties passed via items
-    // These might not exist on all items (e.g. scope selection uses simple strings)
     const itemWithThemeProps = props as typeof props & {
       themeNameDisplay?: string;
       themeTypeDisplay?: string;
-      isCurrentDisplay?: boolean;
     };
 
-    let textColor = Colors.Foreground; // Default for not selected
+    let textColor = Colors.Foreground;
     if (isSelected) {
       textColor = isFocused ? Colors.AccentGreen : Colors.Foreground;
     }
 
-    // If custom theme properties are available, use them for richer display
     if (
       itemWithThemeProps.themeNameDisplay &&
       itemWithThemeProps.themeTypeDisplay
@@ -121,15 +117,15 @@ export function RadioButtonSelect<T>({
           <Text color={Colors.SubtleComment}>
             {itemWithThemeProps.themeTypeDisplay}
           </Text>
-          {itemWithThemeProps.isCurrentDisplay && (
-            <Text color={Colors.Foreground}> Active</Text>
-          )}
         </Text>
       );
     }
 
-    // Fallback to simple label if custom props aren't there
-    return <Text color={textColor}>{label}</Text>;
+    return (
+      <Text color={textColor}>
+        {label}
+      </Text>
+    );
   }
 
   initialIndex = initialIndex ?? 0;
