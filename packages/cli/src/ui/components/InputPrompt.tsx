@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback } from 'react';
-import { Text, Box, useFocus, Key } from 'ink';
+import { Text, Box, Key } from 'ink';
 import { Colors } from '../colors.js';
 import { Suggestion } from './SuggestionsDisplay.js';
 import { MultilineTextEditor } from './shared/multiline-editor.js';
@@ -46,8 +46,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   navigateSuggestionDown,
   resetCompletion,
 }) => {
-  const { isFocused } = useFocus({ autoFocus: true });
-
   const handleAutocomplete = useCallback(
     (indexToUse: number) => {
       if (indexToUse < 0 || indexToUse >= suggestions.length) {
@@ -150,7 +148,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       <Box flexGrow={1}>
         <MultilineTextEditor
           key={editorState.key.toString()}
-          focus={isFocused}
           initialCursorOffset={editorState.initialCursorOffset}
           initialText={query}
           onChange={setQuery}

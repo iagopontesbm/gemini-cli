@@ -117,6 +117,10 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
       // Adapt onSubmit to use the lifted setQuery
       handleFinalSubmit(value);
       setQuery(''); // Clear query from the App's state
+      setEditorState((s) => ({
+        key: s.key + 1,
+        initialCursorOffset: 0,
+      }));
     },
     isActive: isInputActive && !completion.showSuggestions,
     query,
