@@ -4,12 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  GoogleGenAI, // Changed from GoogleGenerativeAI
-  FunctionCallingConfigMode,
-  GenerateContentResponse,
-  Tool as GenAiTool, // Renamed to avoid conflict with BaseTool
-} from '@google/genai';
+import { GoogleGenAI } from '@google/genai';
 import { BaseTool, ToolResult } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { getErrorMessage } from '../utils/errors.js';
@@ -38,7 +33,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
     super(
       WebSearchTool.Name,
       'GoogleWebSearch',
-      "Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.",
+      'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.',
       {
         type: 'object',
         properties: {
@@ -51,11 +46,11 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
       },
     );
 
-    const apiKey = this.config.getApiKey(); // Corrected to use getApiKey()
+    const apiKey = this.config.getApiKey(); 
     if (apiKey) {
-      this.ai = new GoogleGenAI({ apiKey }); // Use GoogleGenAI
+      this.ai = new GoogleGenAI({ apiKey });
     }
-    this.modelName = this.config.getModel(); // Get model name from config
+    this.modelName = this.config.getModel();
   }
 
   validateParams(params: WebSearchToolParams): string | null {
@@ -66,7 +61,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
         params,
       )
     ) {
-      return 'Parameters failed schema validation. Ensure \'query\' is a string.';
+      return "Parameters failed schema validation. Ensure 'query' is a string.";
     }
     if (!params.query || params.query.trim() === '') {
       return "The 'query' parameter cannot be empty.";
@@ -88,7 +83,8 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
     }
 
     if (!this.ai) {
-      const apiKeyError = 'Google AI API key is not configured. Cannot perform web search.';
+      const apiKeyError =
+        'Google AI API key is not configured. Cannot perform web search.';
       return {
         llmContent: `Error: ${apiKeyError}`,
         returnDisplay: `Error: ${apiKeyError}`,
@@ -96,16 +92,19 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
     }
 
     try {
-
       const response = await this.ai.models.generateContent({
-        model: this.modelName, // Use model from config
+        model: this.modelName,
         contents: [{ role: 'user', parts: [{ text: params.query }] }],
         config: {
-          tools: [ {googleSearch: {}} ], // Use Google Search tool
+          tools: [{ googleSearch: {} }], 
         },
       });
 
-      const responseText = getResponseText(response); // Use utility to get text
+      // TODO(adh): Need to get grounding metadata as web content.
+      // and figure out how to use that in the response, or if it is
+      // required at all.
+      // response.candidates[0].groundingMetadata.searchEntryPoint.renderedContent
+      const responseText = getResponseText(response); 
 
       if (!responseText || !responseText.trim()) {
         return {
@@ -116,7 +115,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
 
       return {
         llmContent: `Web search results for "${params.query}":\n\n${responseText}`,
-        returnDisplay: `Search results for "${params.query}" returned.`, 
+        returnDisplay: `Search results for "${params.query}" returned.`,
       };
     } catch (error: unknown) {
       const errorMessage = `Error during web search for query "${params.query}": ${getErrorMessage(error)}`;
