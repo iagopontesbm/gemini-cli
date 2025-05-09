@@ -46,7 +46,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
       },
     );
 
-    const apiKey = this.config.getApiKey(); 
+    const apiKey = this.config.getApiKey();
     if (apiKey) {
       this.ai = new GoogleGenAI({ apiKey });
     }
@@ -96,7 +96,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
         model: this.modelName,
         contents: [{ role: 'user', parts: [{ text: params.query }] }],
         config: {
-          tools: [{ googleSearch: {} }], 
+          tools: [{ googleSearch: {} }],
         },
       });
 
@@ -104,7 +104,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
       // and figure out how to use that in the response, or if it is
       // required at all.
       // response.candidates[0].groundingMetadata.searchEntryPoint.renderedContent
-      const responseText = getResponseText(response); 
+      const responseText = getResponseText(response);
 
       if (!responseText || !responseText.trim()) {
         return {
