@@ -292,6 +292,13 @@ export class TextBuffer {
   getCursor(): [number, number] {
     return [this.cursorRow, this.cursorCol];
   }
+  getScrollRow(): number {
+    return this.scrollRow;
+  }
+  getScrollCol(): number {
+    return this.scrollCol;
+  }
+
   getVisibleLines(vp: Viewport): string[] {
     // Whenever the viewport dimensions change (e.g. on a terminal resize) we
     // need to re‑evaluate whether the current scroll offset still keeps the
