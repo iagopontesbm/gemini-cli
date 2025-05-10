@@ -91,7 +91,7 @@ export class OpenFileTool extends BaseTool<OpenFileToolParams, ToolResult> {
       title: 'Confirm Open File',
       command: `open "${params.filePath}"`, // Command displayed to the user
       rootCommand: 'open', // The base command for permission handling (if any)
-      onConfirm: async (outcome: ToolConfirmationOutcome) => {
+      onConfirm: async (_outcome: ToolConfirmationOutcome) => {
         // Handle "always allow" if we add that feature. For now, it does nothing specific.
       },
     };

@@ -38,7 +38,14 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   reactHooks.configs['recommended-latest'],
-  reactPlugin.configs.flat.recommended,
+  {
+    ...reactPlugin.configs.flat.recommended,
+    settings: {
+      react: {
+        version: '18.3.1',
+      },
+    },
+  },
   reactPlugin.configs.flat['jsx-runtime'], // Add this if you are using React 17+
   {
     // Import specific config
