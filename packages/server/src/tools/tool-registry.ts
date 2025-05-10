@@ -7,6 +7,7 @@
 import { FunctionDeclaration } from '@google/genai';
 import { Tool, ToolResult, BaseTool } from './tools.js';
 import { Config } from '../config/config.js';
+import { OpenFileTool } from './open-file.js';
 import { spawn, execSync } from 'node:child_process';
 // TODO: remove this dependency once MCP support is built into genai SDK
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -127,7 +128,9 @@ export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private mcpClient: Client | null = null;
 
-  constructor(private readonly config: Config) {}
+  constructor(private readonly config: Config) {
+    this.registerTool(new OpenFileTool(config));
+  }
 
   /**
    * Registers a tool definition.
