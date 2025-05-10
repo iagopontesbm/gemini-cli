@@ -21,6 +21,8 @@ interface ThemeDialogProps {
   onHighlight: (themeName: string | undefined) => void;
   /** The settings object */
   settings: LoadedSettings;
+  /** Callback to set the query */
+  setQuery: (query: string) => void;
 }
 
 export function ThemeDialog({
@@ -76,6 +78,9 @@ export function ThemeDialog({
   useInput((input, key) => {
     if (key.tab) {
       setFocusedSection((prev) => (prev === 'theme' ? 'scope' : 'theme'));
+    }
+    if (key.escape) {
+      onSelect(undefined, selectedScope);
     }
   });
 
