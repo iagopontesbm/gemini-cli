@@ -97,14 +97,13 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
-  // query and setQuery are now managed by useState here
   const [query, setQuery] = useState('');
   const [editorState, setEditorState] = useState<EditorState>({
     key: 0,
     initialCursorOffset: undefined,
   });
 
-  const setQueryAndMoveCursor = useCallback(
+  const onChangeAndMoveCursor = useCallback(
     (value: string) => {
       setQuery(value);
       setEditorState((s) => ({
@@ -127,11 +126,11 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     onSubmit: (value) => {
       // Adapt onSubmit to use the lifted setQuery
       handleFinalSubmit(value);
-      setQueryAndMoveCursor('');
+      onChangeAndMoveCursor('');
     },
     isActive: isInputActive && !completion.showSuggestions,
     currentQuery: query,
-    setQueryAndMoveCursor,
+    onChangeAndMoveCursor,
   });
 
   // --- Render Logic ---
@@ -234,9 +233,9 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
 
               <InputPrompt
                 query={query}
-                setQuery={setQuery}
+                onChange={setQuery}
+                onChangeAndMoveCursor={onChangeAndMoveCursor}
                 editorState={editorState}
-                setEditorState={setEditorState}
                 onSubmit={inputHistory.handleSubmit}
                 showSuggestions={completion.showSuggestions}
                 suggestions={completion.suggestions}

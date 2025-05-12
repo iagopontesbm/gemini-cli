@@ -12,9 +12,9 @@ import { MultilineTextEditor } from './shared/multiline-editor.js';
 
 interface InputPromptProps {
   query: string;
-  setQuery: (value: string) => void;
+  onChange: (value: string) => void;
+  onChangeAndMoveCursor: (value: string) => void;
   editorState: EditorState;
-  setEditorState: React.Dispatch<React.SetStateAction<EditorState>>;
   onSubmit: (value: string) => void;
   showSuggestions: boolean;
   suggestions: Suggestion[];
@@ -33,9 +33,9 @@ export interface EditorState {
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
   query,
-  setQuery,
+  onChange,
+  onChangeAndMoveCursor,
   editorState,
-  setEditorState,
   onSubmit,
   showSuggestions,
   suggestions,
@@ -51,13 +51,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       if (indexToUse < 0 || indexToUse >= suggestions.length) {
         return;
       }
-      function setQueryAndMoveCursor(value: string) {
-        setQuery(value);
-        setEditorState((s) => ({
-          key: s.key + 1,
-          initialCursorOffset: value.length,
-        }));
-      }
       const selectedSuggestion = suggestions[indexToUse];
       const trimmedQuery = query.trimStart();
 
@@ -66,7 +59,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         const slashIndex = query.indexOf('/');
         const base = query.substring(0, slashIndex + 1);
         const newValue = base + selectedSuggestion.value;
-        setQueryAndMoveCursor(newValue);
+        onChangeAndMoveCursor(newValue);
       } else {
         // Handle @ command completion
         const atIndex = query.lastIndexOf('@');
@@ -87,12 +80,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
 
         const newValue = base + selectedSuggestion.value;
-        setQueryAndMoveCursor(newValue);
+        onChangeAndMoveCursor(newValue);
       }
 
       resetCompletion(); // Hide suggestions after selection
     },
-    [query, setQuery, suggestions, resetCompletion, setEditorState],
+    [query, suggestions, resetCompletion, onChangeAndMoveCursor],
   );
 
   const inputPreprocessor = useCallback(
@@ -150,13 +143,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           key={editorState.key.toString()}
           initialCursorOffset={editorState.initialCursorOffset}
           initialText={query}
-          onChange={setQuery}
+          onChange={onChange}
           placeholder="Enter your message or use tools (e.g., @src/file.txt)..."
           /* Account for width used by the box and &gt; */
           navigateUp={navigateHistoryUp}
           navigateDown={navigateHistoryDown}
           inputPreprocessor={inputPreprocessor}
-          widthUsedByParent={14}
+          widthUsedByParent={3}
+          widthFraction={0.9}
           onSubmit={() => {
             // This onSubmit is for the TextInput component itself.
             // It should only fire if suggestions are NOT showing,

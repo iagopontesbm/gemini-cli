@@ -49,6 +49,8 @@ export interface MultilineTextEditorProps {
   readonly initialCursorOffset?: number;
 
   readonly widthUsedByParent: number;
+
+  readonly widthFraction?: number;
 }
 
 export const MultilineTextEditor = ({
@@ -61,6 +63,7 @@ export const MultilineTextEditor = ({
   onChange,
   initialCursorOffset,
   widthUsedByParent,
+  widthFraction = 1,
   navigateUp,
   navigateDown,
   inputPreprocessor,
@@ -72,20 +75,20 @@ export const MultilineTextEditor = ({
   const terminalSize = useTerminalSize();
   const effectiveWidth = Math.max(
     20,
-    width ?? terminalSize.columns - widthUsedByParent,
+    width ??
+      Math.round(terminalSize.columns * widthFraction) - widthUsedByParent,
   );
 
   const { stdin, setRawMode } = useStdin();
 
+  // TODO(jacobr): make TextBuffer immutable rather than this hack to act
+  // like it is immutable.
   const updateBufferState = useCallback(
     (mutator: (currentBuffer: TextBuffer) => void) => {
       setBuffer((currentBuffer) => {
         mutator(currentBuffer);
-        // Create a new object with the same prototype and properties to trigger re-render
-        return Object.assign(
-          Object.create(Object.getPrototypeOf(currentBuffer)),
-          currentBuffer,
-        );
+        // Create a new instance from the mutated buffer to trigger re-render
+        return TextBuffer.fromBuffer(currentBuffer);
       });
     },
     [],
@@ -104,9 +107,7 @@ export const MultilineTextEditor = ({
         setRawMode?.(true);
       }
       // Update state with the mutated buffer to trigger re-render
-      setBuffer(
-        Object.assign(Object.create(Object.getPrototypeOf(buffer)), buffer),
-      );
+      setBuffer(TextBuffer.fromBuffer(buffer));
     }
   }, [buffer, stdin, setRawMode, setBuffer]);
 

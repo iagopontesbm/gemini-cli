@@ -11,7 +11,7 @@ interface UseInputHistoryProps {
   onSubmit: (value: string) => void;
   isActive: boolean;
   currentQuery: string; // Renamed from query to avoid confusion
-  setQueryAndMoveCursor: (value: string) => void;
+  onChangeAndMoveCursor: (value: string) => void;
 }
 
 interface UseInputHistoryReturn {
@@ -25,7 +25,7 @@ export function useInputHistory({
   onSubmit,
   isActive,
   currentQuery,
-  setQueryAndMoveCursor,
+  onChangeAndMoveCursor: setQueryAndMoveCursor,
 }: UseInputHistoryProps): UseInputHistoryReturn {
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [originalQueryBeforeNav, setOriginalQueryBeforeNav] =

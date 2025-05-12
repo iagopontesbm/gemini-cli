@@ -101,14 +101,50 @@ export class TextBuffer {
   private historyLimit = 100;
 
   private clipboard: string | null = null;
+  private selectionAnchor: [number, number] | null = null;
 
-  constructor(text = '', initialCursorOffset = 0) {
+  /**
+   * Creates a new TextBuffer with the given text
+   *
+   * @param text Initial text content for the buffer
+   * @param initialCursorOffset Initial cursor position as character offset
+   */
+  constructor(text: string = '', initialCursorOffset = 0) {
     this.lines = text.split('\n');
     if (this.lines.length === 0) {
       this.lines = [''];
     }
-
     this.setCursorOffset(initialCursorOffset);
+  }
+
+  /**
+   * Creates a new TextBuffer that is a copy of an existing one
+   *
+   * @param source The source TextBuffer to copy
+   * @returns A new TextBuffer instance with the same content and state
+   */
+  static fromBuffer(source: TextBuffer): TextBuffer {
+    const buffer = new TextBuffer('');
+
+    // Copy all properties
+    buffer.lines = source.lines.slice();
+    buffer.cursorRow = source.cursorRow;
+    buffer.cursorCol = source.cursorCol;
+    buffer.scrollRow = source.scrollRow;
+    buffer.scrollCol = source.scrollCol;
+    buffer.preferredCol = source.preferredCol;
+    buffer.version = source.version + 1;
+
+    // Deep copy history stacks
+    buffer.undoStack = source.undoStack.slice();
+    buffer.redoStack = source.redoStack.slice();
+    buffer.historyLimit = source.historyLimit;
+    buffer.clipboard = source.clipboard;
+    buffer.selectionAnchor = source.selectionAnchor
+      ? [...source.selectionAnchor]
+      : null;
+
+    return buffer;
   }
 
   /* =====================================================================
@@ -852,8 +888,6 @@ export class TextBuffer {
   /* =====================================================================
    *  Selection & clipboard helpers (minimal)
    * =================================================================== */
-
-  private selectionAnchor: [number, number] | null = null;
 
   startSelection(): void {
     this.selectionAnchor = [this.cursorRow, this.cursorCol];
