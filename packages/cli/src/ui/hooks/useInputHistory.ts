@@ -5,20 +5,16 @@
  */
 
 import { useState, useCallback } from 'react';
-import { EditorState } from '../components/InputPrompt.js';
 
 interface UseInputHistoryProps {
   userMessages: readonly string[];
   onSubmit: (value: string) => void;
   isActive: boolean;
-  query: string;
-  setQuery: React.Dispatch<React.SetStateAction<string>>;
-  setEditorState: React.Dispatch<React.SetStateAction<EditorState>>;
+  currentQuery: string; // Renamed from query to avoid confusion
+  setQueryAndMoveCursor: (value: string) => void;
 }
 
 interface UseInputHistoryReturn {
-  query: string;
-  setQuery: React.Dispatch<React.SetStateAction<string>>;
   handleSubmit: (value: string) => void;
   navigateUp: () => boolean;
   navigateDown: () => boolean;
@@ -28,9 +24,8 @@ export function useInputHistory({
   userMessages,
   onSubmit,
   isActive,
-  query,
-  setQuery,
-  setEditorState,
+  currentQuery,
+  setQueryAndMoveCursor,
 }: UseInputHistoryProps): UseInputHistoryReturn {
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
   const [originalQueryBeforeNav, setOriginalQueryBeforeNav] =
@@ -45,22 +40,11 @@ export function useInputHistory({
     (value: string) => {
       const trimmedValue = value.trim();
       if (trimmedValue) {
-        onSubmit(trimmedValue); // This will call handleFinalSubmit, which then calls setQuery('') from App.tsx
+        onSubmit(trimmedValue); // Parent handles clearing the query
       }
       resetHistoryNav();
     },
     [onSubmit, resetHistoryNav],
-  );
-
-  const setQueryAndMoveCursor = useCallback(
-    (value: string) => {
-      setQuery(value);
-      setEditorState((s) => ({
-        key: s.key + 1,
-        initialCursorOffset: value.length,
-      }));
-    },
-    [setQuery, setEditorState],
   );
 
   const navigateUp = useCallback(() => {
@@ -69,17 +53,19 @@ export function useInputHistory({
 
     let nextIndex = historyIndex;
     if (historyIndex === -1) {
-      setOriginalQueryBeforeNav(query);
+      // Store the current query from the parent before navigating
+      setOriginalQueryBeforeNav(currentQuery);
       nextIndex = 0;
     } else if (historyIndex < userMessages.length - 1) {
       nextIndex = historyIndex + 1;
     } else {
-      return false;
+      return false; // Already at the oldest message
     }
+
     if (nextIndex !== historyIndex) {
       setHistoryIndex(nextIndex);
       const newValue = userMessages[userMessages.length - 1 - nextIndex];
-      setQueryAndMoveCursor(newValue);
+      setQueryAndMoveCursor(newValue); // Call the prop passed from parent
       return true;
     }
     return false;
@@ -89,18 +75,19 @@ export function useInputHistory({
     setQueryAndMoveCursor,
     userMessages,
     isActive,
-    query,
+    currentQuery, // Use currentQuery from props
     setOriginalQueryBeforeNav,
   ]);
 
   const navigateDown = useCallback(() => {
     if (!isActive) return false;
-    if (historyIndex === -1) return false;
+    if (historyIndex === -1) return false; // Not currently navigating history
 
     const nextIndex = historyIndex - 1;
     setHistoryIndex(nextIndex);
 
     if (nextIndex === -1) {
+      // Reached the end of history navigation, restore original query
       setQueryAndMoveCursor(originalQueryBeforeNav);
     } else {
       const newValue = userMessages[userMessages.length - 1 - nextIndex];
@@ -117,8 +104,6 @@ export function useInputHistory({
   ]);
 
   return {
-    query,
-    setQuery,
     handleSubmit,
     navigateUp,
     navigateDown,

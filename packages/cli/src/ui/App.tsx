@@ -104,6 +104,17 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     initialCursorOffset: undefined,
   });
 
+  const setQueryAndMoveCursor = useCallback(
+    (value: string) => {
+      setQuery(value);
+      setEditorState((s) => ({
+        key: s.key + 1,
+        initialCursorOffset: value.length,
+      }));
+    },
+    [setQuery, setEditorState],
+  );
+
   const completion = useCompletion(
     query,
     config.getTargetDir(),
@@ -116,16 +127,11 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     onSubmit: (value) => {
       // Adapt onSubmit to use the lifted setQuery
       handleFinalSubmit(value);
-      setQuery(''); // Clear query from the App's state
-      setEditorState((s) => ({
-        key: s.key + 1,
-        initialCursorOffset: 0,
-      }));
+      setQueryAndMoveCursor('');
     },
     isActive: isInputActive && !completion.showSuggestions,
-    query,
-    setQuery,
-    setEditorState,
+    currentQuery: query,
+    setQueryAndMoveCursor,
   });
 
   // --- Render Logic ---

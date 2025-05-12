@@ -12,7 +12,7 @@ import { MultilineTextEditor } from './shared/multiline-editor.js';
 
 interface InputPromptProps {
   query: string;
-  setQuery: React.Dispatch<React.SetStateAction<string>>;
+  setQuery: (value: string) => void;
   editorState: EditorState;
   setEditorState: React.Dispatch<React.SetStateAction<EditorState>>;
   onSubmit: (value: string) => void;
@@ -156,7 +156,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           navigateUp={navigateHistoryUp}
           navigateDown={navigateHistoryDown}
           inputPreprocessor={inputPreprocessor}
-          widthUsedByParent={13}
+          widthUsedByParent={14}
           onSubmit={() => {
             // This onSubmit is for the TextInput component itself.
             // It should only fire if suggestions are NOT showing,
