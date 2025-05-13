@@ -103,7 +103,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }
         } else if (key.return) {
           // Check if suggestions are showing and an item is actively selected
-          if (showSuggestions && activeSuggestionIndex >= 0 && suggestions.length > 0) {
+          if (
+            showSuggestions &&
+            activeSuggestionIndex >= 0 &&
+            suggestions.length > 0
+          ) {
             const selectedSuggestion = suggestions[activeSuggestionIndex];
             // Determine if the context is for slash commands based on the current query.
             const currentQueryTrimmed = query.trimStart();
