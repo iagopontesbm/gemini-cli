@@ -17,11 +17,6 @@ import process from 'node:process'; // Import process
 const contactEmail = 'gemini-code-dev@google.com';
 
 export function getCoreSystemPrompt(userMemory?: string): string {
-  const memoryPrefix =
-    userMemory && userMemory.trim().length > 0
-      ? `${userMemory.trim()}\n\n---\n\n` // Add separator for clarity
-      : '';
-
   const basePrompt = `
 You are an interactive CLI agent specializing in software engineering tasks. Your primary goal is to help users safely and efficiently, adhering strictly to the following instructions and utilizing your available tools.
 
@@ -169,5 +164,10 @@ assistant: I can run \`rm -rf ./temp\`. This will permanently delete the directo
 Your core function is efficient and safe assistance. Balance extreme conciseness with the crucial need for clarity, especially regarding safety and potential system modifications. Always prioritize user control and project conventions. Never make assumptions on the contents of files; instead use '${ReadFileTool.Name}' or '${ReadManyFilesTool.Name}' to ensure you aren't making broad assumptions. Finally, you are an agent - please keep going until the user's query is completely resolved.
 `;
 
-  return `${memoryPrefix}${basePrompt}`;
+  const memorySuffix =
+    userMemory && userMemory.trim().length > 0
+      ? `\n\n---\n\n${userMemory.trim()}` // Add separator and memory at the end
+      : '';
+
+  return `${basePrompt}${memorySuffix}`;
 }

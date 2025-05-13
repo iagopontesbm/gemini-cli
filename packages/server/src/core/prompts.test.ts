@@ -68,13 +68,13 @@ describe('Core System Prompt (prompts.ts)', () => {
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should prepend userMemory with separator when provided', () => {
+  it('should append userMemory with separator when provided', () => {
     delete process.env.SANDBOX;
     const memory = 'This is custom user memory.\nBe extra polite.';
-    const expectedPrefix = `${memory}\n\n---\n\n`;
+    const expectedSuffix = `\n\n---\n\n${memory}`;
     const prompt = getCoreSystemPrompt(memory);
 
-    expect(prompt.startsWith(expectedPrefix)).toBe(true);
+    expect(prompt.endsWith(expectedSuffix)).toBe(true);
     expect(prompt).toContain('You are an interactive CLI agent'); // Ensure base prompt follows
     expect(prompt).toMatchSnapshot(); // Snapshot the combined prompt
   });
