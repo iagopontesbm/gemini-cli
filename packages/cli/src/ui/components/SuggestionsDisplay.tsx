@@ -29,7 +29,7 @@ export function SuggestionsDisplay({
 }: SuggestionsDisplayProps) {
   if (isLoading) {
     return (
-      <Box borderStyle="round" paddingX={1} width={width}>
+      <Box paddingX={1} width={width}>
         <Text color="gray">Loading suggestions...</Text>
       </Box>
     );
@@ -48,7 +48,7 @@ export function SuggestionsDisplay({
   const visibleSuggestions = suggestions.slice(startIndex, endIndex);
 
   return (
-    <Box borderStyle="round" flexDirection="column" paddingX={1} width={width}>
+    <Box flexDirection="column" paddingX={1} width={width}>
       {scrollOffset > 0 && <Text color={Colors.Foreground}>▲</Text>}
 
       {visibleSuggestions.map((suggestion, index) => {

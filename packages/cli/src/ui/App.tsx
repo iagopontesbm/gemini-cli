@@ -247,7 +247,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
                 resetCompletion={completion.resetCompletionState}
               />
               {completion.showSuggestions && (
-                <Box marginTop={1}>
+                <Box marginTop={0}>
                   <SuggestionsDisplay
                     suggestions={completion.suggestions}
                     activeIndex={completion.activeSuggestionIndex}
