@@ -102,11 +102,31 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             }
           }
         } else if (key.return) {
-          if (activeSuggestionIndex >= 0) {
-            handleAutocomplete(activeSuggestionIndex);
+          // Check if suggestions are showing and an item is actively selected
+          if (showSuggestions && activeSuggestionIndex >= 0 && suggestions.length > 0) {
+            const selectedSuggestion = suggestions[activeSuggestionIndex];
+            // Determine if the context is for slash commands based on the current query.
+            const currentQueryTrimmed = query.trimStart();
+
+            if (currentQueryTrimmed.startsWith('/')) {
+              // Slash command suggestion selected: execute it.
+              const commandToExecute = `/${selectedSuggestion.value}`;
+              onSubmit(commandToExecute);
+              setQuery(''); // Clear input.
+              resetCompletion(); // Hide suggestions.
+              setInputKey((k) => k + 1); // Refresh TextInput.
+            } else {
+              // Other suggestion types: complete the input.
+              handleAutocomplete(activeSuggestionIndex);
+            }
           } else {
-            if (query.trim()) {
-              onSubmit(query);
+            // No active suggestion or suggestions not showing: direct submission.
+            const trimmedQuerySubmit = query.trim();
+            if (trimmedQuerySubmit) {
+              onSubmit(trimmedQuerySubmit);
+              setQuery(''); // Clear input.
+              resetCompletion(); // Hide suggestions.
+              setInputKey((k) => k + 1); // Refresh TextInput.
             }
           }
         } else if (key.escape) {
