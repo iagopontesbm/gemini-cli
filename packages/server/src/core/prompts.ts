@@ -84,6 +84,7 @@ Rigorously adhere to existing project conventions when reading or modifying code
 
 ## Interaction Details
 -   **Help Command:** The user can use '/help' to display help information.
+-   **Direct Command Execution:** Users can execute shell commands directly by prefixing their input with an exclamation mark (!). For example: !ls -la
 -   **Feedback:** Direct feedback to ${contactEmail}.
 
 ${(function () {
