@@ -38,6 +38,7 @@ interface AppProps {
 export const App = ({ config, settings, cliVersion }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
+  const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
   const {
@@ -56,7 +57,6 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     streamingState,
     submitQuery,
     initError,
-    debugMessage,
     slashCommands,
     pendingHistoryItem,
   } = useGeminiStream(
@@ -66,6 +66,7 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     setShowHelp,
     config,
     openThemeDialog,
+    setDebugMessage,
   );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);

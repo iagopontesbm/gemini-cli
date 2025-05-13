@@ -46,12 +46,12 @@ export const useGeminiStream = (
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
   openThemeDialog: () => void,
+  onDebugMessage: (message: string) => void,
 ) => {
   const toolRegistry = config.getToolRegistry();
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
   );
-  const [debugMessage, setDebugMessage] = useState<string>('');
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
@@ -64,14 +64,14 @@ export const useGeminiStream = (
     clearItems,
     refreshStatic,
     setShowHelp,
-    setDebugMessage,
+    onDebugMessage,
     openThemeDialog,
   );
 
   const { handleShellCommand } = useShellCommandProcessor(
     addItem,
     setStreamingState,
-    setDebugMessage,
+    onDebugMessage,
     config,
   );
 
@@ -109,7 +109,7 @@ export const useGeminiStream = (
 
       if (typeof query === 'string') {
         const trimmedQuery = query.trim();
-        setDebugMessage(`User query: '${trimmedQuery}'`);
+        onDebugMessage(`User query: '${trimmedQuery}'`);
 
         // Handle UI-only commands first
         if (handleSlashCommand(trimmedQuery)) return;
@@ -121,7 +121,7 @@ export const useGeminiStream = (
             query: trimmedQuery,
             config,
             addItem,
-            setDebugMessage,
+            onDebugMessage,
             messageId: userMessageTimestamp,
             signal,
           });
@@ -138,7 +138,7 @@ export const useGeminiStream = (
       }
 
       if (queryToSendToGemini === null) {
-        setDebugMessage(
+        onDebugMessage(
           'Query processing resulted in null, not sending to Gemini.',
         );
         return;
@@ -557,7 +557,6 @@ export const useGeminiStream = (
     streamingState,
     submitQuery,
     initError,
-    debugMessage,
     slashCommands,
     // Normally we would be concerned that the ref would not be up-to-date, but
     // this isn't a concern as the ref is updated whenever the corresponding
