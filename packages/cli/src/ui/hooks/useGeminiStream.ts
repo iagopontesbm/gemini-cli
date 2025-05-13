@@ -539,6 +539,7 @@ export const useGeminiStream = (
       setPendingHistoryItem,
       toolRegistry,
       refreshStatic,
+      onDebugMessage,
     ],
   );
 
