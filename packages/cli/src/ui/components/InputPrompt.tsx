@@ -77,7 +77,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       }
 
       resetCompletion(); // Hide suggestions after selection
-      setInputKey((k) => k + 1); // Increment key to force re-render and cursor reset
+      setInputKey((k: number) => k + 1); // Increment key to force re-render and cursor reset
     },
     [query, setQuery, suggestions, resetCompletion, setInputKey],
   );
@@ -118,13 +118,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
               onSubmit(commandToExecute);
               setQuery(''); // Clear input.
               resetCompletion(); // Hide suggestions.
-              setInputKey((k) => k + 1); // Refresh TextInput.
+              setInputKey((k: number) => k + 1); // Refresh TextInput.
             } else {
               // Other suggestion types: complete the input.
               handleAutocomplete(activeSuggestionIndex);
             }
           } else {
-            // No active suggestion or suggestions not showing: direct submission.
             const trimmedQuerySubmit = query.trim();
             if (trimmedQuerySubmit) {
               onSubmit(trimmedQuerySubmit);
