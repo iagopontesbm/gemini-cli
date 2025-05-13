@@ -35,7 +35,7 @@ export class Config {
     private readonly toolCallCommand: string | undefined,
     private readonly mcpServerCommand: string | undefined,
     private readonly userAgent: string,
-    private readonly userMemory: string = '', // Added userMemory property
+    private userMemory: string = '', // Made mutable for refresh
   ) {
     // toolRegistry still needs initialization based on the instance
     this.toolRegistry = createToolRegistry(this);
@@ -91,6 +91,10 @@ export class Config {
   // Added getter for userMemory
   getUserMemory(): string {
     return this.userMemory;
+  }
+
+  setUserMemory(newUserMemory: string): void {
+    this.userMemory = newUserMemory;
   }
 }
 

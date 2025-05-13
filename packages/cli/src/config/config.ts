@@ -32,6 +32,18 @@ const logger = {
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
 const GEMINI_MD_FILENAME = 'GEMINI.md';
 const GEMINI_CONFIG_DIR = '.gemini';
+// TODO(adh): Refactor to use a shared ignore list with other tools like glob and read-many-files.
+const DEFAULT_IGNORE_DIRECTORIES = [
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  '.vscode',
+  '.idea',
+  '.DS_Store',
+];
 
 // Keep CLI-specific argument parsing
 interface CliArgs {
@@ -135,10 +147,58 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
 }
 
 /**
- * Identifies all applicable GEMINI.md files from global to local.
- * Order: Global -> Project Root -> ... -> CWD
+ * Recursively collects GEMINI.md files from a directory downwards.
  */
-async function getGeminiMdFilePaths(
+async function collectDownwardGeminiFiles(
+  directory: string,
+  collectedPaths: string[],
+  debugMode: boolean,
+  ignoreDirs: string[],
+): Promise<void> {
+  if (debugMode) logger.debug(`Recursively scanning downward in: ${directory}`);
+  try {
+    const entries = await fs.readdir(directory, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(directory, entry.name);
+      if (entry.isDirectory()) {
+        if (ignoreDirs.includes(entry.name)) {
+          if (debugMode)
+            logger.debug(`Skipping ignored directory: ${fullPath}`);
+          continue;
+        }
+        await collectDownwardGeminiFiles(
+          fullPath,
+          collectedPaths,
+          debugMode,
+          ignoreDirs,
+        );
+      } else if (entry.isFile() && entry.name === GEMINI_MD_FILENAME) {
+        try {
+          await fs.access(fullPath, fsSync.constants.R_OK);
+          collectedPaths.push(fullPath);
+          if (debugMode)
+            logger.debug(`Found readable downward GEMINI.md: ${fullPath}`);
+        } catch {
+          if (debugMode)
+            logger.debug(
+              `Downward GEMINI.md not readable, skipping: ${fullPath}`,
+            );
+        }
+      }
+    }
+  } catch (error) {
+    // Log errors like permission denied but continue
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Error scanning directory ${directory}: ${message}`);
+    if (debugMode) logger.debug(`Failed to scan directory: ${directory}`);
+  }
+}
+
+/**
+ * Identifies all applicable GEMINI.md files.
+ * Order: Global -> Project Root -> ... -> CWD -> Subdirectories under CWD (sorted alphabetically).
+ */
+export async function getGeminiMdFilePaths(
   currentWorkingDirectory: string,
   userHomePath: string,
   debugMode: boolean,
@@ -158,7 +218,7 @@ async function getGeminiMdFilePaths(
 
   // 1. Add Global Memory File (if exists and readable)
   try {
-    await fs.access(globalMemoryPath, fsSync.constants.R_OK); // Use fsSync constants
+    await fs.access(globalMemoryPath, fsSync.constants.R_OK);
     paths.push(globalMemoryPath);
     if (debugMode)
       logger.debug(`Found readable global GEMINI.md: ${globalMemoryPath}`);
@@ -167,7 +227,6 @@ async function getGeminiMdFilePaths(
       logger.debug(
         `Global GEMINI.md not found or not readable: ${globalMemoryPath}`,
       );
-    // Doesn't exist or not readable, skip
   }
 
   // 2. Find Project Root
@@ -176,21 +235,17 @@ async function getGeminiMdFilePaths(
     logger.debug(`Determined project root: ${projectRoot ?? 'None'}`);
 
   // 3. Traverse from CWD up to Project Root (or home/fs root)
-  const localPaths: string[] = [];
+  const upwardPaths: string[] = [];
   let currentDir = resolvedCwd;
-  // Determine the directory to stop searching upwards
-  // If in a project, stop *before* the project root's parent.
-  // If not in a project, stop *before* the home directory (don't re-evaluate global).
-  // Always stop at the filesystem root.
   const stopDir = projectRoot ? path.dirname(projectRoot) : resolvedHome;
 
   while (
     currentDir &&
     currentDir !== stopDir &&
-    currentDir !== path.dirname(currentDir) /* stop at fs root */
+    currentDir !== path.dirname(currentDir) // stop at fs root
   ) {
-    if (debugMode) logger.debug(`Checking for GEMINI.md in: ${currentDir}`);
-    // Optimization: Don't check inside the global .gemini dir again if CWD is within it somehow
+    if (debugMode)
+      logger.debug(`Checking for GEMINI.md in (upward scan): ${currentDir}`);
     if (currentDir === path.join(resolvedHome, GEMINI_CONFIG_DIR)) {
       if (debugMode)
         logger.debug(`Skipping check inside global config dir: ${currentDir}`);
@@ -199,31 +254,50 @@ async function getGeminiMdFilePaths(
 
     const potentialPath = path.join(currentDir, GEMINI_MD_FILENAME);
     try {
-      await fs.access(potentialPath, fsSync.constants.R_OK); // Use fsSync constants
-      // Add to the beginning because we are traversing upwards
-      localPaths.unshift(potentialPath);
+      await fs.access(potentialPath, fsSync.constants.R_OK);
+      upwardPaths.unshift(potentialPath); // Add to beginning for correct order
       if (debugMode)
-        logger.debug(`Found readable local GEMINI.md: ${potentialPath}`);
+        logger.debug(`Found readable upward GEMINI.md: ${potentialPath}`);
     } catch {
       if (debugMode)
         logger.debug(
-          `Local GEMINI.md not found or not readable in: ${currentDir}`,
+          `Upward GEMINI.md not found or not readable in: ${currentDir}`,
         );
-      // Doesn't exist or not readable, skip
     }
-
-    // Move to parent directory
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir) {
       if (debugMode)
         logger.debug(`Reached filesystem root, stopping upward search.`);
-      break; // Reached root
+      break;
     }
     currentDir = parentDir;
   }
+  paths.push(...upwardPaths);
 
-  // Combine global and local paths (localPaths are already in correct order due to unshift)
-  paths.push(...localPaths);
+  // 4. Traverse downwards from CWD
+  const downwardPaths: string[] = [];
+  if (debugMode)
+    logger.debug(`Starting downward scan from CWD: ${resolvedCwd}`);
+  await collectDownwardGeminiFiles(
+    resolvedCwd,
+    downwardPaths,
+    debugMode,
+    DEFAULT_IGNORE_DIRECTORIES,
+  );
+
+  // Sort downward paths alphabetically for consistent order
+  downwardPaths.sort();
+  if (debugMode && downwardPaths.length > 0)
+    logger.debug(
+      `Found downward GEMINI.md files (sorted): ${JSON.stringify(downwardPaths)}`,
+    );
+
+  // Add downward paths, ensuring no duplicates if CWD itself had one (already added in upward scan)
+  for (const dPath of downwardPaths) {
+    if (!paths.includes(dPath)) {
+      paths.push(dPath);
+    }
+  }
 
   if (debugMode)
     logger.debug(
@@ -249,12 +323,11 @@ async function readGeminiMdFiles(
           `Successfully read: ${filePath} (Length: ${content.length})`,
         );
     } catch (error: unknown) {
-      // Log warning, but continue execution as per spec
       const message = error instanceof Error ? error.message : String(error);
       logger.warn(
         `Warning: Could not read GEMINI.md file at ${filePath}. Error: ${message}`,
       );
-      contents.push(null); // Add null for unreadable/missing files
+      contents.push(null);
       if (debugMode) logger.debug(`Failed to read: ${filePath}`);
     }
   }
@@ -267,7 +340,6 @@ async function readGeminiMdFiles(
 function concatenateInstructions(
   instructionContents: Array<string | null>,
 ): string {
-  // Filter out null/undefined and trim whitespace before checking length
   const validContents = instructionContents
     .filter((content): content is string => typeof content === 'string')
     .map((content) => content.trim())
@@ -295,7 +367,7 @@ export async function loadHierarchicalGeminiMemory(
   );
   if (filePaths.length === 0) {
     if (debugMode) logger.debug('No GEMINI.md files found in hierarchy.');
-    return ''; // Return empty string if no files found
+    return '';
   }
   const contents = await readGeminiMdFiles(filePaths, debugMode);
   const combinedInstructions = concatenateInstructions(contents);
@@ -312,12 +384,9 @@ export async function loadHierarchicalGeminiMemory(
 
 // Renamed function for clarity
 export async function loadCliConfig(settings: Settings): Promise<Config> {
-  // Load .env file using logic from server package
   loadEnvironment();
 
-  // Check API key (CLI responsibility)
   if (!process.env.GEMINI_API_KEY) {
-    // Use logger instead of console.log directly
     logger.error(
       'GEMINI_API_KEY is not set. See https://ai.google.dev/gemini-api/docs/api-key to obtain one. ' +
         'Please set it in your .env file or as an environment variable.',
@@ -325,11 +394,9 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     process.exit(1);
   }
 
-  // Parse CLI arguments
   const argv = await parseArguments();
-  const debugMode = argv.debug_mode || false; // Determine debug mode early
+  const debugMode = argv.debug_mode || false;
 
-  // Load hierarchical memory
   const userMemory = await loadHierarchicalGeminiMemory(
     process.cwd(),
     debugMode,
@@ -337,26 +404,24 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
 
   const userAgent = await createUserAgent();
 
-  // Create config using factory from server package, passing userMemory
   return createServerConfig(
     process.env.GEMINI_API_KEY,
     argv.model || DEFAULT_GEMINI_MODEL,
-    argv.sandbox ?? settings.sandbox ?? false, // Use loaded settings as fallback for sandbox
+    argv.sandbox ?? settings.sandbox ?? false,
     process.cwd(),
-    debugMode, // Pass determined debugMode
+    debugMode,
     argv.question || '',
     argv.full_context || false,
     settings.toolDiscoveryCommand,
     settings.toolCallCommand,
     settings.mcpServerCommand,
     userAgent,
-    userMemory, // Pass the loaded memory
+    userMemory,
   );
 }
 
 async function createUserAgent(): Promise<string> {
   try {
-    // Ensure cwd points to this file's directory context if needed, or rely on default behavior
     const packageJsonInfo = await readPackageUp({ cwd: import.meta.url });
     const cliVersion = packageJsonInfo?.packageJson.version || 'unknown';
     return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
