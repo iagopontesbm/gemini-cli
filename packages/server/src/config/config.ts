@@ -35,6 +35,7 @@ export class Config {
     private readonly toolCallCommand: string | undefined,
     private readonly mcpServerCommand: string | undefined,
     private readonly userAgent: string,
+    private readonly userMemory: string = '', // Added userMemory property
   ) {
     // toolRegistry still needs initialization based on the instance
     this.toolRegistry = createToolRegistry(this);
@@ -86,6 +87,11 @@ export class Config {
   getUserAgent(): string {
     return this.userAgent;
   }
+
+  // Added getter for userMemory
+  getUserMemory(): string {
+    return this.userMemory;
+  }
 }
 
 function findEnvFile(startDir: string): string | null {
@@ -123,6 +129,7 @@ export function createServerConfig(
   toolCallCommand?: string,
   mcpServerCommand?: string,
   userAgent?: string,
+  userMemory?: string, // Added userMemory parameter
 ): Config {
   return new Config(
     apiKey,
@@ -136,6 +143,7 @@ export function createServerConfig(
     toolCallCommand,
     mcpServerCommand,
     userAgent ?? 'GeminiCLI/unknown', // Default user agent
+    userMemory ?? '', // Pass userMemory, default to empty string
   );
 }
 

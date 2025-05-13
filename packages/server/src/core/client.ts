@@ -124,10 +124,15 @@ export class GeminiClient {
       },
     ];
     try {
+      // Retrieve user memory from config
+      const userMemory = this.config.getUserMemory();
+      // Pass user memory to getCoreSystemPrompt
+      const systemInstruction = getCoreSystemPrompt(userMemory);
+
       return this.client.chats.create({
         model: this.model,
         config: {
-          systemInstruction: getCoreSystemPrompt(),
+          systemInstruction, // Use the potentially modified prompt
           ...this.generateContentConfig,
           tools,
         },
@@ -195,11 +200,16 @@ export class GeminiClient {
     schema: SchemaUnion,
   ): Promise<Record<string, unknown>> {
     try {
+      // Retrieve user memory from config
+      const userMemory = this.config.getUserMemory();
+      // Pass user memory to getCoreSystemPrompt
+      const systemInstruction = getCoreSystemPrompt(userMemory);
+
       const result = await this.client.models.generateContent({
-        model: 'gemini-2.0-flash',
+        model: 'gemini-2.0-flash', // Consider if this model should also use the memory
         config: {
           ...this.generateContentConfig,
-          systemInstruction: getCoreSystemPrompt(),
+          systemInstruction, // Use the potentially modified prompt
           responseSchema: schema,
           responseMimeType: 'application/json',
         },
