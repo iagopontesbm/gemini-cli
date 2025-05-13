@@ -28,7 +28,6 @@ import {
   HistoryItemWithoutId,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
-import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
@@ -41,12 +40,11 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
  */
 export const useGeminiStream = (
   addItem: UseHistoryManagerReturn['addItem'],
-  clearItems: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
-  openThemeDialog: () => void,
   onDebugMessage: (message: string) => void,
+  handleSlashCommand: (cmd: PartListUnion) => boolean,
 ) => {
   const toolRegistry = config.getToolRegistry();
   const [streamingState, setStreamingState] = useState<StreamingState>(
@@ -58,15 +56,6 @@ export const useGeminiStream = (
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
-
-  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    addItem,
-    clearItems,
-    refreshStatic,
-    setShowHelp,
-    onDebugMessage,
-    openThemeDialog,
-  );
 
   const { handleShellCommand } = useShellCommandProcessor(
     addItem,
@@ -557,7 +546,6 @@ export const useGeminiStream = (
     streamingState,
     submitQuery,
     initError,
-    slashCommands,
     // Normally we would be concerned that the ref would not be up-to-date, but
     // this isn't a concern as the ref is updated whenever the corresponding
     // state is updated.

@@ -11,6 +11,7 @@ import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useInputHistory } from './hooks/useInputHistory.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
+import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { EditorState, InputPrompt } from './components/InputPrompt.js';
@@ -37,37 +38,40 @@ interface AppProps {
 
 export const App = ({ config, settings, cliVersion }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
+  const [staticKey, setStaticKey] = useState(0);
+  const refreshStatic = useCallback(() => {
+    setStaticKey((prev) => prev + 1);
+  }, [setStaticKey]);
+
   const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
+
   const {
     isThemeDialogOpen,
     openThemeDialog,
     handleThemeSelect,
     handleThemeHighlight,
   } = useThemeCommand(settings, setThemeError);
-
-  const [staticKey, setStaticKey] = useState(0);
-  const refreshStatic = useCallback(() => {
-    setStaticKey((prev) => prev + 1);
-  }, [setStaticKey]);
-
-  const {
-    streamingState,
-    submitQuery,
-    initError,
-    slashCommands,
-    pendingHistoryItem,
-  } = useGeminiStream(
+  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     addItem,
     clearItems,
     refreshStatic,
     setShowHelp,
-    config,
-    openThemeDialog,
     setDebugMessage,
+    openThemeDialog,
   );
+
+  const { streamingState, submitQuery, initError, pendingHistoryItem } =
+    useGeminiStream(
+      addItem,
+      refreshStatic,
+      setShowHelp,
+      config,
+      setDebugMessage,
+      handleSlashCommand,
+    );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
