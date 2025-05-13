@@ -175,7 +175,7 @@ export class TextBuffer {
 
     // Prepare a temporary file with the current contents.  We use mkdtempSync
     // to obtain an isolated directory and avoid name collisions.
-    const tmpDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'codex-edit-'));
+    const tmpDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'gemini-edit-'));
     const filePath = pathMod.join(tmpDir, 'buffer.txt');
 
     fs.writeFileSync(filePath, this.getText(), 'utf8');
