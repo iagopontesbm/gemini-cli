@@ -109,7 +109,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   );
 
   const inputPreprocessor = useCallback(
-    (input: string, key: Key, _currentText?: string, _cursorOffset?: number) => {
+    (
+      input: string,
+      key: Key,
+      _currentText?: string,
+      _cursorOffset?: number,
+    ) => {
       if (showSuggestions) {
         if (key.upArrow) {
           navigateSuggestionUp();
@@ -142,11 +147,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       } else {
         // Keybindings when suggestions are not shown
         if (key.ctrl && input === 'a') {
-          setEditorState(s => ({ key: s.key + 1, initialCursorOffset: 0 }));
+          setEditorState((s) => ({ key: s.key + 1, initialCursorOffset: 0 }));
           return true;
         }
         if (key.ctrl && input === 'e') {
-          setEditorState(s => ({ key: s.key + 1, initialCursorOffset: query.length }));
+          setEditorState((s) => ({
+            key: s.key + 1,
+            initialCursorOffset: query.length,
+          }));
           return true;
         }
         if (key.ctrl && input === 'l') {
