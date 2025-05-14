@@ -8,6 +8,7 @@ import * as dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import process from 'node:process';
+import * as os from 'node:os';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -35,6 +36,7 @@ export class Config {
     private readonly toolCallCommand: string | undefined,
     private readonly mcpServerCommand: string | undefined,
     private readonly userAgent: string,
+    private userMemory: string = '', // Made mutable for refresh
   ) {
     // toolRegistry still needs initialization based on the instance
     this.toolRegistry = createToolRegistry(this);
@@ -86,6 +88,15 @@ export class Config {
   getUserAgent(): string {
     return this.userAgent;
   }
+
+  // Added getter for userMemory
+  getUserMemory(): string {
+    return this.userMemory;
+  }
+
+  setUserMemory(newUserMemory: string): void {
+    this.userMemory = newUserMemory;
+  }
 }
 
 function findEnvFile(startDir: string): string | null {
@@ -97,6 +108,11 @@ function findEnvFile(startDir: string): string | null {
     }
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir || !parentDir) {
+      // check ~/.env as fallback
+      const homeEnvPath = path.join(os.homedir(), '.env');
+      if (fs.existsSync(homeEnvPath)) {
+        return homeEnvPath;
+      }
       return null;
     }
     currentDir = parentDir;
@@ -123,6 +139,7 @@ export function createServerConfig(
   toolCallCommand?: string,
   mcpServerCommand?: string,
   userAgent?: string,
+  userMemory?: string, // Added userMemory parameter
 ): Config {
   return new Config(
     apiKey,
@@ -136,6 +153,7 @@ export function createServerConfig(
     toolCallCommand,
     mcpServerCommand,
     userAgent ?? 'GeminiCLI/unknown', // Default user agent
+    userMemory ?? '', // Pass userMemory, default to empty string
   );
 }
 

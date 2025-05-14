@@ -9,14 +9,13 @@ import { Box, Static, Text, useStdout } from 'ink';
 import { StreamingState, type HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
-import { useInputHistory } from './hooks/useInputHistory.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
+import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { EditorState, InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
-import { useStartupWarnings } from './hooks/useAppEffects.js';
 import { shortenPath, type Config } from '@gemini-code/server';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
@@ -28,18 +27,34 @@ import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
 import { useHistory } from './hooks/useHistoryManager.js';
+import { loadHierarchicalGeminiMemory } from '../config/config.js'; // For performMemoryRefresh
+import process from 'node:process'; // For performMemoryRefresh
+import { MessageType } from './types.js'; // For performMemoryRefresh
+import { getErrorMessage } from '@gemini-code/server'; // For performMemoryRefresh
 
 interface AppProps {
   config: Config;
   settings: LoadedSettings;
   cliVersion: string;
+  startupWarnings?: string[];
 }
 
-export const App = ({ config, settings, cliVersion }: AppProps) => {
+export const App = ({
+  config,
+  settings,
+  cliVersion,
+  startupWarnings = [],
+}: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
-  const [startupWarnings, setStartupWarnings] = useState<string[]>([]);
+  const [staticKey, setStaticKey] = useState(0);
+  const refreshStatic = useCallback(() => {
+    setStaticKey((prev) => prev + 1);
+  }, [setStaticKey]);
+
+  const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
+
   const {
     isThemeDialogOpen,
     openThemeDialog,
@@ -47,30 +62,71 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     handleThemeHighlight,
   } = useThemeCommand(settings, setThemeError);
 
-  const [staticKey, setStaticKey] = useState(0);
-  const refreshStatic = useCallback(() => {
-    setStaticKey((prev) => prev + 1);
-  }, [setStaticKey]);
+  const performMemoryRefresh = useCallback(async () => {
+    addItem(
+      {
+        type: MessageType.INFO,
+        text: 'Refreshing hierarchical memory (GEMINI.md files)...',
+      },
+      Date.now(),
+    );
+    try {
+      const newMemory = await loadHierarchicalGeminiMemory(
+        process.cwd(),
+        config.getDebugMode(),
+      );
+      config.setUserMemory(newMemory);
+      // chatSessionRef.current = null; // This was in useGeminiStream, might need similar logic or pass chat ref
+      addItem(
+        {
+          type: MessageType.INFO,
+          text: `Memory refreshed successfully. ${newMemory.length > 0 ? `Loaded ${newMemory.length} characters.` : 'No memory content found.'}`,
+        },
+        Date.now(),
+      );
+      if (config.getDebugMode()) {
+        console.log(
+          `[DEBUG] Refreshed memory content in config: ${newMemory.substring(0, 200)}...`,
+        );
+      }
+    } catch (error) {
+      const errorMessage = getErrorMessage(error);
+      addItem(
+        {
+          type: MessageType.ERROR,
+          text: `Error refreshing memory: ${errorMessage}`,
+        },
+        Date.now(),
+      );
+      console.error('Error refreshing memory:', error);
+    }
+  }, [config, addItem]);
 
-  const {
-    streamingState,
-    submitQuery,
-    initError,
-    debugMessage,
-    slashCommands,
-    pendingHistoryItem,
-  } = useGeminiStream(
+  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
+    config, // Pass config
     addItem,
     clearItems,
     refreshStatic,
     setShowHelp,
-    config,
+    setDebugMessage,
     openThemeDialog,
+    performMemoryRefresh, // Pass performMemoryRefresh
   );
+
+  const { streamingState, submitQuery, initError, pendingHistoryItem } =
+    useGeminiStream(
+      addItem,
+      clearItems, // Pass clearItems
+      refreshStatic,
+      setShowHelp,
+      config,
+      setDebugMessage,
+      openThemeDialog, // Pass openThemeDialog
+      handleSlashCommand,
+      // performMemoryRefresh, // Removed performMemoryRefresh
+    );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
-
-  useStartupWarnings(setStartupWarnings);
 
   const handleFinalSubmit = useCallback(
     (submittedValue: string) => {
@@ -120,18 +176,6 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
     isInputActive && (isAtCommand(query) || isSlashCommand(query)),
     slashCommands,
   );
-
-  const inputHistory = useInputHistory({
-    userMessages,
-    onSubmit: (value) => {
-      // Adapt onSubmit to use the lifted setQuery
-      handleFinalSubmit(value);
-      onChangeAndMoveCursor('');
-    },
-    isActive: isInputActive && !completion.showSuggestions,
-    currentQuery: query,
-    onChangeAndMoveCursor,
-  });
 
   // --- Render Logic ---
 
@@ -236,12 +280,11 @@ export const App = ({ config, settings, cliVersion }: AppProps) => {
                 onChange={setQuery}
                 onChangeAndMoveCursor={onChangeAndMoveCursor}
                 editorState={editorState}
-                onSubmit={inputHistory.handleSubmit}
+                onSubmit={handleFinalSubmit} // Pass handleFinalSubmit directly
                 showSuggestions={completion.showSuggestions}
                 suggestions={completion.suggestions}
                 activeSuggestionIndex={completion.activeSuggestionIndex}
-                navigateHistoryUp={inputHistory.navigateUp}
-                navigateHistoryDown={inputHistory.navigateDown}
+                userMessages={userMessages} // Pass userMessages
                 navigateSuggestionUp={completion.navigateUp}
                 navigateSuggestionDown={completion.navigateDown}
                 resetCompletion={completion.resetCompletionState}
