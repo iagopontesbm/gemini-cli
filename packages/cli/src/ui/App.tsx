@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Static, Text, useStdout } from 'ink';
 import { StreamingState, type HistoryItem } from './types.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
@@ -19,6 +19,11 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { shortenPath, type Config } from '@gemini-code/server';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
+import {
+  getGeminiMdFilePaths,
+  loadHierarchicalGeminiMemory,
+} from '../config/config.js';
+import { homedir } from 'os'; // Added for memory file count
 import { LoadedSettings } from '../config/settings.js';
 import { Tips } from './components/Tips.js';
 import { ConsoleOutput } from './components/ConsolePatcher.js';
@@ -27,7 +32,6 @@ import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
 import { useHistory } from './hooks/useHistoryManager.js';
-import { loadHierarchicalGeminiMemory } from '../config/config.js'; // For performMemoryRefresh
 import process from 'node:process'; // For performMemoryRefresh
 import { MessageType } from './types.js'; // For performMemoryRefresh
 import { getErrorMessage } from '@gemini-code/server'; // For performMemoryRefresh
@@ -51,6 +55,7 @@ export const App = ({
     setStaticKey((prev) => prev + 1);
   }, [setStaticKey]);
 
+  const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0); // Added for memory file count
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
@@ -61,6 +66,26 @@ export const App = ({
     handleThemeSelect,
     handleThemeHighlight,
   } = useThemeCommand(settings, setThemeError);
+
+  const fetchGeminiMdFileCount = useCallback(async () => {
+    if (!config) return;
+    try {
+      const paths = await getGeminiMdFilePaths(
+        process.cwd(),
+        homedir(),
+        config.getDebugMode(),
+      );
+      setGeminiMdFileCount(paths.length);
+    } catch (error) {
+      // Handle error appropriately, maybe log it or set a specific error state
+      console.error('Error fetching GEMINI.md file count:', error);
+      setGeminiMdFileCount(0); // Default to 0 on error
+    }
+  }, [config]);
+
+  useEffect(() => {
+    fetchGeminiMdFileCount();
+  }, [fetchGeminiMdFileCount]);
 
   const performMemoryRefresh = useCallback(async () => {
     addItem(
@@ -100,7 +125,8 @@ export const App = ({
       );
       console.error('Error refreshing memory:', error);
     }
-  }, [config, addItem]);
+    await fetchGeminiMdFileCount(); // Refresh count after memory operation
+  }, [config, addItem, fetchGeminiMdFileCount]);
 
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     config, // Pass config
@@ -268,17 +294,22 @@ export const App = ({
           />
           {isInputActive && (
             <>
-              <Box marginTop={1} display="flex" justifyContent="space-between" width="100%">
+              <Box
+                marginTop={1}
+                display="flex"
+                justifyContent="space-between"
+                width="100%"
+              >
                 <Box>
                   <Text color={Colors.SubtleComment}>cwd: </Text>
                   <Text color={Colors.LightBlue}>
                     {shortenPath(config.getTargetDir(), 70)}
                   </Text>
                 </Box>
-                {config.getGeminiMdFileCount() > 0 && (
+                {geminiMdFileCount > 0 && (
                   <Box>
                     <Text color={Colors.SubtleComment}>
-                      Using {config.getGeminiMdFileCount()} gemini.md files
+                      Using {geminiMdFileCount} GEMINI.md files
                     </Text>
                   </Box>
                 )}
