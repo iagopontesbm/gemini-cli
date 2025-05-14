@@ -56,18 +56,21 @@ export function SuggestionsDisplay({
         const originalIndex = startIndex + index;
         const isActive = originalIndex === activeIndex;
         return (
-          <Text
+          <Box
             key={`${suggestion}-${originalIndex}`}
-            color={isActive ? Colors.Background : Colors.Foreground}
-            backgroundColor={isActive ? Colors.AccentBlue : undefined}
+            width={width - 2}
           >
-            <Text bold>{suggestion.label}</Text>
-            {suggestion.description && (
-              <Text color={isActive ? Colors.Background : Colors.SubtleComment}>
-                {'  ' + suggestion.description}
+            <Text backgroundColor={isActive ? Colors.AccentBlue : undefined}>
+              <Text color={isActive ? Colors.Background : Colors.Foreground} bold>
+                {suggestion.label.padEnd(10)}
               </Text>
-            )}
-          </Text>
+              {suggestion.description ? (
+                <Text color={isActive ? Colors.Background : Colors.SubtleComment}>
+                  {suggestion.description}
+                </Text>
+              ) : null}
+            </Text>
+          </Box>
         );
       })}
       {endIndex < suggestions.length && <Text color="gray">▼</Text>}
