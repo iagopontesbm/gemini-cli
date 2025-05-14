@@ -7,7 +7,7 @@
 import { useTextBuffer } from './text-buffer.js';
 import chalk from 'chalk';
 import { Box, Text, useInput, useStdin, Key } from 'ink';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useTerminalSize } from '../../hooks/useTerminalSize.js';
 import { Colors } from '../../colors.js';
 
@@ -83,13 +83,8 @@ export const MultilineTextEditor = ({
     viewport: { height, width: effectiveWidth },
     stdin,
     setRawMode,
+    onChange, // Pass onChange to the hook
   });
-
-  useEffect(() => {
-    if (onChange) {
-      onChange(buffer.text);
-    }
-  }, [buffer.text, onChange]);
 
   useInput(
     (input, key) => {

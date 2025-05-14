@@ -82,6 +82,7 @@ interface UseTextBufferProps {
   viewport: Viewport; // Viewport dimensions needed for scrolling
   stdin?: NodeJS.ReadStream | null; // For external editor
   setRawMode?: (mode: boolean) => void; // For external editor
+  onChange?: (text: string) => void; // Callback for when text changes
 }
 
 interface UndoHistoryEntry {
@@ -123,6 +124,7 @@ export function useTextBuffer({
   viewport,
   stdin,
   setRawMode,
+  onChange,
 }: UseTextBufferProps): TextBuffer {
   const [lines, setLines] = useState<string[]>(() => {
     const l = initialText.split('\n');
@@ -207,6 +209,14 @@ export function useTextBuffer({
   );
 
   const text = lines.join('\n');
+
+  // TODO(jacobr): stop using useEffect for this case. This may require a
+  // refactor of App.tsx and InputPrompt.tsx to simplify where onChange is used.
+  useEffect(() => {
+    if (onChange) {
+      onChange(text);
+    }
+  }, [text, onChange]);
 
   const undo = useCallback((): boolean => {
     const state = undoStack[undoStack.length - 1];
