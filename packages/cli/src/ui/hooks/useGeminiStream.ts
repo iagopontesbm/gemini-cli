@@ -9,13 +9,12 @@ import { useInput } from 'ink';
 import {
   GeminiClient,
   GeminiEventType as ServerGeminiEventType,
-  GeminiEvent,
-  ContentEvent,
-  ToolCallRequestEvent,
-  ToolCallResponseEvent,
-  ToolCallConfirmationEvent,
-  UserCancelledEvent,
-  ErrorEvent,
+  ServerGeminiStreamEvent as GeminiEvent,
+  ServerGeminiContentEvent as ContentEvent,
+  ServerGeminiToolCallRequestEvent as ToolCallRequestEvent,
+  ServerGeminiToolCallResponseEvent as ToolCallResponseEvent,
+  ServerGeminiToolCallConfirmationEvent as ToolCallConfirmationEvent,
+  ServerGeminiErrorEvent as ErrorEvent,
   getErrorMessage,
   isNodeError,
   Config,
@@ -26,6 +25,7 @@ import {
   ToolResultDisplay,
   ToolEditConfirmationDetails,
   ToolExecuteConfirmationDetails,
+  GeminiEventType,
 } from '@gemini-code/server';
 import { type Chat, type PartListUnion, type Part } from '@google/genai';
 import {
@@ -33,7 +33,7 @@ import {
   IndividualToolCallDisplay,
   ToolCallStatus,
   HistoryItemWithoutId,
-  MessageType,
+  HistoryItemToolGroup,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
@@ -466,10 +466,11 @@ export const useGeminiStream = (
             ? { ...tool, status: ToolCallStatus.Canceled }
             : tool,
         );
-        addItem(
-          { ...pendingHistoryItemRef.current, tools: updatedTools },
-          userMessageTimestamp,
-        );
+        const pendingItem: HistoryItemToolGroup = {
+          ...pendingHistoryItemRef.current,
+          tools: updatedTools,
+        };
+        addItem(pendingItem, userMessageTimestamp);
       } else {
         addItem(pendingHistoryItemRef.current, userMessageTimestamp);
       }
@@ -501,7 +502,6 @@ export const useGeminiStream = (
     userMessageTimestamp: number,
   ): Promise<StreamProcessingStatus> => {
     let geminiMessageBuffer = '';
-    let overallStatus: StreamProcessingStatus = 'completed';
 
     for await (const event of stream) {
       if (event.type === ServerGeminiEventType.Content) {
@@ -522,10 +522,10 @@ export const useGeminiStream = (
         return 'user_cancelled'; // Explicit return as this terminates the stream
       } else if (event.type === ServerGeminiEventType.Error) {
         handleErrorEvent(event.value, userMessageTimestamp);
-        overallStatus = 'error_occurred'; // Mark that an error occurred, but continue processing
+        return 'error_occurred'; // Mark that an error occurred, but continue processing
       }
     }
-    return overallStatus;
+    return 'completed';
   };
 
   const submitQuery = useCallback(
