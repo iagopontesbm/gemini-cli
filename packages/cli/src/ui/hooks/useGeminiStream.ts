@@ -378,13 +378,24 @@ export const useGeminiStream = (
       setPendingHistoryItem({ type: 'gemini', text: '' });
       newGeminiMessageBuffer = eventValue;
     }
+    // Split large messages for better rendering performance. Ideally,
+    // we should maximize the amount of output sent to <Static />.
     const splitPoint = findLastSafeSplitPoint(newGeminiMessageBuffer);
     if (splitPoint === newGeminiMessageBuffer.length) {
+      // Update the existing message with accumulated content
       setPendingHistoryItem((item) => ({
         type: item?.type as 'gemini' | 'gemini_content',
         text: newGeminiMessageBuffer,
       }));
     } else {
+      // This indicates that we need to split up this Gemini Message.
+      // Splitting a message is primarily a performance consideration. There is a
+      // <Static> component at the root of App.tsx which takes care of rendering
+      // content statically or dynamically. Everything but the last message is
+      // treated as static in order to prevent re-rendering an entire message history
+      // multiple times per-second (as streaming occurs). Prior to this change you'd
+      // see heavy flickering of the terminal. This ensures that larger messages get
+      // broken up so that there are more "statically" rendered.
       const beforeText = newGeminiMessageBuffer.substring(0, splitPoint);
       const afterText = newGeminiMessageBuffer.substring(splitPoint);
       addItem(
