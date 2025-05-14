@@ -290,7 +290,7 @@ export const App = ({
                 resetCompletion={completion.resetCompletionState}
               />
               {completion.showSuggestions && (
-                <Box marginTop={0}>
+                <Box>
                   <SuggestionsDisplay
                     suggestions={completion.suggestions}
                     activeIndex={completion.activeSuggestionIndex}
