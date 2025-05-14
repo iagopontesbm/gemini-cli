@@ -37,12 +37,12 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 export const useGeminiStream = (
   addItem: UseHistoryManagerReturn['addItem'],
-  _clearItems: UseHistoryManagerReturn['clearItems'], // Marked as unused
+  _clearItems: UseHistoryManagerReturn['clearItems'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
   onDebugMessage: (message: string) => void,
-  _openThemeDialog: () => void, // Marked as unused
+  _openThemeDialog: () => void,
   handleSlashCommand: (cmd: PartListUnion) => boolean,
 ) => {
   const toolRegistry = config.getToolRegistry();
@@ -182,13 +182,24 @@ export const useGeminiStream = (
 
             geminiMessageBuffer += event.value;
 
+            // Split large messages for better rendering performance. Ideally,
+            // we should maximize the amount of output sent to <Static />.
             const splitPoint = findLastSafeSplitPoint(geminiMessageBuffer);
             if (splitPoint === geminiMessageBuffer.length) {
+              // Update the existing message with accumulated content
               setPendingHistoryItem((item) => ({
                 type: item?.type as 'gemini' | 'gemini_content',
                 text: geminiMessageBuffer,
               }));
             } else {
+              // This indicates that we need to split up this Gemini Message.
+              // Splitting a message is primarily a performance consideration. There is a
+              // <Static> component at the root of App.tsx which takes care of rendering
+              // content statically or dynamically. Everything but the last message is
+              // treated as static in order to prevent re-rendering an entire message history
+              // multiple times per-second (as streaming occurs). Prior to this change you'd
+              // see heavy flickering of the terminal. This ensures that larger messages get
+              // broken up so that there are more "statically" rendered.
               const beforeText = geminiMessageBuffer.substring(0, splitPoint);
               const afterText = geminiMessageBuffer.substring(splitPoint);
               geminiMessageBuffer = afterText;
@@ -278,7 +289,7 @@ export const useGeminiStream = (
                     return tool;
                   },
                 );
-                const pendingHistoryItem = pendingHistoryItemRef.current; // Create a mutable copy
+                const pendingHistoryItem = pendingHistoryItemRef.current;
                 pendingHistoryItem.tools = updatedTools;
                 addItem(pendingHistoryItem, userMessageTimestamp);
               } else {
@@ -522,7 +533,6 @@ export const useGeminiStream = (
       toolRegistry,
       refreshStatic,
       onDebugMessage,
-      // Removed clearItems and openThemeDialog from dependency array
     ],
   );
 

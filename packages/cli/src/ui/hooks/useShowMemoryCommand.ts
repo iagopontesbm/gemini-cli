@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// packages/cli/src/ui/hooks/useShowMemoryCommand.ts
-
 import { Message, MessageType } from '../types.js';
 import { Config } from '@gemini-code/server';
 import { getGeminiMdFilePaths } from '../../config/config.js';

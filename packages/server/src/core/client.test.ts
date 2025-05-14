@@ -4,18 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// packages/server/src/core/client.test.ts
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-// import { GeminiClient } from './client'; // GeminiClient removed as it was unused in placeholder
-// import { Config } from '../config/config';
-// import * as Prompts from './prompts';
-import {
-  // GoogleGenerativeAI, // GoogleGenerativeAI removed as it was unused
-  Chat,
-  // Type as GenAiType, // GenAiType removed as it was unused
-  GenerateContentResponse,
-} from '@google/genai';
+
+import { Chat, GenerateContentResponse } from '@google/genai';
 
 // --- Mocks ---
 const mockChatCreateFn = vi.fn();
@@ -26,8 +17,6 @@ vi.mock('@google/genai', async (importOriginal) => {
   const MockedGoogleGenerativeAI = vi
     .fn()
     .mockImplementation((/*...args*/) => ({
-      // args removed as unused
-      // Return object directly for arrow-body-style
       chats: { create: mockChatCreateFn },
       models: { generateContent: mockGenerateContentFn },
     }));
@@ -55,10 +44,6 @@ vi.mock('../utils/generateContentResponseUtilities', () => ({
 }));
 
 describe('Gemini Client (client.ts)', () => {
-  // let mockConfig: Config; // mockConfig removed as it was unused
-  // let getCoreSystemPromptSpy: ReturnType<typeof vi.spyOn>; // getCoreSystemPromptSpy removed as it was unused
-  // const USER_MEMORY = 'Client Test User Memory'; // USER_MEMORY removed as it was unused
-
   beforeEach(() => {
     vi.resetAllMocks();
     mockChatCreateFn.mockResolvedValue({} as Chat);
@@ -70,11 +55,7 @@ describe('Gemini Client (client.ts)', () => {
           },
         },
       ],
-      // Add other mandatory fields or cast as unknown
     } as unknown as GenerateContentResponse);
-
-    // mockConfig setup removed as it was unused in placeholder tests
-    // getCoreSystemPromptSpy setup removed as it was unused
   });
 
   afterEach(() => {

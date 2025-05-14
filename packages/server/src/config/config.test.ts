@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// packages/server/src/config/config.test.ts
-
 import { describe, it, expect, vi, beforeEach /*, afterEach */ } from 'vitest'; // afterEach removed as it was unused
 import { Config, createServerConfig } from './config.js'; // Adjust import path
 import * as path from 'path';

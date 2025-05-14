@@ -124,15 +124,13 @@ export class GeminiClient {
       },
     ];
     try {
-      // Retrieve user memory from config
       const userMemory = this.config.getUserMemory();
-      // Pass user memory to getCoreSystemPrompt
       const systemInstruction = getCoreSystemPrompt(userMemory);
 
       return this.client.chats.create({
         model: this.model,
         config: {
-          systemInstruction, // Use the potentially modified prompt
+          systemInstruction,
           ...this.generateContentConfig,
           tools,
         },
@@ -202,9 +200,7 @@ export class GeminiClient {
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
     try {
-      // Retrieve user memory from config
       const userMemory = this.config.getUserMemory();
-      // Pass user memory to getCoreSystemPrompt
       const systemInstruction = getCoreSystemPrompt(userMemory);
       const requestConfig = {
         ...this.generateContentConfig,
@@ -212,10 +208,10 @@ export class GeminiClient {
       };
 
       const result = await this.client.models.generateContent({
-        model, // Use the model passed in, or default 'gemini-2.0-flash'
+        model,
         config: {
           ...requestConfig,
-          systemInstruction, // Use the potentially modified prompt
+          systemInstruction,
           responseSchema: schema,
           responseMimeType: 'application/json',
         },

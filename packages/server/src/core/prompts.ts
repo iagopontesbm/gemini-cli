@@ -192,7 +192,7 @@ Your core function is efficient and safe assistance. Balance extreme conciseness
 
   const memorySuffix =
     userMemory && userMemory.trim().length > 0
-      ? `\n\n---\n\n${userMemory.trim()}` // Add separator and memory at the end
+      ? `\n\n---\n\n${userMemory.trim()}`
       : '';
 
   return `${basePrompt}${memorySuffix}`;

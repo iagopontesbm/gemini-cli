@@ -354,8 +354,10 @@ export async function loadHierarchicalGeminiMemory(
 }
 
 export async function loadCliConfig(settings: Settings): Promise<Config> {
+  // Load .env file using logic from server package
   loadEnvironment();
 
+  // Check API key (CLI responsibility)
   if (!process.env.GEMINI_API_KEY) {
     logger.error(
       'GEMINI_API_KEY is not set. See https://ai.google.dev/gemini-api/docs/api-key to obtain one. ' +
@@ -374,6 +376,7 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
 
   const userAgent = await createUserAgent();
 
+  // Create config using factory from server package
   return createServerConfig(
     process.env.GEMINI_API_KEY,
     argv.model || DEFAULT_GEMINI_MODEL,
