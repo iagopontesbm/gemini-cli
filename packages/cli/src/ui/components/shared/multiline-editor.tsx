@@ -108,7 +108,6 @@ export const MultilineTextEditor = ({
         return;
       }
 
-      // Ctrl+K for killLineRight
       if (key.ctrl && input === 'k') {
         buffer.killLineRight();
         return;
