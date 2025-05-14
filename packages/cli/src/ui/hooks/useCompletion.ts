@@ -120,7 +120,11 @@ export function useCompletion(
     if (trimmedQuery.startsWith('/')) {
       const partialCommand = trimmedQuery.substring(1);
       const filteredSuggestions = slashCommands
-        .filter((cmd) => cmd.name.startsWith(partialCommand) || cmd.altName?.startsWith(partialCommand))
+        .filter(
+          (cmd) =>
+            cmd.name.startsWith(partialCommand) ||
+            cmd.altName?.startsWith(partialCommand),
+        )
         // Filter out ? and any other single character commands unless it's the only char
         .filter((cmd) => {
           const nameMatch = cmd.name.startsWith(partialCommand);
@@ -128,7 +132,10 @@ export function useCompletion(
           if (partialCommand.length === 1) {
             return nameMatch || altNameMatch; // Allow single char match if query is single char
           }
-          return (nameMatch && cmd.name.length > 1) || (altNameMatch && cmd.altName && cmd.altName.length > 1);
+          return (
+            (nameMatch && cmd.name.length > 1) ||
+            (altNameMatch && cmd.altName && cmd.altName.length > 1)
+          );
         })
         .map((cmd) => ({
           label: cmd.name, // Always show the main name as label

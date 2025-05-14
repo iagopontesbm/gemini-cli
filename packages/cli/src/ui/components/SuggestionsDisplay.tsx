@@ -56,17 +56,21 @@ export function SuggestionsDisplay({
         const originalIndex = startIndex + index;
         const isActive = originalIndex === activeIndex;
         return (
-          <Box
-            key={`${suggestion}-${originalIndex}`}
-            width={width - 2}
-          >
+          <Box key={`${suggestion}-${originalIndex}`} width={width - 2}>
             <Text>
               <Text wrap="truncate">
-                <Text color={isActive ? Colors.AccentPurple : Colors.SubtleComment} bold>
+                <Text
+                  color={isActive ? Colors.AccentPurple : Colors.SubtleComment}
+                  bold
+                >
                   {suggestion.label.padEnd(10)}
                 </Text>
                 {suggestion.description ? (
-                  <Text color={isActive ? Colors.AccentPurple : Colors.SubtleComment}>
+                  <Text
+                    color={
+                      isActive ? Colors.AccentPurple : Colors.SubtleComment
+                    }
+                  >
                     {suggestion.description}
                   </Text>
                 ) : null}
