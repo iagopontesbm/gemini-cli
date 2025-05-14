@@ -42,10 +42,10 @@ import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
-type StreamProcessingStatus = 
-  | 'completed' 
-  | 'paused_for_confirmation' 
-  | 'user_cancelled' 
+type StreamProcessingStatus =
+  | 'completed'
+  | 'paused_for_confirmation'
+  | 'user_cancelled'
   | 'error_occurred';
 
 /**
@@ -182,7 +182,10 @@ export const useGeminiStream = (
   };
 
   // --- UI Helper Functions (used by event handlers) ---
-  const updateFunctionResponseUI = (toolResponse: ToolCallResponseInfo, status: ToolCallStatus) => {
+  const updateFunctionResponseUI = (
+    toolResponse: ToolCallResponseInfo,
+    status: ToolCallStatus,
+  ) => {
     setPendingHistoryItem((item) =>
       item?.type === 'tool_group'
         ? {
@@ -203,7 +206,10 @@ export const useGeminiStream = (
     );
   };
 
-  const updateConfirmingFunctionStatusUI = (callId: string, confirmationDetails: ToolCallConfirmationDetails | undefined) => {
+  const updateConfirmingFunctionStatusUI = (
+    callId: string,
+    confirmationDetails: ToolCallConfirmationDetails | undefined,
+  ) => {
     if (pendingHistoryItemRef.current?.type !== 'tool_group') return;
     setPendingHistoryItem((item) =>
       item?.type === 'tool_group'
@@ -224,7 +230,9 @@ export const useGeminiStream = (
   };
 
   // This function will be fully refactored in a later step
-  const wireConfirmationSubmission = (confirmationDetails: ServerToolCallConfirmationDetails): ToolCallConfirmationDetails => {
+  const wireConfirmationSubmission = (
+    confirmationDetails: ServerToolCallConfirmationDetails,
+  ): ToolCallConfirmationDetails => {
     const originalConfirmationDetails = confirmationDetails.details;
     const request = confirmationDetails.request;
     const resubmittingConfirm = async (outcome: ToolConfirmationOutcome) => {
@@ -250,24 +258,46 @@ export const useGeminiStream = (
       }
 
       if (outcome === ToolConfirmationOutcome.Cancel) {
-        declineToolExecution('User rejected function call.', ToolCallStatus.Error, request, originalConfirmationDetails);
+        declineToolExecution(
+          'User rejected function call.',
+          ToolCallStatus.Error,
+          request,
+          originalConfirmationDetails,
+        );
       } else {
         const tool = toolRegistry.getTool(request.name);
         if (!tool) {
-          throw new Error(`Tool "${request.name}" not found or is not registered.`);
+          throw new Error(
+            `Tool "${request.name}" not found or is not registered.`,
+          );
         }
         try {
           abortControllerRef.current = new AbortController();
-          const result = await tool.execute(request.args, abortControllerRef.current.signal);
+          const result = await tool.execute(
+            request.args,
+            abortControllerRef.current.signal,
+          );
           if (abortControllerRef.current.signal.aborted) {
-            declineToolExecution(result.llmContent, ToolCallStatus.Canceled, request, originalConfirmationDetails);
+            declineToolExecution(
+              result.llmContent,
+              ToolCallStatus.Canceled,
+              request,
+              originalConfirmationDetails,
+            );
             return;
           }
           const functionResponse: Part = {
-            functionResponse: { name: request.name, id: request.callId, response: { output: result.llmContent } },
+            functionResponse: {
+              name: request.name,
+              id: request.callId,
+              response: { output: result.llmContent },
+            },
           };
           const responseInfo: ToolCallResponseInfo = {
-            callId: request.callId, responsePart: functionResponse, resultDisplay: result.returnDisplay, error: undefined,
+            callId: request.callId,
+            responsePart: functionResponse,
+            resultDisplay: result.returnDisplay,
+            error: undefined,
           };
           updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
           if (pendingHistoryItemRef.current) {
@@ -286,23 +316,32 @@ export const useGeminiStream = (
 
     // Extracted declineToolExecution to be part of wireConfirmationSubmission's closure
     // or could be a standalone helper if more params are passed.
-    function declineToolExecution (
-      declineMessage: string, 
+    function declineToolExecution(
+      declineMessage: string,
       status: ToolCallStatus,
       request: ServerToolCallConfirmationDetails['request'],
-      originalDetails: ServerToolCallConfirmationDetails['details']
+      originalDetails: ServerToolCallConfirmationDetails['details'],
     ) {
       let resultDisplay: ToolResultDisplay | undefined;
       if ('fileDiff' in originalDetails) {
-        resultDisplay = { fileDiff: (originalDetails as ToolEditConfirmationDetails).fileDiff };
+        resultDisplay = {
+          fileDiff: (originalDetails as ToolEditConfirmationDetails).fileDiff,
+        };
       } else {
         resultDisplay = `~~${(originalDetails as ToolExecuteConfirmationDetails).command}~~`;
       }
       const functionResponse: Part = {
-        functionResponse: { id: request.callId, name: request.name, response: { error: declineMessage } },
+        functionResponse: {
+          id: request.callId,
+          name: request.name,
+          response: { error: declineMessage },
+        },
       };
       const responseInfo: ToolCallResponseInfo = {
-        callId: request.callId, responsePart: functionResponse, resultDisplay, error: new Error(declineMessage),
+        callId: request.callId,
+        responsePart: functionResponse,
+        resultDisplay,
+        error: new Error(declineMessage),
       };
       const history = chatSessionRef.current?.getHistory();
       if (history) {
@@ -318,7 +357,6 @@ export const useGeminiStream = (
 
     return { ...originalConfirmationDetails, onConfirm: resubmittingConfirm };
   };
-
 
   // --- Stream Event Handlers ---
   const handleContentEvent = (
@@ -347,7 +385,12 @@ export const useGeminiStream = (
       const beforeText = newGeminiMessageBuffer.substring(0, splitPoint);
       const afterText = newGeminiMessageBuffer.substring(splitPoint);
       addItem(
-        { type: pendingHistoryItemRef.current?.type as 'gemini' | 'gemini_content', text: beforeText },
+        {
+          type: pendingHistoryItemRef.current?.type as
+            | 'gemini'
+            | 'gemini_content',
+          text: beforeText,
+        },
         userMessageTimestamp,
       );
       setPendingHistoryItem({ type: 'gemini_content', text: afterText });
@@ -356,7 +399,10 @@ export const useGeminiStream = (
     return newGeminiMessageBuffer;
   };
 
-  const handleToolCallRequestEvent = (eventValue: ToolCallRequestEvent['value'], userMessageTimestamp: number) => {
+  const handleToolCallRequestEvent = (
+    eventValue: ToolCallRequestEvent['value'],
+    userMessageTimestamp: number,
+  ) => {
     const { callId, name, args } = eventValue;
     const cliTool = toolRegistry.getTool(name);
     if (!cliTool) {
@@ -376,8 +422,12 @@ export const useGeminiStream = (
       description = `Error: Unable to get description: ${getErrorMessage(e)}`;
     }
     const toolCallDisplay: IndividualToolCallDisplay = {
-      callId, name: cliTool.displayName, description, status: ToolCallStatus.Pending,
-      resultDisplay: undefined, confirmationDetails: undefined,
+      callId,
+      name: cliTool.displayName,
+      description,
+      status: ToolCallStatus.Pending,
+      resultDisplay: undefined,
+      confirmationDetails: undefined,
     };
     setPendingHistoryItem((pending) =>
       pending?.type === 'tool_group'
@@ -386,14 +436,23 @@ export const useGeminiStream = (
     );
   };
 
-  const handleToolCallResponseEvent = (eventValue: ToolCallResponseEvent['value']) => {
-    const status = eventValue.error ? ToolCallStatus.Error : ToolCallStatus.Success;
+  const handleToolCallResponseEvent = (
+    eventValue: ToolCallResponseEvent['value'],
+  ) => {
+    const status = eventValue.error
+      ? ToolCallStatus.Error
+      : ToolCallStatus.Success;
     updateFunctionResponseUI(eventValue, status);
   };
 
-  const handleToolCallConfirmationEvent = (eventValue: ToolCallConfirmationEvent['value']) => {
+  const handleToolCallConfirmationEvent = (
+    eventValue: ToolCallConfirmationEvent['value'],
+  ) => {
     const confirmationDetails = wireConfirmationSubmission(eventValue);
-    updateConfirmingFunctionStatusUI(eventValue.request.callId, confirmationDetails);
+    updateConfirmingFunctionStatusUI(
+      eventValue.request.callId,
+      confirmationDetails,
+    );
     setStreamingState(StreamingState.WaitingForConfirmation);
   };
 
@@ -407,22 +466,34 @@ export const useGeminiStream = (
             ? { ...tool, status: ToolCallStatus.Canceled }
             : tool,
         );
-        addItem({ ...pendingHistoryItemRef.current, tools: updatedTools }, userMessageTimestamp);
+        addItem(
+          { ...pendingHistoryItemRef.current, tools: updatedTools },
+          userMessageTimestamp,
+        );
       } else {
         addItem(pendingHistoryItemRef.current, userMessageTimestamp);
       }
       setPendingHistoryItem(null);
     }
-    addItem({ type: 'info', text: 'User cancelled the request.' }, userMessageTimestamp);
+    addItem(
+      { type: 'info', text: 'User cancelled the request.' },
+      userMessageTimestamp,
+    );
     setStreamingState(StreamingState.Idle);
   };
 
-  const handleErrorEvent = (eventValue: ErrorEvent['value'], userMessageTimestamp: number) => {
+  const handleErrorEvent = (
+    eventValue: ErrorEvent['value'],
+    userMessageTimestamp: number,
+  ) => {
     if (pendingHistoryItemRef.current) {
       addItem(pendingHistoryItemRef.current, userMessageTimestamp);
       setPendingHistoryItem(null);
     }
-    addItem({ type: 'error', text: `[API Error: ${eventValue.message}]` }, userMessageTimestamp);
+    addItem(
+      { type: 'error', text: `[API Error: ${eventValue.message}]` },
+      userMessageTimestamp,
+    );
   };
 
   const processGeminiStreamEvents = async (
@@ -434,7 +505,11 @@ export const useGeminiStream = (
 
     for await (const event of stream) {
       if (event.type === ServerGeminiEventType.Content) {
-        geminiMessageBuffer = handleContentEvent(event.value, geminiMessageBuffer, userMessageTimestamp);
+        geminiMessageBuffer = handleContentEvent(
+          event.value,
+          geminiMessageBuffer,
+          userMessageTimestamp,
+        );
       } else if (event.type === ServerGeminiEventType.ToolCallRequest) {
         handleToolCallRequestEvent(event.value, userMessageTimestamp);
       } else if (event.type === ServerGeminiEventType.ToolCallResponse) {
@@ -484,9 +559,15 @@ export const useGeminiStream = (
 
       try {
         const stream = client.sendMessageStream(chat, queryToSend, signal);
-        const processingStatus = await processGeminiStreamEvents(stream, userMessageTimestamp);
+        const processingStatus = await processGeminiStreamEvents(
+          stream,
+          userMessageTimestamp,
+        );
 
-        if (processingStatus === 'paused_for_confirmation' || processingStatus === 'user_cancelled') {
+        if (
+          processingStatus === 'paused_for_confirmation' ||
+          processingStatus === 'user_cancelled'
+        ) {
           return;
         }
 
@@ -494,39 +575,44 @@ export const useGeminiStream = (
           addItem(pendingHistoryItemRef.current, userMessageTimestamp);
           setPendingHistoryItem(null);
         }
-        
-        if (processingStatus === 'completed' || processingStatus === 'error_occurred') {
-            setStreamingState(StreamingState.Idle);
-        }
 
+        if (
+          processingStatus === 'completed' ||
+          processingStatus === 'error_occurred'
+        ) {
+          setStreamingState(StreamingState.Idle);
+        }
       } catch (error: unknown) {
         if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
-            { type: 'error', text: `[Stream Error: ${getErrorMessage(error)}]` },
+            {
+              type: 'error',
+              text: `[Stream Error: ${getErrorMessage(error)}]`,
+            },
             userMessageTimestamp,
           );
         }
         setStreamingState(StreamingState.Idle);
       } finally {
         if (streamingState !== StreamingState.WaitingForConfirmation) {
-             abortControllerRef.current = null;
+          abortControllerRef.current = null;
         }
       }
     },
     [
-      streamingState, 
+      streamingState,
       setShowHelp,
-      handleSlashCommand, 
+      handleSlashCommand,
       handleShellCommand,
-      config, 
-      addItem, 
-      onDebugMessage, 
+      config,
+      addItem,
+      onDebugMessage,
       // pendingHistoryItemRef, // No longer direct dep of submitQuery
       // setPendingHistoryItem, // No longer direct dep of submitQuery
       // toolRegistry, // No longer direct dep of submitQuery
       refreshStatic, // wireConfirmationSubmission uses this
-      setInitError, 
-      setStreamingState, 
+      setInitError,
+      setStreamingState,
       // Dependencies for handlers are implicitly covered as they are in the same scope
       // and use the same hook variables (config, addItem, onDebugMessage, etc.)
       // Explicitly list core setters/refs if ESLint complains or for clarity, but trying to keep this clean.
