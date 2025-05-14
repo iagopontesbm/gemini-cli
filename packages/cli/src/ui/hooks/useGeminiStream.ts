@@ -29,28 +29,26 @@ import {
   MessageType,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
-import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { loadHierarchicalGeminiMemory } from '../../config/config.js';
-import process from 'node:process';
 
 export const useGeminiStream = (
   addItem: UseHistoryManagerReturn['addItem'],
-  clearItems: UseHistoryManagerReturn['clearItems'],
+  _clearItems: UseHistoryManagerReturn['clearItems'], // Marked as unused
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
-  openThemeDialog: () => void,
+  onDebugMessage: (message: string) => void,
+  _openThemeDialog: () => void, // Marked as unused
+  handleSlashCommand: (cmd: PartListUnion) => boolean,
 ) => {
   const toolRegistry = config.getToolRegistry();
   const [streamingState, setStreamingState] = useState<StreamingState>(
     StreamingState.Idle,
   );
-  const [debugMessage, setDebugMessage] = useState<string>('');
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const chatSessionRef = useRef<Chat | null>(null);
@@ -58,61 +56,10 @@ export const useGeminiStream = (
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
 
-  const performMemoryRefresh = useCallback(async () => {
-    addItem(
-      {
-        type: MessageType.INFO,
-        text: 'Refreshing hierarchical memory (GEMINI.md files)...',
-      },
-      Date.now(),
-    );
-    try {
-      const newMemory = await loadHierarchicalGeminiMemory(
-        process.cwd(),
-        config.getDebugMode(),
-      );
-      config.setUserMemory(newMemory);
-      chatSessionRef.current = null;
-      addItem(
-        {
-          type: MessageType.INFO,
-          text: `Memory refreshed successfully. ${newMemory.length > 0 ? `Loaded ${newMemory.length} characters.` : 'No memory content found.'}`,
-        },
-        Date.now(),
-      );
-      if (config.getDebugMode()) {
-        console.log(
-          `[DEBUG] Refreshed memory content in config: ${newMemory.substring(0, 200)}...`,
-        );
-      }
-    } catch (error) {
-      const errorMessage = getErrorMessage(error);
-      addItem(
-        {
-          type: MessageType.ERROR,
-          text: `Error refreshing memory: ${errorMessage}`,
-        },
-        Date.now(),
-      );
-      console.error('Error refreshing memory:', error);
-    }
-  }, [config, addItem]);
-
-  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    config,
-    addItem,
-    clearItems,
-    refreshStatic,
-    setShowHelp,
-    setDebugMessage,
-    openThemeDialog,
-    performMemoryRefresh,
-  );
-
   const { handleShellCommand } = useShellCommandProcessor(
     addItem,
     setStreamingState,
-    setDebugMessage,
+    onDebugMessage,
     config,
   );
 
@@ -150,7 +97,7 @@ export const useGeminiStream = (
 
       if (typeof query === 'string') {
         const trimmedQuery = query.trim();
-        setDebugMessage(`User query: '${trimmedQuery}'`);
+        onDebugMessage(`User query: '${trimmedQuery}'`);
 
         if (handleSlashCommand(trimmedQuery)) return;
         if (handleShellCommand(trimmedQuery)) return;
@@ -160,7 +107,7 @@ export const useGeminiStream = (
             query: trimmedQuery,
             config,
             addItem,
-            setDebugMessage,
+            onDebugMessage,
             messageId: userMessageTimestamp,
             signal,
           });
@@ -178,7 +125,7 @@ export const useGeminiStream = (
       }
 
       if (queryToSendToGemini === null) {
-        setDebugMessage(
+        onDebugMessage(
           'Query processing resulted in null, not sending to Gemini.',
         );
         return;
@@ -501,6 +448,10 @@ export const useGeminiStream = (
                 error: undefined,
               };
               updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
+              if (pendingHistoryItemRef.current) {
+                addItem(pendingHistoryItemRef.current, Date.now());
+                setPendingHistoryItem(null);
+              }
               setStreamingState(StreamingState.Idle);
               await submitQuery(functionResponse);
             } finally {
@@ -545,6 +496,10 @@ export const useGeminiStream = (
             }
 
             updateFunctionResponseUI(responseInfo, status);
+            if (pendingHistoryItemRef.current) {
+              addItem(pendingHistoryItemRef.current, Date.now());
+              setPendingHistoryItem(null);
+            }
             setStreamingState(StreamingState.Idle);
           }
         };
@@ -566,6 +521,8 @@ export const useGeminiStream = (
       setPendingHistoryItem,
       toolRegistry,
       refreshStatic,
+      onDebugMessage,
+      // Removed clearItems and openThemeDialog from dependency array
     ],
   );
 
@@ -573,8 +530,6 @@ export const useGeminiStream = (
     streamingState,
     submitQuery,
     initError,
-    debugMessage,
-    slashCommands,
     pendingHistoryItem: pendingHistoryItemRef.current,
   };
 };

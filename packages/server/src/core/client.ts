@@ -198,17 +198,23 @@ export class GeminiClient {
   async generateJson(
     contents: Content[],
     schema: SchemaUnion,
+    model: string = 'gemini-2.0-flash',
+    config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
     try {
       // Retrieve user memory from config
       const userMemory = this.config.getUserMemory();
       // Pass user memory to getCoreSystemPrompt
       const systemInstruction = getCoreSystemPrompt(userMemory);
+      const requestConfig = {
+        ...this.generateContentConfig,
+        ...config,
+      };
 
       const result = await this.client.models.generateContent({
-        model: 'gemini-2.0-flash', // Consider if this model should also use the memory
+        model, // Use the model passed in, or default 'gemini-2.0-flash'
         config: {
-          ...this.generateContentConfig,
+          ...requestConfig,
           systemInstruction, // Use the potentially modified prompt
           responseSchema: schema,
           responseMimeType: 'application/json',

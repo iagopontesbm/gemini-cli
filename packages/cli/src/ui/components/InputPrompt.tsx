@@ -5,39 +5,61 @@
  */
 
 import React, { useCallback } from 'react';
-import { Text, Box, useInput, useFocus, Key } from 'ink';
-import TextInput from 'ink-text-input';
+import { Text, Box, Key } from 'ink';
 import { Colors } from '../colors.js';
 import { Suggestion } from './SuggestionsDisplay.js';
+import { MultilineTextEditor } from './shared/multiline-editor.js';
+import { useInputHistory } from '../hooks/useInputHistory.js';
 
 interface InputPromptProps {
   query: string;
-  setQuery: React.Dispatch<React.SetStateAction<string>>;
-  inputKey: number;
-  setInputKey: React.Dispatch<React.SetStateAction<number>>;
+  onChange: (value: string) => void;
+  onChangeAndMoveCursor: (value: string) => void;
+  editorState: EditorState;
   onSubmit: (value: string) => void;
   showSuggestions: boolean;
   suggestions: Suggestion[];
   activeSuggestionIndex: number;
-  navigateUp: () => void;
-  navigateDown: () => void;
   resetCompletion: () => void;
+  userMessages: readonly string[];
+  navigateSuggestionUp: () => void;
+  navigateSuggestionDown: () => void;
+}
+
+export interface EditorState {
+  key: number;
+  initialCursorOffset?: number;
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
   query,
-  setQuery,
-  inputKey,
-  setInputKey,
+  onChange,
+  onChangeAndMoveCursor,
+  editorState,
   onSubmit,
   showSuggestions,
   suggestions,
   activeSuggestionIndex,
-  navigateUp,
-  navigateDown,
+  userMessages,
+  navigateSuggestionUp,
+  navigateSuggestionDown,
   resetCompletion,
 }) => {
-  const { isFocused } = useFocus({ autoFocus: true });
+  const handleSubmit = useCallback(
+    (submittedValue: string) => {
+      onSubmit(submittedValue);
+      onChangeAndMoveCursor(''); // Clear query after submit
+    },
+    [onSubmit, onChangeAndMoveCursor],
+  );
+
+  const inputHistory = useInputHistory({
+    userMessages,
+    onSubmit: handleSubmit,
+    isActive: !showSuggestions, // Input history is active when suggestions are not shown
+    currentQuery: query,
+    onChangeAndMoveCursor,
+  });
 
   const handleAutocomplete = useCallback(
     (indexToUse: number) => {
@@ -52,7 +74,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         const slashIndex = query.indexOf('/');
         const base = query.substring(0, slashIndex + 1);
         const newValue = base + selectedSuggestion.value;
-        setQuery(newValue);
+        onChangeAndMoveCursor(newValue);
+        onSubmit(newValue); // Execute the command
       } else {
         // Handle @ command completion
         const atIndex = query.lastIndexOf('@');
@@ -73,32 +96,30 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
 
         const newValue = base + selectedSuggestion.value;
-        setQuery(newValue);
+        onChangeAndMoveCursor(newValue);
       }
 
       resetCompletion(); // Hide suggestions after selection
-      setInputKey((k) => k + 1); // Increment key to force re-render and cursor reset
     },
-    [query, setQuery, suggestions, resetCompletion, setInputKey],
+    [query, suggestions, resetCompletion, onChangeAndMoveCursor, onSubmit],
   );
 
-  useInput(
+  const inputPreprocessor = useCallback(
     (input: string, key: Key) => {
-      if (!isFocused) {
-        return;
-      }
-
       if (showSuggestions) {
         if (key.upArrow) {
-          navigateUp();
+          navigateSuggestionUp();
+          return true;
         } else if (key.downArrow) {
-          navigateDown();
+          navigateSuggestionDown();
+          return true;
         } else if (key.tab) {
           if (suggestions.length > 0) {
             const targetIndex =
               activeSuggestionIndex === -1 ? 0 : activeSuggestionIndex;
             if (targetIndex < suggestions.length) {
               handleAutocomplete(targetIndex);
+              return true;
             }
           }
         } else if (key.return) {
@@ -106,37 +127,54 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             handleAutocomplete(activeSuggestionIndex);
           } else {
             if (query.trim()) {
-              onSubmit(query);
+              handleSubmit(query);
             }
           }
+          return true;
         } else if (key.escape) {
           resetCompletion();
+          return true;
         }
       }
-      // Enter key when suggestions are NOT showing is handled by TextInput's onSubmit prop below
+      return false;
     },
-    { isActive: true },
+    [
+      handleAutocomplete,
+      navigateSuggestionDown,
+      navigateSuggestionUp,
+      query,
+      suggestions,
+      showSuggestions,
+      resetCompletion,
+      activeSuggestionIndex,
+      handleSubmit,
+    ],
   );
 
   return (
     <Box borderStyle="round" borderColor={Colors.AccentBlue} paddingX={1}>
       <Text color={Colors.AccentPurple}>&gt; </Text>
       <Box flexGrow={1}>
-        <TextInput
-          key={inputKey.toString()}
-          value={query}
-          onChange={setQuery}
+        <MultilineTextEditor
+          key={editorState.key.toString()}
+          initialCursorOffset={editorState.initialCursorOffset}
+          initialText={query}
+          onChange={onChange}
           placeholder="Enter your message or use tools (e.g., @src/file.txt)..."
+          /* Account for width used by the box and &gt; */
+          navigateUp={inputHistory.navigateUp}
+          navigateDown={inputHistory.navigateDown}
+          inputPreprocessor={inputPreprocessor}
+          widthUsedByParent={3}
+          widthFraction={0.9}
           onSubmit={() => {
             // This onSubmit is for the TextInput component itself.
             // It should only fire if suggestions are NOT showing,
-            // as useInput handles Enter when suggestions are visible.
+            // as inputPreprocessor handles Enter when suggestions are visible.
             const trimmedQuery = query.trim();
             if (!showSuggestions && trimmedQuery) {
-              onSubmit(trimmedQuery);
+              handleSubmit(trimmedQuery);
             }
-            // If suggestions ARE showing, useInput's Enter handler
-            // would have already dealt with it (either completing or submitting).
           }}
         />
       </Box>
