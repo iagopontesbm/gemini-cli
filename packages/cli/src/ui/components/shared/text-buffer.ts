@@ -528,8 +528,8 @@ export function useTextBuffer({
   ]);
 
   const killLineRight = useCallback((): void => {
-    dbg('killLineRight', { beforeCursor: [cursorRow, cursorCol] });
     const lineContent = currentLine(cursorRow);
+    // Only act if the cursor is not at the end of the line
     if (cursorCol < currentLineLen(cursorRow)) {
       pushUndo();
       setLines((prevLines) => {
@@ -537,10 +537,7 @@ export function useTextBuffer({
         newLines[cursorRow] = cpSlice(lineContent, 0, cursorCol);
         return newLines;
       });
-      // Cursor position does not change, but text to the right is gone.
-      // No change to preferredCol as it's a line modification, not vertical movement.
     }
-    // If cursorCol is at or beyond the end of the line, do nothing.
   }, [pushUndo, cursorRow, cursorCol, currentLine, currentLineLen]);
 
   const move = useCallback(
