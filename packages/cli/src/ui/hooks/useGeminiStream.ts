@@ -607,17 +607,9 @@ export const useGeminiStream = (
       config,
       addItem,
       onDebugMessage,
-      // pendingHistoryItemRef, // No longer direct dep of submitQuery
-      // setPendingHistoryItem, // No longer direct dep of submitQuery
-      // toolRegistry, // No longer direct dep of submitQuery
-      refreshStatic, // wireConfirmationSubmission uses this
+      refreshStatic,
       setInitError,
       setStreamingState,
-      // Dependencies for handlers are implicitly covered as they are in the same scope
-      // and use the same hook variables (config, addItem, onDebugMessage, etc.)
-      // Explicitly list core setters/refs if ESLint complains or for clarity, but trying to keep this clean.
-      // The event handlers themselves are not in the dep array as they are defined in the hook scope.
-      // Their stability relies on the stability of what they close over.
     ],
   );
 
