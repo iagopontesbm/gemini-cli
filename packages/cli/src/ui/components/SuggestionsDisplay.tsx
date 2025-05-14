@@ -55,27 +55,22 @@ export function SuggestionsDisplay({
       {visibleSuggestions.map((suggestion, index) => {
         const originalIndex = startIndex + index;
         const isActive = originalIndex === activeIndex;
+        const textColor = isActive ? Colors.AccentPurple : Colors.SubtleComment;
+
         return (
-          <Box key={`${suggestion}-${originalIndex}`} width={width - 2}>
-            <Text>
-              <Text wrap="truncate">
-                <Text
-                  color={isActive ? Colors.AccentPurple : Colors.SubtleComment}
-                  bold
-                >
-                  {suggestion.label.padEnd(10)}
-                </Text>
-                {suggestion.description ? (
-                  <Text
-                    color={
-                      isActive ? Colors.AccentPurple : Colors.SubtleComment
-                    }
-                  >
+          <Box key={`${suggestion}-${originalIndex}`} width={width}>
+            <Box flexDirection="row">
+              <Box width={20} flexShrink={0}>
+                <Text color={textColor}>{suggestion.label}</Text>
+              </Box>
+              {suggestion.description ? (
+                <Box flexGrow={1}>
+                  <Text color={textColor} wrap="wrap">
                     {suggestion.description}
                   </Text>
-                ) : null}
-              </Text>
-            </Text>
+                </Box>
+              ) : null}
+            </Box>
           </Box>
         );
       })}
