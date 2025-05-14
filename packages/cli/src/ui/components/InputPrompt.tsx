@@ -175,7 +175,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       activeSuggestionIndex,
       handleSubmit,
       inputHistory,
-      onChangeAndMoveCursor,
       setEditorState,
       onClearScreen,
     ],

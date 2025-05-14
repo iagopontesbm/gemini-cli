@@ -372,9 +372,9 @@ export function useTextBuffer({
     pushUndo,
     cursorRow,
     cursorCol,
-    lines,
     currentLine,
     currentLineLen,
+    lines.length,
     setPreferredCol,
   ]);
 
@@ -521,9 +521,9 @@ export function useTextBuffer({
     pushUndo,
     cursorRow,
     cursorCol,
-    lines,
     currentLine,
     del,
+    lines.length,
     setPreferredCol,
   ]);
 
@@ -541,7 +541,7 @@ export function useTextBuffer({
       // No change to preferredCol as it's a line modification, not vertical movement.
     }
     // If cursorCol is at or beyond the end of the line, do nothing.
-  }, [pushUndo, cursorRow, cursorCol, lines, currentLine, currentLineLen]);
+  }, [pushUndo, cursorRow, cursorCol, currentLine, currentLineLen]);
 
   const move = useCallback(
     (dir: Direction): void => {
