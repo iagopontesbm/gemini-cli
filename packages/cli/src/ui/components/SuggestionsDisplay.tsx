@@ -9,6 +9,7 @@ import { Colors } from '../colors.js';
 export interface Suggestion {
   label: string;
   value: string;
+  description?: string;
 }
 interface SuggestionsDisplayProps {
   suggestions: Suggestion[];
@@ -60,7 +61,12 @@ export function SuggestionsDisplay({
             color={isActive ? Colors.Background : Colors.Foreground}
             backgroundColor={isActive ? Colors.AccentBlue : undefined}
           >
-            {suggestion.label}
+            <Text bold>{suggestion.label}</Text>
+            {suggestion.description && (
+              <Text color={isActive ? Colors.Background : Colors.SubtleComment}>
+                {'  ' + suggestion.description}
+              </Text>
+            )}
           </Text>
         );
       })}

@@ -57,7 +57,7 @@ export const useSlashCommandProcessor = (
       {
         name: 'quit',
         altName: 'exit',
-        description: '',
+        description: 'exit the cli',
         action: (_value: PartListUnion) => {
           setDebugMessage('Quitting. Good-bye.');
           process.exit(0);
