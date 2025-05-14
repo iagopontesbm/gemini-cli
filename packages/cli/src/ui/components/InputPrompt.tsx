@@ -24,6 +24,8 @@ interface InputPromptProps {
   userMessages: readonly string[];
   navigateSuggestionUp: () => void;
   navigateSuggestionDown: () => void;
+  setEditorState: (updater: (prevState: EditorState) => EditorState) => void;
+  onClearScreen: () => void;
 }
 
 export interface EditorState {
@@ -44,6 +46,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   navigateSuggestionUp,
   navigateSuggestionDown,
   resetCompletion,
+  setEditorState,
+  onClearScreen,
 }) => {
   const handleSubmit = useCallback(
     (submittedValue: string) => {
@@ -105,7 +109,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   );
 
   const inputPreprocessor = useCallback(
-    (input: string, key: Key) => {
+    (input: string, key: Key, _currentText?: string, _cursorOffset?: number) => {
       if (showSuggestions) {
         if (key.upArrow) {
           navigateSuggestionUp();
@@ -135,6 +139,28 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           resetCompletion();
           return true;
         }
+      } else {
+        // Keybindings when suggestions are not shown
+        if (key.ctrl && input === 'a') {
+          setEditorState(s => ({ key: s.key + 1, initialCursorOffset: 0 }));
+          return true;
+        }
+        if (key.ctrl && input === 'e') {
+          setEditorState(s => ({ key: s.key + 1, initialCursorOffset: query.length }));
+          return true;
+        }
+        if (key.ctrl && input === 'l') {
+          onClearScreen();
+          return true;
+        }
+        if (key.ctrl && input === 'p') {
+          inputHistory.navigateUp();
+          return true;
+        }
+        if (key.ctrl && input === 'n') {
+          inputHistory.navigateDown();
+          return true;
+        }
       }
       return false;
     },
@@ -148,6 +174,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       resetCompletion,
       activeSuggestionIndex,
       handleSubmit,
+      inputHistory,
+      onChangeAndMoveCursor,
+      setEditorState,
+      onClearScreen,
     ],
   );
 

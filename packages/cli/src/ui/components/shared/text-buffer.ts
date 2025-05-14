@@ -527,6 +527,22 @@ export function useTextBuffer({
     setPreferredCol,
   ]);
 
+  const killLineRight = useCallback((): void => {
+    dbg('killLineRight', { beforeCursor: [cursorRow, cursorCol] });
+    const lineContent = currentLine(cursorRow);
+    if (cursorCol < currentLineLen(cursorRow)) {
+      pushUndo();
+      setLines((prevLines) => {
+        const newLines = [...prevLines];
+        newLines[cursorRow] = cpSlice(lineContent, 0, cursorCol);
+        return newLines;
+      });
+      // Cursor position does not change, but text to the right is gone.
+      // No change to preferredCol as it's a line modification, not vertical movement.
+    }
+    // If cursorCol is at or beyond the end of the line, do nothing.
+  }, [pushUndo, cursorRow, cursorCol, lines, currentLine, currentLineLen]);
+
   const move = useCallback(
     (dir: Direction): void => {
       const before = [cursorRow, cursorCol];
@@ -772,6 +788,7 @@ export function useTextBuffer({
     replaceRange,
     deleteWordLeft,
     deleteWordRight,
+    killLineRight,
     handleInput,
     openInExternalEditor,
 
@@ -872,6 +889,10 @@ export interface TextBuffer {
    * follows the caret and the next contiguous run of word characters.
    */
   deleteWordRight: () => void;
+  /**
+   * Deletes text from the cursor to the end of the current line.
+   */
+  killLineRight: () => void;
   /**
    * High level "handleInput" – receives what Ink gives us.
    */
