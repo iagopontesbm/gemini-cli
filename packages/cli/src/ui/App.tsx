@@ -19,11 +19,7 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { shortenPath, type Config } from '@gemini-code/server';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
-import {
-  getGeminiMdFilePaths,
-  loadHierarchicalGeminiMemory,
-} from '../config/config.js';
-import { homedir } from 'os'; // Added for memory file count
+import { loadHierarchicalGeminiMemory } from '../config/config.js';
 import { LoadedSettings } from '../config/settings.js';
 import { Tips } from './components/Tips.js';
 import { ConsoleOutput } from './components/ConsolePatcher.js';
@@ -67,25 +63,12 @@ export const App = ({
     handleThemeHighlight,
   } = useThemeCommand(settings, setThemeError);
 
-  const fetchGeminiMdFileCount = useCallback(async () => {
-    if (!config) return;
-    try {
-      const paths = await getGeminiMdFilePaths(
-        process.cwd(),
-        homedir(),
-        config.getDebugMode(),
-      );
-      setGeminiMdFileCount(paths.length);
-    } catch (error) {
-      // Handle error appropriately, maybe log it or set a specific error state
-      console.error('Error fetching GEMINI.md file count:', error);
-      setGeminiMdFileCount(0); // Default to 0 on error
+  // useEffect to initialize geminiMdFileCount from config when config is ready
+  useEffect(() => {
+    if (config) {
+      setGeminiMdFileCount(config.getGeminiMdFileCount());
     }
   }, [config]);
-
-  useEffect(() => {
-    fetchGeminiMdFileCount();
-  }, [fetchGeminiMdFileCount]);
 
   const performMemoryRefresh = useCallback(async () => {
     addItem(
@@ -96,22 +79,25 @@ export const App = ({
       Date.now(),
     );
     try {
-      const newMemory = await loadHierarchicalGeminiMemory(
+      const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
         process.cwd(),
         config.getDebugMode(),
       );
-      config.setUserMemory(newMemory);
+      config.setUserMemory(memoryContent);
+      config.setGeminiMdFileCount(fileCount);
+      setGeminiMdFileCount(fileCount);
+
       // chatSessionRef.current = null; // This was in useGeminiStream, might need similar logic or pass chat ref
       addItem(
         {
           type: MessageType.INFO,
-          text: `Memory refreshed successfully. ${newMemory.length > 0 ? `Loaded ${newMemory.length} characters.` : 'No memory content found.'}`,
+          text: `Memory refreshed successfully. ${memoryContent.length > 0 ? `Loaded ${memoryContent.length} characters from ${fileCount} file(s).` : 'No memory content found.'}`,
         },
         Date.now(),
       );
       if (config.getDebugMode()) {
         console.log(
-          `[DEBUG] Refreshed memory content in config: ${newMemory.substring(0, 200)}...`,
+          `[DEBUG] Refreshed memory content in config: ${memoryContent.substring(0, 200)}...`,
         );
       }
     } catch (error) {
@@ -125,8 +111,7 @@ export const App = ({
       );
       console.error('Error refreshing memory:', error);
     }
-    await fetchGeminiMdFileCount(); // Refresh count after memory operation
-  }, [config, addItem, fetchGeminiMdFileCount]);
+  }, [config, addItem]);
 
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
     config, // Pass config
@@ -136,20 +121,19 @@ export const App = ({
     setShowHelp,
     setDebugMessage,
     openThemeDialog,
-    performMemoryRefresh, // Pass performMemoryRefresh
+    performMemoryRefresh,
   );
 
   const { streamingState, submitQuery, initError, pendingHistoryItem } =
     useGeminiStream(
       addItem,
-      clearItems, // Pass clearItems
+      clearItems,
       refreshStatic,
       setShowHelp,
       config,
       setDebugMessage,
-      openThemeDialog, // Pass openThemeDialog
+      openThemeDialog,
       handleSlashCommand,
-      // performMemoryRefresh, // Removed performMemoryRefresh
     );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
