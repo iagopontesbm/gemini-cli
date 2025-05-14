@@ -42,11 +42,12 @@ import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
-type StreamProcessingStatus =
-  | 'completed'
-  | 'paused_for_confirmation'
-  | 'user_cancelled'
-  | 'error_occurred';
+enum StreamProcessingStatus {
+  Completed,
+  PausedForConfirmation,
+  UserCancelled,
+  Error,
+}
 
 /**
  * Hook to manage the Gemini stream, handle user input, process commands,
@@ -530,16 +531,16 @@ export const useGeminiStream = (
         handleToolCallResponseEvent(event.value);
       } else if (event.type === ServerGeminiEventType.ToolCallConfirmation) {
         handleToolCallConfirmationEvent(event.value);
-        return 'paused_for_confirmation'; // Explicit return as this pauses the stream
+        return StreamProcessingStatus.PausedForConfirmation; // Explicit return as this pauses the stream
       } else if (event.type === ServerGeminiEventType.UserCancelled) {
         handleUserCancelledEvent(userMessageTimestamp);
-        return 'user_cancelled'; // Explicit return as this terminates the stream
+        return StreamProcessingStatus.UserCancelled;
       } else if (event.type === ServerGeminiEventType.Error) {
         handleErrorEvent(event.value, userMessageTimestamp);
-        return 'error_occurred'; // Mark that an error occurred, but continue processing
+        return StreamProcessingStatus.Error;
       }
     }
-    return 'completed';
+    return StreamProcessingStatus.Completed;
   };
 
   const submitQuery = useCallback(
@@ -579,8 +580,8 @@ export const useGeminiStream = (
         );
 
         if (
-          processingStatus === 'paused_for_confirmation' ||
-          processingStatus === 'user_cancelled'
+          processingStatus === StreamProcessingStatus.PausedForConfirmation ||
+          processingStatus === StreamProcessingStatus.UserCancelled
         ) {
           return;
         }
@@ -591,8 +592,8 @@ export const useGeminiStream = (
         }
 
         if (
-          processingStatus === 'completed' ||
-          processingStatus === 'error_occurred'
+          processingStatus === StreamProcessingStatus.Completed ||
+          processingStatus === StreamProcessingStatus.Error
         ) {
           setStreamingState(StreamingState.Idle);
         }
