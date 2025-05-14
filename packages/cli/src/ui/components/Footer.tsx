@@ -54,9 +54,7 @@ export const Footer: React.FC<FooterProps> = ({
           sandbox-exec ({process.env.SEATBELT_PROFILE})
         </Text>
       ) : (
-        <Text color={Colors.AccentRed}>
-          no sandbox (see README)
-        </Text>
+        <Text color={Colors.AccentRed}>no sandbox (see README)</Text>
       )}
     </Box>
 
