@@ -138,6 +138,33 @@ export const useGeminiStream = (
     return { queryToSend: localQueryToSendToGemini, shouldProceed: true };
   };
 
+  const ensureChatSession = async (): Promise<{
+    client: GeminiClient | null;
+    chat: Chat | null;
+  }> => {
+    const currentClient = geminiClientRef.current;
+    if (!currentClient) {
+      const errorMsg = 'Gemini client is not available.';
+      setInitError(errorMsg);
+      addItem({ type: 'error', text: errorMsg }, Date.now());
+      return { client: null, chat: null };
+    }
+
+    if (!chatSessionRef.current) {
+      try {
+        // Ensure client.startChat() is awaited
+        chatSessionRef.current = await currentClient.startChat();
+      } catch (err: unknown) {
+        const errorMsg = `Failed to start chat: ${getErrorMessage(err)}`;
+        setInitError(errorMsg);
+        addItem({ type: 'error', text: errorMsg }, Date.now());
+        setStreamingState(StreamingState.Idle);
+        return { client: currentClient, chat: null };
+      }
+    }
+    return { client: currentClient, chat: chatSessionRef.current };
+  };
+
   const submitQuery = useCallback(
     async (query: PartListUnion) => {
       if (streamingState === StreamingState.Responding) return;
@@ -154,39 +181,27 @@ export const useGeminiStream = (
         signal,
       );
 
-      if (!shouldProceed) {
-        return;
-      }
-      // queryToSend is guaranteed non-null here
-
-      const client = geminiClientRef.current;
-      if (!client) {
-        const errorMsg = 'Gemini client is not available.';
-        setInitError(errorMsg);
-        addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
+      if (!shouldProceed || queryToSend === null) {
+        // queryToSend check is redundant due to prepareQueryForGemini's return contract
+        // but kept for type safety / clarity.
         return;
       }
 
-      if (!chatSessionRef.current) {
-        try {
-          chatSessionRef.current = await client.startChat();
-        } catch (err: unknown) {
-          const errorMsg = `Failed to start chat: ${getErrorMessage(err)}`;
-          setInitError(errorMsg);
-          addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
-          setStreamingState(StreamingState.Idle);
-          return;
-        }
+      const { client, chat } = await ensureChatSession();
+
+      if (!client || !chat) {
+        // Errors are handled by ensureChatSession, which also sets streaming state
+        return;
       }
 
       setStreamingState(StreamingState.Responding);
       setInitError(null);
-      const chat = chatSessionRef.current;
+      // chat is now directly from ensureChatSession result
 
       try {
         const stream = client.sendMessageStream(
-          chat,
-          queryToSend, // Use the processed queryToSend
+          chat, 
+          queryToSend, 
           signal,
         );
 
@@ -561,9 +576,8 @@ export const useGeminiStream = (
       toolRegistry,
       refreshStatic,
       onDebugMessage,
-      // Added for client/chat init and stream state management
-      setInitError,
-      setStreamingState,
+      setInitError, // ensureChatSession uses this
+      setStreamingState, // ensureChatSession uses this
     ],
   );
 
