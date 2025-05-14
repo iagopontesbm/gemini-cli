@@ -130,11 +130,11 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
 
 async function collectDownwardGeminiFiles(
   directory: string,
-  collectedPaths: string[],
   debugMode: boolean,
   ignoreDirs: string[],
-): Promise<void> {
+): Promise<string[]> {
   if (debugMode) logger.debug(`Recursively scanning downward in: ${directory}`);
+  const collectedPaths: string[] = [];
   try {
     const entries = await fs.readdir(directory, { withFileTypes: true });
     for (const entry of entries) {
@@ -145,12 +145,12 @@ async function collectDownwardGeminiFiles(
             logger.debug(`Skipping ignored directory: ${fullPath}`);
           continue;
         }
-        await collectDownwardGeminiFiles(
+        const subDirPaths = await collectDownwardGeminiFiles(
           fullPath,
-          collectedPaths,
           debugMode,
           ignoreDirs,
         );
+        collectedPaths.push(...subDirPaths);
       } else if (entry.isFile() && entry.name === GEMINI_MD_FILENAME) {
         try {
           await fs.access(fullPath, fsSync.constants.R_OK);
@@ -170,6 +170,7 @@ async function collectDownwardGeminiFiles(
     logger.warn(`Error scanning directory ${directory}: ${message}`);
     if (debugMode) logger.debug(`Failed to scan directory: ${directory}`);
   }
+  return collectedPaths;
 }
 
 export async function getGeminiMdFilePaths(
@@ -244,12 +245,10 @@ export async function getGeminiMdFilePaths(
   }
   paths.push(...upwardPaths);
 
-  const downwardPaths: string[] = [];
   if (debugMode)
     logger.debug(`Starting downward scan from CWD: ${resolvedCwd}`);
-  await collectDownwardGeminiFiles(
+  const downwardPaths = await collectDownwardGeminiFiles(
     resolvedCwd,
-    downwardPaths,
     debugMode,
     DEFAULT_IGNORE_DIRECTORIES,
   );
