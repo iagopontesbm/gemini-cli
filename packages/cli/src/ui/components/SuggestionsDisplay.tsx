@@ -60,15 +60,17 @@ export function SuggestionsDisplay({
             key={`${suggestion}-${originalIndex}`}
             width={width - 2}
           >
-            <Text backgroundColor={isActive ? Colors.AccentBlue : undefined}>
-              <Text color={isActive ? Colors.Background : Colors.Foreground} bold>
-                {suggestion.label.padEnd(10)}
-              </Text>
-              {suggestion.description ? (
-                <Text color={isActive ? Colors.Background : Colors.SubtleComment}>
-                  {suggestion.description}
+            <Text>
+              <Text wrap="truncate">
+                <Text color={isActive ? Colors.AccentPurple : Colors.SubtleComment} bold>
+                  {suggestion.label.padEnd(10)}
                 </Text>
-              ) : null}
+                {suggestion.description ? (
+                  <Text color={isActive ? Colors.AccentPurple : Colors.SubtleComment}>
+                    {suggestion.description}
+                  </Text>
+                ) : null}
+              </Text>
             </Text>
           </Box>
         );
