@@ -6,6 +6,7 @@
 
 import React, { useCallback } from 'react';
 import { Text, Box, Key } from 'ink';
+import { HighlightedInput } from './HighlightedInput.js';
 import { Colors } from '../colors.js';
 import { Suggestion } from './SuggestionsDisplay.js';
 import { MultilineTextEditor } from './shared/multiline-editor.js';
@@ -160,6 +161,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
               onSubmit(trimmedQuery);
             }
           }}
+          customRenderer={(text: string) => <HighlightedInput text={text} />}
         />
       </Box>
     </Box>

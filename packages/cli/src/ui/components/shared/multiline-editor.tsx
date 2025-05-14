@@ -51,6 +51,9 @@ export interface MultilineTextEditorProps {
   readonly widthUsedByParent: number;
 
   readonly widthFraction?: number;
+
+  // Optional custom renderer for the text input
+  readonly customRenderer?: (text: string) => React.ReactElement;
 }
 
 export const MultilineTextEditor = ({
@@ -67,6 +70,7 @@ export const MultilineTextEditor = ({
   navigateUp,
   navigateDown,
   inputPreprocessor,
+  customRenderer,
 }: MultilineTextEditorProps): React.ReactElement => {
   const [buffer, setBuffer] = useState(
     () => new TextBuffer(initialText, initialCursorOffset),
@@ -242,7 +246,9 @@ export const MultilineTextEditor = ({
 
   return (
     <Box flexDirection="column">
-      {buffer.getText().length === 0 && placeholder ? (
+      {customRenderer ? (
+        customRenderer(buffer.getText())
+      ) : buffer.getText().length === 0 && placeholder ? (
         <Text color={Colors.SubtleComment}>{placeholder}</Text>
       ) : (
         visibleLines.map((lineText, idx) => {
