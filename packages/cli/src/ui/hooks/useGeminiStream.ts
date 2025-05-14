@@ -25,7 +25,6 @@ import {
   ToolResultDisplay,
   ToolEditConfirmationDetails,
   ToolExecuteConfirmationDetails,
-  GeminiEventType,
 } from '@gemini-code/server';
 import { type Chat, type PartListUnion, type Part } from '@google/genai';
 import {
