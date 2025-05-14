@@ -13,15 +13,15 @@ interface HighlightedInputProps {
 }
 
 export const HighlightedInput: React.FC<HighlightedInputProps> = ({ text }) => {
-  // Match words starting with @ or standalone @ symbols
-  const parts = text.split(/(@\S*|@)/g);
+  // Match words starting with @ or / , or standalone @ or / symbols
+  const parts = text.split(/(@\S*|@|\/\S*|\/)/g);
 
   return (
     <Text>
       {parts.map((part, index) => {
-        if (part && part.startsWith('@')) {
+        if (part && (part.startsWith('@') || part.startsWith('/'))) {
           return (
-            <Text key={index} color={Colors.AccentPurple}>
+            <Text key={index} bold color={Colors.AccentPurple}>
               {part}
             </Text>
           );
