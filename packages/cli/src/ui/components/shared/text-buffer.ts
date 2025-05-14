@@ -182,7 +182,7 @@ export function useTextBuffer({
     }
   }, [cursorRow, cursorCol, scrollRow, scrollCol, viewport]);
 
-  const _pushUndo = useCallback(() => {
+  const pushUndo = useCallback(() => {
     dbg('pushUndo', { cursor: [cursorRow, cursorCol], text: lines.join('\n') });
     const snapshot = { lines: [...lines], cursorRow, cursorCol };
     setUndoStack((prev) => {
@@ -206,7 +206,7 @@ export function useTextBuffer({
     [],
   );
 
-  const getText = useCallback((): string => lines.join('\n'), [lines]);
+  const text = lines.join('\n');
 
   const undo = useCallback((): boolean => {
     const state = undoStack[undoStack.length - 1];
@@ -233,7 +233,7 @@ export function useTextBuffer({
       dbg('insertStr', { str, beforeCursor: [cursorRow, cursorCol] });
       if (str === '') return false;
 
-      _pushUndo();
+      pushUndo();
       const normalised = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
       const parts = normalised.split('\n');
 
@@ -260,7 +260,7 @@ export function useTextBuffer({
       setPreferredCol(null);
       return true;
     },
-    [_pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol],
+    [pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol],
   );
 
   const insert = useCallback(
@@ -270,7 +270,7 @@ export function useTextBuffer({
         return;
       }
       dbg('insert', { ch, beforeCursor: [cursorRow, cursorCol] });
-      _pushUndo();
+      pushUndo();
       setLines((prevLines) => {
         const newLines = [...prevLines];
         const lineContent = currentLine(cursorRow);
@@ -283,12 +283,12 @@ export function useTextBuffer({
       setCursorCol((prev) => prev + ch.length);
       setPreferredCol(null);
     },
-    [_pushUndo, cursorRow, cursorCol, currentLine, insertStr, setPreferredCol],
+    [pushUndo, cursorRow, cursorCol, currentLine, insertStr, setPreferredCol],
   );
 
   const newline = useCallback((): void => {
     dbg('newline', { beforeCursor: [cursorRow, cursorCol] });
-    _pushUndo();
+    pushUndo();
     setLines((prevLines) => {
       const newLines = [...prevLines];
       const l = currentLine(cursorRow);
@@ -301,13 +301,13 @@ export function useTextBuffer({
     setCursorRow((prev) => prev + 1);
     setCursorCol(0);
     setPreferredCol(null);
-  }, [_pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol]);
+  }, [pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol]);
 
   const backspace = useCallback((): void => {
     dbg('backspace', { beforeCursor: [cursorRow, cursorCol] });
     if (cursorCol === 0 && cursorRow === 0) return;
 
-    _pushUndo();
+    pushUndo();
     if (cursorCol > 0) {
       setLines((prevLines) => {
         const newLines = [...prevLines];
@@ -332,13 +332,13 @@ export function useTextBuffer({
       setCursorCol(newCol);
     }
     setPreferredCol(null);
-  }, [_pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol]);
+  }, [pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol]);
 
   const del = useCallback((): void => {
     dbg('delete', { beforeCursor: [cursorRow, cursorCol] });
     const lineContent = currentLine(cursorRow);
     if (cursorCol < currentLineLen(cursorRow)) {
-      _pushUndo();
+      pushUndo();
       setLines((prevLines) => {
         const newLines = [...prevLines];
         newLines[cursorRow] =
@@ -347,7 +347,7 @@ export function useTextBuffer({
         return newLines;
       });
     } else if (cursorRow < lines.length - 1) {
-      _pushUndo();
+      pushUndo();
       const nextLineContent = currentLine(cursorRow + 1);
       setLines((prevLines) => {
         const newLines = [...prevLines];
@@ -359,7 +359,7 @@ export function useTextBuffer({
     // cursor position does not change for del
     setPreferredCol(null);
   }, [
-    _pushUndo,
+    pushUndo,
     cursorRow,
     cursorCol,
     lines,
@@ -371,7 +371,7 @@ export function useTextBuffer({
   const setText = useCallback(
     (text: string): void => {
       dbg('setText', { text });
-      _pushUndo();
+      pushUndo();
       const newContentLines = text.replace(/\r\n?/g, '\n').split('\n');
       setLines(newContentLines.length === 0 ? [''] : newContentLines);
       setCursorRow(newContentLines.length - 1);
@@ -380,7 +380,7 @@ export function useTextBuffer({
       setScrollCol(0);
       setPreferredCol(null);
     },
-    [_pushUndo, setPreferredCol],
+    [pushUndo, setPreferredCol],
   );
 
   const replaceRange = useCallback(
@@ -406,7 +406,7 @@ export function useTextBuffer({
         end: [endRow, endCol],
         text,
       });
-      _pushUndo();
+      pushUndo();
 
       const sCol = clamp(startCol, 0, currentLineLen(startRow));
       const eCol = clamp(endCol, 0, currentLineLen(endRow));
@@ -449,7 +449,7 @@ export function useTextBuffer({
       setPreferredCol(null);
       return true;
     },
-    [_pushUndo, lines, currentLine, currentLineLen, setPreferredCol],
+    [pushUndo, lines, currentLine, currentLineLen, setPreferredCol],
   );
 
   const deleteWordLeft = useCallback((): void => {
@@ -459,7 +459,7 @@ export function useTextBuffer({
       backspace();
       return;
     }
-    _pushUndo();
+    pushUndo();
     const lineContent = currentLine(cursorRow);
     const arr = toCodePoints(lineContent);
     let start = cursorCol;
@@ -484,14 +484,7 @@ export function useTextBuffer({
     });
     setCursorCol(start);
     setPreferredCol(null);
-  }, [
-    _pushUndo,
-    cursorRow,
-    cursorCol,
-    currentLine,
-    backspace,
-    setPreferredCol,
-  ]);
+  }, [pushUndo, cursorRow, cursorCol, currentLine, backspace, setPreferredCol]);
 
   const deleteWordRight = useCallback((): void => {
     dbg('deleteWordRight', { beforeCursor: [cursorRow, cursorCol] });
@@ -502,7 +495,7 @@ export function useTextBuffer({
       del();
       return;
     }
-    _pushUndo();
+    pushUndo();
     let end = cursorCol;
     while (end < arr.length && !isWordChar(arr[end])) end++;
     while (end < arr.length && isWordChar(arr[end])) end++;
@@ -515,7 +508,7 @@ export function useTextBuffer({
     // Cursor col does not change
     setPreferredCol(null);
   }, [
-    _pushUndo,
+    pushUndo,
     cursorRow,
     cursorCol,
     lines,
@@ -637,9 +630,9 @@ export function useTextBuffer({
         (process.platform === 'win32' ? 'notepad' : 'vi');
       const tmpDir = fs.mkdtempSync(pathMod.join(os.tmpdir(), 'gemini-edit-'));
       const filePath = pathMod.join(tmpDir, 'buffer.txt');
-      fs.writeFileSync(filePath, getText(), 'utf8');
+      fs.writeFileSync(filePath, text, 'utf8');
 
-      _pushUndo(); // Snapshot before external edit
+      pushUndo(); // Snapshot before external edit
 
       const wasRaw = stdin?.isRaw ?? false;
       try {
@@ -678,13 +671,13 @@ export function useTextBuffer({
         }
       }
     },
-    [getText, _pushUndo, stdin, setRawMode, setPreferredCol],
+    [text, pushUndo, stdin, setRawMode, setPreferredCol],
   );
 
   const handleInput = useCallback(
     (input: string | undefined, key: Record<string, boolean>): boolean => {
       dbg('handleInput', { input, key, cursor: [cursorRow, cursorCol] });
-      const beforeText = getText(); // For change detection
+      const beforeText = text; // For change detection
       const beforeCursor = [cursorRow, cursorCol];
 
       if (key['escape']) return false;
@@ -718,18 +711,18 @@ export function useTextBuffer({
       else if (key['delete']) del();
       else if (input && !key['ctrl'] && !key['meta']) insert(input);
 
-      const textChanged = getText() !== beforeText;
+      const textChanged = text !== beforeText;
       const cursorChanged =
         cursorRow !== beforeCursor[0] || cursorCol !== beforeCursor[1];
 
       dbg('handleInput:after', {
         cursor: [cursorRow, cursorCol],
-        text: getText(),
+        text,
       });
       return textChanged || cursorChanged;
     },
     [
-      getText,
+      text,
       cursorRow,
       cursorCol,
       newline,
@@ -751,7 +744,7 @@ export function useTextBuffer({
   const returnValue: TextBuffer = {
     // State
     lines,
-    text: getText(), // Derived state, memoized by getText's own useCallback
+    text,
     cursor: [cursorRow, cursorCol],
     scroll: [scrollRow, scrollCol],
     preferredCol,
@@ -901,5 +894,3 @@ export interface TextBuffer {
   // For rendering
   visibleLines: string[];
 }
-
-export type TextBufferHook = ReturnType<typeof useTextBuffer>;

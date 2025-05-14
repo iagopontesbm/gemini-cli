@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useTextBuffer, type TextBufferHook } from './text-buffer.js';
+import { useTextBuffer } from './text-buffer.js';
 import chalk from 'chalk';
 import { Box, Text, useInput, useStdin, Key } from 'ink';
 import React, { useEffect } from 'react';
@@ -77,7 +77,7 @@ export const MultilineTextEditor = ({
 
   const { stdin, setRawMode } = useStdin();
 
-  const buffer: TextBufferHook = useTextBuffer({
+  const buffer = useTextBuffer({
     initialText,
     initialCursorOffset,
     viewport: { height, width: effectiveWidth },
