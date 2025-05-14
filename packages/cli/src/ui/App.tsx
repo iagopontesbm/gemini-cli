@@ -268,11 +268,20 @@ export const App = ({
           />
           {isInputActive && (
             <>
-              <Box marginTop={1}>
-                <Text color={Colors.SubtleComment}>cwd: </Text>
-                <Text color={Colors.LightBlue}>
-                  {shortenPath(config.getTargetDir(), 70)}
-                </Text>
+              <Box marginTop={1} display="flex" justifyContent="space-between" width="100%">
+                <Box>
+                  <Text color={Colors.SubtleComment}>cwd: </Text>
+                  <Text color={Colors.LightBlue}>
+                    {shortenPath(config.getTargetDir(), 70)}
+                  </Text>
+                </Box>
+                {config.getGeminiMdFileCount() > 0 && (
+                  <Box>
+                    <Text color={Colors.SubtleComment}>
+                      Using {config.getGeminiMdFileCount()} gemini.md files
+                    </Text>
+                  </Box>
+                )}
               </Box>
 
               <InputPrompt
