@@ -82,54 +82,82 @@ export const useGeminiStream = (
     }
   });
 
+  const prepareQueryForGemini = async (
+    query: PartListUnion,
+    userMessageTimestamp: number,
+    signal: AbortSignal,
+  ): Promise<{ queryToSend: PartListUnion | null; shouldProceed: boolean }> => {
+    if (typeof query === 'string' && query.trim().length === 0) {
+      return { queryToSend: null, shouldProceed: false };
+    }
+
+    let localQueryToSendToGemini: PartListUnion | null = null;
+
+    if (typeof query === 'string') {
+      const trimmedQuery = query.trim();
+      onDebugMessage(`User query: '${trimmedQuery}'`);
+
+      // Handle UI-only commands first
+      if (handleSlashCommand(trimmedQuery)) {
+        return { queryToSend: null, shouldProceed: false };
+      }
+      if (handleShellCommand(trimmedQuery)) {
+        return { queryToSend: null, shouldProceed: false };
+      }
+
+      // Handle @-commands (which might involve tool calls)
+      if (isAtCommand(trimmedQuery)) {
+        const atCommandResult = await handleAtCommand({
+          query: trimmedQuery,
+          config,
+          addItem,
+          onDebugMessage,
+          messageId: userMessageTimestamp,
+          signal,
+        });
+        if (!atCommandResult.shouldProceed) {
+          return { queryToSend: null, shouldProceed: false };
+        }
+        localQueryToSendToGemini = atCommandResult.processedQuery;
+      } else {
+        // Normal query for Gemini
+        addItem({ type: 'user', text: trimmedQuery }, userMessageTimestamp);
+        localQueryToSendToGemini = trimmedQuery;
+      }
+    } else {
+      // It's a function response (PartListUnion that isn't a string)
+      localQueryToSendToGemini = query;
+    }
+
+    if (localQueryToSendToGemini === null) {
+      onDebugMessage(
+        'Query processing resulted in null, not sending to Gemini.',
+      );
+      return { queryToSend: null, shouldProceed: false };
+    }
+    return { queryToSend: localQueryToSendToGemini, shouldProceed: true };
+  };
+
   const submitQuery = useCallback(
     async (query: PartListUnion) => {
       if (streamingState === StreamingState.Responding) return;
-      if (typeof query === 'string' && query.trim().length === 0) return;
 
       const userMessageTimestamp = Date.now();
-      let queryToSendToGemini: PartListUnion | null = null;
-
       setShowHelp(false);
 
       abortControllerRef.current ??= new AbortController();
       const signal = abortControllerRef.current.signal;
 
-      if (typeof query === 'string') {
-        const trimmedQuery = query.trim();
-        onDebugMessage(`User query: '${trimmedQuery}'`);
+      const { queryToSend, shouldProceed } = await prepareQueryForGemini(
+        query,
+        userMessageTimestamp,
+        signal,
+      );
 
-        if (handleSlashCommand(trimmedQuery)) return;
-        if (handleShellCommand(trimmedQuery)) return;
-
-        if (isAtCommand(trimmedQuery)) {
-          const atCommandResult = await handleAtCommand({
-            query: trimmedQuery,
-            config,
-            addItem,
-            onDebugMessage,
-            messageId: userMessageTimestamp,
-            signal,
-          });
-          if (!atCommandResult.shouldProceed) return;
-          queryToSendToGemini = atCommandResult.processedQuery;
-        } else {
-          addItem(
-            { type: MessageType.USER, text: trimmedQuery },
-            userMessageTimestamp,
-          );
-          queryToSendToGemini = trimmedQuery;
-        }
-      } else {
-        queryToSendToGemini = query;
-      }
-
-      if (queryToSendToGemini === null) {
-        onDebugMessage(
-          'Query processing resulted in null, not sending to Gemini.',
-        );
+      if (!shouldProceed) {
         return;
       }
+      // queryToSend is guaranteed non-null here
 
       const client = geminiClientRef.current;
       if (!client) {
@@ -158,7 +186,7 @@ export const useGeminiStream = (
       try {
         const stream = client.sendMessageStream(
           chat,
-          queryToSendToGemini,
+          queryToSend, // Use the processed queryToSend
           signal,
         );
 
@@ -533,6 +561,9 @@ export const useGeminiStream = (
       toolRegistry,
       refreshStatic,
       onDebugMessage,
+      // Added for client/chat init and stream state management
+      setInitError,
+      setStreamingState,
     ],
   );
 
