@@ -116,7 +116,6 @@ Container-based sandboxing mounts the project directory (and system temp directo
 
 With container-based sandboxing, you can have VSCode (or forks like Cursor) attach to a running sandbox container using the [Dev Containers](https://marketplace.cursorapi.com/items?itemName=ms-vscode-remote.remote-containers) extension. Simply use `Dev Containers: Attach to Running Container ...` command and select your container named `...-sandbox-#`. Sandbox container name should be displayed in green at the bottom in terminal when running `gemini`. You may need to set the VSCode setting `dev.containers.dockerPath` (e.g. to `podman`) if you are not using Docker, and otherwise you may be prompted by the extension to install Docker if missing from your system.
 
-
 ## Manual Publish
 
 We publish an artifact for each commit to our internal registry. But if you need to manually cut a local build, then run the following commands:
