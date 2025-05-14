@@ -34,6 +34,7 @@ import {
   ToolCallStatus,
   HistoryItemWithoutId,
   HistoryItemToolGroup,
+  MessageType,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
@@ -138,7 +139,10 @@ export const useGeminiStream = (
         localQueryToSendToGemini = atCommandResult.processedQuery;
       } else {
         // Normal query for Gemini
-        addItem({ type: 'user', text: trimmedQuery }, userMessageTimestamp);
+        addItem(
+          { type: MessageType.USER, text: trimmedQuery },
+          userMessageTimestamp,
+        );
         localQueryToSendToGemini = trimmedQuery;
       }
     } else {
@@ -163,7 +167,7 @@ export const useGeminiStream = (
     if (!currentClient) {
       const errorMsg = 'Gemini client is not available.';
       setInitError(errorMsg);
-      addItem({ type: 'error', text: errorMsg }, Date.now());
+      addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
       return { client: null, chat: null };
     }
 
@@ -173,7 +177,7 @@ export const useGeminiStream = (
       } catch (err: unknown) {
         const errorMsg = `Failed to start chat: ${getErrorMessage(err)}`;
         setInitError(errorMsg);
-        addItem({ type: 'error', text: errorMsg }, Date.now());
+        addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
         setStreamingState(StreamingState.Idle);
         return { client: currentClient, chat: null };
       }
@@ -477,7 +481,7 @@ export const useGeminiStream = (
       setPendingHistoryItem(null);
     }
     addItem(
-      { type: 'info', text: 'User cancelled the request.' },
+      { type: MessageType.INFO, text: 'User cancelled the request.' },
       userMessageTimestamp,
     );
     setStreamingState(StreamingState.Idle);
@@ -492,7 +496,7 @@ export const useGeminiStream = (
       setPendingHistoryItem(null);
     }
     addItem(
-      { type: 'error', text: `[API Error: ${eventValue.message}]` },
+      { type: MessageType.ERROR, text: `[API Error: ${eventValue.message}]` },
       userMessageTimestamp,
     );
   };
@@ -586,7 +590,7 @@ export const useGeminiStream = (
         if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
             {
-              type: 'error',
+              type: MessageType.ERROR,
               text: `[Stream Error: ${getErrorMessage(error)}]`,
             },
             userMessageTimestamp,
