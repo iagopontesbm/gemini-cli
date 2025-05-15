@@ -78,6 +78,7 @@ async function parseArguments(): Promise<CliArgs> {
       default: false,
     })
     .option('full_context', {
+      alias: 'a',
       type: 'boolean',
       description: 'Include ALL files in context?',
       default: false,
