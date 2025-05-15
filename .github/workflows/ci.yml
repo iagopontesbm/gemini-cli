@@ -12,6 +12,9 @@ jobs:
   build_and_test:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write # Often needed to report back to PRs
 
     strategy:
       matrix:
