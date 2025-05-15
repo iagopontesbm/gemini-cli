@@ -113,6 +113,11 @@ export const MultilineTextEditor = ({
         return;
       }
 
+      if (key.ctrl && input === 'u') {
+        buffer.killLineLeft();
+        return;
+      }
+
       const isCtrlX =
         (key.ctrl && (input === 'x' || input === '\x18')) || input === '\x18';
       const isCtrlE =

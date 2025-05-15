@@ -540,6 +540,21 @@ export function useTextBuffer({
     }
   }, [pushUndo, cursorRow, cursorCol, currentLine, currentLineLen]);
 
+  const killLineLeft = useCallback((): void => {
+    const lineContent = currentLine(cursorRow);
+    // Only act if the cursor is not at the beginning of the line
+    if (cursorCol > 0) {
+      pushUndo();
+      setLines((prevLines) => {
+        const newLines = [...prevLines];
+        newLines[cursorRow] = cpSlice(lineContent, cursorCol);
+        return newLines;
+      });
+      setCursorCol(0);
+      setPreferredCol(null);
+    }
+  }, [pushUndo, cursorRow, cursorCol, currentLine, setPreferredCol]);
+
   const move = useCallback(
     (dir: Direction): void => {
       const before = [cursorRow, cursorCol];
@@ -786,6 +801,7 @@ export function useTextBuffer({
     deleteWordLeft,
     deleteWordRight,
     killLineRight,
+    killLineLeft,
     handleInput,
     openInExternalEditor,
 
@@ -890,6 +906,10 @@ export interface TextBuffer {
    * Deletes text from the cursor to the end of the current line.
    */
   killLineRight: () => void;
+  /**
+   * Deletes text from the start of the current line to the cursor.
+   */
+  killLineLeft: () => void;
   /**
    * High level "handleInput" – receives what Ink gives us.
    */
