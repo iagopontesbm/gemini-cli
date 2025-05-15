@@ -16,32 +16,32 @@ Configuration is typically applied in the following order of precedence (lower n
 
 The Gemini CLI uses `settings.json` files for persistent configuration. There are two main locations for these files:
 
-*   **User Settings:**
-    *   **Location:** `~/.gemini/settings.json` (where `~` is your home directory).
-    *   **Scope:** Applies globally to all Gemini CLI sessions for the current user.
-*   **Workspace Settings:**
-    *   **Location:** `.gemini/settings.json` within your project's root directory.
-    *   **Scope:** Applies only when running Gemini CLI from that specific project. Workspace settings override User settings.
+- **User Settings:**
+  - **Location:** `~/.gemini/settings.json` (where `~` is your home directory).
+  - **Scope:** Applies globally to all Gemini CLI sessions for the current user.
+- **Workspace Settings:**
+  - **Location:** `.gemini/settings.json` within your project's root directory.
+  - **Scope:** Applies only when running Gemini CLI from that specific project. Workspace settings override User settings.
 
 ### Available Settings in `settings.json`:
 
-*   **`theme`** (string):
-    *   Specifies the visual theme for the CLI.
-    *   Example: `"theme": "VS2015"`
-    *   See the [UI Guide](./ui-guide.md#themes) for available theme names.
-*   **`sandbox`** (boolean or string):
-    *   Controls whether and how to use sandboxing for tool execution.
-    *   `true`: Enable default sandbox (e.g., Docker or Podman if configured, otherwise OS-level like Seatbelt on macOS).
-    *   `false`: Disable sandboxing (less secure).
-    *   `"docker"` or `"podman"`: Explicitly choose container-based sandboxing.
-    *   `<command>`: Specify a custom command for sandboxing.
-    *   Example: `"sandbox": true`
-*   **`toolDiscoveryCommand`** (string, advanced):
-    *   Custom command for tool discovery (if applicable to your setup).
-*   **`toolCallCommand`** (string, advanced):
-    *   Custom command for executing tool calls (if applicable to your setup).
-*   **`mcpServerCommand`** (string, advanced):
-    *   Custom command for the MCP (Multi-Context Prompt) server (if applicable).
+- **`theme`** (string):
+  - Specifies the visual theme for the CLI.
+  - Example: `"theme": "VS2015"`
+  - See the [UI Guide](./ui-guide.md#themes) for available theme names.
+- **`sandbox`** (boolean or string):
+  - Controls whether and how to use sandboxing for tool execution.
+  - `true`: Enable default sandbox (e.g., Docker or Podman if configured, otherwise OS-level like Seatbelt on macOS).
+  - `false`: Disable sandboxing (less secure).
+  - `"docker"` or `"podman"`: Explicitly choose container-based sandboxing.
+  - `<command>`: Specify a custom command for sandboxing.
+  - Example: `"sandbox": true`
+- **`toolDiscoveryCommand`** (string, advanced):
+  - Custom command for tool discovery (if applicable to your setup).
+- **`toolCallCommand`** (string, advanced):
+  - Custom command for executing tool calls (if applicable to your setup).
+- **`mcpServerCommand`** (string, advanced):
+  - Custom command for the MCP (Multi-Context Prompt) server (if applicable).
 
 ### Example `settings.json`:
 
@@ -57,65 +57,66 @@ The Gemini CLI uses `settings.json` files for persistent configuration. There ar
 Environment variables are a common way to configure applications, especially for sensitive information like API keys or for settings that might change between environments.
 
 The CLI automatically loads environment variables from an `.env` file. The loading order is:
+
 1.  `.env` file in the current working directory.
 2.  If not found, it searches upwards in parent directories until it finds an `.env` file or reaches the project root (identified by a `.git` folder) or the home directory.
 3.  If still not found, it looks for `~/.env` (in the user's home directory).
 
-*   **`GEMINI_API_KEY`** (Required):
-    *   Your API key for the Gemini API.
-    *   **Crucial for operation.** The CLI will not function without it.
-    *   Set this in your shell profile (e.g., `~/.bashrc`, `~/.zshrc`) or an `.env` file.
-*   **`GEMINI_CODE_MODEL`**:
-    *   Specifies the default Gemini model to use.
-    *   Overrides the hardcoded default, which is currently `gemini-2.5-pro-preview-05-06`.
-    *   Example: `export GEMINI_CODE_MODEL="gemini-1.5-flash-latest"`
-*   **`GEMINI_CODE_SANDBOX`**:
-    *   Alternative to the `sandbox` setting in `settings.json`.
-    *   Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
-*   **`SEATBELT_PROFILE`** (macOS specific):
-    *   Switches the Seatbelt (`sandbox-exec`) profile on macOS.
-    *   `minimal`: (Default) Restricts writes to the project folder but allows other operations.
-    *   `strict`: Uses a more restrictive profile that declines operations by default.
-    *   `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
-*   **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
-    *   Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
+- **`GEMINI_API_KEY`** (Required):
+  - Your API key for the Gemini API.
+  - **Crucial for operation.** The CLI will not function without it.
+  - Set this in your shell profile (e.g., `~/.bashrc`, `~/.zshrc`) or an `.env` file.
+- **`GEMINI_CODE_MODEL`**:
+  - Specifies the default Gemini model to use.
+  - Overrides the hardcoded default, which is currently `gemini-2.5-pro-preview-05-06`.
+  - Example: `export GEMINI_CODE_MODEL="gemini-1.5-flash-latest"`
+- **`GEMINI_CODE_SANDBOX`**:
+  - Alternative to the `sandbox` setting in `settings.json`.
+  - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
+- **`SEATBELT_PROFILE`** (macOS specific):
+  - Switches the Seatbelt (`sandbox-exec`) profile on macOS.
+  - `minimal`: (Default) Restricts writes to the project folder but allows other operations.
+  - `strict`: Uses a more restrictive profile that declines operations by default.
+  - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
+- **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
+  - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
 
 ## 3. Command-Line Arguments
 
 Arguments passed directly when running the CLI can override other configurations for that specific session.
 
-*   **`--model <model_name>`** (or **`-m <model_name>`**):
-    *   Specifies the Gemini model to use for this session.
-    *   Example: `npm start -- --model gemini-1.5-pro-latest`
-*   **`--sandbox`** (or **`-s`**):
-    *   Enables sandbox mode for this session. The exact behavior might depend on other sandbox configurations (environment variables, settings files).
-*   **`--debug_mode`** (or **`-z`**):
-    *   Enables debug mode for this session, providing more verbose output.
-*   **`--question <your_question>`** (or **`-q <your_question>`**):
-    *   Used to pass a question directly to the command, especially when piping input to the CLI.
-*   **`--full_context`** (or **`-f`**):
-    *   If set, recursively includes all files within the current directory as context for the prompt.
-*   **`--help`** (or **`-h`**):
-    *   Displays help information about command-line arguments.
+- **`--model <model_name>`** (or **`-m <model_name>`**):
+  - Specifies the Gemini model to use for this session.
+  - Example: `npm start -- --model gemini-1.5-pro-latest`
+- **`--sandbox`** (or **`-s`**):
+  - Enables sandbox mode for this session. The exact behavior might depend on other sandbox configurations (environment variables, settings files).
+- **`--debug_mode`** (or **`-z`**):
+  - Enables debug mode for this session, providing more verbose output.
+- **`--question <your_question>`** (or **`-q <your_question>`**):
+  - Used to pass a question directly to the command, especially when piping input to the CLI.
+- **`--full_context`** (or **`-f`**):
+  - If set, recursively includes all files within the current directory as context for the prompt.
+- **`--help`** (or **`-h`**):
+  - Displays help information about command-line arguments.
 
 ## 4. `GEMINI.md` Files (Hierarchical Instructional Context)
 
-While not strictly configuration for the CLI's *behavior*, `GEMINI.md` files are crucial for configuring the *instructional context* provided to the Gemini model. This allows you to give project-specific instructions, coding style guides, or any relevant background information to the AI.
+While not strictly configuration for the CLI's _behavior_, `GEMINI.md` files are crucial for configuring the _instructional context_ provided to the Gemini model. This allows you to give project-specific instructions, coding style guides, or any relevant background information to the AI.
 
-*   **Purpose:** These Markdown files contain instructions, guidelines, or context that you want the Gemini model to be aware of during your interactions.
-*   **Hierarchical Loading and Precedence:** The CLI loads `GEMINI.md` files from several locations, forming a hierarchy. Content from files lower in this list (more specific) typically overrides or supplements content from files higher up (more general), though the exact concatenation order should be verified with `/showmemory`:
-    1.  **Global `GEMINI.md`:**
-        *   Location: `~/.gemini/GEMINI.md` (in your user home directory).
-        *   Scope: Provides default instructions for all your projects.
-    2.  **Project Root & Ancestors `GEMINI.md`:**
-        *   Location: The CLI searches for `GEMINI.md` in the current working directory and then in each parent directory up to either the project root (identified by a `.git` folder) or your home directory.
-        *   Scope: Provides context relevant to the entire project or a significant portion of it.
-    3.  **Sub-directory `GEMINI.md` (Contextual/Local):**
-        *   Location: The CLI also scans for `GEMINI.md` files in subdirectories *below* the current working directory (respecting common ignore patterns like `node_modules`, `.git`, etc.).
-        *   Scope: Allows for highly specific instructions relevant to a particular component, module, or sub-section of your project.
-*   **Concatenation:** The contents of all found `GEMINI.md` files are concatenated (with separators indicating their origin and path) and provided as part of the system prompt to the Gemini model. You can see the exact combined content and loading order using the `/showmemory` command.
-*   **Commands:**
-    *   Use `/refreshmemory` to force a re-scan and reload of all `GEMINI.md` files.
-    *   Use `/showmemory` to display the combined instructional context currently loaded.
+- **Purpose:** These Markdown files contain instructions, guidelines, or context that you want the Gemini model to be aware of during your interactions.
+- **Hierarchical Loading and Precedence:** The CLI loads `GEMINI.md` files from several locations, forming a hierarchy. Content from files lower in this list (more specific) typically overrides or supplements content from files higher up (more general), though the exact concatenation order should be verified with `/showmemory`:
+  1.  **Global `GEMINI.md`:**
+      - Location: `~/.gemini/GEMINI.md` (in your user home directory).
+      - Scope: Provides default instructions for all your projects.
+  2.  **Project Root & Ancestors `GEMINI.md`:**
+      - Location: The CLI searches for `GEMINI.md` in the current working directory and then in each parent directory up to either the project root (identified by a `.git` folder) or your home directory.
+      - Scope: Provides context relevant to the entire project or a significant portion of it.
+  3.  **Sub-directory `GEMINI.md` (Contextual/Local):**
+      - Location: The CLI also scans for `GEMINI.md` files in subdirectories _below_ the current working directory (respecting common ignore patterns like `node_modules`, `.git`, etc.).
+      - Scope: Allows for highly specific instructions relevant to a particular component, module, or sub-section of your project.
+- **Concatenation:** The contents of all found `GEMINI.md` files are concatenated (with separators indicating their origin and path) and provided as part of the system prompt to the Gemini model. You can see the exact combined content and loading order using the `/showmemory` command.
+- **Commands:**
+  - Use `/refreshmemory` to force a re-scan and reload of all `GEMINI.md` files.
+  - Use `/showmemory` to display the combined instructional context currently loaded.
 
 By understanding these configuration layers and the hierarchical nature of `GEMINI.md` files, you can effectively tailor the Gemini CLI and the AI's responses to your specific needs and projects.
