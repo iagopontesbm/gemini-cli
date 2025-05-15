@@ -10,7 +10,7 @@
     "clean": "rm -rf dist",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --reporter=junit --outputFile=junit.xml",
     "prerelease:version": "node ../../scripts/bind_package_version.js",
     "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
     "prepack": "npm run build"

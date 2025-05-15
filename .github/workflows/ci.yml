@@ -58,3 +58,13 @@ jobs:
       # 8. Testing
       - name: Run tests
         run: npm test
+
+      # 9. Publish Test Results
+      - name: Publish Test Report
+        uses: dorny/test-reporter@v1
+        if: always() # Always run this step to publish results, even if tests fail
+        with:
+          name: Test Results
+          path: packages/*/junit.xml # Path to test results (supports wildcards)
+          reporter: jest-junit # Reporter type
+          fail-on-error: 'false' # Don't fail the CI job if publishing reports fails
