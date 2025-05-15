@@ -4,71 +4,104 @@ name: Gemini CLI CI
 
 on:
   push:
-    branches: [main] # Run on pushes to the main branch
+    branches: [main]
   pull_request:
-    branches: [main] # Run on pull requests targeting the main branch
+    branches: [main]
 
 jobs:
-  build_and_test:
-    name: Build and Test
+  build:
+    name: Build and Lint
     runs-on: ubuntu-latest
     permissions:
-      contents: read # Explicitly grant read access for checkout
-      checks: write
-      pull-requests: write # Often needed to report back to PRs
-
+      contents: read # For checkout
     strategy:
       matrix:
-        # Specify the Node.js versions you want to test against
-        node-version: [20.x] # You can add more like [18.x, 20.x]
-
+        node-version: [20.x]
     steps:
-      # 1. Checkout Code
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Setup Node.js Environment
       - name: Set up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm' # Enable caching for npm dependencies (speeds up subsequent runs)
+          cache: 'npm'
 
-      # 3. Install Dependencies
-      # Use 'ci' for cleaner, faster, deterministic installs based on lockfile
       - name: Install dependencies
         run: npm ci
 
-      # 4. Check Formatting
       - name: Run formatter check
         run: |
           npm run format
           git diff --exit-code
 
-      # 5. Linting
       - name: Run linter
         run: npm run lint
 
-      # 6. Type Checking
       - name: Run type check
         run: npm run typecheck
 
-      # 7. Build
-      # Optional if your tests run directly on TS files (e.g., using ts-jest, ts-node)
-      # But usually good practice to ensure the build itself works.
       - name: Build project
         run: npm run build
 
-      # 8. Testing
-      - name: Run tests
-        run: npm test
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.node-version }}
+          path: |
+            packages/*/dist
+            packages/*/node_modules
+            node_modules
+            package-lock.json # Include root package-lock and node_modules for test job
 
-      # 9. Publish Test Results
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: build # This job depends on the 'build' job
+    permissions:
+      contents: read # Not strictly needed if artifacts cover everything, but good practice
+      checks: write
+      pull-requests: write
+    strategy:
+      matrix:
+        node-version: [20.x] # Should match the build job's matrix
+    steps:
+      - name: Checkout repository # Still needed for test files if not in artifacts
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm' # Cache can still be beneficial
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-${{ matrix.node-version }}
+          path: . # Download to the root
+
+      # It's important to ensure the downloaded artifacts are placed correctly.
+      # The 'path: .' for download-artifact might require restructuring or careful handling
+      # if the upload paths create nested structures.
+      # For simplicity, assuming flat structure or that npm test can find them.
+      # If issues arise, we might need to explicitly move/restore node_modules.
+
+      # Re-hydrate based on downloaded package-lock.json if needed,
+      # or ensure node_modules from artifact is correctly placed.
+      # A clean `npm ci` might be safer if artifacting node_modules is complex.
+      # For now, assuming the artifacted node_modules are usable.
+      # If not, remove node_modules from artifacts and run `npm ci` here.
+      # Let's try with artifacted node_modules first.
+
+      - name: Run tests
+        run: npm test # This will now cause the 'Test' job to fail if tests fail
+
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
-        if: always() # Always run this step to publish results, even if tests fail
+        if: always() # Always run this step to publish results
         with:
-          name: Test Results
-          path: packages/*/junit.xml # Path to test results (supports wildcards)
-          reporter: java-junit # Reporter type
-          fail-on-error: 'false' # Don't fail the CI job if publishing reports fails
+          name: Test Results (Node ${{ matrix.node-version }})
+          path: packages/*/junit.xml
+          reporter: java-junit
+          fail-on-error: 'false'
