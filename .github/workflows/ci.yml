@@ -13,6 +13,7 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     permissions:
+      contents: read # Explicitly grant read access for checkout
       checks: write
       pull-requests: write # Often needed to report back to PRs
 
