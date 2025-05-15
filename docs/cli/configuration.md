@@ -65,8 +65,11 @@ Always consider the nature of the files within `.gemini/` before deciding to inc
 
 ```json
 {
-  "theme": "Dracula",
-  "sandbox": true
+  "theme": "VS2015",
+  "sandbox": "docker",
+  "toolDiscoveryCommand": "/usr/local/bin/my-custom-tool-discovery --json",
+  "toolCallCommand": "/usr/local/bin/my-custom-tool-executor",
+  "mcpServerCommand": "node /opt/mcp-server/dist/server.js --port 8080"
 }
 ```
 
@@ -108,7 +111,7 @@ Arguments passed directly when running the CLI can override other configurations
   - Example: `npm start -- --model gemini-1.5-pro-latest`
 - **`--sandbox`** (or **`-s`**):
   - Enables sandbox mode for this session. The exact behavior might depend on other sandbox configurations (environment variables, settings files).
-- **`--debug_mode`** (or **`-z`**):
+- **`--debug_mode`** (or **`-d`**):
   - Enables debug mode for this session, providing more verbose output.
 - **`--question <your_question>`** (or **`-q <your_question>`**):
   - Used to pass a question directly to the command, especially when piping input to the CLI.
