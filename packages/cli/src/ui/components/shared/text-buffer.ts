@@ -529,16 +529,34 @@ export function useTextBuffer({
 
   const killLineRight = useCallback((): void => {
     const lineContent = currentLine(cursorRow);
-    // Only act if the cursor is not at the end of the line
     if (cursorCol < currentLineLen(cursorRow)) {
+      // Cursor is before the end of the line's content, delete text to the right
       pushUndo();
       setLines((prevLines) => {
         const newLines = [...prevLines];
         newLines[cursorRow] = cpSlice(lineContent, 0, cursorCol);
         return newLines;
       });
+      // Cursor position and preferredCol do not change in this case
+    } else if (
+      cursorCol === currentLineLen(cursorRow) &&
+      cursorRow < lines.length - 1
+    ) {
+      // Cursor is at the end of the line's content (or line is empty),
+      // and it's not the last line. Delete the newline.
+      // `del()` handles pushUndo and setPreferredCol.
+      del();
     }
-  }, [pushUndo, cursorRow, cursorCol, currentLine, currentLineLen]);
+    // If cursor is at the end of the line and it's the last line, do nothing.
+  }, [
+    pushUndo,
+    cursorRow,
+    cursorCol,
+    currentLine,
+    currentLineLen,
+    lines.length,
+    del,
+  ]);
 
   const killLineLeft = useCallback((): void => {
     const lineContent = currentLine(cursorRow);
