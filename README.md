@@ -4,6 +4,8 @@
 
 This repository contains the Gemini CLI tool.
 
+For more comprehensive documentation, please see the [full documentation here](./docs/index.md).
+
 ## Setup
 
 1.  **Get a Gemini API Key:** Obtain your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
