@@ -17,7 +17,7 @@
     "debug": "node --inspect-brk dist/index.js",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest run --reporter=junit --outputFile=junit.xml",
     "prerelease:version": "node ../../scripts/bind_package_version.js",
     "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
     "prepublishOnly": "npm publish --workspace=@gemini-code/server",
