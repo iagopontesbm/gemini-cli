@@ -6,22 +6,27 @@
 
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
-import { getCommandFromQuery } from '../utils/commandUtils.js';
+// import { getCommandFromQuery } from '../utils/commandUtils.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config } from '@gemini-code/server'; // Import Config
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js'; // Import Message types
 import {
   createShowMemoryAction,
-  SHOW_MEMORY_COMMAND_NAME,
+  // SHOW_MEMORY_COMMAND_NAME, // Removed as unused due to backward compatibility removal
 } from './useShowMemoryCommand.js';
-import { REFRESH_MEMORY_COMMAND_NAME } from './useRefreshMemoryCommand.js'; // Only import name now
-import process from 'node:process'; // For process.exit
+// import { REFRESH_MEMORY_COMMAND_NAME } from './useRefreshMemoryCommand.js'; // Removed as unused
+import {
+  addMemoryEntry,
+  deleteLastMemoryEntry,
+  deleteAllAddedMemoryEntries,
+} from '../../config/memoryUtils.js';
 
 export interface SlashCommand {
   name: string;
   altName?: string;
   description: string;
-  action: (value: PartListUnion | string) => void; // Allow string for simpler actions
+  // Arguments: mainCommand, subCommand, further arguments string
+  action: (mainCommand: string, subCommand?: string, args?: string) => void;
 }
 
 /**
@@ -54,13 +59,98 @@ export const useSlashCommandProcessor = (
     await actionFn();
   }, [config, addMessage]);
 
+  // Define actions for memory commands
+  const addMemoryAction = useCallback(
+    async (_mainCommand: string, _subCommand?: string, args?: string) => {
+      if (!args || args.trim() === '') {
+        addMessage({
+          type: MessageType.ERROR,
+          content: 'Usage: /memory add <text to remember>',
+          timestamp: new Date(),
+        });
+        return;
+      }
+      try {
+        await addMemoryEntry(args);
+        addMessage({
+          type: MessageType.INFO,
+          content: `Successfully added to memory: "${args}"`,
+          timestamp: new Date(),
+        });
+        await performMemoryRefresh(); // Refresh memory to reflect changes
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        addMessage({
+          type: MessageType.ERROR,
+          content: `Failed to add memory: ${errorMessage}`,
+          timestamp: new Date(),
+        });
+      }
+    },
+    [addMessage, performMemoryRefresh],
+  );
+
+  const deleteLastMemoryAction = useCallback(async () => {
+    try {
+      const deleted = await deleteLastMemoryEntry();
+      if (deleted) {
+        addMessage({
+          type: MessageType.INFO,
+          content: 'Successfully deleted the last added memory entry.',
+          timestamp: new Date(),
+        });
+        await performMemoryRefresh();
+      } else {
+        addMessage({
+          type: MessageType.INFO,
+          content: 'No added memory entries found to delete.',
+          timestamp: new Date(),
+        });
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      addMessage({
+        type: MessageType.ERROR,
+        content: `Failed to delete last memory entry: ${errorMessage}`,
+        timestamp: new Date(),
+      });
+    }
+  }, [addMessage, performMemoryRefresh]);
+
+  const deleteAllAddedMemoryAction = useCallback(async () => {
+    try {
+      const count = await deleteAllAddedMemoryEntries();
+      if (count > 0) {
+        addMessage({
+          type: MessageType.INFO,
+          content: `Successfully deleted ${count} added memory entries.`,
+          timestamp: new Date(),
+        });
+        await performMemoryRefresh();
+      } else {
+        addMessage({
+          type: MessageType.INFO,
+          content: 'No added memory entries found to delete.',
+          timestamp: new Date(),
+        });
+      }
+    } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      addMessage({
+        type: MessageType.ERROR,
+        content: `Failed to delete all added memory entries: ${errorMessage}`,
+        timestamp: new Date(),
+      });
+    }
+  }, [addMessage, performMemoryRefresh]);
+
   const slashCommands: SlashCommand[] = useMemo(
     () => [
       {
         name: 'help',
         altName: '?',
         description: 'for help on gemini-code',
-        action: (_value: PartListUnion | string) => {
+        action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
         },
@@ -68,7 +158,7 @@ export const useSlashCommandProcessor = (
       {
         name: 'clear',
         description: 'clear the screen',
-        action: (_value: PartListUnion | string) => {
+        action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Clearing terminal.');
           clearItems();
           console.clear();
@@ -78,25 +168,45 @@ export const useSlashCommandProcessor = (
       {
         name: 'theme',
         description: 'change the theme',
-        action: (_value) => {
+        action: (_mainCommand, _subCommand, _args) => {
           openThemeDialog();
         },
       },
       {
-        name: REFRESH_MEMORY_COMMAND_NAME.substring(1), // Remove leading '/'
-        description: 'Reloads instructions from all GEMINI.md files.',
-        action: performMemoryRefresh, // Use the passed in function
-      },
-      {
-        name: SHOW_MEMORY_COMMAND_NAME.substring(1), // Remove leading '/'
-        description: 'Displays the current hierarchical memory content.',
-        action: showMemoryAction,
+        name: 'memory',
+        description:
+          'Manage memory. Usage: /memory <show|refresh|add|delete_last|delete_all_added> [text for add]',
+        action: (mainCommand, subCommand, args) => {
+          switch (subCommand) {
+            case 'show':
+              showMemoryAction();
+              break;
+            case 'refresh':
+              performMemoryRefresh();
+              break;
+            case 'add':
+              addMemoryAction(mainCommand, subCommand, args);
+              break;
+            case 'delete_last':
+              deleteLastMemoryAction();
+              break;
+            case 'delete_all_added':
+              deleteAllAddedMemoryAction();
+              break;
+            default:
+              addMessage({
+                type: MessageType.ERROR,
+                content: `Unknown /memory command: ${subCommand}. Available: show, refresh, add, delete_last, delete_all_added`,
+                timestamp: new Date(),
+              });
+          }
+        },
       },
       {
         name: 'quit',
         altName: 'exit',
         description: 'exit the cli',
-        action: (_value: PartListUnion | string) => {
+        action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Quitting. Good-bye.');
           process.exit(0);
         },
@@ -108,8 +218,12 @@ export const useSlashCommandProcessor = (
       refreshStatic,
       openThemeDialog,
       clearItems,
-      performMemoryRefresh, // Add to dependencies
+      performMemoryRefresh,
       showMemoryAction,
+      addMemoryAction,
+      deleteLastMemoryAction,
+      deleteAllAddedMemoryAction,
+      addMessage, // addMessage is used by memory actions
     ],
   );
 
@@ -120,36 +234,57 @@ export const useSlashCommandProcessor = (
       }
 
       const trimmed = rawQuery.trim();
-      const [symbol, test] = getCommandFromQuery(trimmed);
 
-      if (symbol !== '/' && symbol !== '?') {
+      if (!trimmed.startsWith('/') && !trimmed.startsWith('?')) {
         return false;
       }
 
       const userMessageTimestamp = Date.now();
-      // Add user message to history only if it's not a silent command or handled internally
-      // For now, adding all slash commands to history for transparency.
+
       addItem({ type: MessageType.USER, text: trimmed }, userMessageTimestamp);
 
+      let subCommand: string | undefined;
+      let args: string | undefined;
+
+      const commandToMatch = (() => {
+        if (trimmed.startsWith('?')) {
+          return 'help'; // No subCommand or args for '?' acting as help
+        }
+        // For other slash commands like /memory add foo
+        const parts = trimmed.substring(1).trim().split(/\s+/);
+        if (parts.length > 1) {
+          subCommand = parts[1];
+        }
+        if (parts.length > 2) {
+          args = parts.slice(2).join(' ');
+        }
+        return parts[0]; // This is the main command name
+      })();
+
+      const mainCommand = commandToMatch;
+
       for (const cmd of slashCommands) {
-        if (
-          test === cmd.name ||
-          test === cmd.altName ||
-          (symbol === '?' && cmd.altName === '?') // Special handling for ? as help
-        ) {
-          cmd.action(trimmed); // Pass the full trimmed command for context if needed
+        if (mainCommand === cmd.name || mainCommand === cmd.altName) {
+          cmd.action(mainCommand, subCommand, args);
           return true;
         }
       }
 
-      addItem(
-        { type: MessageType.ERROR, text: `Unknown command: ${trimmed}` },
-        userMessageTimestamp,
-      );
+      addMessage({
+        type: MessageType.ERROR,
+        content: `Unknown command: ${trimmed}`,
+        timestamp: new Date(),
+      });
 
       return true;
     },
-    [addItem, slashCommands],
+    [
+      addItem,
+      slashCommands,
+      addMessage,
+      // performMemoryRefresh, // Removed based on lint suggestion and backward compat removal
+      // showMemoryAction,     // Removed based on lint suggestion and backward compat removal
+    ],
   );
 
   return { handleSlashCommand, slashCommands };
