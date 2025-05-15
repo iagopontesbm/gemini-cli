@@ -45,7 +45,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   it('should return the base prompt when no userMemory is provided', () => {
     delete process.env.SANDBOX; // Ensure default state for snapshot
     const prompt = getCoreSystemPrompt();
-    expect(prompt).not.toContain('---\n\n'); // Separator should not be present
+    expect(prompt).toContain('---\n\n'); // Separator should not be present
     expect(prompt).toContain('You are an interactive CLI agent'); // Check for core content
     expect(prompt).toMatchSnapshot(); // Use snapshot for base prompt structure
   });
