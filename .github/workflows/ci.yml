@@ -66,5 +66,4 @@ jobs:
         with:
           name: Test Results
           path: packages/*/junit.xml # Path to test results (supports wildcards)
-          reporter: junit # Reporter type
           fail-on-error: 'false' # Don't fail the CI job if publishing reports fails
