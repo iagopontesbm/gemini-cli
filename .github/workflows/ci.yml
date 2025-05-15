@@ -88,7 +88,7 @@ jobs:
         run: npm ci # Install fresh dependencies using the downloaded package-lock.json
 
       - name: Run tests
-        run: npm test
+        run: npm run test:ci --workspaces --if-present
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
