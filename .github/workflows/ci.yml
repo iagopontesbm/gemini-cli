@@ -50,56 +50,49 @@ jobs:
           name: build-artifacts-${{ matrix.node-version }}
           path: |
             packages/*/dist
-            packages/*/node_modules
-            node_modules
-            package-lock.json # Include root package-lock and node_modules for test job
+            package-lock.json # Only upload dist and lockfile
 
   test:
     name: Test
     runs-on: ubuntu-latest
     needs: build # This job depends on the 'build' job
     permissions:
-      contents: read # Not strictly needed if artifacts cover everything, but good practice
+      contents: read
       checks: write
       pull-requests: write
     strategy:
       matrix:
         node-version: [20.x] # Should match the build job's matrix
     steps:
-      - name: Checkout repository # Still needed for test files if not in artifacts
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'npm' # Cache can still be beneficial
+          cache: 'npm'
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts-${{ matrix.node-version }}
-          path: . # Download to the root
+          path: . # Download to the root, this will include package-lock.json and packages/*/dist
 
-      # It's important to ensure the downloaded artifacts are placed correctly.
-      # The 'path: .' for download-artifact might require restructuring or careful handling
-      # if the upload paths create nested structures.
-      # For simplicity, assuming flat structure or that npm test can find them.
-      # If issues arise, we might need to explicitly move/restore node_modules.
+      # Restore/create package structure for dist folders if necessary.
+      # The download-artifact action with path: . should place them correctly if the
+      # upload paths were relative to the workspace root.
+      # Example: if uploaded `packages/cli/dist`, it will be at `./packages/cli/dist`.
 
-      # Re-hydrate based on downloaded package-lock.json if needed,
-      # or ensure node_modules from artifact is correctly placed.
-      # A clean `npm ci` might be safer if artifacting node_modules is complex.
-      # For now, assuming the artifacted node_modules are usable.
-      # If not, remove node_modules from artifacts and run `npm ci` here.
-      # Let's try with artifacted node_modules first.
+      - name: Install dependencies for testing
+        run: npm ci # Install fresh dependencies using the downloaded package-lock.json
 
       - name: Run tests
-        run: npm test # This will now cause the 'Test' job to fail if tests fail
+        run: npm test
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
-        if: always() # Always run this step to publish results
+        if: always()
         with:
           name: Test Results (Node ${{ matrix.node-version }})
           path: packages/*/junit.xml
