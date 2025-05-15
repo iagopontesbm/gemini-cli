@@ -20,7 +20,7 @@ For more comprehensive documentation, please see the [full documentation here](.
     ```
     Replace `"YOUR_API_KEY"` with your actual key.
 3.  **Install the Gemini CLI:**
-    *(Instructions for installing the CLI will be added here once packaging is finalized. For now, if you have access to the source code, you can run it directly after building the project as described below.)*
+    _(Instructions for installing the CLI will be added here once packaging is finalized. For now, if you have access to the source code, you can run it directly after building the project as described below.)_
 
 ## Building (for contributors)
 
@@ -48,6 +48,7 @@ npm start
 ```
 
 If you have installed the CLI globally, you can typically run it with:
+
 ```bash
 gemini-cli # Or the command name used during installation
 ```

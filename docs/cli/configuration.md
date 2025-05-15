@@ -28,15 +28,16 @@ The Gemini CLI uses `settings.json` files for persistent configuration. There ar
 When you create a `.gemini/settings.json` file for project-specific settings, or when the system needs to store project-specific information (like custom Seatbelt profiles, e.g., `.gemini/sandbox-macos-custom.sb`), this `.gemini` directory is used.
 
 **Purpose:**
-*   Stores project-specific configuration for the Gemini CLI (in `settings.json`).
-*   Can hold other project-specific files related to Gemini CLI's operation, such as custom sandbox profiles.
+
+- Stores project-specific configuration for the Gemini CLI (in `settings.json`).
+- Can hold other project-specific files related to Gemini CLI's operation, such as custom sandbox profiles.
 
 **Version Control (`.gitignore`):**
 
-*   **Generally, it's recommended to add `.gemini/` to your project's `.gitignore` file.**
-    *   **Reasoning:** This directory often contains user-specific preferences (like themes) or local sandbox configurations that might not be relevant or applicable to all collaborators on the project. Keeping it out of version control avoids imposing one user's local setup on others.
-*   **Exception:** If your team decides that certain project-specific configurations within `.gemini/` (e.g., a carefully crafted `sandbox-macos-custom.sb` profile that *all* macOS users on the project should use) are essential for consistent project behavior, you might choose to commit specific files within `.gemini/` (e.g., `!.gemini/sandbox-macos-custom.sb`) or the entire directory. However, this should be a deliberate decision by the team.
-*   User-specific `settings.json` often contains local paths or preferences that should not be committed.
+- **Generally, it's recommended to add `.gemini/` to your project's `.gitignore` file.**
+  - **Reasoning:** This directory often contains user-specific preferences (like themes) or local sandbox configurations that might not be relevant or applicable to all collaborators on the project. Keeping it out of version control avoids imposing one user's local setup on others.
+- **Exception:** If your team decides that certain project-specific configurations within `.gemini/` (e.g., a carefully crafted `sandbox-macos-custom.sb` profile that _all_ macOS users on the project should use) are essential for consistent project behavior, you might choose to commit specific files within `.gemini/` (e.g., `!.gemini/sandbox-macos-custom.sb`) or the entire directory. However, this should be a deliberate decision by the team.
+- User-specific `settings.json` often contains local paths or preferences that should not be committed.
 
 Always consider the nature of the files within `.gemini/` before deciding to include them in version control. For most common use cases, ignoring the entire directory is the safest approach.
 
@@ -130,23 +131,27 @@ Here's a conceptual example of what a `GEMINI.md` file at the root of a TypeScri
 # Project: My Awesome TypeScript Library
 
 ## General Instructions:
+
 - When generating new TypeScript code, please follow the existing coding style.
 - Ensure all new functions and classes have JSDoc comments.
 - Prefer functional programming paradigms where appropriate.
 - All code should be compatible with TypeScript 5.0 and Node.js 18+.
 
 ## Coding Style:
+
 - Use 2 spaces for indentation.
 - Interface names should be prefixed with `I` (e.g., `IUserService`).
 - Private class members should be prefixed with an underscore (`_`).
 - Always use strict equality (`===` and `!==`).
 
 ## Specific Component: `src/api/client.ts`
+
 - This file handles all outbound API requests.
 - When adding new API call functions, ensure they include robust error handling and logging.
 - Use the existing `fetchWithRetry` utility for all GET requests.
 
 ## Regarding Dependencies:
+
 - Avoid introducing new external dependencies unless absolutely necessary.
 - If a new dependency is required, please state the reason.
 ```

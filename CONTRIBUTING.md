@@ -115,21 +115,21 @@ During the development phase, you can use the following to create an alias for t
 ```bash
 # Example:
 # npm run build # (if not already done)
-# alias gemini-code="node $(pwd)/packages/cli/dist/index.js" 
+# alias gemini-code="node $(pwd)/packages/cli/dist/index.js"
 # gemini-code
-# 
+#
 #  ██████╗ ███████╗███╗   ███╗██╗███╗   ██╗██╗
 # ██╔════╝ ██╔════╝████╗ ████║██║████╗  ██║██║
 # ██║  ███╗█████╗  ██╔████╔██║██║██╔██╗ ██║██║
 # ██║   ██║██╔══╝  ██║╚██╔╝██║██║██║╚██╗██║██║
 # ╚██████���╝███████╗██║ ╚═╝ ██║██║██║ ╚████║██║
 #  ╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝
-# 
+#
 # Tips for getting started:
 # 1. /help for more information.
 # 2. Ask coding questions, edit code or run commands.
 # 3. Be specific for the best results.
-# 
+#
 # cwd: /path/to/gemini-cli
 # ╭────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 # │ > Enter your message or use tools...                                                                               │
