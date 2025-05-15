@@ -1,6 +1,6 @@
-# Gemini CLI: Command-Line Interface
+# Gemini CLI
 
-Welcome to the documentation for the Gemini Command-Line Interface (CLI). This section provides an overview of the CLI's features, how to interact with it, and how to customize your experience.
+Welcome to the documentation for the Gemini CLI. This section provides an overview of the CLI's features, how to interact with it, and how to customize your experience.
 
 ## What is the Gemini CLI?
 
@@ -8,20 +8,20 @@ The Gemini CLI (`packages/cli`) is the primary way users interact with the Gemin
 
 ## Core Features
 
-*   **Interactive Prompt:** A familiar command-line prompt for entering your queries and commands.
-*   **Rich Output Display:**
-    *   Formatted Markdown rendering for clear and readable text responses.
-    *   Syntax highlighting for code blocks in various languages.
-    *   Clear display of tool calls, inputs, and outputs.
-*   **Command History:** Easily access and re-run previous commands and prompts.
-*   **Suggestions:** (If applicable, describe suggestion features)
-*   **Theming:** Customize the look and feel of the CLI to your preference. See the [UI Guide](./ui-guide.md#themes).
-*   **Configuration:** Tailor the CLI's behavior through configuration files. See [CLI Configuration](./configuration.md).
-*   **Special Commands:** Utilize built-in commands for tasks like managing history, memory, or display. See [Commands](./commands.md).
+- **Interactive Prompt:** A familiar command-line prompt for entering your queries and commands.
+- **Rich Output Display:**
+  - Formatted Markdown rendering for clear and readable text responses.
+  - Syntax highlighting for code blocks in various languages.
+  - Clear display of tool calls, inputs, and outputs.
+- **Command History:** Easily access and re-run previous commands and prompts.
+- **Suggestions:** (If applicable, describe suggestion features)
+- **Theming:** Customize the look and feel of the CLI to your preference. See the [Theming section in README.md](../../README.md#theming).
+- **Configuration:** Tailor the CLI's behavior through configuration files. See [CLI Configuration](./configuration.md).
+- **Special Commands:** Utilize built-in commands for tasks like managing history, memory, or display. See [Commands](./commands.md).
 
 ## Basic Interaction
 
-1.  **Start the CLI:** As described in the [Getting Started](../getting-started.md) guide, run `npm start` from the project root.
+1.  **Start the CLI:** Run `npm start` from the project root (or execute the installed CLI command directly). Refer to the main [README.md](../../README.md) for setup and running instructions.
 2.  **Enter a Prompt:** Type your question or instruction at the `>` prompt and press Enter.
     ```
     > Explain quantum computing in simple terms.
@@ -31,8 +31,8 @@ The Gemini CLI (`packages/cli`) is the primary way users interact with the Gemin
 
 ## Navigating this Section
 
-*   **[Commands](./commands.md):** A detailed reference for all built-in CLI commands (e.g., `/help`, `/history`, `/theme`).
-*   **[UI Guide](./ui-guide.md):** Learn more about the different parts of the CLI's user interface, including themes and display elements.
-*   **[Configuration](./configuration.md):** Understand how to configure various aspects of the CLI.
+- **[Commands](./commands.md):** A detailed reference for all built-in CLI commands (e.g., `/help`, `/history`, `/theme`).
+- **[UI Guide](./ui-guide.md):** Learn more about the different parts of the CLI's user interface, including themes and display elements.
+- **[Configuration](./configuration.md):** Understand how to configure various aspects of the CLI.
 
 This documentation will help you become proficient in using the Gemini CLI for a wide range of tasks.
