@@ -56,6 +56,5 @@ jobs:
         run: npm run build
 
       # 8. Testing
-      # Uncomment when we have tests.
-      #- name: Run tests
-      #  run: npm test
+      - name: Run tests
+        run: npm test
