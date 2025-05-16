@@ -55,10 +55,10 @@ These are the main pieces of information the server `Config` object holds and us
 
 - **`toolDiscoveryCommand` (string | undefined):**
 - **`toolCallCommand` (string | undefined):**
-- **`mcpServerCommand` (string | undefined):**
+- **`mcpServers` (object | undefined):**
 
-  - **Source:** `settings.json` or environment variables.
-  - **Purpose:** Advanced settings for customizing how tools are discovered or how the server interacts with other potential components in a more complex setup.
+  - **Source:** `settings.json` (`mcpServers` key).
+  - **Purpose:** Advanced setting for configuring connections to Model-Context Protocol (MCP) servers. This is an object where each key is a server name and the value is an object containing `command` and optional `args` for starting that MCP server. Allows discovery and use of tools from multiple MCP sources.
 
 - **`userAgent` (string):**
 

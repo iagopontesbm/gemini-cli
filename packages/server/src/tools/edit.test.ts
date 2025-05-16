@@ -18,8 +18,8 @@ import { Config } from '../config/config.js';
 const mockEnsureCorrectEdit = vi.fn();
 vi.mock('../core/client.js', () => ({
   GeminiClient: vi.fn().mockImplementation(() => ({
-    // This is the method called by EditTool
-    ensureCorrectEdit: mockEnsureCorrectEdit,
+    ensureCorrectEdit: mockEnsureCorrectEdit, // Called by EditTool directly
+    generateJson: vi.fn(), // Called by the real ensureCorrectEdit from editCorrector
   })),
 }));
 

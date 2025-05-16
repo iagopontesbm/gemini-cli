@@ -401,7 +401,7 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     argv.all_files || false,
     settings.toolDiscoveryCommand,
     settings.toolCallCommand,
-    settings.mcpServerCommand,
+    settings.mcpServers,
     userAgent,
     memoryContent,
     fileCount,

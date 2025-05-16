@@ -7,6 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
+import { McpServerConfigMap } from '@gemini-code/server';
 
 export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
@@ -22,7 +23,7 @@ export interface Settings {
   sandbox?: boolean | string;
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
-  mcpServerCommand?: string;
+  mcpServers?: McpServerConfigMap;
   // Add other settings here.
 }
 
@@ -67,10 +68,29 @@ export class LoadedSettings {
   setValue(
     scope: SettingScope,
     key: keyof Settings,
-    value: string | undefined,
+    value: string | McpServerConfigMap | undefined, // Allow complex object for mcpServers
   ): void {
     const settingsFile = this.forScope(scope);
-    settingsFile.settings[key] = value;
+    if (key === 'mcpServers') {
+      // Ensure value is an McpServerConfigMap or undefined
+      if (typeof value === 'object' || typeof value === 'undefined') {
+        settingsFile.settings[key] = value as McpServerConfigMap | undefined;
+      } else {
+        // Block attempts to set mcpServers with an invalid type (e.g. string)
+        console.warn(
+          `Attempted to set mcpServers with invalid type: ${typeof value}. Value ignored.`,
+        );
+      }
+    } else {
+      // For other settings, assume string | undefined
+      if (typeof value === 'string' || typeof value === 'undefined') {
+        settingsFile.settings[key] = value;
+      } else {
+        console.warn(
+          `Attempted to set setting ${key} with invalid type: ${typeof value}. Value ignored.`,
+        );
+      }
+    }
     this._merged = this.computeMergedSettings();
     saveSettings(settingsFile);
   }

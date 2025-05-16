@@ -21,6 +21,15 @@ import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { BaseTool, ToolResult } from '../tools/tools.js';
 
+export interface McpServerConfig {
+  command: string;
+  args?: string[];
+}
+
+export interface McpServerConfigMap {
+  [serverName: string]: McpServerConfig;
+}
+
 export class Config {
   private toolRegistry: ToolRegistry;
 
@@ -34,7 +43,7 @@ export class Config {
     private readonly fullContext: boolean = false, // Default value here
     private readonly toolDiscoveryCommand: string | undefined,
     private readonly toolCallCommand: string | undefined,
-    private readonly mcpServerCommand: string | undefined,
+    private readonly mcpServers: McpServerConfigMap | undefined,
     private readonly userAgent: string,
     private userMemory: string = '', // Made mutable for refresh
     private geminiMdFileCount: number = 0,
@@ -82,8 +91,8 @@ export class Config {
     return this.toolCallCommand;
   }
 
-  getMcpServerCommand(): string | undefined {
-    return this.mcpServerCommand;
+  getMcpServers(): McpServerConfigMap | undefined {
+    return this.mcpServers;
   }
 
   getUserAgent(): string {
@@ -145,7 +154,7 @@ export function createServerConfig(
   fullContext?: boolean,
   toolDiscoveryCommand?: string,
   toolCallCommand?: string,
-  mcpServerCommand?: string,
+  mcpServers?: McpServerConfigMap,
   userAgent?: string,
   userMemory?: string,
   geminiMdFileCount?: number,
@@ -160,7 +169,7 @@ export function createServerConfig(
     fullContext,
     toolDiscoveryCommand,
     toolCallCommand,
-    mcpServerCommand,
+    mcpServers,
     userAgent ?? 'GeminiCLI/unknown', // Default user agent
     userMemory ?? '',
     geminiMdFileCount ?? 0,
