@@ -63,7 +63,9 @@ export const useGeminiStream = (
 ) => {
   const toolRegistry = config.getToolRegistry();
   const [initError, setInitError] = useState<string | null>(null);
-  const abortController = useRef<AbortController>(new AbortController());
+  const [abortController, setAbortController] = useState<AbortController>(
+    new AbortController(),
+  );
   const chatSessionRef = useRef<Chat | null>(null);
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
@@ -97,8 +99,8 @@ export const useGeminiStream = (
 
   useInput((_input, key) => {
     if (key.escape) {
-      abortController.current.abort('User Cancelled with ESC');
-      abortController.current = new AbortController();
+      abortController.abort('User Cancelled with ESC');
+      setAbortController(new AbortController());
     }
   });
 
@@ -273,13 +275,10 @@ export const useGeminiStream = (
           );
         }
         try {
-          // assign to const so we don't lose it if swapped
-          const currentAbortController = abortController.current;
-          const result = await tool.execute(
-            request.args,
-            currentAbortController.signal,
-          );
-          if (currentAbortController.signal.aborted) {
+          // assign to const so we don't lose it if user cancels while tool is executing
+          const signal = abortController.signal;
+          const result = await tool.execute(request.args, signal);
+          if (signal.aborted) {
             declineToolExecution(
               result.llmContent,
               ToolCallStatus.Canceled,
@@ -548,7 +547,7 @@ export const useGeminiStream = (
       const userMessageTimestamp = Date.now();
       setShowHelp(false);
 
-      const signal = abortController.current.signal;
+      const signal = abortController.signal;
 
       const { queryToSend, shouldProceed } = await prepareQueryForGemini(
         query,
@@ -612,6 +611,7 @@ export const useGeminiStream = (
       onDebugMessage,
       refreshStatic,
       setInitError,
+      abortController,
     ],
   );
 
