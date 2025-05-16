@@ -11,7 +11,6 @@ import { spawn, execSync } from 'node:child_process';
 // TODO: remove this dependency once MCP support is built into genai SDK
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { MemoryTool } from './memoryTool.js';
 type ToolParams = Record<string, unknown>;
 
 export class DiscoveredTool extends BaseTool<ToolParams, ToolResult> {
@@ -128,9 +127,7 @@ export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private mcpClient: Client | null = null;
 
-  constructor(private readonly config: Config) {
-    this.registerTool(new MemoryTool());
-  }
+  constructor(private readonly config: Config) {}
 
   /**
    * Registers a tool definition.

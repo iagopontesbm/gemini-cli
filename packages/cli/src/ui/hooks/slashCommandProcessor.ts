@@ -6,15 +6,10 @@
 
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
-// import { getCommandFromQuery } from '../utils/commandUtils.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config } from '@gemini-code/server'; // Import Config
-import { Message, MessageType, HistoryItemWithoutId } from '../types.js'; // Import Message types
-import {
-  createShowMemoryAction,
-  // SHOW_MEMORY_COMMAND_NAME, // Removed as unused due to backward compatibility removal
-} from './useShowMemoryCommand.js';
-// import { REFRESH_MEMORY_COMMAND_NAME } from './useRefreshMemoryCommand.js'; // Removed as unused
+import { Config } from '@gemini-code/server';
+import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
+import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import {
   addMemoryEntry,
   deleteLastMemoryEntry,
@@ -25,7 +20,6 @@ export interface SlashCommand {
   name: string;
   altName?: string;
   description: string;
-  // Arguments: mainCommand, subCommand, further arguments string
   action: (mainCommand: string, subCommand?: string, args?: string) => void;
 }
 
@@ -223,7 +217,7 @@ export const useSlashCommandProcessor = (
       addMemoryAction,
       deleteLastMemoryAction,
       deleteAllAddedMemoryAction,
-      addMessage, // addMessage is used by memory actions
+      addMessage,
     ],
   );
 
@@ -278,13 +272,7 @@ export const useSlashCommandProcessor = (
 
       return true;
     },
-    [
-      addItem,
-      slashCommands,
-      addMessage,
-      // performMemoryRefresh, // Removed based on lint suggestion and backward compat removal
-      // showMemoryAction,     // Removed based on lint suggestion and backward compat removal
-    ],
+    [addItem, slashCommands, addMessage],
   );
 
   return { handleSlashCommand, slashCommands };

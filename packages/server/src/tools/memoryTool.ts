@@ -4,15 +4,54 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { BaseTool, ToolResult } from './tools.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { homedir } from 'os';
-import { BaseTool, ToolResult } from './tools.js';
-import memoryToolSchemaData from './memoryTool.json' with { type: 'json' };
 
-const GEMINI_CONFIG_DIR = '.gemini';
-const GEMINI_MD_FILENAME = 'GEMINI.md';
-const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
+const memoryToolSchemaData = {
+  name: 'saveMemory',
+  description:
+    'Saves a specific piece of information or fact to your long-term memory. Use this when the user explicitly asks you to remember something, or when they state a clear, concise fact that seems important to retain for future interactions.',
+  parameters: {
+    type: 'object',
+    properties: {
+      fact: {
+        type: 'string',
+        description:
+          'The specific fact or piece of information to remember. Should be a clear, self-contained statement.',
+      },
+    },
+    required: ['fact'],
+  },
+};
+
+const memoryToolDescription = `
+# Tool: saveMemory
+
+## Description
+
+Saves a specific piece of information or fact to your long-term memory.
+
+Use this tool:
+
+- When the user explicitly asks you to remember something (e.g., "Remember that I like pineapple on pizza", "Please save this: my cat's name is Whiskers").
+- When the user states a clear, concise fact about themselves, their preferences, or their environment that seems important for you to retain for future interactions to provide a more personalized and effective assistance.
+
+Do NOT use this tool:
+
+- To remember conversational context that is only relevant for the current session.
+- To save long, complex, or rambling pieces of text. The fact should be relatively short and to the point.
+- If you are unsure whether the information is a fact worth remembering long-term. If in doubt, you can ask the user, "Should I remember that for you?"
+
+## Parameters
+
+- \`fact\` (string, required): The specific fact or piece of information to remember. This should be a clear, self-contained statement. For example, if the user says "My favorite color is blue", the fact would be "My favorite color is blue".
+`;
+
+export const GEMINI_CONFIG_DIR = '.gemini';
+export const GEMINI_MD_FILENAME = 'GEMINI.md';
+export const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
 
 interface SaveMemoryParams {
   fact: string;
@@ -33,78 +72,85 @@ function ensureNewlineSeparation(currentContent: string): string {
     return '\n';
   return '\n\n';
 }
-
-async function addEntryToGlobalMemory(text: string): Promise<void> {
-  const filePath = getGlobalMemoryFilePath();
-  const newMemoryItem = `- ${text.trim()}`;
-
-  try {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    let content = '';
-    try {
-      content = await fs.readFile(filePath, 'utf-8');
-    } catch (_e) {
-      // File doesn't exist, will be created.
-    }
-
-    const headerIndex = content.indexOf(MEMORY_SECTION_HEADER);
-
-    if (headerIndex === -1) {
-      const separator = ensureNewlineSeparation(content);
-      content += `${separator}${MEMORY_SECTION_HEADER}\n${newMemoryItem}\n`;
-    } else {
-      const startOfSectionContent = headerIndex + MEMORY_SECTION_HEADER.length;
-      let endOfSectionIndex = content.indexOf('\n## ', startOfSectionContent);
-      if (endOfSectionIndex === -1) {
-        endOfSectionIndex = content.length;
-      }
-      const beforeSectionMarker = content
-        .substring(0, startOfSectionContent)
-        .trimEnd();
-      let sectionContent = content
-        .substring(startOfSectionContent, endOfSectionIndex)
-        .trimEnd();
-      const afterSectionMarker = content.substring(endOfSectionIndex);
-
-      sectionContent += `\n${newMemoryItem}`;
-      content =
-        `${beforeSectionMarker}\n${sectionContent.trimStart()}\n${afterSectionMarker}`.trimEnd() +
-        '\n';
-    }
-    await fs.writeFile(filePath, content, 'utf-8');
-  } catch (error) {
-    console.error(
-      `[MemoryTool] Error adding memory entry to ${filePath}:`,
-      error,
-    );
-    throw new Error(
-      `[MemoryTool] Failed to add memory entry: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
-
 export class MemoryTool extends BaseTool<SaveMemoryParams, ToolResult> {
   constructor() {
     super(
       memoryToolSchemaData.name,
-      'Save Memory', // displayName
-      memoryToolSchemaData.description,
+      'Save Memory',
+      memoryToolDescription,
       memoryToolSchemaData.parameters as Record<string, unknown>,
     );
   }
 
-  // Optional: Override validateToolParams if specific validation is needed beyond JSON schema
-  // validateToolParams(params: SaveMemoryParams): string | null {
-  //   if (!params.fact || typeof params.fact !== 'string' || params.fact.trim() === '') {
-  //     return 'Parameter "fact" must be a non-empty string.';
-  //   }
-  //   return null; // All good
-  // }
+  static async performAddMemoryEntry(
+    text: string,
+    memoryFilePath: string,
+    fsAdapter: {
+      readFile: (path: string, encoding: 'utf-8') => Promise<string>;
+      writeFile: (
+        path: string,
+        data: string,
+        encoding: 'utf-8',
+      ) => Promise<void>;
+      mkdir: (
+        path: string,
+        options: { recursive: boolean },
+      ) => Promise<string | undefined>;
+    },
+  ): Promise<void> {
+    let processedText = text.trim();
+    // Remove leading hyphens and spaces that might be misinterpreted as markdown list items
+    processedText = processedText.replace(/^(-+\s*)+/, '').trim();
+    const newMemoryItem = `- ${processedText}`;
 
-  // Optional: Override getDescription for a custom pre-execution message
-  // getDescription(params: SaveMemoryParams): string {
-  //   return `Will attempt to save the fact: "${params.fact}" to long-term memory.`;
-  // }
+    try {
+      await fsAdapter.mkdir(path.dirname(memoryFilePath), { recursive: true });
+      let content = '';
+      try {
+        content = await fsAdapter.readFile(memoryFilePath, 'utf-8');
+      } catch (_e) {
+        // File doesn't exist, will be created with header and item.
+      }
+
+      const headerIndex = content.indexOf(MEMORY_SECTION_HEADER);
+
+      if (headerIndex === -1) {
+        // Header not found, append header and then the entry
+        const separator = ensureNewlineSeparation(content);
+        content += `${separator}${MEMORY_SECTION_HEADER}\n${newMemoryItem}\n`;
+      } else {
+        // Header found, find where to insert the new memory entry
+        const startOfSectionContent =
+          headerIndex + MEMORY_SECTION_HEADER.length;
+        let endOfSectionIndex = content.indexOf('\n## ', startOfSectionContent);
+        if (endOfSectionIndex === -1) {
+          endOfSectionIndex = content.length; // End of file
+        }
+
+        const beforeSectionMarker = content
+          .substring(0, startOfSectionContent)
+          .trimEnd();
+        let sectionContent = content
+          .substring(startOfSectionContent, endOfSectionIndex)
+          .trimEnd();
+        const afterSectionMarker = content.substring(endOfSectionIndex);
+
+        sectionContent += `\n${newMemoryItem}`;
+        content =
+          `${beforeSectionMarker}\n${sectionContent.trimStart()}\n${afterSectionMarker}`.trimEnd() +
+          '\n';
+      }
+      await fsAdapter.writeFile(memoryFilePath, content, 'utf-8');
+    } catch (error) {
+      console.error(
+        `[MemoryTool] Error adding memory entry to ${memoryFilePath}:`,
+        error,
+      );
+      throw new Error(
+        `[MemoryTool] Failed to add memory entry: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
 
   async execute(
     params: SaveMemoryParams,
@@ -112,8 +158,6 @@ export class MemoryTool extends BaseTool<SaveMemoryParams, ToolResult> {
   ): Promise<ToolResult> {
     const { fact } = params;
 
-    // Validation can be done here or rely on BaseTool's schema validation if it's implemented
-    // For now, direct check, though schema should handle 'required'.
     if (!fact || typeof fact !== 'string' || fact.trim() === '') {
       const errorMessage = 'Parameter "fact" must be a non-empty string.';
       return {
@@ -123,7 +167,12 @@ export class MemoryTool extends BaseTool<SaveMemoryParams, ToolResult> {
     }
 
     try {
-      await addEntryToGlobalMemory(fact);
+      // Use the static method with actual fs promises
+      await MemoryTool.performAddMemoryEntry(fact, getGlobalMemoryFilePath(), {
+        readFile: fs.readFile,
+        writeFile: fs.writeFile,
+        mkdir: fs.mkdir,
+      });
       const successMessage = `Okay, I've remembered that: "${fact}"`;
       return {
         llmContent: JSON.stringify({ success: true, message: successMessage }),

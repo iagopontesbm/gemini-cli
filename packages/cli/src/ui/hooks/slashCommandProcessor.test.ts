@@ -4,28 +4,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+const { mockProcessExit } = vi.hoisted(() => ({
+  mockProcessExit: vi.fn((_code?: number): never => undefined as never),
+}));
+
+vi.mock('node:process', () => ({
+  exit: mockProcessExit,
+  cwd: vi.fn(() => '/mock/cwd'), 
+}));
+
+vi.mock('node:fs/promises', () => ({
+  readFile: vi.fn(),
+  writeFile: vi.fn(),
+  mkdir: vi.fn(),
+}));
+
 import { act, renderHook } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, Mock } from 'vitest'; // Added Mock
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { MessageType } from '../types.js';
 import * as memoryUtils from '../../config/memoryUtils.js';
+import { type Config, MemoryTool } from '@gemini-code/server';
+import * as fsPromises from 'node:fs/promises';
 
 // Import the module for mocking its functions
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
-// import { REFRESH_MEMORY_COMMAND_NAME } from './useRefreshMemoryCommand.js'; // Removed as per lint
 
 // Mock dependencies
-vi.mock('../../config/memoryUtils.js');
-
 vi.mock('./useShowMemoryCommand.js', () => ({
-  SHOW_MEMORY_COMMAND_NAME: '/showmemory', // Actual value for the processor to use
+  SHOW_MEMORY_COMMAND_NAME: '/memory show',
   createShowMemoryAction: vi.fn(() => vi.fn()),
 }));
 
-const mockProcessExit = vi.fn((_code?: number): never => undefined as never);
-vi.mock('node:process', () => ({
-  exit: mockProcessExit,
-}));
+// Spy on the static method we want to mock
+const performAddMemoryEntrySpy = vi.spyOn(MemoryTool, 'performAddMemoryEntry');
 
 describe('useSlashCommandProcessor', () => {
   let mockAddItem: ReturnType<typeof vi.fn>;
@@ -35,8 +47,7 @@ describe('useSlashCommandProcessor', () => {
   let mockOnDebugMessage: ReturnType<typeof vi.fn>;
   let mockOpenThemeDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let mockConfig: any;
+  let mockConfig: Config;
 
   beforeEach(() => {
     mockAddItem = vi.fn();
@@ -46,27 +57,26 @@ describe('useSlashCommandProcessor', () => {
     mockOnDebugMessage = vi.fn();
     mockOpenThemeDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
-    mockConfig = { getDebugMode: vi.fn(() => false) };
+    mockConfig = { getDebugMode: vi.fn(() => false) } as unknown as Config;
 
-    vi.mocked(memoryUtils.addMemoryEntry).mockClear();
+    // Clear mocks for fsPromises if they were used directly or indirectly
+    vi.mocked(fsPromises.readFile).mockClear();
+    vi.mocked(fsPromises.writeFile).mockClear();
+    vi.mocked(fsPromises.mkdir).mockClear();
+
+    performAddMemoryEntrySpy.mockReset(); // Reset the spy
+    vi.spyOn(memoryUtils, 'deleteLastMemoryEntry').mockImplementation(vi.fn());
+    vi.spyOn(memoryUtils, 'deleteAllAddedMemoryEntries').mockImplementation(
+      vi.fn(),
+    );
+
     vi.mocked(memoryUtils.deleteLastMemoryEntry).mockClear();
     vi.mocked(memoryUtils.deleteAllAddedMemoryEntries).mockClear();
+
     mockProcessExit.mockClear();
-    // Access the mocked function via the module namespace
     (ShowMemoryCommandModule.createShowMemoryAction as Mock).mockClear();
-    mockPerformMemoryRefresh.mockClear(); // mockPerformMemoryRefresh is already a vi.fn()
-
-    const results = vi.mocked(ShowMemoryCommandModule.createShowMemoryAction)
-      .mock.results;
-    if (results && results.length > 0 && results[0].type === 'return') {
-      const returnedMock = results[0].value as Mock;
-      if (returnedMock && typeof returnedMock.mockClear === 'function') {
-        returnedMock.mockClear();
-      }
-    }
+    mockPerformMemoryRefresh.mockClear();
   });
-
-  // No afterEach with vi.clearAllMocks()
 
   const getProcessor = () => {
     const { result } = renderHook(() =>
@@ -85,29 +95,36 @@ describe('useSlashCommandProcessor', () => {
   };
 
   describe('/memory add', () => {
-    it('should call addMemoryEntry and refresh on valid input', async () => {
-      vi.mocked(memoryUtils.addMemoryEntry).mockResolvedValue(undefined);
+    it('should call MemoryTool.performAddMemoryEntry and refresh on valid input', async () => {
+      performAddMemoryEntrySpy.mockResolvedValue(undefined);
       const { handleSlashCommand } = getProcessor();
+      const fact = 'Remember this fact';
       await act(async () => {
-        handleSlashCommand('/memory add Remember this fact');
+        handleSlashCommand(`/memory add ${fact}`);
       });
       expect(mockAddItem).toHaveBeenNthCalledWith(
         1,
         expect.objectContaining({
           type: MessageType.USER,
-          text: '/memory add Remember this fact',
+          text: `/memory add ${fact}`,
         }),
         expect.any(Number),
       );
-      expect(memoryUtils.addMemoryEntry).toHaveBeenCalledWith(
-        'Remember this fact',
+      expect(performAddMemoryEntrySpy).toHaveBeenCalledWith(
+        fact,
+        memoryUtils.getGlobalMemoryFilePath(), // Ensure this path is correct
+        {
+          readFile: fsPromises.readFile,
+          writeFile: fsPromises.writeFile,
+          mkdir: fsPromises.mkdir,
+        },
       );
       expect(mockPerformMemoryRefresh).toHaveBeenCalled();
       expect(mockAddItem).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: 'Successfully added to memory: "Remember this fact"',
+          text: `Successfully added to memory: "${fact}"`,
         }),
         expect.any(Number),
       );
@@ -118,7 +135,7 @@ describe('useSlashCommandProcessor', () => {
       await act(async () => {
         handleSlashCommand('/memory add ');
       });
-      expect(memoryUtils.addMemoryEntry).not.toHaveBeenCalled();
+      expect(performAddMemoryEntrySpy).not.toHaveBeenCalled();
       expect(mockAddItem).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
@@ -129,20 +146,29 @@ describe('useSlashCommandProcessor', () => {
       );
     });
 
-    it('should handle error from addMemoryEntry', async () => {
-      vi.mocked(memoryUtils.addMemoryEntry).mockRejectedValue(
-        new Error('Disk full'),
+    it('should handle error from MemoryTool.performAddMemoryEntry', async () => {
+      const fact = 'Another fact';
+      performAddMemoryEntrySpy.mockRejectedValue(
+        new Error('[MemoryTool] Failed to add memory entry: Disk full'),
       );
       const { handleSlashCommand } = getProcessor();
       await act(async () => {
-        handleSlashCommand('/memory add Another fact');
+        handleSlashCommand(`/memory add ${fact}`);
       });
-      expect(memoryUtils.addMemoryEntry).toHaveBeenCalledWith('Another fact');
+      expect(performAddMemoryEntrySpy).toHaveBeenCalledWith(
+        fact,
+        memoryUtils.getGlobalMemoryFilePath(),
+        {
+          readFile: fsPromises.readFile,
+          writeFile: fsPromises.writeFile,
+          mkdir: fsPromises.mkdir,
+        },
+      );
       expect(mockAddItem).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
           type: MessageType.ERROR,
-          text: 'Failed to add memory: Disk full',
+          text: 'Failed to add memory: [MemoryTool] Failed to add memory entry: Disk full',
         }),
         expect.any(Number),
       );
@@ -295,7 +321,6 @@ describe('useSlashCommandProcessor', () => {
       });
       expect(mockSetShowHelp).toHaveBeenCalledWith(true);
     });
-    // Removed /quit test
   });
 
   describe('Unknown command', () => {

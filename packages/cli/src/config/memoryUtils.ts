@@ -7,28 +7,19 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { homedir } from 'os';
-
-const GEMINI_CONFIG_DIR = '.gemini';
-const GEMINI_MD_FILENAME = 'GEMINI.md';
-const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
+import { SETTINGS_DIRECTORY_NAME } from './settings.js';
+import {
+  getErrorMessage,
+  MemoryTool,
+  GEMINI_MD_FILENAME,
+  MEMORY_SECTION_HEADER,
+} from '@gemini-code/server';
 
 /**
  * Gets the absolute path to the global GEMINI.md file.
  */
 export function getGlobalMemoryFilePath(): string {
-  return path.join(homedir(), GEMINI_CONFIG_DIR, GEMINI_MD_FILENAME);
-}
-
-/**
- * Ensures proper newline separation before appending content.
- */
-function ensureNewlineSeparation(currentContent: string): string {
-  if (currentContent.length === 0) return '';
-  if (currentContent.endsWith('\n\n') || currentContent.endsWith('\r\n\r\n'))
-    return '';
-  if (currentContent.endsWith('\n') || currentContent.endsWith('\r\n'))
-    return '\n';
-  return '\n\n';
+  return path.join(homedir(), SETTINGS_DIRECTORY_NAME, GEMINI_MD_FILENAME);
 }
 
 /**
@@ -36,51 +27,13 @@ function ensureNewlineSeparation(currentContent: string): string {
  */
 export async function addMemoryEntry(text: string): Promise<void> {
   const filePath = getGlobalMemoryFilePath();
-  const newMemoryItem = `- ${text.trim()}`;
-
-  try {
-    await fs.mkdir(path.dirname(filePath), { recursive: true });
-    let content = '';
-    try {
-      content = await fs.readFile(filePath, 'utf-8');
-    } catch (_e) {
-      // File doesn't exist, will be created with header and item.
-    }
-
-    const headerIndex = content.indexOf(MEMORY_SECTION_HEADER);
-
-    if (headerIndex === -1) {
-      // Header not found, append header and then the entry
-      const separator = ensureNewlineSeparation(content);
-      content += `${separator}${MEMORY_SECTION_HEADER}\n${newMemoryItem}\n`;
-    } else {
-      // Header found, find where to insert the new memory entry
-      const startOfSectionContent = headerIndex + MEMORY_SECTION_HEADER.length;
-      let endOfSectionIndex = content.indexOf('\n## ', startOfSectionContent);
-      if (endOfSectionIndex === -1) {
-        endOfSectionIndex = content.length; // End of file
-      }
-
-      const beforeSectionMarker = content
-        .substring(0, startOfSectionContent)
-        .trimEnd();
-      let sectionContent = content
-        .substring(startOfSectionContent, endOfSectionIndex)
-        .trimEnd();
-      const afterSectionMarker = content.substring(endOfSectionIndex);
-
-      sectionContent += `\n${newMemoryItem}`;
-      content =
-        `${beforeSectionMarker}\n${sectionContent.trimStart()}\n${afterSectionMarker}`.trimEnd() +
-        '\n';
-    }
-    await fs.writeFile(filePath, content, 'utf-8');
-  } catch (error) {
-    console.error(`Error adding memory entry to ${filePath}:`, error);
-    throw new Error(
-      `Failed to add memory entry: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+  // The performAddMemoryEntry method from MemoryTool will handle its own errors
+  // and throw an appropriately formatted error if needed.
+  await MemoryTool.performAddMemoryEntry(text, filePath, {
+    readFile: fs.readFile,
+    writeFile: fs.writeFile,
+    mkdir: fs.mkdir,
+  });
 }
 
 /**
@@ -148,7 +101,7 @@ export async function deleteLastMemoryEntry(): Promise<boolean> {
     }
     console.error(`Error deleting last memory entry from ${filePath}:`, error);
     throw new Error(
-      `Failed to delete last memory entry: ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to delete last memory entry: ${getErrorMessage(error)}`,
     );
   }
 }
@@ -204,7 +157,7 @@ export async function deleteAllAddedMemoryEntries(): Promise<number> {
       error,
     );
     throw new Error(
-      `Failed to delete all added memory entries: ${error instanceof Error ? error.message : String(error)}`,
+      `Failed to delete all added memory entries: ${getErrorMessage(error)}`,
     );
   }
 }
