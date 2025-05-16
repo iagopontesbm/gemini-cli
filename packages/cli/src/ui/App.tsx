@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Box, Static, Text, useStdout } from 'ink';
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import { Box, DOMElement, measureElement, Static, Text } from 'ink';
 import { StreamingState, type HistoryItem } from './types.js';
+import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
@@ -46,6 +47,7 @@ export const App = ({
   startupWarnings = [],
 }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
+  const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
   const [staticKey, setStaticKey] = useState(0);
   const refreshStatic = useCallback(() => {
     setStaticKey((prev) => prev + 1);
@@ -55,7 +57,7 @@ export const App = ({
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
-
+  const [footerHeight, setFooterHeight] = useState<number>(0);
   const {
     isThemeDialogOpen,
     openThemeDialog,
@@ -193,11 +195,48 @@ export const App = ({
 
   // --- Render Logic ---
 
-  // Get terminal width
-  const { stdout } = useStdout();
-  const terminalWidth = stdout?.columns ?? 80;
+  const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
+  const mainControlsRef = useRef<DOMElement>(null);
+  const pendingHistoryItemRef = useRef<DOMElement>(null);
+
   // Calculate width for suggestions, leave some padding
   const suggestionsWidth = Math.max(60, Math.floor(terminalWidth * 0.8));
+
+  useEffect(() => {
+    if (mainControlsRef.current) {
+      const fullFooterMeasurement = measureElement(mainControlsRef.current);
+      setFooterHeight(fullFooterMeasurement.height);
+    }
+  }, [terminalHeight]); // Re-calculate if terminalHeight changes, as it might affect footer's rendered height.
+
+  const availableTerminalHeight = useMemo(() => {
+    const staticExtraHeight = /* margins and padding */ 3;
+    return terminalHeight - footerHeight - staticExtraHeight;
+  }, [terminalHeight, footerHeight]);
+
+  useEffect(() => {
+    if (!pendingHistoryItem) {
+      return;
+    }
+
+    const pendingItemDimensions = measureElement(
+      pendingHistoryItemRef.current!,
+    );
+
+    // If our pending history item happens to exceed the terminal height we will most likely need to refresh
+    // our static collection to ensure no duplication or tearing. This is currently working around a core bug
+    // in Ink which we have a PR out to fix: https://github.com/vadimdemedes/ink/pull/717
+    if (pendingItemDimensions.height > availableTerminalHeight) {
+      setStaticNeedsRefresh(true);
+    }
+  }, [pendingHistoryItem, availableTerminalHeight, streamingState]);
+
+  useEffect(() => {
+    if (streamingState === StreamingState.Idle && staticNeedsRefresh) {
+      setStaticNeedsRefresh(false);
+      refreshStatic();
+    }
+  }, [streamingState, refreshStatic, staticNeedsRefresh]);
 
   return (
     <Box flexDirection="column" marginBottom={1} width="90%">
@@ -212,160 +251,166 @@ export const App = ({
        * content is set it'll flush content to the terminal and move the area which it's "clearing"
        * down a notch. Without Static the area which gets erased and redrawn continuously grows.
        */}
-      <Static key={'static-key-' + staticKey} items={['header', ...history]}>
-        {(item, index) => {
-          if (item === 'header') {
-            return (
-              <Box flexDirection="column" key={'header-' + index}>
-                <Header />
-                <Tips />
-              </Box>
-            );
-          }
-
-          const historyItem = item as HistoryItem;
-          return (
+      <Static
+        key={staticKey}
+        items={[
+          <Box flexDirection="column" key="header">
+            <Header />
+            <Tips />
+          </Box>,
+          ...history.map((h) => (
             <HistoryItemDisplay
-              key={'history-' + historyItem.id}
-              item={historyItem}
+              availableTerminalHeight={availableTerminalHeight}
+              key={h.id}
+              item={h}
+              isPending={false}
             />
-          );
-        }}
+          )),
+        ]}
+      >
+        {(item) => item}
       </Static>
       {pendingHistoryItem && (
-        <HistoryItemDisplay
-          // TODO(taehykim): It seems like references to ids aren't necessary in
-          // HistoryItemDisplay. Refactor later. Use a fake id for now.
-          item={{ ...pendingHistoryItem, id: 0 }}
-        />
+        <Box ref={pendingHistoryItemRef}>
+          <HistoryItemDisplay
+            availableTerminalHeight={availableTerminalHeight}
+            // TODO(taehykim): It seems like references to ids aren't necessary in
+            // HistoryItemDisplay. Refactor later. Use a fake id for now.
+            item={{ ...pendingHistoryItem, id: 0 }}
+            isPending={true}
+          />
+        </Box>
       )}
       {showHelp && <Help commands={slashCommands} />}
 
-      {startupWarnings.length > 0 && (
-        <Box
-          borderStyle="round"
-          borderColor={Colors.AccentYellow}
-          paddingX={1}
-          marginY={1}
-          flexDirection="column"
-        >
-          {startupWarnings.map((warning, index) => (
-            <Text key={index} color={Colors.AccentYellow}>
-              {warning}
-            </Text>
-          ))}
-        </Box>
-      )}
+      <Box flexDirection="column" ref={mainControlsRef}>
+        {startupWarnings.length > 0 && (
+          <Box
+            borderStyle="round"
+            borderColor={Colors.AccentYellow}
+            paddingX={1}
+            marginY={1}
+            flexDirection="column"
+          >
+            {startupWarnings.map((warning, index) => (
+              <Text key={index} color={Colors.AccentYellow}>
+                {warning}
+              </Text>
+            ))}
+          </Box>
+        )}
 
-      {isThemeDialogOpen ? (
-        <Box flexDirection="column">
-          {themeError && (
-            <Box marginBottom={1}>
-              <Text color={Colors.AccentRed}>{themeError}</Text>
-            </Box>
-          )}
-          <ThemeDialog
-            onSelect={handleThemeSelect}
-            onHighlight={handleThemeHighlight}
-            settings={settings}
-            setQuery={setQuery}
-          />
-        </Box>
-      ) : (
-        <>
-          <LoadingIndicator
-            isLoading={streamingState === StreamingState.Responding}
-            currentLoadingPhrase={currentLoadingPhrase}
-            elapsedTime={elapsedTime}
-          />
-          {isInputActive && (
-            <>
-              <Box
-                marginTop={1}
-                display="flex"
-                justifyContent="space-between"
-                width="100%"
-              >
-                <Box>
-                  <Text color={Colors.SubtleComment}>cwd: </Text>
-                  <Text color={Colors.LightBlue}>
-                    {shortenPath(config.getTargetDir(), 70)}
-                  </Text>
-                </Box>
+        {isThemeDialogOpen ? (
+          <Box flexDirection="column">
+            {themeError && (
+              <Box marginBottom={1}>
+                <Text color={Colors.AccentRed}>{themeError}</Text>
               </Box>
-
-              <InputPrompt
-                query={query}
-                onChange={setQuery}
-                onChangeAndMoveCursor={onChangeAndMoveCursor}
-                editorState={editorState}
-                onSubmit={handleFinalSubmit} // Pass handleFinalSubmit directly
-                showSuggestions={completion.showSuggestions}
-                suggestions={completion.suggestions}
-                activeSuggestionIndex={completion.activeSuggestionIndex}
-                userMessages={userMessages} // Pass userMessages
-                navigateSuggestionUp={completion.navigateUp}
-                navigateSuggestionDown={completion.navigateDown}
-                resetCompletion={completion.resetCompletionState}
-                setEditorState={setEditorState}
-                onClearScreen={handleClearScreen} // Added onClearScreen prop
-              />
-              {completion.showSuggestions && (
-                <Box>
-                  <SuggestionsDisplay
-                    suggestions={completion.suggestions}
-                    activeIndex={completion.activeSuggestionIndex}
-                    isLoading={completion.isLoadingSuggestions}
-                    width={suggestionsWidth}
-                    scrollOffset={completion.visibleStartIndex}
-                  />
+            )}
+            <ThemeDialog
+              onSelect={handleThemeSelect}
+              onHighlight={handleThemeHighlight}
+              settings={settings}
+              setQuery={setQuery}
+            />
+          </Box>
+        ) : (
+          <>
+            <LoadingIndicator
+              isLoading={streamingState === StreamingState.Responding}
+              currentLoadingPhrase={currentLoadingPhrase}
+              elapsedTime={elapsedTime}
+            />
+            {isInputActive && (
+              <>
+                <Box
+                  marginTop={1}
+                  display="flex"
+                  justifyContent="space-between"
+                  width="100%"
+                >
+                  <Box>
+                    <Text color={Colors.SubtleComment}>cwd: </Text>
+                    <Text color={Colors.LightBlue}>
+                      {shortenPath(config.getTargetDir(), 70)}
+                    </Text>
+                  </Box>
                 </Box>
-              )}
-            </>
-          )}
-        </>
-      )}
 
-      {initError && streamingState !== StreamingState.Responding && (
-        <Box
-          borderStyle="round"
-          borderColor={Colors.AccentRed}
-          paddingX={1}
-          marginBottom={1}
-        >
-          {history.find(
-            (item) => item.type === 'error' && item.text?.includes(initError),
-          )?.text ? (
-            <Text color={Colors.AccentRed}>
-              {
-                history.find(
-                  (item) =>
-                    item.type === 'error' && item.text?.includes(initError),
-                )?.text
-              }
-            </Text>
-          ) : (
-            <>
-              <Text color={Colors.AccentRed}>
-                Initialization Error: {initError}
-              </Text>
-              <Text color={Colors.AccentRed}>
-                {' '}
-                Please check API key and configuration.
-              </Text>
-            </>
-          )}
-        </Box>
-      )}
+                <InputPrompt
+                  query={query}
+                  onChange={setQuery}
+                  onChangeAndMoveCursor={onChangeAndMoveCursor}
+                  editorState={editorState}
+                  onSubmit={handleFinalSubmit} // Pass handleFinalSubmit directly
+                  showSuggestions={completion.showSuggestions}
+                  suggestions={completion.suggestions}
+                  activeSuggestionIndex={completion.activeSuggestionIndex}
+                  userMessages={userMessages} // Pass userMessages
+                  navigateSuggestionUp={completion.navigateUp}
+                  navigateSuggestionDown={completion.navigateDown}
+                  resetCompletion={completion.resetCompletionState}
+                  setEditorState={setEditorState}
+                  onClearScreen={handleClearScreen} // Added onClearScreen prop
+                />
+                {completion.showSuggestions && (
+                  <Box>
+                    <SuggestionsDisplay
+                      suggestions={completion.suggestions}
+                      activeIndex={completion.activeSuggestionIndex}
+                      isLoading={completion.isLoadingSuggestions}
+                      width={suggestionsWidth}
+                      scrollOffset={completion.visibleStartIndex}
+                      userInput={query}
+                    />
+                  </Box>
+                )}
+              </>
+            )}
+          </>
+        )}
 
-      <Footer
-        config={config}
-        debugMode={config.getDebugMode()}
-        debugMessage={debugMessage}
-        cliVersion={cliVersion}
-        geminiMdFileCount={geminiMdFileCount}
-      />
-      <ConsoleOutput />
+        {initError && streamingState !== StreamingState.Responding && (
+          <Box
+            borderStyle="round"
+            borderColor={Colors.AccentRed}
+            paddingX={1}
+            marginBottom={1}
+          >
+            {history.find(
+              (item) => item.type === 'error' && item.text?.includes(initError),
+            )?.text ? (
+              <Text color={Colors.AccentRed}>
+                {
+                  history.find(
+                    (item) =>
+                      item.type === 'error' && item.text?.includes(initError),
+                  )?.text
+                }
+              </Text>
+            ) : (
+              <>
+                <Text color={Colors.AccentRed}>
+                  Initialization Error: {initError}
+                </Text>
+                <Text color={Colors.AccentRed}>
+                  {' '}
+                  Please check API key and configuration.
+                </Text>
+              </>
+            )}
+          </Box>
+        )}
+
+        <Footer
+          config={config}
+          debugMode={config.getDebugMode()}
+          debugMessage={debugMessage}
+          cliVersion={cliVersion}
+          geminiMdFileCount={geminiMdFileCount}
+        />
+        <ConsoleOutput />
+      </Box>
     </Box>
   );
 };

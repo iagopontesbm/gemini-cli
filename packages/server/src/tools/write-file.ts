@@ -76,7 +76,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
     );
   }
 
-  validateParams(params: WriteFileToolParams): string | null {
+  validateToolParams(params: WriteFileToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -154,7 +154,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
     params: WriteFileToolParams,
     _signal: AbortSignal,
   ): Promise<ToolResult> {
-    const validationError = this.validateParams(params);
+    const validationError = this.validateToolParams(params);
     if (validationError) {
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
@@ -202,7 +202,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
         ? `Successfully created and wrote to new file: ${params.file_path}`
         : `Successfully overwrote file: ${params.file_path}`;
 
-      const displayResult: FileDiff = { fileDiff };
+      const displayResult: FileDiff = { fileDiff, fileName };
 
       return {
         llmContent: llmSuccessMessage,

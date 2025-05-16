@@ -18,6 +18,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
     "test": "vitest run",
+    "test:ci": "vitest run --reporter=junit --outputFile=junit.xml",
+    "typecheck": "tsc --noEmit",
     "prerelease:version": "node ../../scripts/bind_package_version.js",
     "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
     "prepublishOnly": "npm publish --workspace=@gemini-code/server",
@@ -41,6 +43,8 @@
     "react": "^18.3.1",
     "read-package-up": "^11.0.0",
     "shell-quote": "^1.8.2",
+    "string-width": "^7.1.0",
+    "strip-ansi": "^7.1.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
@@ -51,6 +55,7 @@
     "@types/react": "^18.3.1",
     "@types/shell-quote": "^1.7.5",
     "@types/yargs": "^17.0.32",
+    "ink-testing-library": "^4.0.0",
     "jsdom": "^26.1.0",
     "typescript": "^5.3.3",
     "vitest": "^3.1.1"
