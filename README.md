@@ -6,17 +6,31 @@ This repository contains the Gemini CLI tool.
 
 ## Setup
 
-1.  **Get a Gemini API Key:** Obtain your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
-2.  **Set Environment Variable:** Set the `GEMINI_API_KEY` environment variable to your obtained key. You can do this temporarily in your current shell session:
-    ```bash
-    export GEMINI_API_KEY="YOUR_API_KEY"
-    ```
-    Or add it to your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`) for persistence:
-    ```bash
-    echo 'export GEMINI_API_KEY="YOUR_API_KEY"' >> ~/.bashrc # Or your preferred shell config file
-    source ~/.bashrc # Reload the config
-    ```
-    Replace `"YOUR_API_KEY"` with your actual key.
+The Gemini CLI supports several ways to authenticate with Google's AI services. You'll need to configure one of the following:
+
+1.  **Gemini API Key:**
+    *   Obtain your API key from Google AI Studio: [https://aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey)
+    *   Set the `GEMINI_API_KEY` environment variable:
+        ```bash
+        export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+        ```
+
+2.  **Google API Key (Vertex AI Express Mode):**
+    *   This key can be a general Google Cloud API key enabled for the Gemini API or Vertex AI.
+    *   Set the `GOOGLE_API_KEY` environment variable:
+        ```bash
+        export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
+        export GOOGLE_GENAI_USE_VERTEXAI=true
+        ```
+
+3.  **Vertex AI (Project and Location):**
+    *   Ensure you have a Google Cloud Project and have enabled the Vertex AI API.
+    *   Set the `GOOGLE_CLOUD_PROJECT` and `GOOGLE_CLOUD_LOCATION` environment variables:
+        ```bash
+        export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
+        export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION" # e.g., us-central1
+        export GOOGLE_GENAI_USE_VERTEXAI=true
+        ```
 
 ## Building
 
