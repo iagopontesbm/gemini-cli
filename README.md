@@ -35,6 +35,10 @@ The Gemini CLI supports several ways to authenticate with Google's AI services. 
 
 3.  **Vertex AI (Project and Location):**
     - Ensure you have a Google Cloud Project and have enabled the Vertex AI API.
+    - Set up Application Default Credentials (ADC). For more details, refer to the [official Google Cloud ADC documentation](https://cloud.google.com/docs/authentication/provide-credentials-adc):
+      ```bash
+      gcloud auth application-default login
+      ```
     - Set the `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `GOOGLE_GENAI_USE_VERTEXAI` environment variables:
       ```bash
       export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
