@@ -27,10 +27,6 @@ const memoryToolSchemaData = {
 };
 
 const memoryToolDescription = `
-# Tool: saveMemory
-
-## Description
-
 Saves a specific piece of information or fact to your long-term memory.
 
 Use this tool:
@@ -72,10 +68,12 @@ function ensureNewlineSeparation(currentContent: string): string {
     return '\n';
   return '\n\n';
 }
+
 export class MemoryTool extends BaseTool<SaveMemoryParams, ToolResult> {
+  static readonly Name: string = memoryToolSchemaData.name;
   constructor() {
     super(
-      memoryToolSchemaData.name,
+      MemoryTool.Name,
       'Save Memory',
       memoryToolDescription,
       memoryToolSchemaData.parameters as Record<string, unknown>,

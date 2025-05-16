@@ -175,100 +175,6 @@ describe('useSlashCommandProcessor', () => {
     });
   });
 
-  describe('/memory delete_last', () => {
-    it('should call deleteLastMemoryEntry and refresh if successful', async () => {
-      vi.mocked(memoryUtils.deleteLastMemoryEntry).mockResolvedValue(true);
-      const { handleSlashCommand } = getProcessor();
-      await act(async () => {
-        handleSlashCommand('/memory delete_last');
-      });
-      expect(memoryUtils.deleteLastMemoryEntry).toHaveBeenCalled();
-      expect(mockPerformMemoryRefresh).toHaveBeenCalled();
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Successfully deleted the last added memory entry.',
-        }),
-        expect.any(Number),
-      );
-    });
-
-    it('should inform if no entry was found to delete', async () => {
-      vi.mocked(memoryUtils.deleteLastMemoryEntry).mockResolvedValue(false);
-      const { handleSlashCommand } = getProcessor();
-      await act(async () => {
-        handleSlashCommand('/memory delete_last');
-      });
-      expect(memoryUtils.deleteLastMemoryEntry).toHaveBeenCalled();
-      expect(mockPerformMemoryRefresh).not.toHaveBeenCalled();
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'No added memory entries found to delete.',
-        }),
-        expect.any(Number),
-      );
-    });
-
-    it('should handle errors from deleteLastMemoryEntry', async () => {
-      vi.mocked(memoryUtils.deleteLastMemoryEntry).mockRejectedValue(
-        new Error('File access error'),
-      );
-      const { handleSlashCommand } = getProcessor();
-      await act(async () => {
-        handleSlashCommand('/memory delete_last');
-      });
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.ERROR,
-          text: 'Failed to delete last memory entry: File access error',
-        }),
-        expect.any(Number),
-      );
-    });
-  });
-
-  describe('/memory delete_all_added', () => {
-    it('should call deleteAllAddedMemoryEntries and refresh if successful', async () => {
-      vi.mocked(memoryUtils.deleteAllAddedMemoryEntries).mockResolvedValue(3);
-      const { handleSlashCommand } = getProcessor();
-      await act(async () => {
-        handleSlashCommand('/memory delete_all_added');
-      });
-      expect(memoryUtils.deleteAllAddedMemoryEntries).toHaveBeenCalled();
-      expect(mockPerformMemoryRefresh).toHaveBeenCalled();
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Successfully deleted 3 added memory entries.',
-        }),
-        expect.any(Number),
-      );
-    });
-
-    it('should inform if no entries were found to delete', async () => {
-      vi.mocked(memoryUtils.deleteAllAddedMemoryEntries).mockResolvedValue(0);
-      const { handleSlashCommand } = getProcessor();
-      await act(async () => {
-        handleSlashCommand('/memory delete_all_added');
-      });
-      expect(memoryUtils.deleteAllAddedMemoryEntries).toHaveBeenCalled();
-      expect(mockPerformMemoryRefresh).not.toHaveBeenCalled();
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'No added memory entries found to delete.',
-        }),
-        expect.any(Number),
-      );
-    });
-  });
-
   describe('/memory show', () => {
     it('should call the showMemoryAction', async () => {
       const mockReturnedShowAction = vi.fn();
@@ -306,7 +212,7 @@ describe('useSlashCommandProcessor', () => {
         2,
         expect.objectContaining({
           type: MessageType.ERROR,
-          text: 'Unknown /memory command: foobar. Available: show, refresh, add, delete_last, delete_all_added',
+          text: 'Unknown /memory command: foobar. Available: show, refresh, add',
         }),
         expect.any(Number),
       );

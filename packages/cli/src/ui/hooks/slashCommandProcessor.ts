@@ -10,11 +10,7 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config } from '@gemini-code/server';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
-import {
-  addMemoryEntry,
-  deleteLastMemoryEntry,
-  deleteAllAddedMemoryEntries,
-} from '../../config/memoryUtils.js';
+import { addMemoryEntry } from '../../config/memoryUtils.js';
 
 export interface SlashCommand {
   name: string;
@@ -53,7 +49,6 @@ export const useSlashCommandProcessor = (
     await actionFn();
   }, [config, addMessage]);
 
-  // Define actions for memory commands
   const addMemoryAction = useCallback(
     async (_mainCommand: string, _subCommand?: string, args?: string) => {
       if (!args || args.trim() === '') {
@@ -83,60 +78,6 @@ export const useSlashCommandProcessor = (
     },
     [addMessage, performMemoryRefresh],
   );
-
-  const deleteLastMemoryAction = useCallback(async () => {
-    try {
-      const deleted = await deleteLastMemoryEntry();
-      if (deleted) {
-        addMessage({
-          type: MessageType.INFO,
-          content: 'Successfully deleted the last added memory entry.',
-          timestamp: new Date(),
-        });
-        await performMemoryRefresh();
-      } else {
-        addMessage({
-          type: MessageType.INFO,
-          content: 'No added memory entries found to delete.',
-          timestamp: new Date(),
-        });
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      addMessage({
-        type: MessageType.ERROR,
-        content: `Failed to delete last memory entry: ${errorMessage}`,
-        timestamp: new Date(),
-      });
-    }
-  }, [addMessage, performMemoryRefresh]);
-
-  const deleteAllAddedMemoryAction = useCallback(async () => {
-    try {
-      const count = await deleteAllAddedMemoryEntries();
-      if (count > 0) {
-        addMessage({
-          type: MessageType.INFO,
-          content: `Successfully deleted ${count} added memory entries.`,
-          timestamp: new Date(),
-        });
-        await performMemoryRefresh();
-      } else {
-        addMessage({
-          type: MessageType.INFO,
-          content: 'No added memory entries found to delete.',
-          timestamp: new Date(),
-        });
-      }
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      addMessage({
-        type: MessageType.ERROR,
-        content: `Failed to delete all added memory entries: ${errorMessage}`,
-        timestamp: new Date(),
-      });
-    }
-  }, [addMessage, performMemoryRefresh]);
 
   const slashCommands: SlashCommand[] = useMemo(
     () => [
@@ -181,16 +122,10 @@ export const useSlashCommandProcessor = (
             case 'add':
               addMemoryAction(mainCommand, subCommand, args);
               break;
-            case 'delete_last':
-              deleteLastMemoryAction();
-              break;
-            case 'delete_all_added':
-              deleteAllAddedMemoryAction();
-              break;
             default:
               addMessage({
                 type: MessageType.ERROR,
-                content: `Unknown /memory command: ${subCommand}. Available: show, refresh, add, delete_last, delete_all_added`,
+                content: `Unknown /memory command: ${subCommand}. Available: show, refresh, add`,
                 timestamp: new Date(),
               });
           }
@@ -215,8 +150,6 @@ export const useSlashCommandProcessor = (
       performMemoryRefresh,
       showMemoryAction,
       addMemoryAction,
-      deleteLastMemoryAction,
-      deleteAllAddedMemoryAction,
       addMessage,
     ],
   );
