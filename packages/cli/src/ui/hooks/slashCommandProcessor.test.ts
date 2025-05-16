@@ -10,7 +10,7 @@ const { mockProcessExit } = vi.hoisted(() => ({
 
 vi.mock('node:process', () => ({
   exit: mockProcessExit,
-  cwd: vi.fn(() => '/mock/cwd'), 
+  cwd: vi.fn(() => '/mock/cwd'),
 }));
 
 vi.mock('node:fs/promises', () => ({
