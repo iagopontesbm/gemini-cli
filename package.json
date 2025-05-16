@@ -23,7 +23,6 @@
     "auth:docker": "gcloud auth configure-docker us-west1-docker.pkg.dev",
     "auth": "npm run auth:npm && npm run auth:docker",
     "prerelease:dev": "npm run prerelease:version --workspaces && npm run prerelease:deps --workspaces",
-
     "bundle": "esbuild packages/cli/index.ts --bundle --outfile=packages/cli/dist/index.js --platform=node --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);\" && bash scripts/copy_bundle_assets.sh",
     "sea:blob": "node --experimental-sea-config sea-config.json",
     "sea:copy-node": "cp $(which node) packages/cli/dist/gemini && chmod u+w packages/cli/dist/gemini && sync",
