@@ -179,7 +179,6 @@ export const useGeminiStream = (
         const errorMsg = `Failed to start chat: ${getErrorMessage(err)}`;
         setInitError(errorMsg);
         addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
-        setIsResponding(false);
         return { client: currentClient, chat: null };
       }
     }
@@ -195,19 +194,17 @@ export const useGeminiStream = (
       item?.type === 'tool_group'
         ? {
             ...item,
-            tools: item.tools.map((tool) => {
-              if (tool.callId === toolResponse.callId) {
-                return {
-                  ...tool,
-                  status,
-                  resultDisplay: toolResponse.resultDisplay,
-                };
-              } else {
-                return tool;
-              }
-            }),
+            tools: item.tools.map((tool) =>
+              tool.callId === toolResponse.callId
+                ? {
+                    ...tool,
+                    status,
+                    resultDisplay: toolResponse.resultDisplay,
+                  }
+                : tool,
+            ),
           }
-        : null,
+        : item,
     );
   };
 
@@ -215,7 +212,6 @@ export const useGeminiStream = (
     callId: string,
     confirmationDetails: ToolCallConfirmationDetails | undefined,
   ) => {
-    if (pendingHistoryItemRef.current?.type !== 'tool_group') return;
     setPendingHistoryItem((item) =>
       item?.type === 'tool_group'
         ? {
@@ -230,11 +226,10 @@ export const useGeminiStream = (
                 : tool,
             ),
           }
-        : null,
+        : item,
     );
   };
 
-  // This function will be fully refactored in a later step
   const wireConfirmationSubmission = (
     confirmationDetails: ServerToolCallConfirmationDetails,
   ): ToolCallConfirmationDetails => {
