@@ -364,11 +364,7 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
   const hasVertexProjectLocationConfig =
     !!googleCloudProject && !!googleCloudLocation;
 
-  if (
-    !hasGeminiApiKey &&
-    !hasGoogleApiKey &&
-    !hasVertexProjectLocationConfig
-  ) {
+  if (!hasGeminiApiKey && !hasGoogleApiKey && !hasVertexProjectLocationConfig) {
     logger.error(
       'No valid API authentication configuration found. Please set ONE of the following combinations in your environment variables or .env file:\n' +
         '1. GEMINI_API_KEY (for Gemini API access).\n' +
