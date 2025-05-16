@@ -1,0 +1,6 @@
+{
+  "main": "packages/cli/dist/index.js",
+  "output": "packages/cli/dist/sea-blob",
+  "disable_code_cache": true,
+  "disable_code_forking": true
+}
