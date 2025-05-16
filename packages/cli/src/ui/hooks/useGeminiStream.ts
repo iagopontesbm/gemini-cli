@@ -63,7 +63,7 @@ export const useGeminiStream = (
 ) => {
   const toolRegistry = config.getToolRegistry();
   const [initError, setInitError] = useState<string | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const abortController = useRef<AbortController>(new AbortController());
   const chatSessionRef = useRef<Chat | null>(null);
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
@@ -96,8 +96,9 @@ export const useGeminiStream = (
   }, [config, addItem]);
 
   useInput((_input, key) => {
-    if (streamingState !== StreamingState.Idle && key.escape) {
-      abortControllerRef.current?.abort();
+    if (key.escape) {
+      abortController.current.abort('User Cancelled with ESC');
+      abortController.current = new AbortController();
     }
   });
 
@@ -272,12 +273,13 @@ export const useGeminiStream = (
           );
         }
         try {
-          abortControllerRef.current = new AbortController();
+          // assign to const so we don't lose it if swapped
+          const currentAbortController = abortController.current;
           const result = await tool.execute(
             request.args,
-            abortControllerRef.current.signal,
+            currentAbortController.signal,
           );
-          if (abortControllerRef.current.signal.aborted) {
+          if (currentAbortController.signal.aborted) {
             declineToolExecution(
               result.llmContent,
               ToolCallStatus.Canceled,
@@ -306,10 +308,11 @@ export const useGeminiStream = (
           }
           setIsResponding(false);
           await submitQuery(functionResponse); // Recursive call
-        } finally {
-          if (streamingState !== StreamingState.WaitingForConfirmation) {
-            abortControllerRef.current = null;
-          }
+        } catch (e) {
+          addItem(
+            { type: MessageType.ERROR, text: `[Confirmation Error: ${e}]` },
+            Date.now(),
+          );
         }
       }
     };
@@ -545,8 +548,7 @@ export const useGeminiStream = (
       const userMessageTimestamp = Date.now();
       setShowHelp(false);
 
-      abortControllerRef.current ??= new AbortController();
-      const signal = abortControllerRef.current.signal;
+      const signal = abortController.current.signal;
 
       const { queryToSend, shouldProceed } = await prepareQueryForGemini(
         query,
@@ -596,9 +598,6 @@ export const useGeminiStream = (
           );
         }
       } finally {
-        if (streamingState !== StreamingState.WaitingForConfirmation) {
-          abortControllerRef.current = null;
-        }
         setIsResponding(false);
       }
     },
