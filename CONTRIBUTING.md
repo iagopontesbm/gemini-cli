@@ -38,7 +38,7 @@ This section guides contributors on how to build, modify, and understand the dev
 ### Setting Up the Development Environment
 
 - **Prerequisites:**
-  - Node.js (ensure you have a version compatible with the project, check `package.json` or `nvmrc` if available).
+  - Node.js (version 18 or higher).
   - npm (usually comes with Node.js).
   - Git.
 - **Cloning the Repository:**
@@ -72,16 +72,6 @@ npm run test
 
 This will run tests located in the `packages/server` and `packages/cli` directories. Ensure tests pass before submitting any changes.
 
-### Type Checking
-
-To perform static type checking using TypeScript:
-
-```bash
-npm run typecheck
-```
-
-This helps catch type-related errors early in the development process.
-
 ### Linting and Preflight Checks
 
 To ensure code quality, formatting consistency, and run final checks before committing:
@@ -95,7 +85,7 @@ This command usually runs ESLint, Prettier, and potentially other checks as defi
 ### Coding Conventions
 
 - Please adhere to the coding style, patterns, and conventions used throughout the existing codebase.
-- Consult `GEMINI.md` (typically found in the project root or relevant subdirectories) for specific instructions related to AI-assisted development, including conventions for React, comments, and Git usage.
+- Consult [GEMINI.md](https://github.com/google-gemini/gemini-cli/blob/main/GEMINI.md) (typically found in the project root) for specific instructions related to AI-assisted development, including conventions for React, comments, and Git usage.
 - **Imports:** Pay special attention to import paths. The project uses `eslint-rules/no-relative-cross-package-imports.js` to enforce restrictions on relative imports between packages.
 
 ### Project Structure
@@ -115,14 +105,14 @@ During the development phase, you can use the following to create an alias for t
 ```bash
 # Example:
 # npm run build # (if not already done)
-# alias gemini-code="node $(pwd)/packages/cli/dist/index.js"
-# gemini-code
+# alias gemini-cli="node $(pwd)/packages/cli/dist/index.js"
+# gemini-cli
 #
 #  ██████╗ ███████╗███╗   ███╗██╗███╗   ██╗██╗
 # ██╔════╝ ██╔════╝████╗ ████║██║████╗  ██║██║
 # ██║  ███╗█████╗  ██╔████╔██║██║██╔██╗ ██║██║
 # ██║   ██║██╔══╝  ██║╚██╔╝██║██║██║╚██╗██║██║
-# ╚██████���╝███████╗██║ ╚═╝ ██║██║██║ ╚████║██║
+# ╚███████╝███████╗██║ ╚═╝ ██║██║██║ ╚████║██║
 #  ╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝
 #
 # Tips for getting started:

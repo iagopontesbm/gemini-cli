@@ -50,7 +50,7 @@ npm start
 If you have installed the CLI globally, you can typically run it with:
 
 ```bash
-gemini-cli # Or the command name used during installation
+gemini # Or the command name used during installation
 ```
 
 This command starts the Gemini CLI.

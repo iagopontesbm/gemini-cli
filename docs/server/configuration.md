@@ -50,7 +50,7 @@ These are the main pieces of information the server `Config` object holds and us
 
 - **`fullContext` (boolean):**
 
-  - **Source:** Command-line argument (`--full_context`).
+  - **Source:** Command-line argument (`--all_files`).
   - **Purpose:** If true, instructs relevant tools (like `read_many_files` when used implicitly by the model) to gather a broad context from the `targetDir`.
 
 - **`toolDiscoveryCommand` (string | undefined):**

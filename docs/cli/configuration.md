@@ -115,7 +115,7 @@ Arguments passed directly when running the CLI can override other configurations
   - Enables debug mode for this session, providing more verbose output.
 - **`--question <your_question>`** (or **`-q <your_question>`**):
   - Used to pass a question directly to the command, especially when piping input to the CLI.
-- **`--full_context`** (or **`-f`**):
+- **`--all_files`** (or **`-a`**):
   - If set, recursively includes all files within the current directory as context for the prompt.
 - **`--help`** (or **`-h`**):
   - Displays help information about command-line arguments.
