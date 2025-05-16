@@ -31,15 +31,15 @@ import {
   StreamingState,
   IndividualToolCallDisplay,
   ToolCallStatus,
-  HistoryItemWithoutId,
-  HistoryItemToolGroup,
   MessageType,
+  HistoryItem,
+  HistoryItemGemini,
+  HistoryItemGeminiContent,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
-import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 
 enum StreamProcessingStatus {
@@ -54,13 +54,15 @@ enum StreamProcessingStatus {
  * and interact with the Gemini API and history manager.
  */
 export const useGeminiStream = (
-  addItem: UseHistoryManagerReturn['addItem'],
+  historyManager: UseHistoryManagerReturn,
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
   onDebugMessage: (message: string) => void,
   handleSlashCommand: (cmd: PartListUnion) => boolean,
 ) => {
+  const { addItem, setPendingItem, commitPendingItem, pendingItem } =
+    historyManager;
   const toolRegistry = config.getToolRegistry();
   const [initError, setInitError] = useState<string | null>(null);
   const [abortController, setAbortController] = useState<AbortController>(
@@ -69,8 +71,6 @@ export const useGeminiStream = (
   const chatSessionRef = useRef<Chat | null>(null);
   const geminiClientRef = useRef<GeminiClient | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
-  const [pendingHistoryItemRef, setPendingHistoryItem] =
-    useStateAndRef<HistoryItemWithoutId | null>(null);
 
   const onExec = useCallback(async (done: Promise<void>) => {
     setIsResponding(true);
@@ -96,6 +96,12 @@ export const useGeminiStream = (
       }
     }
   }, [config, addItem]);
+
+  useEffect(() => {
+    if (pendingItem?.type === 'tool_group' && !ongoingToolCalls(pendingItem)) {
+      commitPendingItem();
+    }
+  }, [pendingItem, commitPendingItem]);
 
   useInput((_input, key) => {
     if (key.escape) {
@@ -193,7 +199,7 @@ export const useGeminiStream = (
     toolResponse: ToolCallResponseInfo,
     status: ToolCallStatus,
   ) => {
-    setPendingHistoryItem((item) =>
+    setPendingItem((item) =>
       item?.type === 'tool_group'
         ? {
             ...item,
@@ -215,7 +221,7 @@ export const useGeminiStream = (
     callId: string,
     confirmationDetails: ToolCallConfirmationDetails | undefined,
   ) => {
-    setPendingHistoryItem((item) =>
+    setPendingItem((item) =>
       item?.type === 'tool_group'
         ? {
             ...item,
@@ -240,26 +246,6 @@ export const useGeminiStream = (
     const request = confirmationDetails.request;
     const resubmittingConfirm = async (outcome: ToolConfirmationOutcome) => {
       originalConfirmationDetails.onConfirm(outcome);
-      if (pendingHistoryItemRef?.current?.type === 'tool_group') {
-        setPendingHistoryItem((item) =>
-          item?.type === 'tool_group'
-            ? {
-                ...item,
-                tools: item.tools.map((tool) =>
-                  tool.callId === request.callId
-                    ? {
-                        ...tool,
-                        confirmationDetails: undefined,
-                        status: ToolCallStatus.Executing,
-                      }
-                    : tool,
-                ),
-              }
-            : item,
-        );
-        refreshStatic();
-      }
-
       if (outcome === ToolConfirmationOutcome.Cancel) {
         declineToolExecution(
           'User rejected function call.',
@@ -267,55 +253,69 @@ export const useGeminiStream = (
           request,
           originalConfirmationDetails,
         );
-      } else {
-        const tool = toolRegistry.getTool(request.name);
-        if (!tool) {
-          throw new Error(
-            `Tool "${request.name}" not found or is not registered.`,
+        return;
+      }
+      setPendingItem((item) =>
+        item?.type === 'tool_group'
+          ? {
+              ...item,
+              tools: item.tools.map((tool) =>
+                tool.callId === request.callId
+                  ? {
+                      ...tool,
+                      confirmationDetails: undefined,
+                      status: ToolCallStatus.Executing,
+                    }
+                  : tool,
+              ),
+            }
+          : item,
+      );
+      const tool = toolRegistry.getTool(request.name);
+      if (!tool) {
+        throw new Error(
+          `Tool "${request.name}" not found or is not registered.`,
+        );
+      }
+      try {
+        // assign to const so we don't lose it if user cancels while tool is executing
+        const signal = abortController.signal;
+        const result = await tool.execute(request.args, signal);
+        if (signal.aborted) {
+          declineToolExecution(
+            result.llmContent,
+            ToolCallStatus.Canceled,
+            request,
+            originalConfirmationDetails,
           );
+          return;
         }
-        try {
-          // assign to const so we don't lose it if user cancels while tool is executing
-          const signal = abortController.signal;
-          const result = await tool.execute(request.args, signal);
-          if (signal.aborted) {
-            declineToolExecution(
-              result.llmContent,
-              ToolCallStatus.Canceled,
-              request,
-              originalConfirmationDetails,
-            );
-            return;
-          }
-          const functionResponse: Part = {
-            functionResponse: {
-              name: request.name,
-              id: request.callId,
-              response: { output: result.llmContent },
-            },
-          };
-          const responseInfo: ToolCallResponseInfo = {
-            callId: request.callId,
-            responsePart: functionResponse,
-            resultDisplay: result.returnDisplay,
-            error: undefined,
-          };
-          updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
-          if (pendingHistoryItemRef.current) {
-            addItem(pendingHistoryItemRef.current, Date.now());
-            setPendingHistoryItem(null);
-          }
-          setIsResponding(false);
-          await submitQuery(functionResponse); // Recursive call
-        } catch (e) {
-          addItem(
-            { type: MessageType.ERROR, text: `[Confirmation Error: ${e}]` },
-            Date.now(),
-          );
+        const functionResponse: Part = {
+          functionResponse: {
+            name: request.name,
+            id: request.callId,
+            response: { output: result.llmContent },
+          },
+        };
+        const responseInfo: ToolCallResponseInfo = {
+          callId: request.callId,
+          responsePart: functionResponse,
+          resultDisplay: result.returnDisplay,
+          error: undefined,
+        };
+        updateFunctionResponseUI(responseInfo, ToolCallStatus.Success);
+        if (pendingItem) {
+          commitPendingItem();
         }
+        setIsResponding(false);
+        await submitQuery(functionResponse); // Recursive call
+      } catch (e) {
+        addItem(
+          { type: MessageType.ERROR, text: `[Confirmation Error: ${e}]` },
+          Date.now(),
+        );
       }
     };
-
     // Extracted declineToolExecution to be part of wireConfirmationSubmission's closure
     // or could be a standalone helper if more params are passed.
     function declineToolExecution(
@@ -350,9 +350,8 @@ export const useGeminiStream = (
         history.push({ role: 'model', parts: [functionResponse] });
       }
       updateFunctionResponseUI(responseInfo, status);
-      if (pendingHistoryItemRef.current) {
-        addItem(pendingHistoryItemRef.current, Date.now());
-        setPendingHistoryItem(null);
+      if (pendingItem) {
+        commitPendingItem();
       }
       setIsResponding(false);
     }
@@ -363,50 +362,76 @@ export const useGeminiStream = (
   // --- Stream Event Handlers ---
   const handleContentEvent = (
     eventValue: ContentEvent['value'],
-    currentGeminiMessageBuffer: string,
-    userMessageTimestamp: number,
+    currentGeminiMessageBuffer: string, // Retained for now, though its role might diminish
   ): string => {
     let newGeminiMessageBuffer = currentGeminiMessageBuffer + eventValue;
+
     if (
-      pendingHistoryItemRef.current?.type !== 'gemini' &&
-      pendingHistoryItemRef.current?.type !== 'gemini_content'
+      pendingItem?.type !== 'gemini' &&
+      pendingItem?.type !== 'gemini_content'
     ) {
-      if (pendingHistoryItemRef.current) {
-        addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+      if (pendingItem) {
+        commitPendingItem();
       }
-      setPendingHistoryItem({ type: 'gemini', text: '' });
-      newGeminiMessageBuffer = eventValue;
+      const nextPendingItem: HistoryItemGemini = {
+        type: 'gemini',
+        text: eventValue,
+      };
+      setPendingItem(nextPendingItem);
+      newGeminiMessageBuffer = eventValue; // Buffer reset to current event value
+    } else {
+      // Accumulate into existing gemini/gemini_content pending item, or update if just created by above block
+      // The newGeminiMessageBuffer from the start of function already has (old buffer + eventValue)
+      // If pendingItem was null and created above, its text is eventValue, newGeminiMessageBuffer is also eventValue.
+      // If pendingItem existed, its text is old, newGeminiMessageBuffer is (pendingItem.text + eventValue) if buffer was pendingItem.text
+      // This part is tricky due to currentGeminiMessageBuffer. Assuming it reflects pendingItem.text or is managed correctly outside.
+      // For safety, let's ensure pendingItem.text is updated with the full newGeminiMessageBuffer before splitting.
+      setPendingItem((prevPending) => {
+        if (
+          !prevPending ||
+          (prevPending.type !== 'gemini' &&
+            prevPending.type !== 'gemini_content')
+        ) {
+          return prevPending;
+        }
+        return { ...prevPending, text: newGeminiMessageBuffer };
+      });
     }
-    // Split large messages for better rendering performance. Ideally,
-    // we should maximize the amount of output sent to <Static />.
+
     const splitPoint = findLastSafeSplitPoint(newGeminiMessageBuffer);
     if (splitPoint === newGeminiMessageBuffer.length) {
-      // Update the existing message with accumulated content
-      setPendingHistoryItem((item) => ({
-        type: item?.type as 'gemini' | 'gemini_content',
-        text: newGeminiMessageBuffer,
-      }));
+      // No split needed. Content is already in pendingItem from the setPendingItem call above.
+      // Ensure it reflects newGeminiMessageBuffer if it wasn't the one setting it.
+      setPendingItem((prevPending) => {
+        if (!prevPending) return undefined;
+        return {
+          ...prevPending,
+          type:
+            prevPending.type === 'gemini_content' ? 'gemini_content' : 'gemini',
+          text: newGeminiMessageBuffer,
+        };
+      });
     } else {
-      // This indicates that we need to split up this Gemini Message.
-      // Splitting a message is primarily a performance consideration. There is a
-      // <Static> component at the root of App.tsx which takes care of rendering
-      // content statically or dynamically. Everything but the last message is
-      // treated as static in order to prevent re-rendering an entire message history
-      // multiple times per-second (as streaming occurs). Prior to this change you'd
-      // see heavy flickering of the terminal. This ensures that larger messages get
-      // broken up so that there are more "statically" rendered.
       const beforeText = newGeminiMessageBuffer.substring(0, splitPoint);
       const afterText = newGeminiMessageBuffer.substring(splitPoint);
-      addItem(
-        {
-          type: pendingHistoryItemRef.current?.type as
-            | 'gemini'
-            | 'gemini_content',
-          text: beforeText,
-        },
-        userMessageTimestamp,
-      );
-      setPendingHistoryItem({ type: 'gemini_content', text: afterText });
+
+      setPendingItem((prevPending) => {
+        if (
+          !prevPending ||
+          (prevPending.type !== 'gemini' &&
+            prevPending.type !== 'gemini_content')
+        ) {
+          return prevPending;
+        }
+        return { ...prevPending, text: beforeText };
+      });
+      commitPendingItem();
+
+      const nextPendingItem: HistoryItemGeminiContent = {
+        type: 'gemini_content',
+        text: afterText,
+      };
+      setPendingItem(nextPendingItem);
       newGeminiMessageBuffer = afterText;
     }
     return newGeminiMessageBuffer;
@@ -414,20 +439,14 @@ export const useGeminiStream = (
 
   const handleToolCallRequestEvent = (
     eventValue: ToolCallRequestEvent['value'],
-    userMessageTimestamp: number,
   ) => {
     const { callId, name, args } = eventValue;
     const cliTool = toolRegistry.getTool(name);
     if (!cliTool) {
       console.error(`CLI Tool "${name}" not found!`);
-      return; // Skip this event if tool is not found
+      return;
     }
-    if (pendingHistoryItemRef.current?.type !== 'tool_group') {
-      if (pendingHistoryItemRef.current) {
-        addItem(pendingHistoryItemRef.current, userMessageTimestamp);
-      }
-      setPendingHistoryItem({ type: 'tool_group', tools: [] });
-    }
+
     let description: string;
     try {
       description = cliTool.getDescription(args);
@@ -442,11 +461,21 @@ export const useGeminiStream = (
       resultDisplay: undefined,
       confirmationDetails: undefined,
     };
-    setPendingHistoryItem((pending) =>
-      pending?.type === 'tool_group'
-        ? { ...pending, tools: [...pending.tools, toolCallDisplay] }
-        : null,
-    );
+
+    commitPendingItem();
+    setPendingItem((currentPendingItem) => {
+      if (currentPendingItem?.type === 'tool_group') {
+        return {
+          ...currentPendingItem,
+          tools: [...currentPendingItem.tools, toolCallDisplay],
+        };
+      }
+      return {
+        id: -1,
+        type: 'tool_group',
+        tools: [toolCallDisplay],
+      };
+    });
   };
 
   const handleToolCallResponseEvent = (
@@ -469,24 +498,22 @@ export const useGeminiStream = (
   };
 
   const handleUserCancelledEvent = (userMessageTimestamp: number) => {
-    if (pendingHistoryItemRef.current) {
-      if (pendingHistoryItemRef.current.type === 'tool_group') {
-        const updatedTools = pendingHistoryItemRef.current.tools.map((tool) =>
-          tool.status === ToolCallStatus.Pending ||
-          tool.status === ToolCallStatus.Confirming ||
-          tool.status === ToolCallStatus.Executing
-            ? { ...tool, status: ToolCallStatus.Canceled }
-            : tool,
-        );
-        const pendingItem: HistoryItemToolGroup = {
-          ...pendingHistoryItemRef.current,
-          tools: updatedTools,
-        };
-        addItem(pendingItem, userMessageTimestamp);
-      } else {
-        addItem(pendingHistoryItemRef.current, userMessageTimestamp);
+    if (pendingItem) {
+      if (pendingItem.type === 'tool_group') {
+        setPendingItem((currentPI) => {
+          if (!currentPI || currentPI.type !== 'tool_group') return currentPI;
+          const updatedTools = currentPI.tools.map(
+            (tool: IndividualToolCallDisplay) =>
+              tool.status === ToolCallStatus.Pending ||
+              tool.status === ToolCallStatus.Confirming ||
+              tool.status === ToolCallStatus.Executing
+                ? { ...tool, status: ToolCallStatus.Canceled }
+                : tool,
+          );
+          return { ...currentPI, tools: updatedTools };
+        });
       }
-      setPendingHistoryItem(null);
+      commitPendingItem();
     }
     addItem(
       { type: MessageType.INFO, text: 'User cancelled the request.' },
@@ -499,9 +526,8 @@ export const useGeminiStream = (
     eventValue: ErrorEvent['value'],
     userMessageTimestamp: number,
   ) => {
-    if (pendingHistoryItemRef.current) {
-      addItem(pendingHistoryItemRef.current, userMessageTimestamp);
-      setPendingHistoryItem(null);
+    if (pendingItem) {
+      commitPendingItem();
     }
     addItem(
       { type: MessageType.ERROR, text: `[API Error: ${eventValue.message}]` },
@@ -515,20 +541,20 @@ export const useGeminiStream = (
   ): Promise<StreamProcessingStatus> => {
     let geminiMessageBuffer = '';
 
+    let awaitingConfirmation = false;
     for await (const event of stream) {
       if (event.type === ServerGeminiEventType.Content) {
         geminiMessageBuffer = handleContentEvent(
           event.value,
           geminiMessageBuffer,
-          userMessageTimestamp,
         );
       } else if (event.type === ServerGeminiEventType.ToolCallRequest) {
-        handleToolCallRequestEvent(event.value, userMessageTimestamp);
+        handleToolCallRequestEvent(event.value);
       } else if (event.type === ServerGeminiEventType.ToolCallResponse) {
         handleToolCallResponseEvent(event.value);
       } else if (event.type === ServerGeminiEventType.ToolCallConfirmation) {
         handleToolCallConfirmationEvent(event.value);
-        return StreamProcessingStatus.PausedForConfirmation;
+        awaitingConfirmation = true;
       } else if (event.type === ServerGeminiEventType.UserCancelled) {
         handleUserCancelledEvent(userMessageTimestamp);
         return StreamProcessingStatus.UserCancelled;
@@ -537,7 +563,9 @@ export const useGeminiStream = (
         return StreamProcessingStatus.Error;
       }
     }
-    return StreamProcessingStatus.Completed;
+    return awaitingConfirmation
+      ? StreamProcessingStatus.PausedForConfirmation
+      : StreamProcessingStatus.Completed;
   };
 
   const submitQuery = useCallback(
@@ -582,9 +610,8 @@ export const useGeminiStream = (
           return;
         }
 
-        if (pendingHistoryItemRef.current) {
-          addItem(pendingHistoryItemRef.current, userMessageTimestamp);
-          setPendingHistoryItem(null);
+        if (pendingItem) {
+          commitPendingItem();
         }
       } catch (error: unknown) {
         if (!isNodeError(error) || error.name !== 'AbortError') {
@@ -617,7 +644,7 @@ export const useGeminiStream = (
 
   const streamingState: StreamingState = isResponding
     ? StreamingState.Responding
-    : pendingConfirmations(pendingHistoryItemRef.current)
+    : pendingConfirmations(pendingItem)
       ? StreamingState.WaitingForConfirmation
       : StreamingState.Idle;
 
@@ -625,10 +652,19 @@ export const useGeminiStream = (
     streamingState,
     submitQuery,
     initError,
-    pendingHistoryItem: pendingHistoryItemRef.current,
   };
 };
 
-const pendingConfirmations = (item: HistoryItemWithoutId | null): boolean =>
+const pendingConfirmations = (item?: HistoryItem): boolean =>
   item?.type === 'tool_group' &&
   item.tools.some((t) => t.status === ToolCallStatus.Confirming);
+
+const ongoingToolCalls = (item?: HistoryItem): boolean =>
+  item?.type === 'tool_group' &&
+  !!item?.tools.length &&
+  item.tools.some(
+    (t) =>
+      t.status === ToolCallStatus.Confirming ||
+      t.status === ToolCallStatus.Executing ||
+      t.status === ToolCallStatus.Pending,
+  );

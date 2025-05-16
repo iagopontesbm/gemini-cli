@@ -25,7 +25,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   availableTerminalHeight,
   isPending,
 }) => (
-  <Box flexDirection="column" key={item.id}>
+  <Box flexDirection="column">
     {/* Render standard message types */}
     {item.type === 'user' && <UserMessage text={item.text} />}
     {item.type === 'gemini' && (

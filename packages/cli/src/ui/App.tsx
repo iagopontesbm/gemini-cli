@@ -46,7 +46,8 @@ export const App = ({
   cliVersion,
   startupWarnings = [],
 }: AppProps) => {
-  const { history, addItem, clearItems } = useHistory();
+  const history = useHistory();
+  const { addItem, clear: clearItems } = history;
   const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
   const [staticKey, setStaticKey] = useState(0);
   const refreshStatic = useCallback(() => {
@@ -126,15 +127,14 @@ export const App = ({
     performMemoryRefresh,
   );
 
-  const { streamingState, submitQuery, initError, pendingHistoryItem } =
-    useGeminiStream(
-      addItem,
-      refreshStatic,
-      setShowHelp,
-      config,
-      setDebugMessage,
-      handleSlashCommand,
-    );
+  const { streamingState, submitQuery, initError } = useGeminiStream(
+    history,
+    refreshStatic,
+    setShowHelp,
+    config,
+    setDebugMessage,
+    handleSlashCommand,
+  );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
 
@@ -150,7 +150,7 @@ export const App = ({
 
   const userMessages = useMemo(
     () =>
-      history
+      history.items
         .filter(
           (item): item is HistoryItem & { type: 'user'; text: string } =>
             item.type === 'user' &&
@@ -158,7 +158,7 @@ export const App = ({
             item.text.trim() !== '',
         )
         .map((item) => item.text),
-    [history],
+    [history.items],
   );
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
@@ -215,7 +215,7 @@ export const App = ({
   }, [terminalHeight, footerHeight]);
 
   useEffect(() => {
-    if (!pendingHistoryItem) {
+    if (!history.pendingItem) {
       return;
     }
 
@@ -229,7 +229,7 @@ export const App = ({
     if (pendingItemDimensions.height > availableTerminalHeight) {
       setStaticNeedsRefresh(true);
     }
-  }, [pendingHistoryItem, availableTerminalHeight, streamingState]);
+  }, [history.pendingItem, availableTerminalHeight, streamingState]);
 
   useEffect(() => {
     if (streamingState === StreamingState.Idle && staticNeedsRefresh) {
@@ -258,7 +258,7 @@ export const App = ({
             <Header />
             <Tips />
           </Box>,
-          ...history.map((h) => (
+          ...history.items.map((h) => (
             <HistoryItemDisplay
               availableTerminalHeight={availableTerminalHeight}
               key={h.id}
@@ -270,13 +270,14 @@ export const App = ({
       >
         {(item) => item}
       </Static>
-      {pendingHistoryItem && (
+      {history.pendingItem && (
         <Box ref={pendingHistoryItemRef}>
           <HistoryItemDisplay
             availableTerminalHeight={availableTerminalHeight}
             // TODO(taehykim): It seems like references to ids aren't necessary in
             // HistoryItemDisplay. Refactor later. Use a fake id for now.
-            item={{ ...pendingHistoryItem, id: 0 }}
+            key={'pending-item'} // Add key here based on pendingItem.id
+            item={history.pendingItem}
             isPending={true}
           />
         </Box>
@@ -377,12 +378,12 @@ export const App = ({
             paddingX={1}
             marginBottom={1}
           >
-            {history.find(
+            {history.items.find(
               (item) => item.type === 'error' && item.text?.includes(initError),
             )?.text ? (
               <Text color={Colors.AccentRed}>
                 {
-                  history.find(
+                  history.items.find(
                     (item) =>
                       item.type === 'error' && item.text?.includes(initError),
                   )?.text

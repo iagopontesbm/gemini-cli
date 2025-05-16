@@ -30,7 +30,7 @@ export interface SlashCommand {
 export const useSlashCommandProcessor = (
   config: Config | null, // Add config here
   addItem: UseHistoryManagerReturn['addItem'],
-  clearItems: UseHistoryManagerReturn['clearItems'],
+  clearHistory: UseHistoryManagerReturn['clear'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
@@ -70,7 +70,7 @@ export const useSlashCommandProcessor = (
         description: 'clear the screen',
         action: (_value: PartListUnion | string) => {
           onDebugMessage('Clearing terminal.');
-          clearItems();
+          clearHistory();
           console.clear();
           refreshStatic();
         },
@@ -107,7 +107,7 @@ export const useSlashCommandProcessor = (
       setShowHelp,
       refreshStatic,
       openThemeDialog,
-      clearItems,
+      clearHistory,
       performMemoryRefresh, // Add to dependencies
       showMemoryAction,
     ],
