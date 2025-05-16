@@ -23,9 +23,6 @@ fi
 # build all workspaces/packages
 npm run build --workspaces
 npm run bundle
-npm run sea:blob
-npm run sea:copy-node
-npm run sea:inject
 
 # also build container image if sandboxing is enabled
 # skip (-s) npm install + build since we did that above

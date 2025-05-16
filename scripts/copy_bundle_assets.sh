@@ -1,16 +1,16 @@
 #!/bin/bash
 
-# Define the target bundle directory relative to the CLI dist
-TARGET_BUNDLE_DIR="packages/cli/dist/bundle"
+# Define the main CLI dist directory
+CLI_DIST_DIR="packages/cli/dist"
 
-# Create the target bundle directory if it doesn't exist
-mkdir -p "$TARGET_BUNDLE_DIR"
+# Create the CLI dist directory if it doesn't exist (should be created by esbuild, but good practice)
+mkdir -p "$CLI_DIST_DIR"
 
-# Copy specific shell files to the target bundle directory
-cp "packages/server/src/tools/shell.md" "$TARGET_BUNDLE_DIR/shell.md"
-cp "packages/server/src/tools/shell.json" "$TARGET_BUNDLE_DIR/shell.json"
+# Copy specific shell files directly to the CLI dist directory
+cp "packages/server/src/tools/shell.md" "$CLI_DIST_DIR/shell.md"
+cp "packages/server/src/tools/shell.json" "$CLI_DIST_DIR/shell.json"
 
-# Find and copy all .sb files from packages to the target bundle directory
-find packages -name '*.sb' -exec cp -f {} "$TARGET_BUNDLE_DIR/" \;
+# Find and copy all .sb files from packages to the CLI dist directory
+find packages -name '*.sb' -exec cp -f {} "$CLI_DIST_DIR/" \;
 
-echo "Assets copied to $TARGET_BUNDLE_DIR/"
+echo "Assets copied to $CLI_DIST_DIR/"
