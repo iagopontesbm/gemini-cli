@@ -187,7 +187,7 @@ export const MultilineTextEditor = ({
       if (key.upArrow) {
         if (
           buffer.visualCursor[0] === 0 &&
-          scrollVisualRow === 0 &&
+          buffer.visualScrollRow === 0 &&
           navigateUp
         ) {
           navigateUp();
@@ -214,7 +214,7 @@ export const MultilineTextEditor = ({
   const [cursorVisualRowAbsolute, cursorVisualColAbsolute] =
     buffer.visualCursor; // This is relative to *all* visual lines
   const scrollVisualRow = buffer.visualScrollRow;
-  const scrollHorizontalCol = buffer.scroll[1]; // Horizontal scroll is still from logical scroll
+  // scrollHorizontalCol removed as it's always 0 due to word wrap
 
   return (
     <Box flexDirection="column">
@@ -227,8 +227,8 @@ export const MultilineTextEditor = ({
 
           let display = cpSlice(
             lineText,
-            scrollHorizontalCol,
-            scrollHorizontalCol + effectiveWidth, // This is still code point based for slicing
+            0, // Start from 0 as horizontal scroll is disabled
+            effectiveWidth, // This is still code point based for slicing
           );
           // Pad based on visual width
           const currentVisualWidth = stringWidth(display);
@@ -237,8 +237,7 @@ export const MultilineTextEditor = ({
           }
 
           if (visualIdxInRenderedSet === cursorVisualRow) {
-            const relativeVisualColForHighlight =
-              cursorVisualColAbsolute - scrollHorizontalCol;
+            const relativeVisualColForHighlight = cursorVisualColAbsolute; // Directly use absolute as horizontal scroll is 0
 
             if (relativeVisualColForHighlight >= 0) {
               if (relativeVisualColForHighlight < cpLen(display)) {

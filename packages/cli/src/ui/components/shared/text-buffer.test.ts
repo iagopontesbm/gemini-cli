@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useTextBuffer, Viewport, TextBuffer } from './text-buffer.js';
 
@@ -12,10 +12,10 @@ import { useTextBuffer, Viewport, TextBuffer } from './text-buffer.js';
 const getBufferState = (result: { current: TextBuffer }) => ({
   text: result.current.text,
   lines: [...result.current.lines], // Clone for safety
-  cursor: [...result.current.cursor] as [number, number], // Logical cursor
-  allVisualLines: [...result.current.allVisualLines], // All visual lines
-  viewportVisualLines: [...result.current.viewportVisualLines], // Rendered visual lines
-  visualCursor: [...result.current.visualCursor] as [number, number], // Visual cursor relative to all visual lines
+  cursor: [...result.current.cursor] as [number, number],
+  allVisualLines: [...result.current.allVisualLines],
+  viewportVisualLines: [...result.current.viewportVisualLines],
+  visualCursor: [...result.current.visualCursor] as [number, number],
   visualScrollRow: result.current.visualScrollRow,
   preferredCol: result.current.preferredCol,
 });
@@ -25,10 +25,6 @@ describe('useTextBuffer', () => {
 
   beforeEach(() => {
     viewport = { width: 10, height: 3 }; // Default viewport for tests
-    // Mock stdin/setRawMode if openInExternalEditor or other direct TTY interactions are tested
-    vi.mock('fs');
-    vi.mock('os');
-    vi.mock('child_process');
   });
 
   describe('Initialization', () => {

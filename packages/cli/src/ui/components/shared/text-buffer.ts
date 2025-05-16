@@ -209,7 +209,6 @@ function calculateVisualLayout(
             lastWordBreakPoint = i; // Store code point index of the space
             // Store the state *before* adding the space, if we decide to break here.
             numCodePointsAtLastWordBreak = numCodePointsInChunk - 1; // Chars *before* the space
-            // visualWidthAtLastWordBreak = currentChunkVisualWidth - charVisualWidth; // Visual width *before* the space
           }
         }
 
@@ -354,7 +353,6 @@ export function useTextBuffer({
 
   const [cursorRow, setCursorRow] = useState<number>(initialCursorRow);
   const [cursorCol, setCursorCol] = useState<number>(initialCursorCol);
-  const [scrollCol, setScrollCol] = useState<number>(0); // Horizontal scroll is effectively disabled by word wrap
   const [preferredCol, setPreferredCol] = useState<number | null>(null); // Visual preferred col
 
   const [undoStack, setUndoStack] = useState<UndoHistoryEntry[]>([]);
@@ -397,7 +395,6 @@ export function useTextBuffer({
     setVisualCursor(layout.visualCursor);
     setLogicalToVisualMap(layout.logicalToVisualMap);
     setVisualToLogicalMap(layout.visualToLogicalMap);
-    setScrollCol(0); // With word wrapping, horizontal scroll should always be 0
   }, [lines, cursorRow, cursorCol, viewport.width]);
 
   // Update visual scroll (vertical)
@@ -413,7 +410,6 @@ export function useTextBuffer({
     if (newVisualScrollRow !== visualScrollRow) {
       setVisualScrollRow(newVisualScrollRow);
     }
-    // Horizontal scrolling is disabled due to word wrap; scrollCol is fixed at 0.
   }, [visualCursor, visualScrollRow, viewport]);
 
   const pushUndo = useCallback(() => {
@@ -435,7 +431,6 @@ export function useTextBuffer({
       setLines(state.lines);
       setCursorRow(state.cursorRow);
       setCursorCol(state.cursorCol);
-      // Visual state will be recalculated by the useEffect dependency on lines, cursorRow, cursorCol
       return true;
     },
     [],
@@ -624,11 +619,7 @@ export function useTextBuffer({
       const lastNewLineIndex = newContentLines.length - 1;
       setCursorRow(lastNewLineIndex);
       setCursorCol(cpLen(newContentLines[lastNewLineIndex] ?? ''));
-      // scrollRow is for logical lines, visualScrollRow for visual lines
-      // setScrollRow(0); // This was for logical scroll, might not be needed if only visual scroll is used.
-      setScrollCol(0);
       setPreferredCol(null);
-      // Visual state will be updated by useEffect
     },
     [pushUndo, setPreferredCol],
   );
@@ -647,7 +638,6 @@ export function useTextBuffer({
         startRow < 0 ||
         startCol < 0 ||
         endRow >= lines.length ||
-        // Ensure endCol is within bounds of the endRow's line
         (endRow < lines.length && endCol > currentLineLen(endRow))
       ) {
         console.error('Invalid range provided to replaceRange', {
@@ -802,7 +792,6 @@ export function useTextBuffer({
         cpSlice(lineContent, 0, cursorCol) + cpSlice(lineContent, end);
       return newLines;
     });
-    // Cursor col does not change
     setPreferredCol(null);
   }, [
     pushUndo,
@@ -1076,7 +1065,7 @@ export function useTextBuffer({
 
         let newText = fs.readFileSync(filePath, 'utf8');
         newText = newText.replace(/\r\n?/g, '\n');
-        setText(newText); // Use setText to update content and cursor
+        setText(newText);
       } catch (err) {
         console.error('[useTextBuffer] external editor error', err);
         // TODO(jacobr): potentially revert or handle error state.
@@ -1181,12 +1170,11 @@ export function useTextBuffer({
     lines,
     text,
     cursor: [cursorRow, cursorCol],
-    scroll: [0, scrollCol], // scroll[0] (logical row scroll) is now visualScrollRow
     preferredCol,
     selectionAnchor,
 
-    allVisualLines: visualLines, // All visual lines
-    viewportVisualLines: renderedVisualLines, // Provide the subset for rendering
+    allVisualLines: visualLines,
+    viewportVisualLines: renderedVisualLines,
     visualCursor,
     visualScrollRow,
 
@@ -1208,8 +1196,8 @@ export function useTextBuffer({
 
     copy: useCallback(() => {
       if (!selectionAnchor) return null;
-      const [ar, ac] = selectionAnchor; // logical anchor
-      const [br, bc] = [cursorRow, cursorCol]; // logical cursor
+      const [ar, ac] = selectionAnchor;
+      const [br, bc] = [cursorRow, cursorCol];
       if (ar === br && ac === bc) return null;
       const topBefore = ar < br || (ar === br && ac < bc);
       const [sr, sc, er, ec] = topBefore ? [ar, ac, br, bc] : [br, bc, ar, ac];
@@ -1231,7 +1219,7 @@ export function useTextBuffer({
       return insertStr(clipboard);
     }, [clipboard, insertStr]),
     startSelection: useCallback(
-      () => setSelectionAnchor([cursorRow, cursorCol]), // Uses logical cursor
+      () => setSelectionAnchor([cursorRow, cursorCol]),
       [cursorRow, cursorCol, setSelectionAnchor],
     ),
   };
@@ -1243,7 +1231,6 @@ export interface TextBuffer {
   lines: string[]; // Logical lines
   text: string;
   cursor: [number, number]; // Logical cursor [row, col]
-  scroll: [number, number]; // Logical scroll [row, col] - scroll[0] is not used for vertical, use visualScrollRow. scroll[1] is horizontal scroll.
   /**
    * When the user moves the caret vertically we try to keep their original
    * horizontal column even when passing through shorter lines.  We remember
