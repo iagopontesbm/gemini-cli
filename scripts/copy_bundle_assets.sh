@@ -1,13 +1,16 @@
 #!/bin/bash
 
-# Create the bundle directory if it doesn't exist
-mkdir -p bundle
+# Define the target bundle directory relative to the CLI dist
+TARGET_BUNDLE_DIR="packages/cli/dist/bundle"
 
-# Copy specific shell files to the root of the bundle directory
-cp "packages/server/src/tools/shell.md" "bundle/shell.md"
-cp "packages/server/src/tools/shell.json" "bundle/shell.json"
+# Create the target bundle directory if it doesn't exist
+mkdir -p "$TARGET_BUNDLE_DIR"
 
-# Find and copy all .sb files from packages to the root of the bundle directory
-find packages -name '*.sb' -exec cp -f {} bundle/ \;
+# Copy specific shell files to the target bundle directory
+cp "packages/server/src/tools/shell.md" "$TARGET_BUNDLE_DIR/shell.md"
+cp "packages/server/src/tools/shell.json" "$TARGET_BUNDLE_DIR/shell.json"
 
-echo "Assets copied to bundle/"
+# Find and copy all .sb files from packages to the target bundle directory
+find packages -name '*.sb' -exec cp -f {} "$TARGET_BUNDLE_DIR/" \;
+
+echo "Assets copied to $TARGET_BUNDLE_DIR/"

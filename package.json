@@ -25,7 +25,7 @@
     "prerelease:dev": "npm run prerelease:version --workspaces && npm run prerelease:deps --workspaces",
     "bundle": "esbuild packages/cli/index.ts --bundle --outfile=packages/cli/dist/index.js --platform=node --format=esm --banner:js=\"import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);\" && bash scripts/copy_bundle_assets.sh",
     "sea:blob": "node --experimental-sea-config sea-config.json",
-    "sea:copy-node": "cp $(which node) packages/cli/dist/gemini",
+    "sea:copy-node": "cp $(which node) packages/cli/dist/gemini && chmod u+w packages/cli/dist/gemini && sync",
     "sea:inject": "postject packages/cli/dist/gemini NODE_SEA_BLOB packages/cli/dist/sea-blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
   },
   "devDependencies": {
