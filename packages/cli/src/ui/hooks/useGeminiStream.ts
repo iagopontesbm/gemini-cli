@@ -328,6 +328,7 @@ export const useGeminiStream = (
       if ('fileDiff' in originalDetails) {
         resultDisplay = {
           fileDiff: (originalDetails as ToolEditConfirmationDetails).fileDiff,
+          fileName: (originalDetails as ToolEditConfirmationDetails).fileName,
         };
       } else {
         resultDisplay = `~~${(originalDetails as ToolExecuteConfirmationDetails).command}~~`;
@@ -600,7 +601,7 @@ export const useGeminiStream = (
           addItem(
             {
               type: MessageType.ERROR,
-              text: `[Stream Error: ${getErrorMessage(error)}]`,
+              text: `[Stream Error: ${getErrorMessage(error) || 'Unknown error'}]`,
             },
             userMessageTimestamp,
           );
