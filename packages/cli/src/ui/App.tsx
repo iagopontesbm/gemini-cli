@@ -12,8 +12,10 @@ import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
+import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
+import { AutoAcceptIndicator } from './components/AutoAcceptIndicator.js';
 import { EditorState, InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
@@ -137,6 +139,7 @@ export const App = ({
     );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
+  const showAutoAcceptIndicator = useAutoAcceptIndicator({ config });
 
   const handleFinalSubmit = useCallback(
     (submittedValue: string) => {
@@ -320,23 +323,30 @@ export const App = ({
               isLoading={streamingState === StreamingState.Responding}
               currentLoadingPhrase={currentLoadingPhrase}
               elapsedTime={elapsedTime}
+              rightContent={
+                showAutoAcceptIndicator ? <AutoAcceptIndicator /> : undefined
+              }
             />
             {isInputActive && (
-              <>
-                <Box
-                  marginTop={1}
-                  display="flex"
-                  justifyContent="space-between"
-                  width="100%"
-                >
-                  <Box>
+              <Box
+                marginTop={1}
+                display="flex"
+                justifyContent="space-between"
+                width="100%"
+              >
+                <Box>
+                  <>
                     <Text color={Colors.SubtleComment}>cwd: </Text>
                     <Text color={Colors.LightBlue}>
                       {shortenPath(config.getTargetDir(), 70)}
                     </Text>
-                  </Box>
+                  </>
                 </Box>
-
+                {showAutoAcceptIndicator && <AutoAcceptIndicator />}
+              </Box>
+            )}
+            {isInputActive && (
+              <>
                 <InputPrompt
                   query={query}
                   onChange={setQuery}
