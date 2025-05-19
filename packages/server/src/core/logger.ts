@@ -23,7 +23,6 @@ export enum RoleType {
   USER = 'user',
 }
 
-
 export class Logger {
   private static instance: Logger;
   private db: sqlite3.Database | null = null;
@@ -58,7 +57,7 @@ export class Logger {
       this.db = new sqlite3.Database(DB_PATH, (err: Error | null) => {
         if (err) {
           throw err;
-        } 
+        }
       });
 
       // Read and execute the SQL script in create_tables.sql
@@ -68,7 +67,6 @@ export class Logger {
           throw err;
         }
       });
-
     } catch (error) {
       console.error('TLDAEU Error initializing database:', error);
       this.db = null;
@@ -103,10 +101,7 @@ export class Logger {
     });
   }
 
-  async logMessage(
-    type: RoleType,
-    message: string,
-  ): Promise<void> {
+  async logMessage(type: RoleType, message: string): Promise<void> {
     if (!this.db) {
       console.error('Database not initialized.');
       return;
@@ -118,7 +113,7 @@ export class Logger {
       this.db!.run(
         query,
         [this.sessionId || 0, this.messageId - 1, type, message],
-        function (err: Error | null) {
+        (err: Error | null) => {
           if (err) {
             console.error(
               'Error inserting message into database:',
