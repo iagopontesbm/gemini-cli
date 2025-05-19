@@ -86,7 +86,7 @@ These are the main pieces of information the server `Config` object holds and us
 
   - **Source:** Loaded from the hierarchical `GEMINI.md` files by the CLI (Global, Project Root/Ancestors, Sub-directory) and passed to the server config.
   - **Purpose:** Contains the combined instructional context provided to the Gemini model.
-  - **Mutability:** This can be updated if the memory is refreshed by the user (e.g., via the `/refreshmemory` command in the CLI).
+  - **Mutability:** This can be updated if the memory is refreshed by the user (e.g., via the `/memory refresh` command in the CLI).
 
 - **`geminiMdFileCount` (number):**
   - **Source:** Count of all `GEMINI.md` files successfully loaded by the CLI.

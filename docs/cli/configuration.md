@@ -32,7 +32,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
 - Stores project-specific configuration for the Gemini CLI (in `settings.json`).
 - Can hold other project-specific files related to Gemini CLI's operation, such as:
   - Custom sandbox profiles (e.g., `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
-  - A project-specific core system prompt override file (e.g., `.gemini/system.md`). If present, and `GEMINI_SYSTEM_MD` is not set, this file can be used to override the default system prompt for the project.
+  - A project-specific core system prompt override file (e.g., `.gemini/system.md`). If present, this file can be used to override the default system prompt for the project.
 
 ### Available Settings in `settings.json`:
 
@@ -143,10 +143,6 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - `minimal`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-minimal.sb`) but allows other operations.
   - `strict`: Uses a strict profile that declines operations by default.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
-- **`GEMINI_SYSTEM_MD`**:
-  - **Description:** Specifies a path to a custom Markdown file to be used as the _core system prompt_, overriding the default built-in system prompt. This allows for advanced customization of the AI's fundamental instructions and behavior.
-  - **Behavior:** If this environment variable is set to a valid file path, the content of this file will be used as the primary system prompt. This is a powerful feature for users who want to deeply tailor the AI's persona or core instructions. The CLI may indicate in the UI (e.g., bottom right) when such an override is active.
-  - **Note:** This overrides the default system prompt but can be supplemented by the hierarchical `GEMINI.md` files (see section 4 below).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
 
@@ -249,7 +245,8 @@ This example demonstrates how you can provide general project context, specific 
       - Scope: Allows for highly specific instructions relevant to a particular component, module, or sub-section of your project.
 - **Concatenation & UI Indication:** The contents of all found `GEMINI.md` files are concatenated (with separators indicating their origin and path) and provided as part of the system prompt to the Gemini model. The CLI footer displays the count of loaded `GEMINI.md` files, giving you a quick visual cue about the active instructional context.
 - **Commands for Memory Management:**
-  - Use `/refreshmemory` to force a re-scan and reload of all `GEMINI.md` files from all configured locations. This updates the AI's instructional context.
-  - Use `/showmemory` to display the combined instructional context currently loaded, allowing you to verify the hierarchy and content being used by the AI.
+  - Use `/memory refresh` to force a re-scan and reload of all `GEMINI.md` files from all configured locations. This updates the AI's instructional context.
+  - Use `/memory show` to display the combined instructional context currently loaded, allowing you to verify the hierarchy and content being used by the AI.
+  - See the [Commands documentation](./commands.md#memory) for full details on the `/memory` command and its sub-commands (`show` and `refresh`).
 
 By understanding and utilizing these configuration layers and the hierarchical nature of `GEMINI.md` files, you can effectively manage the AI's memory and tailor the Gemini CLI's responses to your specific needs and projects.
