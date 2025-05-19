@@ -21,15 +21,21 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Description:** Allows you to change the visual theme of the Gemini CLI.
   - **Action:** Opens a dialog or prompt to select from available themes.
 
-- **`/refreshmemory`**
+- **`/memory`**
 
-  - **Description:** Reloads instructional context from all `GEMINI.md` files found in the current directory hierarchy (project, user, and global).
-  - **Action:** The CLI re-scans for `GEMINI.md` files and updates its instructional memory with their content.
-
-- **`/showmemory`**
-
-  - **Description:** Displays the current hierarchical memory content that has been loaded from `GEMINI.md` files.
-  - **Action:** Outputs the combined content of all loaded `GEMINI.md` files, showing the context being provided to the Gemini model.
+  - **Description:** Manages the AI's instructional context (hierarchical memory loaded from `GEMINI.md` files) and allows for adding ad-hoc memory entries.
+  - **Usage:** `/memory <sub_command> [text_for_add]`
+  - **Sub-commands:**
+    - **`show`**:
+      - **Description:** Displays the full, concatenated content of the current hierarchical memory that has been loaded from all `GEMINI.md` files. This allows you to inspect the exact instructional context being provided to the Gemini model.
+      - **Action:** Outputs the combined content of all loaded `GEMINI.md` files, including separators that indicate the origin and path of each part of the memory. This is useful for verifying the loading order and final context.
+    - **`refresh`**:
+      - **Description:** Reloads the hierarchical instructional context (memory) from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the AI's understanding based on the latest `GEMINI.md` content.
+      - **Action:** The CLI re-scans for all relevant `GEMINI.md` files and rebuilds its instructional memory. The number of loaded files is typically indicated in the CLI footer.
+    - **`delete_all_added`**:
+      - **Description:** Removes all ad-hoc memory entries that were added during the current session via `/memory add`. This does not affect memory loaded from `GEMINI.md` files.
+      - **Action:** All user-added memory entries for the current session are cleared.
+  - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
 - **`/quit`** (or **`/exit`**)
   - **Description:** Exits the Gemini CLI application.

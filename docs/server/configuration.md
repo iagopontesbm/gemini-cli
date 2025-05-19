@@ -18,12 +18,18 @@ These are the main pieces of information the server `Config` object holds and us
 - **`apiKey` (string):**
 
   - **Source:** Primarily `process.env.GEMINI_API_KEY` (loaded from the environment or `.env` files).
-  - **Importance:** Absolutely essential. The server cannot communicate with the Gemini API without it.
+  - **Importance:** Essential if using the Gemini API directly. Not used if configuring the CLI for Vertex AI and using Application Default Credentials.
+  - **Note:** If using Vertex AI, authentication is typically handled via Application Default Credentials (ADC) or other gcloud authentication mechanisms.
 
 - **`model` (string):**
 
-  - **Source:** Command-line argument (`--model`), environment variable (`GEMINI_MODEL`), or the default value `gemini-2.5-pro-preview-05-06`.
-  - **Purpose:** Specifies which Gemini model the server should use for generating responses.
+  - **Source:** Command-line argument (`--model`), environment variable (`GEMINI_MODEL` or `VERTEX_AI_MODEL` if using Vertex AI), or a default value (e.g., `gemini-2.5-pro-preview-05-06` for Gemini API).
+  - **Purpose:** Specifies which Gemini model (either from Gemini API or Vertex AI) the server should use.
+
+- **Vertex AI Specific Settings:**
+
+  - **Source:** Environment variables (e.g., `VERTEX_AI_PROJECT`, `VERTEX_AI_LOCATION`, `VERTEX_AI_PUBLISHER`, `VERTEX_AI_API_ENDPOINT`, `USE_VERTEX_AI_DEFAULT_CREDENTIALS`, `VERTEX_AI_EXPRESS_MODE`).
+  - **Purpose:** These settings configure the connection to Vertex AI, including project, location, specific model details, authentication, and operational modes like Express mode. The server uses these to interact with Vertex AI as an alternative backend to the Gemini API.
 
 - **`sandbox` (boolean | string):**
 
@@ -57,17 +63,19 @@ These are the main pieces of information the server `Config` object holds and us
 
 - `toolCallCommand` (string | undefined):
 - `mcpServers` (object | undefined):
-  - **Source:** `settings.json` (`mcpServers` key).
-  - **Purpose:** Advanced setting for configuring connections to Model-Context Protocol (MCP) servers. This is an object where each key is a server name and the value is an object defining the server's parameters:
+  - **Source:** `settings.json` (`mcpServers` key), passed from the CLI.
+  - **Purpose:** Advanced setting for configuring connections to one or more Model-Context Protocol (MCP) servers. This allows the Gemini CLI to discover and utilize tools exposed by these external servers.
+  - **Structure:** An object where each key is a unique server name (alias) and the value is an object containing:
     - `command` (string, required): The command to execute to start the MCP server.
-    - `args` (array of strings, optional): Arguments to pass to the command.
-    - `env` (object, optional): Environment variables to set for the server process.
-    - `cwd` (string, optional): The working directory in which to start the server.
-  - Allows discovery and use of tools from multiple MCP sources.
+    - `args` (array of strings, optional): Arguments for the command.
+    - `env` (object, optional): Environment variables for the server process.
+    - `cwd` (string, optional): Working directory for the server.
+    - `timeout` (number, optional): Request timeout in milliseconds.
+  - **Behavior:** The server will attempt to connect to each configured MCP server. Tool names from these servers might be prefixed with the server alias to prevent naming collisions. The server may also adapt tool schemas from MCP servers for internal compatibility.
 - `mcpServerCommand` (string | undefined, **deprecated**):
 
   - **Source:** `settings.json` (`mcpServerCommand` key).
-  - **Purpose:** Legacy setting for configuring a single MCP server. Please use `mcpServers` instead.
+  - **Purpose:** Legacy setting for a single MCP server. Superseded by `mcpServers`.
 
 - `userAgent` (string):
 
