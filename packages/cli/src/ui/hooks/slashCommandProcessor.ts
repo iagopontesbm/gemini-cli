@@ -149,12 +149,39 @@ export const useSlashCommandProcessor = (
           }
           bugDescription = bugDescription.trim();
 
+          const cliVersion = process.env.npm_package_version || 'Unknown';
+          const osVersion = `${process.platform} ${process.version}`;
+          let sandboxEnv = 'no sandbox';
+          if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
+            sandboxEnv = process.env.SANDBOX.replace(/^gemini-(?:code-)?/, '');
+          } else if (process.env.SANDBOX === 'sandbox-exec') {
+            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
+          }
+          const modelVersion = config?.getModel() || 'Unknown';
+
+          const diagnosticInfo = `
+## Describe the bug
+A clear and concise description of what the bug is.
+
+## Additional context
+Add any other context about the problem here.
+
+## Diagnostic Information
+*   **CLI Version:** ${cliVersion}
+*   **Operating System:** ${osVersion}
+*   **Sandbox Environment:** ${sandboxEnv}
+*   **Model Version:** ${modelVersion}
+`;
+
           let bugReportUrl =
-            'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml';
+            'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.md';
           if (bugDescription) {
             const encodedArgs = encodeURIComponent(bugDescription);
             bugReportUrl += `&title=${encodedArgs}`;
           }
+          const encodedBody = encodeURIComponent(diagnosticInfo);
+          bugReportUrl += `&body=${encodedBody}`;
+
           addMessage({
             type: MessageType.INFO,
             content: `To submit your bug report, please open the following URL in your browser:\n${bugReportUrl}`,
@@ -176,6 +203,7 @@ export const useSlashCommandProcessor = (
           })();
         },
       },
+
       {
         name: 'quit',
         altName: 'exit',
@@ -197,6 +225,7 @@ export const useSlashCommandProcessor = (
       addMemoryAction,
       addMessage,
       toggleCorgiMode,
+      config, // Added config to dependency array
     ],
   );
 

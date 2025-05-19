@@ -63,7 +63,11 @@ describe('useSlashCommandProcessor', () => {
     mockOnDebugMessage = vi.fn();
     mockOpenThemeDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
-    mockConfig = { getDebugMode: vi.fn(() => false) } as unknown as Config;
+    mockConfig = {
+      getDebugMode: vi.fn(() => false),
+      getSandbox: vi.fn(() => 'test-sandbox'), // Added mock
+      getModel: vi.fn(() => 'test-model'), // Added mock
+    } as unknown as Config;
     mockCorgiMode = vi.fn();
 
     // Clear mocks for fsPromises if they were used directly or indirectly
@@ -239,10 +243,53 @@ describe('useSlashCommandProcessor', () => {
   });
 
   describe('/bug command', () => {
+    const getExpectedUrl = (
+      description?: string,
+      sandboxEnvVar?: string,
+      seatbeltProfileVar?: string,
+    ) => {
+      const cliVersion = process.env.npm_package_version || 'Unknown';
+      const osVersion = `${process.platform} ${process.version}`;
+      let sandboxEnvStr = 'no sandbox';
+      if (sandboxEnvVar && sandboxEnvVar !== 'sandbox-exec') {
+        sandboxEnvStr = sandboxEnvVar.replace(/^gemini-(?:code-)?/, '');
+      } else if (sandboxEnvVar === 'sandbox-exec') {
+        sandboxEnvStr = `sandbox-exec (${seatbeltProfileVar || 'unknown'})`;
+      }
+      const modelVersion = 'test-model'; // From mockConfig
+
+      const diagnosticInfo = `
+## Describe the bug
+A clear and concise description of what the bug is.
+
+## Additional context
+Add any other context about the problem here.
+
+## Diagnostic Information
+*   **CLI Version:** ${cliVersion}
+*   **Operating System:** ${osVersion}
+*   **Sandbox Environment:** ${sandboxEnvStr}
+*   **Model Version:** ${modelVersion}
+`;
+      let url =
+        'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.md';
+      if (description) {
+        url += `&title=${encodeURIComponent(description)}`;
+      }
+      url += `&body=${encodeURIComponent(diagnosticInfo)}`;
+      return url;
+    };
+
     it('should call open with the correct GitHub issue URL', async () => {
+      process.env.SANDBOX = 'gemini-sandbox';
+      process.env.SEATBELT_PROFILE = 'test_profile';
       const { handleSlashCommand } = getProcessor();
       const bugDescription = 'This is a test bug';
-      const expectedUrl = `https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title=${encodeURIComponent(bugDescription)}`;
+      const expectedUrl = getExpectedUrl(
+        bugDescription,
+        process.env.SANDBOX,
+        process.env.SEATBELT_PROFILE,
+      );
 
       await act(async () => {
         handleSlashCommand(`/bug ${bugDescription}`);
@@ -265,12 +312,19 @@ describe('useSlashCommandProcessor', () => {
         expect.any(Number), // Timestamps are numbers from Date.now()
       );
       expect(open).toHaveBeenCalledWith(expectedUrl);
+      delete process.env.SANDBOX;
+      delete process.env.SEATBELT_PROFILE;
     });
 
     it('should open the generic issue page if no bug description is provided', async () => {
+      process.env.SANDBOX = 'sandbox-exec';
+      process.env.SEATBELT_PROFILE = 'minimal';
       const { handleSlashCommand } = getProcessor();
-      const expectedUrl =
-        'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml';
+      const expectedUrl = getExpectedUrl(
+        undefined,
+        process.env.SANDBOX,
+        process.env.SEATBELT_PROFILE,
+      );
       await act(async () => {
         handleSlashCommand('/bug ');
       });
@@ -291,12 +345,17 @@ describe('useSlashCommandProcessor', () => {
         }),
         expect.any(Number), // Timestamps are numbers from Date.now()
       );
+      delete process.env.SANDBOX;
+      delete process.env.SEATBELT_PROFILE;
     });
 
     it('should handle errors when open fails', async () => {
+      // Test with no SANDBOX env var
+      delete process.env.SANDBOX;
+      delete process.env.SEATBELT_PROFILE;
       const { handleSlashCommand } = getProcessor();
       const bugDescription = 'Another bug';
-      const expectedUrl = `https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title=${encodeURIComponent(bugDescription)}`;
+      const expectedUrl = getExpectedUrl(bugDescription);
       const openError = new Error('Failed to open browser');
       (open as Mock).mockRejectedValue(openError);
 
