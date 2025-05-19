@@ -17,6 +17,7 @@ import {
   ServerGeminiErrorEvent as ErrorEvent,
   Config,
   Logger,
+  RoleType,
   ServerToolCallConfirmationDetails,
   ToolCallConfirmationDetails,
   ToolCallResponseInfo,
@@ -116,7 +117,7 @@ export const useGeminiStream = (
     if (typeof query === 'string') {
       const trimmedQuery = query.trim();
       onDebugMessage(`User query: '${trimmedQuery}'`);
-      Logger.getInstance().logMessage('user', trimmedQuery);
+      Logger.getInstance().logMessage(RoleType.USER, trimmedQuery);
 
       // Handle UI-only commands first
       if (handleSlashCommand(trimmedQuery)) {

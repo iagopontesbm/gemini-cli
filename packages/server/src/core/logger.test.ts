@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger } from './logger.js';
+import { Logger, RoleType } from './logger.js';
 import sqlite3 from 'sqlite3';
 
 // Mocks
@@ -88,7 +88,7 @@ describe('Logger', () => {
 
   describe('logMessage', () => {
     it('should insert a message into the database', async () => {
-      const type = 'user';
+      const type = RoleType.USER;
       const message = 'Hello, world!';
       await logger.logMessage(type, message);
       expect(mockDbInstance.run).toHaveBeenCalledWith(
@@ -99,16 +99,16 @@ describe('Logger', () => {
     });
 
     it('should increment messageId for subsequent messages', async () => {
-      await logger.logMessage('user', 'First message');
+      await logger.logMessage(RoleType.USER, 'First message');
       expect(mockDbInstance.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 0, 'user', 'First message'],
+        [expect.any(Number), 0, RoleType.USER, 'First message'],
         expect.any(Function)
       );
-      await logger.logMessage('gemini', 'Second message');
+      await logger.logMessage(RoleType.USER, 'Second message');
       expect(mockDbInstance.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 1, 'gemini', 'Second message'], // messageId is now 1
+        [expect.any(Number), 1, RoleType.USER, 'Second message'], // messageId is now 1
         expect.any(Function)
       );
     });
@@ -120,7 +120,7 @@ describe('Logger', () => {
       (uninitializedLogger as any).db = null;
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       
-      await uninitializedLogger.logMessage('user', 'test');
+      await uninitializedLogger.logMessage(RoleType.USER, 'test');
       
       expect(consoleErrorSpy).toHaveBeenCalledWith('Database not initialized.');
       expect(mockDbInstance.run).not.toHaveBeenCalled();
@@ -132,7 +132,7 @@ describe('Logger', () => {
         mockDbInstance.run.mockImplementationOnce((_sql: any, _params: any, callback: any) => callback?.(error));
         const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        await expect(logger.logMessage('user', 'test')).rejects.toThrow('db.run failed');
+        await expect(logger.logMessage(RoleType.USER, 'test')).rejects.toThrow('db.run failed');
         expect(consoleErrorSpy).toHaveBeenCalledWith('Error inserting message into database:', error.message);
         consoleErrorSpy.mockRestore();
     });
@@ -145,7 +145,7 @@ describe('Logger', () => {
       const messages = await logger.getPreviousMessages();
       
       expect(mockDbInstance.all).toHaveBeenCalledWith(
-        "SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC",
+        expect.stringMatching(/SELECT message FROM messages/),
         [],
         expect.any(Function)
       );

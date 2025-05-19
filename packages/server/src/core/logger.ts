@@ -19,6 +19,11 @@ CREATE TABLE IF NOT EXISTS messages (
     message TEXT
 );`;
 
+export enum RoleType {
+  USER = 'user',
+}
+
+
 export class Logger {
   private static instance: Logger;
   private db: sqlite3.Database | null = null;
@@ -84,7 +89,7 @@ export class Logger {
     return new Promise((resolve, reject) => {
       // Most recent messages first
       const query = `SELECT message FROM messages 
-      WHERE type = 'user'
+      WHERE type = '${RoleType.USER}'
       ORDER BY session_id DESC, message_id DESC`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.db!.all(query, [], (err: Error | null, rows: any[]) => {
@@ -99,7 +104,7 @@ export class Logger {
   }
 
   async logMessage(
-    type: string,
+    type: RoleType,
     message: string,
   ): Promise<void> {
     if (!this.db) {
