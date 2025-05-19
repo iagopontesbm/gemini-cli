@@ -6,6 +6,7 @@
 
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
+import open from 'open';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config } from '@gemini-code/server';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
@@ -136,6 +137,43 @@ export const useSlashCommandProcessor = (
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
+        },
+      },
+      {
+        name: 'bug',
+        description: 'Submit a bug report.',
+        action: (_mainCommand, _subCommand, args) => {
+          let bugDescription = _subCommand || '';
+          if (args) {
+            bugDescription += ` ${args}`;
+          }
+          bugDescription = bugDescription.trim();
+
+          let bugReportUrl =
+            'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml';
+          if (bugDescription) {
+            const encodedArgs = encodeURIComponent(bugDescription);
+            bugReportUrl += `&title=${encodedArgs}`;
+          }
+          addMessage({
+            type: MessageType.INFO,
+            content: `To submit your bug report, please open the following URL in your browser:\n${bugReportUrl}`,
+            timestamp: new Date(),
+          });
+          // Open the URL in the default browser
+          (async () => {
+            try {
+              await open(bugReportUrl);
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              addMessage({
+                type: MessageType.ERROR,
+                content: `Could not open URL in browser: ${errorMessage}`,
+                timestamp: new Date(),
+              });
+            }
+          })();
         },
       },
       {

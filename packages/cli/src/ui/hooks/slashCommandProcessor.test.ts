@@ -21,6 +21,7 @@ vi.mock('node:fs/promises', () => ({
 
 import { act, renderHook } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+import open from 'open';
 import { useSlashCommandProcessor } from './slashCommandProcessor.js';
 import { MessageType } from '../types.js';
 import * as memoryUtils from '../../config/memoryUtils.js';
@@ -38,6 +39,10 @@ vi.mock('./useShowMemoryCommand.js', () => ({
 
 // Spy on the static method we want to mock
 const performAddMemoryEntrySpy = vi.spyOn(MemoryTool, 'performAddMemoryEntry');
+
+vi.mock('open', () => ({
+  default: vi.fn(),
+}));
 
 describe('useSlashCommandProcessor', () => {
   let mockAddItem: ReturnType<typeof vi.fn>;
@@ -66,7 +71,8 @@ describe('useSlashCommandProcessor', () => {
     vi.mocked(fsPromises.writeFile).mockClear();
     vi.mocked(fsPromises.mkdir).mockClear();
 
-    performAddMemoryEntrySpy.mockReset(); // Reset the spy
+    performAddMemoryEntrySpy.mockReset();
+    (open as Mock).mockClear();
     vi.spyOn(memoryUtils, 'deleteLastMemoryEntry').mockImplementation(vi.fn());
     vi.spyOn(memoryUtils, 'deleteAllAddedMemoryEntries').mockImplementation(
       vi.fn(),
@@ -229,6 +235,100 @@ describe('useSlashCommandProcessor', () => {
         handleSlashCommand('/help');
       });
       expect(mockSetShowHelp).toHaveBeenCalledWith(true);
+    });
+  });
+
+  describe('/bug command', () => {
+    it('should call open with the correct GitHub issue URL', async () => {
+      const { handleSlashCommand } = getProcessor();
+      const bugDescription = 'This is a test bug';
+      const expectedUrl = `https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title=${encodeURIComponent(bugDescription)}`;
+
+      await act(async () => {
+        handleSlashCommand(`/bug ${bugDescription}`);
+      });
+
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        1, // User command
+        expect.objectContaining({
+          type: MessageType.USER,
+          text: `/bug ${bugDescription}`,
+        }),
+        expect.any(Number),
+      );
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2, // Info message
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: `To submit your bug report, please open the following URL in your browser:\n${expectedUrl}`,
+        }),
+        expect.any(Number), // Timestamps are numbers from Date.now()
+      );
+      expect(open).toHaveBeenCalledWith(expectedUrl);
+    });
+
+    it('should open the generic issue page if no bug description is provided', async () => {
+      const { handleSlashCommand } = getProcessor();
+      const expectedUrl =
+        'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml';
+      await act(async () => {
+        handleSlashCommand('/bug ');
+      });
+      expect(open).toHaveBeenCalledWith(expectedUrl);
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        1, // User command
+        expect.objectContaining({
+          type: MessageType.USER,
+          text: '/bug', // Ensure this matches the input
+        }),
+        expect.any(Number),
+      );
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2, // Info message
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: `To submit your bug report, please open the following URL in your browser:\n${expectedUrl}`,
+        }),
+        expect.any(Number), // Timestamps are numbers from Date.now()
+      );
+    });
+
+    it('should handle errors when open fails', async () => {
+      const { handleSlashCommand } = getProcessor();
+      const bugDescription = 'Another bug';
+      const expectedUrl = `https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.yml&title=${encodeURIComponent(bugDescription)}`;
+      const openError = new Error('Failed to open browser');
+      (open as Mock).mockRejectedValue(openError);
+
+      await act(async () => {
+        handleSlashCommand(`/bug ${bugDescription}`);
+      });
+
+      expect(open).toHaveBeenCalledWith(expectedUrl);
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        1, // User command
+        expect.objectContaining({
+          type: MessageType.USER,
+          text: `/bug ${bugDescription}`,
+        }),
+        expect.any(Number),
+      );
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2, // Info message before open attempt
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: `To submit your bug report, please open the following URL in your browser:\n${expectedUrl}`,
+        }),
+        expect.any(Number), // Timestamps are numbers from Date.now()
+      );
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        3, // Error message after open fails
+        expect.objectContaining({
+          type: MessageType.ERROR,
+          text: `Could not open URL in browser: ${openError.message}`,
+        }),
+        expect.any(Number), // Timestamps are numbers from Date.now()
+      );
     });
   });
 
