@@ -73,10 +73,9 @@ export class Logger {
 
   /**
    * Get list of previous user inputs sorted most recent first.
-   * @param limit - The number of messages to retrieve. Default is 100.
    * @returns list of messages.
    */
-  async getPreviousMessages(limit: number = 100): Promise<string[]> {
+  async getPreviousMessages(): Promise<string[]> {
     if (!this.db) {
       console.error('Database not initialized.');
       return [];
@@ -84,9 +83,11 @@ export class Logger {
 
     return new Promise((resolve, reject) => {
       // Most recent messages first
-      const query = `SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC LIMIT ?`;
+      const query = `SELECT message FROM messages 
+      WHERE type = 'user'
+      ORDER BY session_id DESC, message_id DESC`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.db!.all(query, [limit], (err: Error | null, rows: any[]) => {
+      this.db!.all(query, [], (err: Error | null, rows: any[]) => {
         if (err) {
           console.error('Error querying database:', err.message);
           reject(err);

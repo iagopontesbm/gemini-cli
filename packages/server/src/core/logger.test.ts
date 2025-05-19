@@ -140,14 +140,13 @@ describe('Logger', () => {
 
   describe('getPreviousMessages', () => {
     it('should query the database for messages', async () => {
-      const limit = 50;
       mockDbInstance.all.mockImplementationOnce((_sql: any, params: any, callback: any) => callback?.(null, [{ message: 'msg1' }, { message: 'msg2' }]));
       
-      const messages = await logger.getPreviousMessages(limit);
+      const messages = await logger.getPreviousMessages();
       
       expect(mockDbInstance.all).toHaveBeenCalledWith(
-        "SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC LIMIT ?",
-        [limit],
+        "SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC",
+        [],
         expect.any(Function)
       );
       expect(messages).toEqual(['msg1', 'msg2']);
