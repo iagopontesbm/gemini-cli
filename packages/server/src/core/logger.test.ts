@@ -5,61 +5,39 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger } from './logger.js';
-import sqlite3 from 'sqlite3';
+import { Logger, RoleType } from './logger.js';
 
 // Mocks
-vi.mock('sqlite3', () => {
-  const mockDb = {
-    exec: vi.fn((_sql, callback) => callback?.(null)),
-    all: vi.fn((_sql, _params, callback) => callback?.(null, [])),
-    run: vi.fn((_sql, _params, callback) => callback?.(null)),
-    close: vi.fn((callback) => callback?.(null)),
-  };
-  return {
+const mockDb = {
+  exec: vi.fn((_sql, callback) => callback?.(null)),
+  all: vi.fn((_sql, _params, callback) => callback?.(null, [])),
+  run: vi.fn((_sql, _params, callback) => callback?.(null)),
+  close: vi.fn((callback) => callback?.(null)),
+};
+vi.mock('sqlite3', () => ({
+  Database: vi.fn(() => mockDb),
+  default: {
     Database: vi.fn(() => mockDb),
-    default: {
-        Database: vi.fn(() => mockDb),
-    }
-  };
-});
-
+  },
+}));
 
 describe('Logger', () => {
   let logger: Logger;
-  let mockDbInstance: any;
 
   beforeEach(async () => {
-    // Reset mocks for sqlite3.Database before each test
-    // to ensure clean state for constructor and methods
-    const actualSqlite3 = await vi.importActual('sqlite3') as any;
-    const dbMock = {
-        exec: vi.fn((_sql, callback) => {
-            // console.log('mockDb.exec called with sql:', _sql);
-            callback?.(null);
-        }),
-        all: vi.fn((_sql, _params, callback) => callback?.(null, [])),
-        run: vi.fn((_sql, _params, callback) => {
-            // console.log('mockDb.run called with sql:', _sql, _params);
-            callback?.(null);
-        }),
-        close: vi.fn((callback) => callback?.(null) ),
-    };
-    (sqlite3.Database as any).mockImplementation(() => dbMock);
-    mockDbInstance = dbMock;
+    vi.resetAllMocks();
 
     // Get a new instance for each test to ensure isolation,
     // but we need to reset the singleton for this to work as expected.
-    (Logger as any).instance = undefined; 
+    Logger.getInstance().close(); // Close any existing instance
     logger = Logger.getInstance();
     // We need to wait for the async initialize to complete
-    await logger.initialize(); 
+    await logger.initialize();
   });
 
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.restoreAllMocks();
     Logger.getInstance().close(); // Close the database connection after each test
-    (Logger as any).instance = undefined; // Clean up singleton
   });
 
   describe('Singleton', () => {
@@ -72,135 +50,166 @@ describe('Logger', () => {
 
   describe('initialize', () => {
     it('should execute create tables if not exists', async () => {
-      expect(mockDbInstance.exec).toHaveBeenCalledWith(
+      expect(mockDb.exec).toHaveBeenCalledWith(
         expect.stringMatching(/CREATE TABLE IF NOT EXISTS messages/),
-        expect.any(Function));
+        expect.any(Function),
+      );
     });
-    
+
     it('should be idempotent', async () => {
-        mockDbInstance.exec.mockClear();
+      mockDb.exec.mockClear();
 
-        await logger.initialize(); // Second call
+      await logger.initialize(); // Second call
 
-        expect(mockDbInstance.exec).not.toHaveBeenCalled();
+      expect(mockDb.exec).not.toHaveBeenCalled();
     });
   });
 
   describe('logMessage', () => {
     it('should insert a message into the database', async () => {
-      const type = 'user';
+      const type = RoleType.USER;
       const message = 'Hello, world!';
       await logger.logMessage(type, message);
-      expect(mockDbInstance.run).toHaveBeenCalledWith(
-        'INSERT INTO messages (session_id, message_id, type, message, timestamp) VALUES (?, ?, ?, ?, datetime(\'now\'))',
+      expect(mockDb.run).toHaveBeenCalledWith(
+        "INSERT INTO messages (session_id, message_id, type, message, timestamp) VALUES (?, ?, ?, ?, datetime('now'))",
         [expect.any(Number), 0, type, message], // sessionId, messageId, type, message
-        expect.any(Function)
+        expect.any(Function),
       );
     });
 
     it('should increment messageId for subsequent messages', async () => {
-      await logger.logMessage('user', 'First message');
-      expect(mockDbInstance.run).toHaveBeenCalledWith(
+      await logger.logMessage(RoleType.USER, 'First message');
+      expect(mockDb.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 0, 'user', 'First message'],
-        expect.any(Function)
+        [expect.any(Number), 0, RoleType.USER, 'First message'],
+        expect.any(Function),
       );
-      await logger.logMessage('gemini', 'Second message');
-      expect(mockDbInstance.run).toHaveBeenCalledWith(
+      await logger.logMessage(RoleType.USER, 'Second message');
+      expect(mockDb.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 1, 'gemini', 'Second message'], // messageId is now 1
-        expect.any(Function)
+        [expect.any(Number), 1, RoleType.USER, 'Second message'], // messageId is now 1
+        expect.any(Function),
       );
     });
 
     it('should handle database not initialized', async () => {
-      (Logger as any).instance = undefined; // Reset for fresh instance
-      const uninitializedLogger = Logger.getInstance(); 
-      // Prevent initialize from running or mock db to be null
-      (uninitializedLogger as any).db = null;
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      
-      await uninitializedLogger.logMessage('user', 'test');
-      
+      Logger.getInstance().close();
+      const uninitializedLogger = Logger.getInstance();
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await uninitializedLogger.logMessage(RoleType.USER, 'test');
+
       expect(consoleErrorSpy).toHaveBeenCalledWith('Database not initialized.');
-      expect(mockDbInstance.run).not.toHaveBeenCalled();
+      expect(mockDb.run).not.toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
-    
-    it('should handle error during db.run', async () => {
-        const error = new Error('db.run failed');
-        mockDbInstance.run.mockImplementationOnce((_sql: any, _params: any, callback: any) => callback?.(error));
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        await expect(logger.logMessage('user', 'test')).rejects.toThrow('db.run failed');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error inserting message into database:', error.message);
-        consoleErrorSpy.mockRestore();
+    it('should handle error during db.run', async () => {
+      const error = new Error('db.run failed');
+      mockDb.run.mockImplementationOnce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (_sql: any, _params: any, callback: any) => callback?.(error),
+      );
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      await expect(logger.logMessage(RoleType.USER, 'test')).rejects.toThrow(
+        'db.run failed',
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error inserting message into database:',
+        error.message,
+      );
+      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('getPreviousMessages', () => {
     it('should query the database for messages', async () => {
-      const limit = 50;
-      mockDbInstance.all.mockImplementationOnce((_sql: any, params: any, callback: any) => callback?.(null, [{ message: 'msg1' }, { message: 'msg2' }]));
-      
-      const messages = await logger.getPreviousMessages(limit);
-      
-      expect(mockDbInstance.all).toHaveBeenCalledWith(
-        "SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC LIMIT ?",
-        [limit],
-        expect.any(Function)
+      mockDb.all.mockImplementationOnce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (_sql: any, params: any, callback: any) =>
+          callback?.(null, [{ message: 'msg1' }, { message: 'msg2' }]),
+      );
+
+      const messages = await logger.getPreviousMessages();
+
+      expect(mockDb.all).toHaveBeenCalledWith(
+        expect.stringMatching(/SELECT message FROM messages/),
+        [],
+        expect.any(Function),
       );
       expect(messages).toEqual(['msg1', 'msg2']);
     });
 
     it('should handle database not initialized', async () => {
-      (Logger as any).instance = undefined; // Reset for fresh instance
+      Logger.getInstance().close();
       const uninitializedLogger = Logger.getInstance();
-      (uninitializedLogger as any).db = null;
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       const messages = await uninitializedLogger.getPreviousMessages();
-      
+
       expect(consoleErrorSpy).toHaveBeenCalledWith('Database not initialized.');
       expect(messages).toEqual([]);
-      expect(mockDbInstance.all).not.toHaveBeenCalled();
+      expect(mockDb.all).not.toHaveBeenCalled();
       consoleErrorSpy.mockRestore();
     });
 
     it('should handle error during db.all', async () => {
-        const error = new Error('db.all failed');
-        mockDbInstance.all.mockImplementationOnce((_sql: any, _params: any, callback: any) => callback?.(error, []));
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const error = new Error('db.all failed');
+      mockDb.all.mockImplementationOnce(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (_sql: any, _params: any, callback: any) => callback?.(error, []),
+      );
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-        await expect(logger.getPreviousMessages()).rejects.toThrow('db.all failed');
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error querying database:', error.message);
-        consoleErrorSpy.mockRestore();
+      await expect(logger.getPreviousMessages()).rejects.toThrow(
+        'db.all failed',
+      );
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error querying database:',
+        error.message,
+      );
+      consoleErrorSpy.mockRestore();
     });
   });
 
   describe('close', () => {
     it('should close the database connection', () => {
       logger.close();
-      expect(mockDbInstance.close).toHaveBeenCalled();
+      expect(mockDb.close).toHaveBeenCalled();
     });
 
     it('should handle database not initialized', () => {
-      (Logger as any).instance = undefined; // Reset for fresh instance
+      Logger.getInstance().close();
       const uninitializedLogger = Logger.getInstance();
-      (uninitializedLogger as any).db = null; // Ensure db is null
 
       uninitializedLogger.close();
       expect(() => uninitializedLogger.close()).not.toThrow();
     });
-    
-    it('should handle error during db.close', () => {
-        const error = new Error('db.close failed');
-        mockDbInstance.close.mockImplementationOnce((callback: any) => callback?.(error));
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        logger.close();
-        expect(consoleErrorSpy).toHaveBeenCalledWith('Error closing database:', error.message);
-        consoleErrorSpy.mockRestore();
+    it('should handle error during db.close', () => {
+      const error = new Error('db.close failed');
+      mockDb.close.mockImplementationOnce((callback: (error: Error) => void) =>
+        callback?.(error),
+      );
+      const consoleErrorSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
+
+      logger.close();
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        'Error closing database:',
+        error.message,
+      );
+      consoleErrorSpy.mockRestore();
     });
   });
 });

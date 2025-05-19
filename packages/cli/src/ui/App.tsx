@@ -178,11 +178,10 @@ export const App = ({
               typeof item.text === 'string' &&
               item.text.trim() !== '',
           )
-          .map((item) => item.text)
+          .map((item) => item.text),
       ),
     [history, pastMessages],
   );
-
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 

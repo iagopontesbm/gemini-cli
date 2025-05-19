@@ -19,6 +19,10 @@ CREATE TABLE IF NOT EXISTS messages (
     message TEXT
 );`;
 
+export enum RoleType {
+  USER = 'user',
+}
+
 export class Logger {
   private static instance: Logger;
   private db: sqlite3.Database | null = null;
@@ -53,7 +57,7 @@ export class Logger {
       this.db = new sqlite3.Database(DB_PATH, (err: Error | null) => {
         if (err) {
           throw err;
-        } 
+        }
       });
 
       // Read and execute the SQL script in create_tables.sql
@@ -63,7 +67,6 @@ export class Logger {
           throw err;
         }
       });
-
     } catch (error) {
       console.error('TLDAEU Error initializing database:', error);
       this.db = null;
@@ -73,10 +76,9 @@ export class Logger {
 
   /**
    * Get list of previous user inputs sorted most recent first.
-   * @param limit - The number of messages to retrieve. Default is 100.
    * @returns list of messages.
    */
-  async getPreviousMessages(limit: number = 100): Promise<string[]> {
+  async getPreviousMessages(): Promise<string[]> {
     if (!this.db) {
       console.error('Database not initialized.');
       return [];
@@ -84,9 +86,11 @@ export class Logger {
 
     return new Promise((resolve, reject) => {
       // Most recent messages first
-      const query = `SELECT message FROM messages WHERE type = 'user' ORDER BY session_id DESC, message_id DESC LIMIT ?`;
+      const query = `SELECT message FROM messages 
+      WHERE type = '${RoleType.USER}'
+      ORDER BY session_id DESC, message_id DESC`;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.db!.all(query, [limit], (err: Error | null, rows: any[]) => {
+      this.db!.all(query, [], (err: Error | null, rows: any[]) => {
         if (err) {
           console.error('Error querying database:', err.message);
           reject(err);
@@ -97,10 +101,7 @@ export class Logger {
     });
   }
 
-  async logMessage(
-    type: string,
-    message: string,
-  ): Promise<void> {
+  async logMessage(type: RoleType, message: string): Promise<void> {
     if (!this.db) {
       console.error('Database not initialized.');
       return;
@@ -112,7 +113,7 @@ export class Logger {
       this.db!.run(
         query,
         [this.sessionId || 0, this.messageId - 1, type, message],
-        function (err: Error | null) {
+        (err: Error | null) => {
           if (err) {
             console.error(
               'Error inserting message into database:',
