@@ -7,14 +7,13 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { Config } from '@gemini-code/server';
+import { shortenPath, tildeifyPath, Config } from '@gemini-code/server';
 
 interface FooterProps {
   config: Config;
   debugMode: boolean;
   debugMessage: string;
   cliVersion: string;
-  geminiMdFileCount: number;
   corgiMode: boolean;
 }
 
@@ -23,21 +22,21 @@ export const Footer: React.FC<FooterProps> = ({
   debugMode,
   debugMessage,
   cliVersion,
-  geminiMdFileCount,
   corgiMode,
 }) => (
   <Box marginTop={1}>
     <Box>
-      {geminiMdFileCount > 0 && (
-        <Text color={Colors.SubtleComment}>
-          Using {geminiMdFileCount} GEMINI.md files
-        </Text>
+      {process.env.GEMINI_SYSTEM_MD && (
+        <Text color={Colors.AccentRed}>|⌐■_■| </Text>
       )}
       {debugMode && (
         <Text color={Colors.AccentRed}>
-          {debugMessage || ' | Running in debug mode.'}
+          {(debugMessage || '--debug') + ' | '}
         </Text>
       )}
+      <Text color={Colors.LightBlue}>
+        {shortenPath(tildeifyPath(config.getTargetDir()), 70)}
+      </Text>
     </Box>
 
     {/* Middle Section: Centered Sandbox Info */}
@@ -73,9 +72,6 @@ export const Footer: React.FC<FooterProps> = ({
           <Text color={Colors.Foreground}>`)</Text>
           <Text color={Colors.AccentRed}>▼ </Text>
         </Text>
-      )}
-      {process.env.GEMINI_SYSTEM_MD && (
-        <Text color={Colors.AccentRed}>|⌐■_■|</Text>
       )}
     </Box>
   </Box>
