@@ -17,7 +17,7 @@ import {
   ServerGeminiErrorEvent as ErrorEvent,
   Config,
   Logger,
-  RoleType,
+  MessageSenderType,
   ServerToolCallConfirmationDetails,
   ToolCallConfirmationDetails,
   ToolCallResponseInfo,
@@ -102,6 +102,25 @@ export const useGeminiStream = (
     }
   });
 
+  const loggerRef = useRef<Logger | null>(null);
+
+  useEffect(() => {
+    if (!loggerRef.current) {
+      const newLogger = new Logger();
+      /**
+       * Start async initialization, no need to await. Using await slows down the
+       * time from launch to see the gemini-cli prompt and it's better to not save
+       * messages than for the cli to hanging waiting for the logger to loading.
+       */
+      newLogger
+        .initialize()
+        .then(() => {
+          loggerRef.current = newLogger;
+        })
+        .catch(() => {});
+    }
+  }, []);
+
   const prepareQueryForGemini = async (
     query: PartListUnion,
     userMessageTimestamp: number,
@@ -116,7 +135,7 @@ export const useGeminiStream = (
     if (typeof query === 'string') {
       const trimmedQuery = query.trim();
       onDebugMessage(`User query: '${trimmedQuery}'`);
-      Logger.getInstance().logMessage(RoleType.USER, trimmedQuery);
+      loggerRef.current?.logMessage(MessageSenderType.USER, trimmedQuery);
 
       // Handle UI-only commands first
       if (handleSlashCommand(trimmedQuery)) {

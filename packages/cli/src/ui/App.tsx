@@ -20,7 +20,6 @@ import { ShellModeIndicator } from './components/ShellModeIndicator.js';
 import { InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
-import { type Config } from '@gemini-code/server';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
 import { loadHierarchicalGeminiMemory } from '../config/config.js';
@@ -31,8 +30,12 @@ import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
 import process from 'node:process';
 import { MessageType } from './types.js';
-import { getErrorMessage } from '@gemini-code/server';
-import { Logger } from '@gemini-code/server';
+import {
+  getErrorMessage,
+  shortenPath,
+  type Config,
+  Logger,
+} from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
@@ -160,12 +163,18 @@ export const App = ({
 
   const [pastMessages, setPastMessages] = useState<string[]>([]);
   useEffect(() => {
-    const logger = Logger.getInstance();
-    logger.getPreviousMessages().then((messages: string[]) => {
-      if (messages.length > 0) {
-        setPastMessages(messages.reverse());
-      }
-    });
+    const logger = new Logger();
+    logger
+      .initialize()
+      .then(() => {
+        logger.getPreviousUserMessages().then((messages: string[]) => {
+          if (messages.length > 0) {
+            setPastMessages(messages.reverse());
+          }
+          logger.close();
+        });
+      })
+      .catch(() => {});
   }, []);
 
   const userMessages = useMemo(

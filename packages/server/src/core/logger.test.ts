@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { Logger, RoleType } from './logger.js';
+import { Logger, MessageSenderType } from './logger.js';
 
 // Mocks
 const mockDb = {
@@ -14,10 +14,17 @@ const mockDb = {
   run: vi.fn((_sql, _params, callback) => callback?.(null)),
   close: vi.fn((callback) => callback?.(null)),
 };
+
 vi.mock('sqlite3', () => ({
-  Database: vi.fn(() => mockDb),
+  Database: vi.fn((_dbPath, _options, callback) => {
+    process.nextTick(() => callback?.(null));
+    return mockDb;
+  }),
   default: {
-    Database: vi.fn(() => mockDb),
+    Database: vi.fn((_dbPath, _options, callback) => {
+      process.nextTick(() => callback?.(null));
+      return mockDb;
+    }),
   },
 }));
 
@@ -28,24 +35,16 @@ describe('Logger', () => {
     vi.resetAllMocks();
 
     // Get a new instance for each test to ensure isolation,
-    // but we need to reset the singleton for this to work as expected.
-    Logger.getInstance().close(); // Close any existing instance
-    logger = Logger.getInstance();
+    logger = new Logger();
     // We need to wait for the async initialize to complete
-    await logger.initialize();
+    await logger.initialize().catch((err) => {
+      console.error('Error initializing logger:', err);
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
-    Logger.getInstance().close(); // Close the database connection after each test
-  });
-
-  describe('Singleton', () => {
-    it('should return the same instance', () => {
-      const instance1 = Logger.getInstance();
-      const instance2 = Logger.getInstance();
-      expect(instance1).toBe(instance2);
-    });
+    logger.close(); // Close the database connection after each test
   });
 
   describe('initialize', () => {
@@ -67,7 +66,7 @@ describe('Logger', () => {
 
   describe('logMessage', () => {
     it('should insert a message into the database', async () => {
-      const type = RoleType.USER;
+      const type = MessageSenderType.USER;
       const message = 'Hello, world!';
       await logger.logMessage(type, message);
       expect(mockDb.run).toHaveBeenCalledWith(
@@ -78,28 +77,28 @@ describe('Logger', () => {
     });
 
     it('should increment messageId for subsequent messages', async () => {
-      await logger.logMessage(RoleType.USER, 'First message');
+      await logger.logMessage(MessageSenderType.USER, 'First message');
       expect(mockDb.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 0, RoleType.USER, 'First message'],
+        [expect.any(Number), 0, MessageSenderType.USER, 'First message'],
         expect.any(Function),
       );
-      await logger.logMessage(RoleType.USER, 'Second message');
+      await logger.logMessage(MessageSenderType.USER, 'Second message');
       expect(mockDb.run).toHaveBeenCalledWith(
         expect.any(String),
-        [expect.any(Number), 1, RoleType.USER, 'Second message'], // messageId is now 1
+        [expect.any(Number), 1, MessageSenderType.USER, 'Second message'], // messageId is now 1
         expect.any(Function),
       );
     });
 
     it('should handle database not initialized', async () => {
-      Logger.getInstance().close();
-      const uninitializedLogger = Logger.getInstance();
+      const uninitializedLogger = new Logger();
+      // uninitializedLogger.initialize() is not called
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      await uninitializedLogger.logMessage(RoleType.USER, 'test');
+      await uninitializedLogger.logMessage(MessageSenderType.USER, 'test');
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Database not initialized.');
       expect(mockDb.run).not.toHaveBeenCalled();
@@ -116,9 +115,9 @@ describe('Logger', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      await expect(logger.logMessage(RoleType.USER, 'test')).rejects.toThrow(
-        'db.run failed',
-      );
+      await expect(
+        logger.logMessage(MessageSenderType.USER, 'test'),
+      ).rejects.toThrow('db.run failed');
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error inserting message into database:',
         error.message,
@@ -127,7 +126,7 @@ describe('Logger', () => {
     });
   });
 
-  describe('getPreviousMessages', () => {
+  describe('getPreviousUserMessages', () => {
     it('should query the database for messages', async () => {
       mockDb.all.mockImplementationOnce(
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,7 +134,7 @@ describe('Logger', () => {
           callback?.(null, [{ message: 'msg1' }, { message: 'msg2' }]),
       );
 
-      const messages = await logger.getPreviousMessages();
+      const messages = await logger.getPreviousUserMessages();
 
       expect(mockDb.all).toHaveBeenCalledWith(
         expect.stringMatching(/SELECT message FROM messages/),
@@ -146,13 +145,13 @@ describe('Logger', () => {
     });
 
     it('should handle database not initialized', async () => {
-      Logger.getInstance().close();
-      const uninitializedLogger = Logger.getInstance();
+      const uninitializedLogger = new Logger();
+      // uninitializedLogger.initialize() is not called
       const consoleErrorSpy = vi
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      const messages = await uninitializedLogger.getPreviousMessages();
+      const messages = await uninitializedLogger.getPreviousUserMessages();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith('Database not initialized.');
       expect(messages).toEqual([]);
@@ -170,7 +169,7 @@ describe('Logger', () => {
         .spyOn(console, 'error')
         .mockImplementation(() => {});
 
-      await expect(logger.getPreviousMessages()).rejects.toThrow(
+      await expect(logger.getPreviousUserMessages()).rejects.toThrow(
         'db.all failed',
       );
       expect(consoleErrorSpy).toHaveBeenCalledWith(
@@ -188,9 +187,8 @@ describe('Logger', () => {
     });
 
     it('should handle database not initialized', () => {
-      Logger.getInstance().close();
-      const uninitializedLogger = Logger.getInstance();
-
+      const uninitializedLogger = new Logger();
+      // uninitializedLogger.initialize() is not called
       uninitializedLogger.close();
       expect(() => uninitializedLogger.close()).not.toThrow();
     });

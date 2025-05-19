@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import { HistoryItem } from '../types.js';
 
 // Type for the updater function passed to updateHistoryItem
@@ -37,22 +37,6 @@ export function useHistory(): UseHistoryManagerReturn {
     messageIdCounterRef.current += 1;
     return baseTimestamp + messageIdCounterRef.current;
   }, []);
-
-  /*
-  useEffect(() => {
-    const logger = Logger.getInstance();
-    logger.getPreviousMessages().then((messages) => {
-      const converted = messages.map((message: string) => ({
-        type: 'user',
-        text: message,
-        id: getNextMessageId(0),
-      })) as HistoryItem[];
-      if (converted.length > 0) {
-        setHistory( h => converted.concat(h));
-      }
-    });
-  }, [getNextMessageId]);
-  */
 
   // Adds a new item to the history state with a unique ID.
   const addItem = useCallback(
@@ -94,7 +78,6 @@ export function useHistory(): UseHistoryManagerReturn {
 
   // Clears the entire history state and resets the ID counter.
   const clearItems = useCallback(() => {
-    // Possible need to move history to logger.
     setHistory([]);
     messageIdCounterRef.current = 0;
   }, []);
