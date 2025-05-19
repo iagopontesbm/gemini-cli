@@ -69,18 +69,35 @@ At commands are used to quickly include the content of files or directories as p
 - If the path specified after `@` is not found or is invalid, an error message will be displayed, and the query might not be sent to the Gemini model, or it will be sent without the file content.
 - If the `read_many_files` tool encounters an error (e.g., permission issues), this will also be reported.
 
-## Shell Passthrough Commands (`!`)
+## Shell Mode & Passthrough Commands (`!`)
 
-Shell passthrough commands allow you to execute arbitrary shell commands directly from the Gemini CLI. This can be useful for quickly performing system tasks, listing files, or running scripts without leaving the CLI environment.
+The `!` prefix provides a powerful way to interact with your system's shell directly from within the Gemini CLI. It allows for both single command execution and a toggleable Shell Mode for a more persistent shell experience.
 
 - **`!<shell_command>`**
 
-  - **Description:** Executes the given command in your system's default shell.
+  - **Description:** Executes the given `<shell_command>` in your system's default shell.
   - **Usage:**
-    - `!ls -la`
-    - `!git status`
-    - `!echo "Hello from the shell"`
-  - **Action:** The command following the `!` is passed to the system shell for execution. The standard output and standard error from the command are then displayed directly within the Gemini CLI.
-  - **Caution:** Be mindful of the commands you execute, as they have the same permissions and impact as if you ran them directly in your terminal.
+    - `!ls -la` (executes `ls -la` and returns to normal CLI mode)
+    - `!git status` (executes `git status` and returns to normal CLI mode)
+  - **Action:** The command following the `!` is passed to the system shell for execution. Standard output and standard error are displayed in the CLI. After execution, the CLI typically returns to its standard conversational mode.
 
-These commands provide a powerful way to interact with the Gemini CLI and integrate local file content seamlessly into your conversations with the AI.
+- **`!` (Toggle Shell Mode)**
+
+  - **Description:** Typing `!` on its own (without an immediately following command) toggles Shell Mode.
+  - **Action & Behavior:**
+    - **Entering Shell Mode:**
+      - The UI will update, often with different coloring and a "Shell Mode Indicator," to clearly show that Shell Mode is active.
+      - Most slash commands (e.g., `/help`, `/theme`) and AI-powered suggestions are disabled to provide an uninterrupted shell experience.
+      - Any text you type is interpreted directly as a shell command.
+    - **Exiting Shell Mode:**
+      - Typing `!` again while in Shell Mode will toggle it off.
+      - The UI will revert to its standard appearance.
+      - Slash commands and AI suggestions are re-enabled.
+  - **Usage:**
+    - Type `!` and press Enter to enter Shell Mode.
+    - Type your shell commands (e.g., `cd my_project`, `npm run dev`, `cat file.txt`).
+    - Type `!` and press Enter again to exit Shell Mode.
+
+- **Caution for all `!` usage:** Be mindful of the commands you execute, as they have the same permissions and impact as if you ran them directly in your terminal. The Shell Mode feature does not inherently add extra sandboxing beyond what's already configured for the underlying `execute_bash_command` tool.
+
+This integrated shell capability allows for seamless switching between AI-assisted tasks and direct system interaction.
