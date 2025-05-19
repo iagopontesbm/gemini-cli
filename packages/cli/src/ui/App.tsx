@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import process from 'node:process';
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { Box, DOMElement, measureElement, Static, Text } from 'ink';
 import { StreamingState, type HistoryItem } from './types.js';
@@ -20,7 +21,6 @@ import { ShellModeIndicator } from './components/ShellModeIndicator.js';
 import { EditorState, InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
-import { shortenPath, type Config } from '@gemini-code/server';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
 import { loadHierarchicalGeminiMemory } from '../config/config.js';
@@ -32,9 +32,8 @@ import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
 import { useHistory } from './hooks/useHistoryManager.js';
-import process from 'node:process'; // For performMemoryRefresh
-import { MessageType } from './types.js'; // For performMemoryRefresh
-import { getErrorMessage } from '@gemini-code/server'; // For performMemoryRefresh
+import { MessageType } from './types.js';
+import { getErrorMessage, shortenPath, type Config } from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
