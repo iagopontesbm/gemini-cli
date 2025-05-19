@@ -26,17 +26,14 @@ export const Footer: React.FC<FooterProps> = ({
 }) => (
   <Box marginTop={1}>
     <Box>
-      {process.env.GEMINI_SYSTEM_MD && (
-        <Text color={Colors.AccentRed}>|⌐■_■| </Text>
-      )}
-      {debugMode && (
-        <Text color={Colors.AccentRed}>
-          {(debugMessage || '--debug') + ' | '}
-        </Text>
-      )}
       <Text color={Colors.LightBlue}>
         {shortenPath(tildeifyPath(config.getTargetDir()), 70)}
       </Text>
+      {debugMode && (
+        <Text color={Colors.AccentRed}>
+          {' ' + (debugMessage || '--debug')}
+        </Text>
+      )}
     </Box>
 
     {/* Middle Section: Centered Sandbox Info */}

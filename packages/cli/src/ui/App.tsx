@@ -349,6 +349,9 @@ export const App = ({
             >
               {geminiMdFileCount > 0 && (
                 <Box>
+                  {!process.env.GEMINI_SYSTEM_MD && (
+                    <Text color={Colors.AccentRed}>|⌐■_■| </Text>
+                  )}
                   <Text color={Colors.SubtleComment}>
                     Using {geminiMdFileCount} GEMINI.md files
                   </Text>
