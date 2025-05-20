@@ -36,6 +36,7 @@ import {
   type Config,
   Logger,
 } from '@gemini-code/server';
+import { useLogger } from './hooks/useLogger.js';
 
 interface AppProps {
   config: Config;
@@ -161,35 +162,23 @@ export const App = ({
     [submitQuery],
   );
 
-  const [pastMessages, setPastMessages] = useState<string[]>([]);
-  useEffect(() => {
-    const logger = new Logger();
-    logger
-      .initialize()
-      .then(() => {
-        logger.getPreviousUserMessages().then((messages: string[]) => {
-          if (messages.length > 0) {
-            setPastMessages(messages.reverse());
-          }
-          logger.close();
-        });
-      })
-      .catch(() => {});
-  }, []);
-
+  const logger = useLogger();
   const userMessages = useMemo(
-    () =>
-      pastMessages.concat(
-        history
-          .filter(
-            (item): item is HistoryItem & { type: 'user'; text: string } =>
-              item.type === 'user' &&
-              typeof item.text === 'string' &&
-              item.text.trim() !== '',
-          )
-          .map((item) => item.text),
-      ),
-    [history, pastMessages],
+    () => {
+      const pastMessages = logger.current?.getPreviousUserMessages() || [];
+      if (pastMessages) {
+        return pastMessages as string[];
+      }
+      return history
+        .filter(
+          (item): item is HistoryItem & { type: 'user'; text: string } =>
+            item.type === 'user' &&
+            typeof item.text === 'string' &&
+            item.text.trim() !== '',
+        )
+        .map((item) => item.text);
+    },
+    [history],
   );
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
