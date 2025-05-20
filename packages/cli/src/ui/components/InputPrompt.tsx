@@ -114,12 +114,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   );
 
   const inputPreprocessor = useCallback(
-    (
-      input: string,
-      key: Key,
-      _currentText?: string,
-      _cursorOffset?: number,
-    ) => {
+    (input: string, key: Key, currentText?: string, cursorOffset?: number) => {
       if (input === '!' && query === '' && !showSuggestions) {
         setShellModeActive(!shellModeActive);
         onChangeAndMoveCursor(''); // Clear the '!' from input
@@ -177,6 +172,21 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
         if (key.ctrl && input === 'n') {
           inputHistory.navigateDown();
+          return true;
+        }
+        if (key.ctrl && input === 'b' && typeof cursorOffset !== 'undefined') {
+          setEditorState((s) => ({
+            key: s.key + 1,
+            initialCursorOffset: Math.max(0, cursorOffset - 1),
+          }));
+          return true;
+        }
+        if (key.ctrl && input === 'f' && typeof cursorOffset !== 'undefined') {
+          const currentTextLength = currentText?.length ?? query.length;
+          setEditorState((s) => ({
+            key: s.key + 1,
+            initialCursorOffset: Math.min(currentTextLength, cursorOffset + 1),
+          }));
           return true;
         }
       }
