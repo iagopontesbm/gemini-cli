@@ -151,10 +151,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
       } else {
         // Keybindings when suggestions are not shown
+        // Keybinding: Ctrl + A to move to the beginning of the line
         if (key.ctrl && input === 'a') {
           setEditorState((s) => ({ key: s.key + 1, initialCursorOffset: 0 }));
           return true;
         }
+        // Keybinding: Ctrl + E to move to the end of the line
         if (key.ctrl && input === 'e') {
           setEditorState((s) => ({
             key: s.key + 1,
@@ -162,18 +164,22 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }));
           return true;
         }
+        // Keybinding: Ctrl + L to refresh the screen
         if (key.ctrl && input === 'l') {
           onClearScreen();
           return true;
         }
+        // Keybinding: Ctrl + P to navigate to the previous item in the history
         if (key.ctrl && input === 'p') {
           inputHistory.navigateUp();
           return true;
         }
+        // Keybinding: Ctrl + N to navigate to the next item in the history
         if (key.ctrl && input === 'n') {
           inputHistory.navigateDown();
           return true;
         }
+        // Keybinding: Ctrl + B to move back one character
         if (key.ctrl && input === 'b' && typeof cursorOffset !== 'undefined') {
           setEditorState((s) => ({
             key: s.key + 1,
@@ -181,11 +187,32 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }));
           return true;
         }
+        // Keybinding: Ctrl + F to move forward one character
         if (key.ctrl && input === 'f' && typeof cursorOffset !== 'undefined') {
           const currentTextLength = currentText?.length ?? query.length;
           setEditorState((s) => ({
             key: s.key + 1,
             initialCursorOffset: Math.min(currentTextLength, cursorOffset + 1),
+          }));
+          return true;
+        }
+        // Keybinding: Alt/Meta/Option + Left Arrow to move backward one word
+        if (key.meta && input === 'b' && typeof cursorOffset !== 'undefined') {
+          const text = currentText ?? query;
+          let i = cursorOffset - 1;
+          // Skip whitespace to the left of the cursor
+          while (i >= 0 && text[i] === ' ') {
+            i--;
+          }
+          // Skip non-whitespace characters (the word itself)
+          while (i >= 0 && text[i] !== ' ') {
+            i--;
+          }
+          // The new cursor position is after the space before the word, or 0
+          const newCursorOffset = Math.max(0, i + 1);
+          setEditorState((s) => ({
+            key: s.key + 1,
+            initialCursorOffset: newCursorOffset,
           }));
           return true;
         }
