@@ -32,9 +32,9 @@ import { useCompletion } from './hooks/useCompletion.js';
 import { SuggestionsDisplay } from './components/SuggestionsDisplay.js';
 import { isAtCommand, isSlashCommand } from './utils/commandUtils.js';
 import { useHistory } from './hooks/useHistoryManager.js';
-import process from 'node:process'; // For performMemoryRefresh
-import { MessageType } from './types.js'; // For performMemoryRefresh
-import { getErrorMessage } from '@gemini-code/server'; // For performMemoryRefresh
+import process from 'node:process';
+import { MessageType } from './types.js';
+import { getErrorMessage } from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
@@ -56,7 +56,7 @@ export const App = ({
     setStaticKey((prev) => prev + 1);
   }, [setStaticKey]);
 
-  const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0); // Added for memory file count
+  const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0);
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
@@ -126,7 +126,7 @@ export const App = ({
   }, [config, addItem]);
 
   const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    config, // Pass config
+    config,
     addItem,
     clearItems,
     refreshStatic,
@@ -135,6 +135,7 @@ export const App = ({
     openThemeDialog,
     performMemoryRefresh,
     toggleCorgiMode,
+    cliVersion,
   );
 
   const { streamingState, submitQuery, initError, pendingHistoryItem } =
