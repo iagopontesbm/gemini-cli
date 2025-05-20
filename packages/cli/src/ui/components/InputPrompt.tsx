@@ -149,17 +149,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
       } else {
         // Keybindings when suggestions are not shown
-        // Keybinding: Ctrl + L to refresh the screen
         if (key.ctrl && input === 'l') {
           onClearScreen();
           return true;
         }
-        // Keybinding: Ctrl + P to navigate to the previous item in the history
         if (key.ctrl && input === 'p') {
           inputHistory.navigateUp();
           return true;
         }
-        // Keybinding: Ctrl + N to navigate to the next item in the history
         if (key.ctrl && input === 'n') {
           inputHistory.navigateDown();
           return true;
