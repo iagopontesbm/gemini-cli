@@ -18,18 +18,12 @@ These are the main pieces of information the server `Config` object holds and us
 - **`apiKey` (string):**
 
   - **Source:** Primarily `process.env.GEMINI_API_KEY` (loaded from the environment or `.env` files).
-  - **Importance:** Essential if using the Gemini API directly. Not used if configuring the CLI for Vertex AI and using Application Default Credentials.
-  - **Note:** If using Vertex AI, authentication is typically handled via Application Default Credentials (ADC) or other gcloud authentication mechanisms.
+  - **Importance:** Absolutely essential for connecting to the Gemini API. (If using Vertex AI, authentication is handled differently, typically via Application Default Credentials - see README.md).
 
 - **`model` (string):**
 
-  - **Source:** Command-line argument (`--model`), environment variable (`GEMINI_MODEL` or `VERTEX_AI_MODEL` if using Vertex AI), or a default value (e.g., `gemini-2.5-pro-preview-05-06` for Gemini API).
-  - **Purpose:** Specifies which Gemini model (either from Gemini API or Vertex AI) the server should use.
-
-- **Vertex AI Specific Settings:**
-
-  - **Source:** Environment variables (e.g., `VERTEX_AI_PROJECT`, `VERTEX_AI_LOCATION`, `VERTEX_AI_PUBLISHER`, `VERTEX_AI_API_ENDPOINT`, `USE_VERTEX_AI_DEFAULT_CREDENTIALS`, `VERTEX_AI_EXPRESS_MODE`).
-  - **Purpose:** These settings configure the connection to Vertex AI, including project, location, specific model details, authentication, and operational modes like Express mode. The server uses these to interact with Vertex AI as an alternative backend to the Gemini API.
+  - **Source:** Command-line argument (`--model`), environment variable (`GEMINI_MODEL`), or a default value (e.g., `gemini-2.5-pro-preview-05-06`).
+  - **Purpose:** Specifies which Gemini model the server should use. (For Vertex AI model names and usage, refer to the main README.md).
 
 - **`sandbox` (boolean | string):**
 

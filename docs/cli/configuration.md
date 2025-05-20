@@ -146,34 +146,6 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
 
-### Vertex AI Configuration (Optional)
-
-The Gemini CLI can be configured to use Vertex AI as its backend instead of the default Gemini API. This typically involves setting specific environment variables.
-
-- **`VERTEX_AI_PROJECT`** (string):
-  - **Description:** Your Google Cloud Project ID that is enabled for Vertex AI.
-  - **Required:** If using Vertex AI.
-- **`VERTEX_AI_LOCATION`** (string):
-  - **Description:** The Google Cloud region where your Vertex AI resources are located (e.g., `us-central1`).
-  - **Required:** If using Vertex AI.
-- **`VERTEX_AI_MODEL`** (string, optional):
-  - **Description:** Specifies the specific Vertex AI model to use (e.g., `gemini-1.5-pro-001`).
-  - **Behavior:** If not set, a default Vertex AI model compatible with Gemini may be used.
-- **`VERTEX_AI_PUBLISHER`** (string, optional):
-  - **Description:** The publisher of the Vertex AI model.
-  - **Default:** `google`
-- **`VERTEX_AI_API_ENDPOINT`** (string, optional):
-  - **Description:** The regional API endpoint for Vertex AI.
-  - **Behavior:** If not specified, the CLI will attempt to construct it based on `VERTEX_AI_LOCATION`. Example: `us-central1-aiplatform.googleapis.com`.
-- **`USE_VERTEX_AI_DEFAULT_CREDENTIALS`** (boolean, optional):
-  - **Description:** Set to `true` to use Application Default Credentials (ADC) for authenticating with Vertex AI. This is common when running in Google Cloud environments.
-  - **Default:** `false`. If false or not set, you might need to ensure your environment is otherwise configured for Vertex AI authentication (e.g., `gcloud auth application-default login`).
-- **`VERTEX_AI_EXPRESS_MODE`** (boolean, optional):
-  - **Description:** Set to `true` to enable Vertex AI Express mode, if applicable and supported, for potentially faster or different interactions.
-  - **Default:** `false`.
-
-**Note on Authentication:** When using Vertex AI, ensure your environment is correctly authenticated. This might involve using `gcloud auth application-default login` if not running in an environment where ADC is automatically available.
-
 ## 3. Command-Line Arguments
 
 Arguments passed directly when running the CLI can override other configurations for that specific session.
