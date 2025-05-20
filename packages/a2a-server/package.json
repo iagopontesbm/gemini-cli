@@ -1,0 +1,33 @@
+{
+  "name": "a2a-server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HTTP server for bidirectional streaming chat using the server package",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/index.js",
+    "dev": "tsc -w -p tsconfig.json & nodemon dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "typecheck": "tsc --noEmit",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "dependencies": {
+    "@google/generative-ai": "latest",
+    "express": "^5.1.0",
+    "server": "file:../server",
+    "ws": "^8.5.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.2",
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.18.1",
+    "eslint": "^8.0.0",
+    "nodemon": "^2.0.15",
+    "typescript": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
