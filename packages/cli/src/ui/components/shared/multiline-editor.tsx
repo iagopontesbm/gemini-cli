@@ -121,14 +121,7 @@ export const MultilineTextEditor = ({
 
       const isCtrlX =
         (key.ctrl && (input === 'x' || input === '\x18')) || input === '\x18';
-      const isCtrlE =
-        (key.ctrl && (input === 'e' || input === '\x05')) ||
-        input === '\x05' ||
-        (!key.ctrl &&
-          input === 'e' &&
-          input.length === 1 &&
-          input.charCodeAt(0) === 5);
-      if (isCtrlX || isCtrlE) {
+      if (isCtrlX) {
         buffer.openInExternalEditor();
         return;
       }

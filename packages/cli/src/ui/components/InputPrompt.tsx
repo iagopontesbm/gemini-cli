@@ -24,7 +24,6 @@ interface InputPromptProps {
   userMessages: readonly string[];
   navigateSuggestionUp: () => void;
   navigateSuggestionDown: () => void;
-  setEditorState: (updater: (prevState: EditorState) => EditorState) => void;
   onClearScreen: () => void;
   shellModeActive: boolean;
   setShellModeActive: (value: boolean) => void;
@@ -48,7 +47,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   navigateSuggestionUp,
   navigateSuggestionDown,
   resetCompletion,
-  setEditorState,
   onClearScreen,
   shellModeActive,
   setShellModeActive,
@@ -114,7 +112,12 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   );
 
   const inputPreprocessor = useCallback(
-    (input: string, key: Key, currentText?: string, cursorOffset?: number) => {
+    (
+      input: string,
+      key: Key,
+      _currentText?: string,
+      _cursorOffset?: number,
+    ) => {
       if (input === '!' && query === '' && !showSuggestions) {
         setShellModeActive(!shellModeActive);
         onChangeAndMoveCursor(''); // Clear the '!' from input
@@ -151,19 +154,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
       } else {
         // Keybindings when suggestions are not shown
-        // Keybinding: Ctrl + A to move to the beginning of the line
-        if (key.ctrl && input === 'a') {
-          setEditorState((s) => ({ key: s.key + 1, initialCursorOffset: 0 }));
-          return true;
-        }
-        // Keybinding: Ctrl + E to move to the end of the line
-        if (key.ctrl && input === 'e') {
-          setEditorState((s) => ({
-            key: s.key + 1,
-            initialCursorOffset: query.length,
-          }));
-          return true;
-        }
         // Keybinding: Ctrl + L to refresh the screen
         if (key.ctrl && input === 'l') {
           onClearScreen();
@@ -177,63 +167,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         // Keybinding: Ctrl + N to navigate to the next item in the history
         if (key.ctrl && input === 'n') {
           inputHistory.navigateDown();
-          return true;
-        }
-        // Keybinding: Ctrl + B to move back one character
-        if (key.ctrl && input === 'b' && typeof cursorOffset !== 'undefined') {
-          setEditorState((s) => ({
-            key: s.key + 1,
-            initialCursorOffset: Math.max(0, cursorOffset - 1),
-          }));
-          return true;
-        }
-        // Keybinding: Ctrl + F to move forward one character
-        if (key.ctrl && input === 'f' && typeof cursorOffset !== 'undefined') {
-          const currentTextLength = currentText?.length ?? query.length;
-          setEditorState((s) => ({
-            key: s.key + 1,
-            initialCursorOffset: Math.min(currentTextLength, cursorOffset + 1),
-          }));
-          return true;
-        }
-        // Keybinding: Alt/Meta/Option + Left Arrow to move backward one word
-        if (key.meta && input === 'b' && typeof cursorOffset !== 'undefined') {
-          const text = currentText ?? query;
-          let i = cursorOffset - 1;
-          // Skip whitespace to the left of the cursor
-          while (i >= 0 && text[i] === ' ') {
-            i--;
-          }
-          // Skip non-whitespace characters (the word itself)
-          while (i >= 0 && text[i] !== ' ') {
-            i--;
-          }
-          // The new cursor position is after the space before the word, or 0
-          const newCursorOffset = Math.max(0, i + 1);
-          setEditorState((s) => ({
-            key: s.key + 1,
-            initialCursorOffset: newCursorOffset,
-          }));
-          return true;
-        }
-        // Keybinding: Alt/Meta/Option + Right Arrow to move forward one word
-        if (key.meta && input === 'f' && typeof cursorOffset !== 'undefined') {
-          const text = currentText ?? query;
-          let i = cursorOffset;
-          // Skip whitespace to the right of the cursor
-          while (i < text.length && text[i] === ' ') {
-            i++;
-          }
-          // Skip non-whitespace characters (the word itself)
-          while (i < text.length && text[i] !== ' ') {
-            i++;
-          }
-          // The new cursor position is after the word, or at the end of the text
-          const newCursorOffset = Math.min(text.length, i);
-          setEditorState((s) => ({
-            key: s.key + 1,
-            initialCursorOffset: newCursorOffset,
-          }));
           return true;
         }
       }
@@ -250,7 +183,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       activeSuggestionIndex,
       handleSubmit,
       inputHistory,
-      setEditorState,
       onClearScreen,
       shellModeActive,
       setShellModeActive,
