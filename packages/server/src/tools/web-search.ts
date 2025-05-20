@@ -100,10 +100,6 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, ToolResult> {
         },
       });
 
-      // TODO(adh): Need to get grounding metadata as web content.
-      // and figure out how to use that in the response, or if it is
-      // required at all.
-      // response.candidates[0].groundingMetadata.searchEntryPoint.renderedContent
       const responseText = getResponseText(response);
 
       if (!responseText || !responseText.trim()) {
