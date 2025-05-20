@@ -216,6 +216,26 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           }));
           return true;
         }
+        // Keybinding: Alt/Meta/Option + Right Arrow to move forward one word
+        if (key.meta && input === 'f' && typeof cursorOffset !== 'undefined') {
+          const text = currentText ?? query;
+          let i = cursorOffset;
+          // Skip whitespace to the right of the cursor
+          while (i < text.length && text[i] === ' ') {
+            i++;
+          }
+          // Skip non-whitespace characters (the word itself)
+          while (i < text.length && text[i] !== ' ') {
+            i++;
+          }
+          // The new cursor position is after the word, or at the end of the text
+          const newCursorOffset = Math.min(text.length, i);
+          setEditorState((s) => ({
+            key: s.key + 1,
+            initialCursorOffset: newCursorOffset,
+          }));
+          return true;
+        }
       }
       return false;
     },
