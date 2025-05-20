@@ -12,7 +12,6 @@ import { spawn, execSync } from 'node:child_process';
 // TODO: remove this dependency once MCP support is built into genai SDK
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
-import { WebSearchTool } from './web-search.js';
 type ToolParams = Record<string, unknown>;
 
 const MCP_TOOL_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
@@ -134,9 +133,10 @@ Returns the MCP server response as a json string.
 
 export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
+  private config: Config;
 
-  constructor(private readonly config: Config) {
-    this.registerTool(new WebSearchTool(config));
+  constructor(config: Config) {
+    this.config = config;
   }
 
   /**
