@@ -539,24 +539,6 @@ describe('useTextBuffer', () => {
       expect(state.cursor).toEqual([0, 7]); // cursor after ' new '
     });
 
-    /**
-    it('should replace a single-line range with multi-line text', () => {
-      const { result } = renderHook(() => useTextBuffer({ initialText: 'hello beautiful world', viewport }));
-      act(() => result.current.replaceRange(0, 6, 0, 15, 'new\nlines')); // replace 'beautiful'
-      const state = getBufferState(result);
-      expect(state.text).toBe('hello new\nlines world');
-      expect(state.cursor).toEqual([1, 5]); // cursor after 'lines'
-    });
-
-    it('should replace a multi-line range with multi-line text', () => {
-      const { result } = renderHook(() => useTextBuffer({ initialText: 'line one\nline two\nline three', viewport }));
-      act(() => result.current.replaceRange(0, 5, 2, 4, 'REPLACED\nTEXT')); // replace 'one\nline two\nline t'
-      const state = getBufferState(result);
-      expect(state.text).toBe('line REPLACED\nTEXThree');
-      expect(state.cursor).toEqual([1, 4]); // cursor after 'TEXT'
-    });
-    */
-
     it('should delete a range when replacing with an empty string', () => {
       const { result } = renderHook(() =>
         useTextBuffer({ initialText: 'hello world', viewport }),
