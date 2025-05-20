@@ -112,12 +112,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   );
 
   const inputPreprocessor = useCallback(
-    (
-      input: string,
-      key: Key,
-      _currentText?: string,
-      _cursorOffset?: number,
-    ) => {
+    (input: string, key: Key) => {
       if (input === '!' && query === '' && !showSuggestions) {
         setShellModeActive(!shellModeActive);
         onChangeAndMoveCursor(''); // Clear the '!' from input
