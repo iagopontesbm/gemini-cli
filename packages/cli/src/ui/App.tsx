@@ -31,7 +31,7 @@ import { useHistory } from './hooks/useHistoryManager.js';
 import { useLogger } from './hooks/useLogger.js';
 import process from 'node:process';
 import { MessageType } from './types.js';
-import { getErrorMessage, shortenPath, type Config } from '@gemini-code/server';
+import { getErrorMessage, type Config } from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
