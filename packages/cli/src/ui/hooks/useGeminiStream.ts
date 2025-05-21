@@ -15,6 +15,8 @@ import {
   ServerGeminiToolCallResponseEvent as ToolCallResponseEvent,
   ServerGeminiToolCallConfirmationEvent as ToolCallConfirmationEvent,
   ServerGeminiErrorEvent as ErrorEvent,
+  getErrorMessage,
+  isNodeError,
   Config,
   MessageSenderType,
   ServerToolCallConfirmationDetails,
@@ -23,6 +25,7 @@ import {
   ToolConfirmationOutcome,
   ToolEditConfirmationDetails,
   ToolExecuteConfirmationDetails,
+  ToolResultDisplay,
   partListUnionToString,
 } from '@gemini-code/server';
 import { type Chat, type PartListUnion, type Part } from '@google/genai';
