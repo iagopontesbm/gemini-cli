@@ -12,8 +12,8 @@ const GEMINI_DIR = '.gemini';
 const DB_NAME = 'logs.db';
 const CREATE_TABLE_SQL = `
 CREATE TABLE IF NOT EXISTS messages (
-    session_id TEXT,
-    message_id TEXT,
+    session_id INTEGER,
+    message_id INTEGER,
     timestamp TEXT,
     type TEXT,
     message TEXT
@@ -87,7 +87,6 @@ export class Logger {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       this.db!.all(query, [], (err: Error | null, rows: any[]) => {
         if (err) {
-          console.error('Error querying database:', err.message);
           reject(err);
         } else {
           resolve(rows.map((row) => row.message));
@@ -110,10 +109,6 @@ export class Logger {
         [this.sessionId || 0, this.messageId - 1, type, message],
         (err: Error | null) => {
           if (err) {
-            console.error(
-              'Error inserting message into database:',
-              err.message,
-            );
             reject(err);
           } else {
             resolve();

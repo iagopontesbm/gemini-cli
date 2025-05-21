@@ -111,18 +111,10 @@ describe('Logger', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (_sql: any, _params: any, callback: any) => callback?.(error),
       );
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
 
       await expect(
         logger.logMessage(MessageSenderType.USER, 'test'),
       ).rejects.toThrow('db.run failed');
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error inserting message into database:',
-        error.message,
-      );
-      consoleErrorSpy.mockRestore();
     });
   });
 
@@ -165,18 +157,10 @@ describe('Logger', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (_sql: any, _params: any, callback: any) => callback?.(error, []),
       );
-      const consoleErrorSpy = vi
-        .spyOn(console, 'error')
-        .mockImplementation(() => {});
 
       await expect(logger.getPreviousUserMessages()).rejects.toThrow(
         'db.all failed',
       );
-      expect(consoleErrorSpy).toHaveBeenCalledWith(
-        'Error querying database:',
-        error.message,
-      );
-      consoleErrorSpy.mockRestore();
     });
   });
 

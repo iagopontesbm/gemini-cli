@@ -16,7 +16,6 @@ import {
   ServerGeminiToolCallConfirmationEvent as ToolCallConfirmationEvent,
   ServerGeminiErrorEvent as ErrorEvent,
   Config,
-  Logger,
   MessageSenderType,
   ServerToolCallConfirmationDetails,
   ToolCallConfirmationDetails,
@@ -118,7 +117,7 @@ export const useGeminiStream = (
     if (typeof query === 'string') {
       const trimmedQuery = query.trim();
       onDebugMessage(`User query: '${trimmedQuery}'`);
-      logger.current?.logMessage(MessageSenderType.USER, trimmedQuery);
+      await logger?.logMessage(MessageSenderType.USER, trimmedQuery);
 
       // Handle UI-only commands first
       if (handleSlashCommand(trimmedQuery)) {
@@ -618,6 +617,7 @@ export const useGeminiStream = (
       onDebugMessage,
       refreshStatic,
       setInitError,
+      logger,
     ],
   );
 

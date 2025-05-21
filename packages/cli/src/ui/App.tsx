@@ -28,15 +28,10 @@ import { Tips } from './components/Tips.js';
 import { ConsoleOutput } from './components/ConsolePatcher.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
+import { useLogger } from './hooks/useLogger.js';
 import process from 'node:process';
 import { MessageType } from './types.js';
-import {
-  getErrorMessage,
-  shortenPath,
-  type Config,
-  Logger,
-} from '@gemini-code/server';
-import { useLogger } from './hooks/useLogger.js';
+import { getErrorMessage, shortenPath, type Config } from '@gemini-code/server';
 
 interface AppProps {
   config: Config;
@@ -163,23 +158,28 @@ export const App = ({
   );
 
   const logger = useLogger();
-  const userMessages = useMemo(
-    () => {
-      const pastMessages = logger.current?.getPreviousUserMessages() || [];
-      if (pastMessages) {
-        return pastMessages as string[];
+  const [userMessages, setUserMessages] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchUserMessages = async () => {
+      const pastMessages = (await logger?.getPreviousUserMessages()) || [];
+      if (pastMessages.length > 0) {
+        setUserMessages(pastMessages.reverse());
+      } else {
+        setUserMessages(
+          history
+            .filter(
+              (item): item is HistoryItem & { type: 'user'; text: string } =>
+                item.type === 'user' &&
+                typeof item.text === 'string' &&
+                item.text.trim() !== '',
+            )
+            .map((item) => item.text),
+        );
       }
-      return history
-        .filter(
-          (item): item is HistoryItem & { type: 'user'; text: string } =>
-            item.type === 'user' &&
-            typeof item.text === 'string' &&
-            item.text.trim() !== '',
-        )
-        .map((item) => item.text);
-    },
-    [history],
-  );
+    };
+    fetchUserMessages();
+  }, [history, logger]);
 
   const isInputActive = streamingState === StreamingState.Idle && !initError;
 
