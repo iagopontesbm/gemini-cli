@@ -130,8 +130,22 @@ async function collectDownwardGeminiFiles(
   directory: string,
   debugMode: boolean,
   ignoreDirs: string[],
+  scannedDirCount: { count: number },
+  maxScanDirs: number,
 ): Promise<string[]> {
-  if (debugMode) logger.debug(`Recursively scanning downward in: ${directory}`);
+  if (scannedDirCount.count >= maxScanDirs) {
+    if (debugMode)
+      logger.debug(
+        `Max directory scan limit (${maxScanDirs}) reached. Stopping downward scan at: ${directory}`,
+      );
+    return [];
+  }
+  scannedDirCount.count++;
+
+  if (debugMode)
+    logger.debug(
+      `Scanning downward for GEMINI.md files in: ${directory} (scanned: ${scannedDirCount.count}/${maxScanDirs})`,
+    );
   const collectedPaths: string[] = [];
   try {
     const entries = await fs.readdir(directory, { withFileTypes: true });
@@ -147,6 +161,8 @@ async function collectDownwardGeminiFiles(
           fullPath,
           debugMode,
           ignoreDirs,
+          scannedDirCount,
+          maxScanDirs,
         );
         collectedPaths.push(...subDirPaths);
       } else if (entry.isFile() && entry.name === GEMINI_MD_FILENAME) {
@@ -245,10 +261,14 @@ export async function getGeminiMdFilePaths(
 
   if (debugMode)
     logger.debug(`Starting downward scan from CWD: ${resolvedCwd}`);
+  const MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY = 200; // Define the cap
+  const scannedDirCount = { count: 0 };
   const downwardPaths = await collectDownwardGeminiFiles(
     resolvedCwd,
     debugMode,
     DEFAULT_IGNORE_DIRECTORIES,
+    scannedDirCount,
+    MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
   );
   downwardPaths.sort();
   if (debugMode && downwardPaths.length > 0)
