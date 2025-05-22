@@ -11,6 +11,7 @@ import {
   ToolConfirmationOutcome,
   Tool,
   ToolCallConfirmationDetails,
+  ToolResultDisplay,
 } from '@gemini-code/server';
 import { Part } from '@google/genai';
 import { useCallback, useEffect, useState } from 'react';
@@ -126,11 +127,13 @@ export function useToolScheduler(
                   await userApproval.onConfirm(outcome);
                   setToolCalls(
                     outcome === ToolConfirmationOutcome.Cancel
-                      ? setStatus(
-                          r.callId,
-                          'cancelled',
-                          'User did not allow tool call',
-                        )
+                      ? setStatus(r.callId, 'cancelled', {
+                          reason: 'User did not allow tool call',
+                          display:
+                            userApproval.type === 'edit'
+                              ? userApproval
+                              : `~~${userApproval.command}~~`,
+                        })
                       : setStatus(r.callId, 'scheduled'),
                   );
                 },
@@ -245,6 +248,8 @@ export function useToolScheduler(
   return [toolCalls, schedule, cancel];
 }
 
+type CancelInfo = { reason: string; display: ToolResultDisplay };
+
 function setStatus(
   targetCallId: string,
   status: 'success',
@@ -263,7 +268,7 @@ function setStatus(
 function setStatus(
   targetCallId: string,
   status: 'cancelled',
-  reason: string,
+  metadata: CancelInfo,
 ): (t: ToolCall[]) => ToolCall[];
 function setStatus(
   targetCallId: string,
@@ -312,6 +317,7 @@ function setStatus(
           return next;
         }
         case 'cancelled': {
+          const info: CancelInfo = auxiliaryData as CancelInfo;
           const next: CancelledToolCall = {
             ...t,
             status: 'cancelled',
@@ -322,11 +328,11 @@ function setStatus(
                   id: t.request.callId,
                   name: t.request.name,
                   response: {
-                    error: `[Operation Cancelled] Reason: ${auxiliaryData}`,
+                    error: `[Operation Cancelled] Reason: ${info.reason}`,
                   },
                 },
               },
-              resultDisplay: undefined,
+              resultDisplay: info.display,
               error: undefined,
             },
           };
