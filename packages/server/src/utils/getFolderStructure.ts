@@ -196,7 +196,7 @@ function formatStructure(
   node: FullFolderInfo,
   indent: string,
   isLast: boolean,
-  isRoot: boolean, // Added to handle root node name printing
+  isRoot: boolean,
   builder: string[],
 ): void {
   const connector = isLast ? '└───' : '├───';
