@@ -177,45 +177,60 @@ async function getGeminiMdFilePathsInternal(
 
   const upwardPaths: string[] = [];
   let currentDir = resolvedCwd;
-  const stopDir = projectRoot ? path.dirname(projectRoot) : resolvedHome;
+  // Determine the directory that signifies the top of the project or user-specific space.
+  const ultimateStopDir = projectRoot
+    ? path.dirname(projectRoot)
+    : path.dirname(resolvedHome);
 
-  while (
-    currentDir &&
-    currentDir !== stopDir &&
-    currentDir !== path.dirname(currentDir) // Stop if we reach the filesystem root
-  ) {
-    if (debugMode)
+  while (currentDir && currentDir !== path.dirname(currentDir)) {
+    // Loop until filesystem root or currentDir is empty
+    if (debugMode) {
       logger.debug(
         `Checking for ${GEMINI_MD_FILENAME} in (upward scan): ${currentDir}`,
       );
-    // Avoid re-checking the global memory path if it's part of the upward scan
+    }
+
+    // Skip the global .gemini directory itself during upward scan from CWD,
+    // as global is handled separately and explicitly first.
     if (currentDir === path.join(resolvedHome, GEMINI_CONFIG_DIR)) {
-      if (debugMode)
-        logger.debug(`Skipping check inside global config dir: ${currentDir}`);
+      if (debugMode) {
+        logger.debug(
+          `Upward scan reached global config dir path, stopping upward search here: ${currentDir}`,
+        );
+      }
       break;
     }
+
     const potentialPath = path.join(currentDir, GEMINI_MD_FILENAME);
     try {
       await fs.access(potentialPath, fsSync.constants.R_OK);
-      upwardPaths.unshift(potentialPath); // Add to beginning to maintain hierarchy
-      if (debugMode)
-        logger.debug(
-          `Found readable upward ${GEMINI_MD_FILENAME}: ${potentialPath}`,
-        );
+      // Add to upwardPaths only if it's not the already added globalMemoryPath
+      if (potentialPath !== globalMemoryPath) {
+        upwardPaths.unshift(potentialPath);
+        if (debugMode) {
+          logger.debug(
+            `Found readable upward ${GEMINI_MD_FILENAME}: ${potentialPath}`,
+          );
+        }
+      }
     } catch {
-      if (debugMode)
+      if (debugMode) {
         logger.debug(
           `Upward ${GEMINI_MD_FILENAME} not found or not readable in: ${currentDir}`,
         );
+      }
     }
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir) {
-      // Should be caught by the loop condition, but as a safeguard
+
+    // Stop condition: if currentDir is the ultimateStopDir, break after this iteration.
+    if (currentDir === ultimateStopDir) {
       if (debugMode)
-        logger.debug(`Reached filesystem root, stopping upward search.`);
+        logger.debug(
+          `Reached ultimate stop directory for upward scan: ${currentDir}`,
+        );
       break;
     }
-    currentDir = parentDir;
+
+    currentDir = path.dirname(currentDir);
   }
   paths.push(...upwardPaths);
 
