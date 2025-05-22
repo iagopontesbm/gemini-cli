@@ -10,12 +10,10 @@ import {
   GeminiEventType,
   ServerGeminiToolCallRequestEvent,
   ServerGeminiErrorEvent,
-  // ServerGeminiContentEvent, // Removed as it's unused
 } from './turn.js';
 import { Chat, GenerateContentResponse, Part, Content } from '@google/genai';
-import { reportError } from '../utils/errorReporting.js'; // Keep direct import
+import { reportError } from '../utils/errorReporting.js';
 
-// Mocks
 const mockSendMessageStream = vi.fn();
 const mockGetHistory = vi.fn();
 
@@ -145,7 +143,7 @@ describe('Turn', () => {
         yield {
           candidates: [{ content: { parts: [{ text: 'First part' }] } }],
         } as unknown as GenerateContentResponse;
-        abortController.abort(); // Abort after the first part
+        abortController.abort();
         yield {
           candidates: [
             {
