@@ -144,7 +144,7 @@ async function collectDownwardGeminiFiles(
 
   if (debugMode)
     logger.debug(
-      `Scanning downward for GEMINI.md files in: ${directory} (scanned: ${scannedDirCount.count}/${maxScanDirs})`,
+      `Scanning downward for ${GEMINI_MD_FILENAME} files in: ${directory} (scanned: ${scannedDirCount.count}/${maxScanDirs})`,
     );
   const collectedPaths: string[] = [];
   try {
@@ -170,11 +170,13 @@ async function collectDownwardGeminiFiles(
           await fs.access(fullPath, fsSync.constants.R_OK);
           collectedPaths.push(fullPath);
           if (debugMode)
-            logger.debug(`Found readable downward GEMINI.md: ${fullPath}`);
+            logger.debug(
+              `Found readable downward ${GEMINI_MD_FILENAME}: ${fullPath}`,
+            );
         } catch {
           if (debugMode)
             logger.debug(
-              `Downward GEMINI.md not readable, skipping: ${fullPath}`,
+              `Downward ${GEMINI_MD_FILENAME} not readable, skipping: ${fullPath}`,
             );
         }
       }
@@ -202,18 +204,22 @@ export async function getGeminiMdFilePaths(
   const paths: string[] = [];
 
   if (debugMode)
-    logger.debug(`Searching for GEMINI.md starting from CWD: ${resolvedCwd}`);
+    logger.debug(
+      `Searching for ${GEMINI_MD_FILENAME} starting from CWD: ${resolvedCwd}`,
+    );
   if (debugMode) logger.debug(`User home directory: ${resolvedHome}`);
 
   try {
     await fs.access(globalMemoryPath, fsSync.constants.R_OK);
     paths.push(globalMemoryPath);
     if (debugMode)
-      logger.debug(`Found readable global GEMINI.md: ${globalMemoryPath}`);
+      logger.debug(
+        `Found readable global ${GEMINI_MD_FILENAME}: ${globalMemoryPath}`,
+      );
   } catch {
     if (debugMode)
       logger.debug(
-        `Global GEMINI.md not found or not readable: ${globalMemoryPath}`,
+        `Global ${GEMINI_MD_FILENAME} not found or not readable: ${globalMemoryPath}`,
       );
   }
 
@@ -231,7 +237,9 @@ export async function getGeminiMdFilePaths(
     currentDir !== path.dirname(currentDir)
   ) {
     if (debugMode)
-      logger.debug(`Checking for GEMINI.md in (upward scan): ${currentDir}`);
+      logger.debug(
+        `Checking for ${GEMINI_MD_FILENAME} in (upward scan): ${currentDir}`,
+      );
     if (currentDir === path.join(resolvedHome, GEMINI_CONFIG_DIR)) {
       if (debugMode)
         logger.debug(`Skipping check inside global config dir: ${currentDir}`);
@@ -242,11 +250,13 @@ export async function getGeminiMdFilePaths(
       await fs.access(potentialPath, fsSync.constants.R_OK);
       upwardPaths.unshift(potentialPath);
       if (debugMode)
-        logger.debug(`Found readable upward GEMINI.md: ${potentialPath}`);
+        logger.debug(
+          `Found readable upward ${GEMINI_MD_FILENAME}: ${potentialPath}`,
+        );
     } catch {
       if (debugMode)
         logger.debug(
-          `Upward GEMINI.md not found or not readable in: ${currentDir}`,
+          `Upward ${GEMINI_MD_FILENAME} not found or not readable in: ${currentDir}`,
         );
     }
     const parentDir = path.dirname(currentDir);
@@ -273,7 +283,7 @@ export async function getGeminiMdFilePaths(
   downwardPaths.sort();
   if (debugMode && downwardPaths.length > 0)
     logger.debug(
-      `Found downward GEMINI.md files (sorted): ${JSON.stringify(downwardPaths)}`,
+      `Found downward ${GEMINI_MD_FILENAME} files (sorted): ${JSON.stringify(downwardPaths)}`,
     );
   for (const dPath of downwardPaths) {
     if (!paths.includes(dPath)) {
@@ -283,7 +293,7 @@ export async function getGeminiMdFilePaths(
 
   if (debugMode)
     logger.debug(
-      `Final ordered GEMINI.md paths to read: ${JSON.stringify(paths)}`,
+      `Final ordered ${GEMINI_MD_FILENAME} paths to read: ${JSON.stringify(paths)}`,
     );
   return paths;
 }
@@ -309,7 +319,7 @@ async function readGeminiMdFiles(
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       logger.warn(
-        `Warning: Could not read GEMINI.md file at ${filePath}. Error: ${message}`,
+        `Warning: Could not read ${GEMINI_MD_FILENAME} file at ${filePath}. Error: ${message}`,
       );
       results.push({ filePath, content: null });
       if (debugMode) logger.debug(`Failed to read: ${filePath}`);

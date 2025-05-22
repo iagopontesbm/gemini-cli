@@ -5,6 +5,7 @@
  */
 
 import * as fs from 'fs/promises';
+import { Dirent } from 'fs';
 import * as path from 'path';
 import { getErrorMessage, isNodeError } from './errors.js';
 
@@ -85,9 +86,11 @@ async function readFullStructure(
       continue;
     }
 
-    let entries;
+    let entries: Dirent[];
     try {
-      entries = await fs.readdir(currentPath, { withFileTypes: true });
+      const rawEntries = await fs.readdir(currentPath, { withFileTypes: true });
+      // Sort entries alphabetically by name for consistent processing order
+      entries = rawEntries.sort((a, b) => a.name.localeCompare(b.name));
     } catch (error: unknown) {
       if (
         isNodeError(error) &&
@@ -96,10 +99,13 @@ async function readFullStructure(
         console.warn(
           `Warning: Could not read directory ${currentPath}: ${error.message}`,
         );
-        // Mark as errored or simply skip. For now, skip.
+        if (currentPath === rootPath && error.code === 'ENOENT') {
+          return null; // Root directory itself not found
+        }
+        // For other EACCES/ENOENT on subdirectories, just skip them.
         continue;
       }
-      throw error; // Rethrow other errors
+      throw error;
     }
 
     const filesInCurrentDir: string[] = [];
@@ -129,10 +135,15 @@ async function readFullStructure(
     // Then process directories and queue them
     for (const entry of entries) {
       if (entry.isDirectory()) {
+        // Check if adding this directory ITSELF would meet or exceed maxItems
+        // (currentItemCount refers to items *already* added before this one)
         if (currentItemCount >= options.maxItems) {
           folderInfo.hasMoreSubfolders = true;
-          break;
+          break; // Already at limit, cannot add this folder or any more
         }
+        // If adding THIS folder makes us hit the limit exactly, and it might have children,
+        // it's better to show '...' for the parent, unless this is the very last item slot.
+        // This logic is tricky. Let's try a simpler: if we can't add this item, mark and break.
 
         const subFolderName = entry.name;
         const subFolderPath = path.join(currentPath, subFolderName);
@@ -172,16 +183,6 @@ async function readFullStructure(
     folderInfo.subFolders = subFoldersInCurrentDir;
   }
 
-  // Recalculate totalChildren and totalFiles for rootNode based on its actual children
-  // as the BFS processes level by level, these counts are built up from bottom-up in a DFS sense
-  // but for BFS, we need to sum them up after the fact if we want accurate totals for parent nodes
-  // based on *actually included* children.
-  // However, the current item counting should reflect what's *added* to the structure.
-  // The `totalChildren` and `totalFiles` on each node will reflect what *it* contains directly
-  // or what was added from its children before truncation.
-
-  // For now, the item count is the primary driver, and local totals are fine.
-
   return rootNode;
 }
 
@@ -194,48 +195,63 @@ async function readFullStructure(
  */
 function formatStructure(
   node: FullFolderInfo,
-  indent: string,
-  isLast: boolean,
-  isRoot: boolean,
+  currentIndent: string,
+  isLastChildOfParent: boolean,
+  isProcessingRootNode: boolean,
   builder: string[],
 ): void {
-  const connector = isLast ? '└───' : '├───';
-  const linePrefix = indent + connector;
+  const connector = isLastChildOfParent ? '└───' : '├───';
 
-  // Don't print the root node's name directly, only its contents, unless it's an ignored root
-  if (!isRoot || node.isIgnored) {
+  // The root node of the structure (the one passed initially to getFolderStructure)
+  // is not printed with a connector line itself, only its name as a header.
+  // Its children are printed relative to that conceptual root.
+  // Ignored root nodes ARE printed with a connector.
+  if (!isProcessingRootNode || node.isIgnored) {
     builder.push(
-      `${linePrefix}${node.name}/${node.isIgnored ? TRUNCATION_INDICATOR : ''}`,
+      `${currentIndent}${connector}${node.name}/${node.isIgnored ? TRUNCATION_INDICATOR : ''}`,
     );
   }
 
-  const childIndent = indent + (isLast || isRoot ? '    ' : '│   ');
+  // Determine the indent for the children of *this* node.
+  // If *this* node was the root of the whole structure, its children start with no indent before their connectors.
+  // Otherwise, children's indent extends from the current node's indent.
+  const indentForChildren = isProcessingRootNode
+    ? ''
+    : currentIndent + (isLastChildOfParent ? '    ' : '│   ');
 
-  // Render files
+  // Render files of the current node
   const fileCount = node.files.length;
   for (let i = 0; i < fileCount; i++) {
-    const isLastFile =
+    const isLastFileAmongSiblings =
       i === fileCount - 1 &&
       node.subFolders.length === 0 &&
       !node.hasMoreSubfolders;
-    const fileConnector = isLastFile ? '└───' : '├───';
-    builder.push(`${childIndent}${fileConnector}${node.files[i]}`);
+    const fileConnector = isLastFileAmongSiblings ? '└───' : '├───';
+    builder.push(`${indentForChildren}${fileConnector}${node.files[i]}`);
   }
   if (node.hasMoreFiles) {
-    const isLastFile = node.subFolders.length === 0 && !node.hasMoreSubfolders;
-    const fileConnector = isLastFile ? '└───' : '├───';
-    builder.push(`${childIndent}${fileConnector}${TRUNCATION_INDICATOR}`);
+    const isLastIndicatorAmongSiblings =
+      node.subFolders.length === 0 && !node.hasMoreSubfolders;
+    const fileConnector = isLastIndicatorAmongSiblings ? '└───' : '├───';
+    builder.push(`${indentForChildren}${fileConnector}${TRUNCATION_INDICATOR}`);
   }
 
-  // Render subfolders
+  // Render subfolders of the current node
   const subFolderCount = node.subFolders.length;
   for (let i = 0; i < subFolderCount; i++) {
-    const isLastSub = i === subFolderCount - 1 && !node.hasMoreSubfolders;
-    formatStructure(node.subFolders[i], childIndent, isLastSub, false, builder);
+    const isLastSubfolderAmongSiblings =
+      i === subFolderCount - 1 && !node.hasMoreSubfolders;
+    // Children are never the root node being processed initially.
+    formatStructure(
+      node.subFolders[i],
+      indentForChildren,
+      isLastSubfolderAmongSiblings,
+      false,
+      builder,
+    );
   }
   if (node.hasMoreSubfolders) {
-    // Create a dummy node for the truncation indicator to be formatted
-    builder.push(`${childIndent}└───${TRUNCATION_INDICATOR}`);
+    builder.push(`${indentForChildren}└───${TRUNCATION_INDICATOR}`);
   }
 }
 
@@ -298,10 +314,6 @@ export async function getFolderStructure(
       disclaimer = `Folders or files indicated with ${TRUNCATION_INDICATOR} contain more items not shown, were ignored, or the display limit (${mergedOptions.maxItems} items) was reached.`;
     }
 
-    // Count the number of items that will be displayed for the summary.
-    // This should ideally match the number of lines generated by formatStructure, plus files inside displayed folders.
-    // The `currentItemCount` from `readFullStructure` is the most accurate count of processed items.
-    // For the summary, we can state we are showing *up to* maxItems.
     const summary =
       `Showing up to ${mergedOptions.maxItems} items (files + folders). ${disclaimer}`.trim();
 
