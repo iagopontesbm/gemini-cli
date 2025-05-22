@@ -67,7 +67,6 @@ async function readFullStructure(
   ];
   let currentItemCount = 0;
   // Count the root node itself as one item if we are not just listing its content
-  // currentItemCount++;
 
   const processedPaths = new Set<string>(); // To avoid processing same path if symlinks create loops
 
