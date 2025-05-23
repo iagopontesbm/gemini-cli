@@ -33,7 +33,6 @@ export class MCPServerConfig {
     readonly url?: string,
     // Common
     readonly timeout?: number,
-    readonly transport: 'stdio' | 'sse' = 'stdio',
   ) {}
 }
 
