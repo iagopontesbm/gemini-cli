@@ -88,7 +88,7 @@ jobs:
         run: npm ci # Install fresh dependencies using the downloaded package-lock.json
 
       - name: Run tests and generate reports
-        run: npm run test:ci
+        run: NO_COLOR=true npm run test:ci
 
       - name: Publish Test Report
         uses: dorny/test-reporter@v1
@@ -103,42 +103,64 @@ jobs:
         id: prep_coverage_comment
         shell: bash
         run: |
-          cli_summary_file="${{ github.workspace }}/packages/cli/coverage/coverage-summary.json"
-          server_summary_file="${{ github.workspace }}/packages/server/coverage/coverage-summary.json"
+          cli_json_file="${{ github.workspace }}/packages/cli/coverage/coverage-summary.json"
+          server_json_file="${{ github.workspace }}/packages/server/coverage/coverage-summary.json"
+          cli_full_text_summary_file="${{ github.workspace }}/packages/cli/coverage/full-text-summary.txt"
+          server_full_text_summary_file="${{ github.workspace }}/packages/server/coverage/full-text-summary.txt"
           comment_file="coverage-comment.md"
+
+          # Extract percentages using jq for the main table
+          if [ -f "$cli_json_file" ]; then
+            cli_lines_pct=$(jq -r '.total.lines.pct' "$cli_json_file")
+            cli_statements_pct=$(jq -r '.total.statements.pct' "$cli_json_file")
+            cli_functions_pct=$(jq -r '.total.functions.pct' "$cli_json_file")
+            cli_branches_pct=$(jq -r '.total.branches.pct' "$cli_json_file")
+          else
+            cli_lines_pct="N/A"; cli_statements_pct="N/A"; cli_functions_pct="N/A"; cli_branches_pct="N/A"
+            echo "CLI coverage-summary.json not found at: $cli_json_file" >&2 # Error to stderr
+          fi
+
+          if [ -f "$server_json_file" ]; then
+            server_lines_pct=$(jq -r '.total.lines.pct' "$server_json_file")
+            server_statements_pct=$(jq -r '.total.statements.pct' "$server_json_file")
+            server_functions_pct=$(jq -r '.total.functions.pct' "$server_json_file")
+            server_branches_pct=$(jq -r '.total.branches.pct' "$server_json_file")
+          else
+            server_lines_pct="N/A"; server_statements_pct="N/A"; server_functions_pct="N/A"; server_branches_pct="N/A"
+            echo "Server coverage-summary.json not found at: $server_json_file" >&2 # Error to stderr
+          fi
 
           echo "## Code Coverage Summary" > "$comment_file"
           echo "" >> "$comment_file"
-
-          # CLI Package
-          echo "<details>" >> "$comment_file"
-          echo "<summary>CLI Package Coverage</summary>" >> "$comment_file"
+          echo "| Package | Lines | Statements | Functions | Branches |" >> "$comment_file"
+          echo "|---|---|---|---|---|" >> "$comment_file"
+          echo "| CLI | ${cli_lines_pct}% | ${cli_statements_pct}% | ${cli_functions_pct}% | ${cli_branches_pct}% |" >> "$comment_file"
+          echo "| Server | ${server_lines_pct}% | ${server_statements_pct}% | ${server_functions_pct}% | ${server_branches_pct}% |" >> "$comment_file"
           echo "" >> "$comment_file"
-          echo '```text' >> "$comment_file" # Changed from json to text for better readability of extracted fields
-          if [ -f "$cli_summary_file" ]; then
-            echo "Lines: $(jq -r '.total.lines.pct' $cli_summary_file)%" >> "$comment_file"
-            echo "Statements: $(jq -r '.total.statements.pct' $cli_summary_file)%" >> "$comment_file"
-            echo "Functions: $(jq -r '.total.functions.pct' $cli_summary_file)%" >> "$comment_file"
-            echo "Branches: $(jq -r '.total.branches.pct' $cli_summary_file)%" >> "$comment_file"
+
+          # CLI Package - Collapsible Section (with full text summary from file)
+          echo "<details>" >> "$comment_file"
+          echo "<summary>CLI Package - Full Text Report</summary>" >> "$comment_file"
+          echo "" >> "$comment_file"
+          echo '```text' >> "$comment_file"
+          if [ -f "$cli_full_text_summary_file" ]; then
+            cat "$cli_full_text_summary_file" >> "$comment_file"
           else
-            echo "CLI coverage-summary.json not found at: $cli_summary_file" >> "$comment_file"
+            echo "CLI full-text-summary.txt not found at: $cli_full_text_summary_file" >> "$comment_file"
           fi
           echo '```' >> "$comment_file"
           echo "</details>" >> "$comment_file"
           echo "" >> "$comment_file"
 
-          # Server Package
+          # Server Package - Collapsible Section (with full text summary from file)
           echo "<details>" >> "$comment_file"
-          echo "<summary>Server Package Coverage</summary>" >> "$comment_file"
+          echo "<summary>Server Package - Full Text Report</summary>" >> "$comment_file"
           echo "" >> "$comment_file"
-          echo '```text' >> "$comment_file" # Changed from json to text for better readability
-          if [ -f "$server_summary_file" ]; then
-            echo "Lines: $(jq -r '.total.lines.pct' $server_summary_file)%" >> "$comment_file"
-            echo "Statements: $(jq -r '.total.statements.pct' $server_summary_file)%" >> "$comment_file"
-            echo "Functions: $(jq -r '.total.functions.pct' $server_summary_file)%" >> "$comment_file"
-            echo "Branches: $(jq -r '.total.branches.pct' $server_summary_file)%" >> "$comment_file"
+          echo '```text' >> "$comment_file"
+          if [ -f "$server_full_text_summary_file" ]; then
+            cat "$server_full_text_summary_file" >> "$comment_file"
           else
-            echo "Server coverage-summary.json not found at: $server_summary_file" >> "$comment_file"
+            echo "Server full-text-summary.txt not found at: $server_full_text_summary_file" >> "$comment_file"
           fi
           echo '```' >> "$comment_file"
           echo "</details>" >> "$comment_file"
