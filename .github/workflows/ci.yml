@@ -104,16 +104,14 @@ jobs:
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: cat packages/cli/coverage/text-summary.txt
-          report-name: 'CLI Coverage' # Distinguish the comment
+          coverage-command: npm run test:ci --workspace=@gemini-code/cli
 
       - name: Publish Server Coverage Comment
         uses: tj-actions/coverage-reporter@v5.4
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: cat packages/server/coverage/text-summary.txt
-          report-name: 'Server Coverage' # Distinguish the comment
+          coverage-command: npm run test:ci --workspace=@gemini-code/server
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
