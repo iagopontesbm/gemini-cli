@@ -199,7 +199,6 @@ export class ToolRegistry {
       mcpServers['mcp'] = {
         command: args[0],
         args: args.slice(1),
-        transport: 'stdio',
       };
     }
     for (const [mcpServerName, mcpServerConfig] of Object.entries(mcpServers)) {
