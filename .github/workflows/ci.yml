@@ -99,19 +99,33 @@ jobs:
           reporter: java-junit
           fail-on-error: 'false'
 
-      - name: Publish CLI Coverage Comment
-        uses: tj-actions/coverage-reporter@v5.4
-        if: always()
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: npm run test:ci --workspace=@gemini-code/cli
+      - name: Prepare Coverage Comment
+        id: prep_coverage_comment
+        run: |
+          echo "## Code Coverage Summary" > coverage-comment.md
+          echo "" >> coverage-comment.md
+          echo "### CLI Package" >> coverage-comment.md
+          echo "```text" >> coverage-comment.md
+          cat ${{ github.workspace }}/packages/cli/coverage/text-summary.txt >> coverage-comment.md
+          echo "```" >> coverage-comment.md
+          echo "" >> coverage-comment.md
+          echo "### Server Package" >> coverage-comment.md
+          echo "```text" >> coverage-comment.md
+          cat ${{ github.workspace }}/packages/server/coverage/text-summary.txt >> coverage-comment.md
+          echo "```" >> coverage-comment.md
+          echo "" >> coverage-comment.md
+          echo "_For detailed HTML reports, please see the 'coverage-reports-${{ matrix.node-version }}' artifact from this CI run._" >> coverage-comment.md
+          echo "comment_body<<EOF" >> $GITHUB_OUTPUT
+          cat coverage-comment.md >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Publish Server Coverage Comment
-        uses: tj-actions/coverage-reporter@v5.4
+      - name: Post Coverage Comment
+        uses: thollander/actions-comment-pull-request@v3
         if: always()
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: npm run test:ci --workspace=@gemini-code/server
+          message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
+          comment_tag: code-coverage-summary # Unique tag to update the comment
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
