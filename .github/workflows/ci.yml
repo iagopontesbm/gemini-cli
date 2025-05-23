@@ -103,13 +103,9 @@ jobs:
         id: prep_coverage_comment
         shell: bash
         run: |
-          echo "Listing CLI coverage directory contents:"
-          ls -la ${{ github.workspace }}/packages/cli/coverage/
-          echo "Listing Server coverage directory contents:"
-          ls -la ${{ github.workspace }}/packages/server/coverage/
+          cli_summary_content=$(npm exec --workspace=@gemini-code/cli -c 'vitest run --coverage=false --reporter=text-summary')
+          server_summary_content=$(npm exec --workspace=@gemini-code/server -c 'vitest run --coverage=false --reporter=text-summary')
 
-          cli_summary_file="${{ github.workspace }}/packages/cli/coverage/text-summary.txt"
-          server_summary_file="${{ github.workspace }}/packages/server/coverage/text-summary.txt"
           comment_file="coverage-comment.md"
 
           echo "## Code Coverage Summary" > "$comment_file"
@@ -117,21 +113,13 @@ jobs:
 
           echo "### CLI Package" >> "$comment_file"
           echo '```text' >> "$comment_file"
-          if [ -f "$cli_summary_file" ]; then
-            cat "$cli_summary_file" >> "$comment_file"
-          else
-            echo "CLI coverage summary file not found at: $cli_summary_file" >> "$comment_file"
-          fi
+          echo "$cli_summary_content" >> "$comment_file"
           echo '```' >> "$comment_file"
           echo "" >> "$comment_file"
 
           echo "### Server Package" >> "$comment_file"
           echo '```text' >> "$comment_file"
-          if [ -f "$server_summary_file" ]; then
-            cat "$server_summary_file" >> "$comment_file"
-          else
-            echo "Server coverage summary file not found at: $server_summary_file" >> "$comment_file"
-          fi
+          echo "$server_summary_content" >> "$comment_file"
           echo '```' >> "$comment_file"
           echo "" >> "$comment_file"
 
