@@ -9,7 +9,7 @@ import { useInputHistory } from './useInputHistory.js';
 
 describe('useInputHistory', () => {
   const mockOnSubmit = vi.fn();
-  const mockOnChangeAndMoveCursor = vi.fn();
+  const mockOnChange = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -24,7 +24,7 @@ describe('useInputHistory', () => {
         onSubmit: mockOnSubmit,
         isActive: true,
         currentQuery: '',
-        onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+        onChange: mockOnChange,
       }),
     );
 
@@ -33,7 +33,7 @@ describe('useInputHistory', () => {
     act(() => {
       result.current.navigateDown();
     });
-    expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+    expect(mockOnChange).not.toHaveBeenCalled();
   });
 
   describe('handleSubmit', () => {
@@ -44,7 +44,7 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: '  test query  ',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
@@ -57,7 +57,7 @@ describe('useInputHistory', () => {
       act(() => {
         result.current.navigateDown();
       });
-      expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('should not call onSubmit if value is empty after trimming', () => {
@@ -67,7 +67,7 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: '',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
@@ -87,14 +87,14 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: false,
           currentQuery: 'current',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
       act(() => {
         const navigated = result.current.navigateUp();
         expect(navigated).toBe(false);
       });
-      expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('should not navigate if userMessages is empty', () => {
@@ -104,17 +104,17 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: 'current',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
       act(() => {
         const navigated = result.current.navigateUp();
         expect(navigated).toBe(false);
       });
-      expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
-    it('should call onChangeAndMoveCursor with the last message when navigating up from initial state', () => {
+    it('should call onChange with the last message when navigating up from initial state', () => {
       const currentQuery = 'current query';
       const { result } = renderHook(() =>
         useInputHistory({
@@ -122,7 +122,7 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery,
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
@@ -130,7 +130,7 @@ describe('useInputHistory', () => {
         result.current.navigateUp();
       });
 
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[2]); // Last message
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[2]); // Last message
     });
 
     it('should store currentQuery as originalQueryBeforeNav on first navigateUp', () => {
@@ -141,20 +141,20 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery,
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
       act(() => {
         result.current.navigateUp(); // historyIndex becomes 0
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[2]);
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[2]);
 
       // Navigate down to restore original query
       act(() => {
         result.current.navigateDown(); // historyIndex becomes -1
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(currentQuery);
+      expect(mockOnChange).toHaveBeenCalledWith(currentQuery);
     });
 
     it('should navigate through history messages on subsequent navigateUp calls', () => {
@@ -164,24 +164,24 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: '',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
       act(() => {
         result.current.navigateUp(); // Navigates to 'message 3'
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[2]);
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[2]);
 
       act(() => {
         result.current.navigateUp(); // Navigates to 'message 2'
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[1]);
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[1]);
 
       act(() => {
         result.current.navigateUp(); // Navigates to 'message 1'
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[0]);
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[0]);
     });
   });
 
@@ -192,7 +192,7 @@ describe('useInputHistory', () => {
         onSubmit: mockOnSubmit,
         isActive: true, // Start active to allow setup navigation
         currentQuery: 'current',
-        onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+        onChange: mockOnChange,
       };
       const { result, rerender } = renderHook(
         (props) => useInputHistory(props),
@@ -205,7 +205,7 @@ describe('useInputHistory', () => {
       act(() => {
         result.current.navigateUp();
       });
-      mockOnChangeAndMoveCursor.mockClear(); // Clear calls from setup
+      mockOnChange.mockClear(); // Clear calls from setup
 
       // Set isActive to false for the actual test
       rerender({ ...initialProps, isActive: false });
@@ -214,7 +214,7 @@ describe('useInputHistory', () => {
         const navigated = result.current.navigateDown();
         expect(navigated).toBe(false);
       });
-      expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('should not navigate if historyIndex is -1 (not in history navigation)', () => {
@@ -224,14 +224,14 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: 'current',
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
       act(() => {
         const navigated = result.current.navigateDown();
         expect(navigated).toBe(false);
       });
-      expect(mockOnChangeAndMoveCursor).not.toHaveBeenCalled();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('should restore originalQueryBeforeNav when navigating down to initial state', () => {
@@ -242,20 +242,20 @@ describe('useInputHistory', () => {
           onSubmit: mockOnSubmit,
           isActive: true,
           currentQuery: originalQuery,
-          onChangeAndMoveCursor: mockOnChangeAndMoveCursor,
+          onChange: mockOnChange,
         }),
       );
 
       act(() => {
         result.current.navigateUp(); // Navigates to 'message 3', stores 'originalQuery'
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(userMessages[2]);
-      mockOnChangeAndMoveCursor.mockClear();
+      expect(mockOnChange).toHaveBeenCalledWith(userMessages[2]);
+      mockOnChange.mockClear();
 
       act(() => {
         result.current.navigateDown(); // Navigates back to original query
       });
-      expect(mockOnChangeAndMoveCursor).toHaveBeenCalledWith(originalQuery);
+      expect(mockOnChange).toHaveBeenCalledWith(originalQuery);
     });
   });
 });

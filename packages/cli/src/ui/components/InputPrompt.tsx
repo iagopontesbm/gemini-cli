@@ -86,7 +86,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     onSubmit: handleSubmitAndClear,
     isActive: !completion.showSuggestions,
     currentQuery: buffer.text,
-    onChangeAndMoveCursor: buffer.setText,
+    onChange: buffer.setText,
   });
 
   const completionSuggestions = completion.suggestions;
