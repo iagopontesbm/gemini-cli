@@ -155,7 +155,7 @@ jobs:
         if: always()
         with:
           message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
-          comment_tag: code-coverage-summary # This input is valid
+          comment-tag: code-coverage-summary # This input is valid
           github-token: ${{ secrets.GITHUB_TOKEN }} # Corrected: lowercase 'github-token'
 
       - name: Upload coverage reports
