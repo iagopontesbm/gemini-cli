@@ -24,11 +24,16 @@ import { WebSearchTool } from '../tools/web-search.js';
 
 export class MCPServerConfig {
   constructor(
-    readonly command: string,
+    // For stdio transport
+    readonly command?: string,
     readonly args?: string[],
     readonly env?: Record<string, string>,
     readonly cwd?: string,
+    // For sse transport
+    readonly url?: string,
+    // Common
     readonly timeout?: number,
+    readonly transport: 'stdio' | 'sse' = 'stdio',
   ) {}
 }
 

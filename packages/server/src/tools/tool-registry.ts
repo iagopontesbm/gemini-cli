@@ -12,6 +12,7 @@ import { spawn, execSync } from 'node:child_process';
 // TODO: remove this dependency once MCP support is built into genai SDK
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 type ToolParams = Record<string, unknown>;
 
 const MCP_TOOL_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
@@ -198,6 +199,7 @@ export class ToolRegistry {
       mcpServers['mcp'] = {
         command: args[0],
         args: args.slice(1),
+        transport: 'stdio',
       };
     }
     for (const [mcpServerName, mcpServerConfig] of Object.entries(mcpServers)) {
@@ -206,14 +208,34 @@ export class ToolRegistry {
           name: 'mcp-client',
           version: '0.0.1',
         });
-        const transport = new StdioClientTransport({
-          ...mcpServerConfig,
-          env: {
-            ...process.env,
-            ...(mcpServerConfig.env || {}),
-          } as Record<string, string>,
-          stderr: 'pipe',
-        });
+        let transport;
+        if (mcpServerConfig.transport === 'sse') {
+          if (!mcpServerConfig.url) {
+            console.error(
+              `MCP server '${mcpServerName}' is configured for SSE transport but no URL is provided. Skipping.`,
+            );
+            return;
+          }
+          transport = new SSEClientTransport(new URL(mcpServerConfig.url));
+        } else {
+          // stdio
+          if (!mcpServerConfig.command) {
+            console.error(
+              `MCP server '${mcpServerName}' is configured for stdio transport but no command is provided. Skipping.`,
+            );
+            return;
+          }
+          transport = new StdioClientTransport({
+            command: mcpServerConfig.command,
+            args: mcpServerConfig.args || [],
+            env: {
+              ...process.env,
+              ...(mcpServerConfig.env || {}),
+            } as Record<string, string>,
+            cwd: mcpServerConfig.cwd,
+            stderr: 'pipe',
+          });
+        }
         try {
           await mcpClient.connect(transport);
         } catch (error) {
@@ -227,15 +249,17 @@ export class ToolRegistry {
         mcpClient.onerror = (error) => {
           console.error('MCP ERROR', error.toString());
         };
-        if (!transport.stderr) {
+        if (transport instanceof StdioClientTransport && !transport.stderr) {
           throw new Error('transport missing stderr stream');
         }
-        transport.stderr.on('data', (data) => {
-          // filter out INFO messages logged for each request received
-          if (!data.toString().includes('] INFO')) {
-            console.debug('MCP STDERR', data.toString());
-          }
-        });
+        if (transport instanceof StdioClientTransport) {
+          transport.stderr!.on('data', (data) => {
+            // filter out INFO messages logged for each request received
+            if (!data.toString().includes('] INFO')) {
+              console.debug('MCP STDERR', data.toString());
+            }
+          });
+        }
         const result = await mcpClient.listTools();
         for (const tool of result.tools) {
           // Recursively remove additionalProperties and $schema from the inputSchema
