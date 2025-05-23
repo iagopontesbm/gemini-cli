@@ -123,4 +123,5 @@ export interface Message {
 export interface ConsoleMessageItem {
   type: 'log' | 'warn' | 'error' | 'debug';
   content: string;
+  count?: number;
 }
