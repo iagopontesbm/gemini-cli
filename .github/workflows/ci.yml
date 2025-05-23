@@ -103,8 +103,8 @@ jobs:
         id: prep_coverage_comment
         shell: bash
         run: |
-          cli_summary_content=$(NO_COLOR=true npm exec --workspace=@gemini-code/cli -c 'vitest run --coverage=false --reporter=text' | awk '/^All files/,/^-+$/')
-          server_summary_content=$(NO_COLOR=true npm exec --workspace=@gemini-code/server -c 'vitest run --coverage=false --reporter=text' | awk '/^All files/,/^-+$/')
+          cli_summary_content=$(NO_COLOR=true npm run test:ci --workspace=@gemini-code/cli | awk '/^ % Coverage report from v8/,/^-+$/')
+          server_summary_content=$(NO_COLOR=true npm run test:ci --workspace=@gemini-code/server | awk '/^ % Coverage report from v8/,/^-+$/')
 
           comment_file="coverage-comment.md"
 
