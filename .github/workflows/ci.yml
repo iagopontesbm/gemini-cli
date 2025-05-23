@@ -101,23 +101,41 @@ jobs:
 
       - name: Prepare Coverage Comment
         id: prep_coverage_comment
+        shell: bash # Explicitly use bash
         run: |
-          echo "## Code Coverage Summary" > coverage-comment.md
-          echo "" >> coverage-comment.md
-          echo "### CLI Package" >> coverage-comment.md
-          echo "```text" >> coverage-comment.md
-          cat ${{ github.workspace }}/packages/cli/coverage/text-summary.txt >> coverage-comment.md
-          echo "```" >> coverage-comment.md
-          echo "" >> coverage-comment.md
-          echo "### Server Package" >> coverage-comment.md
-          echo "```text" >> coverage-comment.md
-          cat ${{ github.workspace }}/packages/server/coverage/text-summary.txt >> coverage-comment.md
-          echo "```" >> coverage-comment.md
-          echo "" >> coverage-comment.md
-          echo "_For detailed HTML reports, please see the 'coverage-reports-${{ matrix.node-version }}' artifact from this CI run._" >> coverage-comment.md
-          echo "comment_body<<EOF" >> $GITHUB_OUTPUT
-          cat coverage-comment.md >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          cli_summary_file="${{ github.workspace }}/packages/cli/coverage/text-summary.txt"
+          server_summary_file="${{ github.workspace }}/packages/server/coverage/text-summary.txt"
+          comment_file="coverage-comment.md"
+
+          echo "## Code Coverage Summary" > "$comment_file"
+          echo "" >> "$comment_file" # Ensure an empty line
+
+          echo "### CLI Package" >> "$comment_file"
+          echo '```text' >> "$comment_file" # Use single quotes for literal string
+          if [ -f "$cli_summary_file" ]; then
+            cat "$cli_summary_file" >> "$comment_file"
+          else
+            echo "CLI coverage summary file not found at: $cli_summary_file" >> "$comment_file"
+          fi
+          echo '```' >> "$comment_file" # Use single quotes
+          echo "" >> "$comment_file" # Ensure an empty line
+
+          echo "### Server Package" >> "$comment_file"
+          echo '```text' >> "$comment_file" # Use single quotes
+          if [ -f "$server_summary_file" ]; then
+            cat "$server_summary_file" >> "$comment_file"
+          else
+            echo "Server coverage summary file not found at: $server_summary_file" >> "$comment_file"
+          fi
+          echo '```' >> "$comment_file" # Use single quotes
+          echo "" >> "$comment_file" # Ensure an empty line
+
+          echo "_For detailed HTML reports, please see the 'coverage-reports-${{ matrix.node-version }}' artifact from this CI run._" >> "$comment_file"
+
+          # Output the content for the next step
+          echo "comment_body<<EOF" >> "$GITHUB_OUTPUT"
+          cat "$comment_file" >> "$GITHUB_OUTPUT"
+          echo "EOF" >> "$GITHUB_OUTPUT"
 
       - name: Post Coverage Comment
         uses: thollander/actions-comment-pull-request@v3
