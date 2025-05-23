@@ -13,7 +13,7 @@ export default defineConfig({
     globals: true,
     coverage: {
       provider: 'v8',
-      reporter: ['text', 'html', 'json', 'lcov', 'cobertura'],
+      reporter: ['text', 'html', 'json', 'lcov', 'cobertura', ['json-summary', { outputFile: 'coverage-summary.json' }]],
       reportsDirectory: './coverage',
     },
   },
