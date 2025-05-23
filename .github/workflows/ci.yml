@@ -95,18 +95,23 @@ jobs:
         if: always()
         with:
           name: Test Results (Node ${{ matrix.node-version }})
-          path: packages/*/junit.xml
+          path: packages/*/junit.xml # Glob pattern for JUnit files
           reporter: java-junit
           fail-on-error: 'false'
 
-      - name: Publish Coverage Summary
-        uses: dorny/test-reporter@v1
+      - name: Publish Coverage Comment
+        uses: tj-actions/coverage-reporter@v18
         if: always()
         with:
-          name: Coverage Summary (Node ${{ matrix.node-version }})
-          path: packages/*/cobertura-coverage.xml
-          reporter: cobertura
-          fail-on-error: 'false'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # Attempting with a glob pattern first. May need adjustment.
+          coverage-file: packages/*/cobertura-coverage.xml
+          coverage-format: cobertura # Explicitly state format
+          # Optional: Add a title to the comment
+          # report-name: 'Code Coverage'
+          # Optional: Fail if coverage is below thresholds
+          # fail-under-line: 80
+          # fail-under-branch: 70 # If branch coverage is available and reported
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
