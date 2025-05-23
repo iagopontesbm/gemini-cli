@@ -102,16 +102,15 @@ jobs:
       - name: Publish Coverage Comment
         uses: tj-actions/coverage-reporter@v5.4
         if: always()
+        strategy: # Add strategy for workspaces
+          matrix:
+            workspace: [cli, server]
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          # Attempting with a glob pattern first. May need adjustment.
-          coverage-file: packages/*/cobertura-coverage.xml
-          coverage-format: cobertura # Explicitly state format
-          # Optional: Add a title to the comment
-          # report-name: 'Code Coverage'
-          # Optional: Fail if coverage is below thresholds
-          # fail-under-line: 80
-          # fail-under-branch: 70 # If branch coverage is available and reported
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # The coverage-command will run the test:ci script within the specific workspace
+          coverage-command: npm run test:ci --workspace=@gemini-code/${{ matrix.workspace }}
+          # Optional: Add a title to the comment, could include workspace name
+          # report-name: 'Coverage Report (${{ matrix.workspace }})'
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
