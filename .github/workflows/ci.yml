@@ -105,23 +105,30 @@ jobs:
         run: |
           cli_summary_content=$(NO_COLOR=true npm run test:ci --workspace=@gemini-code/cli | awk '/^ % Coverage report from v8/,/^-+$/')
           server_summary_content=$(NO_COLOR=true npm run test:ci --workspace=@gemini-code/server | awk '/^ % Coverage report from v8/,/^-+$/')
-
           comment_file="coverage-comment.md"
 
           echo "## Code Coverage Summary" > "$comment_file"
           echo "" >> "$comment_file"
 
-          echo "### CLI Package" >> "$comment_file"
+          # CLI Package - Collapsible Section
+          echo "<details>" >> "$comment_file"
+          echo "<summary>CLI Package Coverage Details</summary>" >> "$comment_file"
+          echo "" >> "$comment_file" # Add a blank line for better rendering before the code block
           echo '```text' >> "$comment_file"
           echo "$cli_summary_content" >> "$comment_file"
           echo '```' >> "$comment_file"
-          echo "" >> "$comment_file"
+          echo "</details>" >> "$comment_file"
+          echo "" >> "$comment_file" # Add a blank line after the details block
 
-          echo "### Server Package" >> "$comment_file"
+          # Server Package - Collapsible Section
+          echo "<details>" >> "$comment_file"
+          echo "<summary>Server Package Coverage Details</summary>" >> "$comment_file"
+          echo "" >> "$comment_file" # Add a blank line for better rendering before the code block
           echo '```text' >> "$comment_file"
           echo "$server_summary_content" >> "$comment_file"
           echo '```' >> "$comment_file"
-          echo "" >> "$comment_file"
+          echo "</details>" >> "$comment_file"
+          echo "" >> "$comment_file" # Add a blank line after the details block
 
           echo "_For detailed HTML reports, please see the 'coverage-reports-${{ matrix.node-version }}' artifact from this CI run._" >> "$comment_file"
 
