@@ -100,7 +100,7 @@ jobs:
           fail-on-error: 'false'
 
       - name: Publish Coverage Comment
-        uses: tj-actions/coverage-reporter@v18
+        uses: tj-actions/coverage-reporter@v5.4
         if: always()
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
