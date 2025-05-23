@@ -101,38 +101,42 @@ jobs:
 
       - name: Prepare Coverage Comment
         id: prep_coverage_comment
-        shell: bash # Explicitly use bash
+        shell: bash
         run: |
+          echo "Listing CLI coverage directory contents:"
+          ls -la ${{ github.workspace }}/packages/cli/coverage/
+          echo "Listing Server coverage directory contents:"
+          ls -la ${{ github.workspace }}/packages/server/coverage/
+
           cli_summary_file="${{ github.workspace }}/packages/cli/coverage/text-summary.txt"
           server_summary_file="${{ github.workspace }}/packages/server/coverage/text-summary.txt"
           comment_file="coverage-comment.md"
 
           echo "## Code Coverage Summary" > "$comment_file"
-          echo "" >> "$comment_file" # Ensure an empty line
+          echo "" >> "$comment_file"
 
           echo "### CLI Package" >> "$comment_file"
-          echo '```text' >> "$comment_file" # Use single quotes for literal string
+          echo '```text' >> "$comment_file"
           if [ -f "$cli_summary_file" ]; then
             cat "$cli_summary_file" >> "$comment_file"
           else
             echo "CLI coverage summary file not found at: $cli_summary_file" >> "$comment_file"
           fi
-          echo '```' >> "$comment_file" # Use single quotes
-          echo "" >> "$comment_file" # Ensure an empty line
+          echo '```' >> "$comment_file"
+          echo "" >> "$comment_file"
 
           echo "### Server Package" >> "$comment_file"
-          echo '```text' >> "$comment_file" # Use single quotes
+          echo '```text' >> "$comment_file"
           if [ -f "$server_summary_file" ]; then
             cat "$server_summary_file" >> "$comment_file"
           else
             echo "Server coverage summary file not found at: $server_summary_file" >> "$comment_file"
           fi
-          echo '```' >> "$comment_file" # Use single quotes
-          echo "" >> "$comment_file" # Ensure an empty line
+          echo '```' >> "$comment_file"
+          echo "" >> "$comment_file"
 
           echo "_For detailed HTML reports, please see the 'coverage-reports-${{ matrix.node-version }}' artifact from this CI run._" >> "$comment_file"
 
-          # Output the content for the next step
           echo "comment_body<<EOF" >> "$GITHUB_OUTPUT"
           cat "$comment_file" >> "$GITHUB_OUTPUT"
           echo "EOF" >> "$GITHUB_OUTPUT"
@@ -142,8 +146,8 @@ jobs:
         if: always()
         with:
           message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
-          comment_tag: code-coverage-summary # Unique tag to update the comment
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          comment_tag: code-coverage-summary # This input is valid
+          github-token: ${{ secrets.GITHUB_TOKEN }} # Corrected: lowercase 'github-token'
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
