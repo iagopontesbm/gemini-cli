@@ -209,22 +209,11 @@ export class ToolRegistry {
           version: '0.0.1',
         });
         let transport;
-        if (mcpServerConfig.transport === 'sse') {
-          if (!mcpServerConfig.url) {
-            console.error(
-              `MCP server '${mcpServerName}' is configured for SSE transport but no URL is provided. Skipping.`,
-            );
-            return;
-          }
+        if (mcpServerConfig.url) {
+          // SSE transport if URL is provided
           transport = new SSEClientTransport(new URL(mcpServerConfig.url));
-        } else {
-          // stdio
-          if (!mcpServerConfig.command) {
-            console.error(
-              `MCP server '${mcpServerName}' is configured for stdio transport but no command is provided. Skipping.`,
-            );
-            return;
-          }
+        } else if (mcpServerConfig.command) {
+          // Stdio transport if command is provided
           transport = new StdioClientTransport({
             command: mcpServerConfig.command,
             args: mcpServerConfig.args || [],
@@ -235,6 +224,11 @@ export class ToolRegistry {
             cwd: mcpServerConfig.cwd,
             stderr: 'pipe',
           });
+        } else {
+          console.error(
+            `MCP server '${mcpServerName}' has invalid configuration: missing both url (for SSE) and command (for stdio). Skipping.`,
+          );
+          return;
         }
         try {
           await mcpClient.connect(transport);
