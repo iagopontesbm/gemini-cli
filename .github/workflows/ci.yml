@@ -104,7 +104,7 @@ jobs:
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: npm run test:ci --workspace=@gemini-code/cli
+          coverage-command: cat packages/cli/coverage/text-summary.txt
           report-name: 'CLI Coverage' # Distinguish the comment
 
       - name: Publish Server Coverage Comment
@@ -112,7 +112,7 @@ jobs:
         if: always()
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          coverage-command: npm run test:ci --workspace=@gemini-code/server
+          coverage-command: cat packages/server/coverage/text-summary.txt
           report-name: 'Server Coverage' # Distinguish the comment
 
       - name: Upload coverage reports
