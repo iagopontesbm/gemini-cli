@@ -99,18 +99,21 @@ jobs:
           reporter: java-junit
           fail-on-error: 'false'
 
-      - name: Publish Coverage Comment
+      - name: Publish CLI Coverage Comment
         uses: tj-actions/coverage-reporter@v5.4
         if: always()
-        strategy: # Add strategy for workspaces
-          matrix:
-            workspace: [cli, server]
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          # The coverage-command will run the test:ci script within the specific workspace
-          coverage-command: npm run test:ci --workspace=@gemini-code/${{ matrix.workspace }}
-          # Optional: Add a title to the comment, could include workspace name
-          # report-name: 'Coverage Report (${{ matrix.workspace }})'
+          coverage-command: npm run test:ci --workspace=@gemini-code/cli
+          report-name: 'CLI Coverage' # Distinguish the comment
+
+      - name: Publish Server Coverage Comment
+        uses: tj-actions/coverage-reporter@v5.4
+        if: always()
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          coverage-command: npm run test:ci --workspace=@gemini-code/server
+          report-name: 'Server Coverage' # Distinguish the comment
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
