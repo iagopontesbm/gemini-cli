@@ -71,7 +71,7 @@ describe('<LoadingIndicator />', () => {
     const output = lastFrame();
     expect(output).not.toContain('MockSpinner');
     expect(output).toContain('Confirm action');
-    expect(output).toContain('(esc to cancel)');
+    expect(output).not.toContain('(esc to cancel)');
     expect(output).not.toContain(', 10s');
   });
 
@@ -145,7 +145,7 @@ describe('<LoadingIndicator />', () => {
     output = lastFrame();
     expect(output).not.toContain('MockSpinner');
     expect(output).toContain('Please Confirm');
-    expect(output).toContain('(esc to cancel)');
+    expect(output).not.toContain('(esc to cancel)');
     expect(output).not.toContain(', 15s');
 
     // Transition back to Idle

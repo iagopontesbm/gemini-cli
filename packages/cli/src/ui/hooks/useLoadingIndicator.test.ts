@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useLoadingIndicator } from './useLoadingIndicator.js';
 import { StreamingState } from '../types.js';
-import { WITTY_LOADING_PHRASES } from '../constants.js';
+import { WITTY_LOADING_PHRASES } from './usePhraseCycler.js';
 
 // Define the mock functions before they are used in vi.mock
 const mockUseTimerActual = vi.fn();

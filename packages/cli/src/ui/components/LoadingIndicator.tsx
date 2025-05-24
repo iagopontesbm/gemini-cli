@@ -37,7 +37,9 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
       )}
       <Text color={Colors.AccentPurple}>
         {currentLoadingPhrase}
-        {` (esc to cancel${streamingState === StreamingState.WaitingForConfirmation ? '' : `, ${elapsedTime}s`})`}
+        {streamingState === StreamingState.WaitingForConfirmation
+          ? ''
+          : ` (esc to cancel, ${elapsedTime}s)`}
       </Text>
       <Box flexGrow={1}>{/* Spacer */}</Box>
       {rightContent && <Box>{rightContent}</Box>}

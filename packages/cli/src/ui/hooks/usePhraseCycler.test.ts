@@ -6,11 +6,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { usePhraseCycler } from './usePhraseCycler.js';
 import {
+  usePhraseCycler,
   WITTY_LOADING_PHRASES,
   PHRASE_CHANGE_INTERVAL_MS,
-} from '../constants.js';
+} from './usePhraseCycler.js';
 
 describe('usePhraseCycler', () => {
   beforeEach(() => {

@@ -5,10 +5,25 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
-import {
-  WITTY_LOADING_PHRASES,
-  PHRASE_CHANGE_INTERVAL_MS,
-} from '../constants.js';
+
+export const WITTY_LOADING_PHRASES = [
+  'Consulting the digital spirits...',
+  'Reticulating splines...',
+  'Warming up the AI hamsters...',
+  'Asking the magic conch shell...',
+  'Generating witty retort...',
+  'Polishing the algorithms...',
+  "Don't rush perfection (or my code)...",
+  'Brewing fresh bytes...',
+  'Counting electrons...',
+  'Engaging cognitive processors...',
+  'Checking for syntax errors in the universe...',
+  'One moment, optimizing humor...',
+  'Shuffling punchlines...',
+  'Untangling neural nets...',
+  'Compiling brilliance...',
+];
+export const PHRASE_CHANGE_INTERVAL_MS = 15000;
 
 /**
  * Custom hook to manage cycling through loading phrases.

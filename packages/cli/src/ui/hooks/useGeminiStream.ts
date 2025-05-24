@@ -42,7 +42,6 @@ import { useToolScheduler, mapToDisplay } from './useToolScheduler.js';
 
 enum StreamProcessingStatus {
   Completed,
-  // PausedForConfirmation, // Removed as streamingState now covers this
   UserCancelled,
   Error,
 }
