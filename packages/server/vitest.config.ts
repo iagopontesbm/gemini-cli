@@ -8,17 +8,20 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
   test: {
+    outputFile: {
+      junit: 'junit.xml' // Configure JUnit output file here
+    },
     coverage: {
       provider: 'v8',
+      reportsDirectory: './coverage',
       reporter: [
-        'text',
+        ['text', { file: 'full-text-summary.txt' }], // Text summary to file
         'html',
-        'json',
+        'json', // Detailed JSON to coverage/coverage-final.json by default
         'lcov',
         'cobertura',
-        ['json-summary', { outputFile: 'coverage-summary.json' }],
-      ],
-      reportsDirectory: './coverage',
-    },
+        ['json-summary', { outputFile: 'coverage-summary.json' }] // Summary JSON to file
+      ]
+    }
   },
 });
