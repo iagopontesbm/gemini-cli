@@ -178,7 +178,7 @@ jobs:
         with:
           message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
           comment-tag: code-coverage-summary
-          github-token: ${{ secrets.GITHUB_TOKEN }} 
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
