@@ -22,6 +22,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -40,6 +41,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -59,10 +61,12 @@ describe('useConsoleMessages', () => {
     const message1: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message 1',
+      count: 1,
     };
     const message2: ConsoleMessageItem = {
       type: 'error',
       content: 'Test message 2',
+      count: 1,
     };
 
     act(() => {
@@ -85,10 +89,12 @@ describe('useConsoleMessages', () => {
     const message1: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
     const message2: ConsoleMessageItem = {
       type: 'error',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -111,6 +117,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -135,6 +142,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -158,6 +166,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
@@ -183,6 +192,7 @@ describe('useConsoleMessages', () => {
     const message: ConsoleMessageItem = {
       type: 'log',
       content: 'Test message',
+      count: 1,
     };
 
     act(() => {
