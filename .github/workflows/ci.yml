@@ -95,7 +95,7 @@ jobs:
         if: always()
         with:
           name: Test Results (Node ${{ matrix.node-version }})
-          path: packages/*/junit.xml # Glob pattern for JUnit files
+          path: packages/*/junit.xml
           reporter: java-junit
           fail-on-error: 'false'
 
@@ -177,8 +177,8 @@ jobs:
         if: always()
         with:
           message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
-          comment-tag: code-coverage-summary # This input is valid
-          github-token: ${{ secrets.GITHUB_TOKEN }} # Corrected: lowercase 'github-token'
+          comment-tag: code-coverage-summary
+          github-token: ${{ secrets.GITHUB_TOKEN }} 
 
       - name: Upload coverage reports
         uses: actions/upload-artifact@v4
