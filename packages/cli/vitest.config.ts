@@ -12,19 +12,19 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     outputFile: {
-      junit: 'junit.xml' // Configure JUnit output file here
+      junit: 'junit.xml',
     },
     coverage: {
       provider: 'v8',
       reportsDirectory: './coverage',
       reporter: [
-        ['text', { file: 'full-text-summary.txt' }], // Text summary to file
+        ['text', { file: 'full-text-summary.txt' }],
         'html',
-        'json', // Detailed JSON to coverage/coverage-final.json by default
+        'json',
         'lcov',
         'cobertura',
-        ['json-summary', { outputFile: 'coverage-summary.json' }] // Summary JSON to file
-      ]
-    }
+        ['json-summary', { outputFile: 'coverage-summary.json' }],
+      ],
+    },
   },
 });
