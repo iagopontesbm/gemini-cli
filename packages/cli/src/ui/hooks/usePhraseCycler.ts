@@ -23,6 +23,7 @@ export const WITTY_LOADING_PHRASES = [
   'Untangling neural nets...',
   'Compiling brilliance...',
 ];
+
 export const PHRASE_CHANGE_INTERVAL_MS = 15000;
 
 /**
