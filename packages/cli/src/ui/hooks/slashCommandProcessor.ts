@@ -11,6 +11,7 @@ import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config } from '@gemini-code/server';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
+import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -56,7 +57,6 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
-          gitCommitInfo: message.gitCommitInfo, // Added this line
         };
       } else {
         historyItemContent = {
@@ -177,7 +177,6 @@ export const useSlashCommandProcessor = (
             sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-          const gitCommitInfo = process.env.GIT_COMMIT_INFO || 'N/A';
 
           addMessage({
             type: MessageType.ABOUT,
@@ -186,7 +185,6 @@ export const useSlashCommandProcessor = (
             osVersion,
             sandboxEnv,
             modelVersion,
-            gitCommitInfo,
           });
         },
       },
@@ -218,6 +216,7 @@ Add any other context about the problem here.
 
 ## Diagnostic Information
 *   **CLI Version:** ${cliVersion}
+*   **Git Commit:** ${GIT_COMMIT_INFO}
 *   **Operating System:** ${osVersion}
 *   **Sandbox Environment:** ${sandboxEnv}
 *   **Model Version:** ${modelVersion}
