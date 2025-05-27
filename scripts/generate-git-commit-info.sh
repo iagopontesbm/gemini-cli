@@ -15,12 +15,10 @@
 
 set -euo pipefail
 
-# Export GIT_COMMIT_INFO
 GENERATED_DIR="packages/cli/src/generated"
 GIT_COMMIT_FILE="$GENERATED_DIR/git-commit.ts"
 GIT_COMMIT_INFO="N/A"
 
-# Create the generated directory if it doesn't exist
 mkdir -p "$GENERATED_DIR"
 
 if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null; then
@@ -33,7 +31,6 @@ if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/nu
     fi
 fi
 
-# Write to a TypeScript file in the generated directory using a heredoc
 cat <<EOL > "$GIT_COMMIT_FILE"
 /**
  * @license
