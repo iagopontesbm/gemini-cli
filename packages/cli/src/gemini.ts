@@ -68,12 +68,14 @@ async function main() {
     const readUpResult = await readPackageUp({ cwd: __dirname });
     const cliVersion =
       process.env.CLI_VERSION || readUpResult?.packageJson.version || 'unknown';
+    const gitCommitInfo = process.env.GIT_COMMIT_INFO || 'N/A';
 
     render(
       React.createElement(App, {
         config,
         settings,
         cliVersion,
+        gitCommitInfo,
         startupWarnings,
       }),
     );

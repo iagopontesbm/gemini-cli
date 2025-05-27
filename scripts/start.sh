@@ -32,6 +32,19 @@ if [ -n "${DEBUG:-}" ] && ! scripts/sandbox_command.sh -q; then
 fi
 node_args+=("./packages/cli" "$@")
 
+# Determine Git information
+GIT_COMMIT_INFO="N/A"
+if command -v git &> /dev/null && git rev-parse --is-inside-work-tree &> /dev/null; then
+    GIT_HASH=$(git rev-parse --short HEAD 2>/dev/null || echo "")
+    if [ -n "$GIT_HASH" ]; then
+        GIT_COMMIT_INFO="$GIT_HASH"
+        if [ -n "$(git status --porcelain)" ]; then
+            GIT_COMMIT_INFO="$GIT_COMMIT_INFO (local modifications)"
+        fi
+    fi
+fi
+
 # DEV=true to enable React Dev Tools (https://github.com/vadimdemedes/ink?tab=readme-ov-file#using-react-devtools)
 # CLI_VERSION to display in the app ui footer
-CLI_VERSION='development' DEV=true node "${node_args[@]}"
+# GIT_COMMIT_INFO to display in the about box
+GIT_COMMIT_INFO="${GIT_COMMIT_INFO}" CLI_VERSION='development' DEV=true node "${node_args[@]}"

@@ -50,6 +50,7 @@ interface AppProps {
   config: Config;
   settings: LoadedSettings;
   cliVersion: string;
+  gitCommitInfo?: string;
   startupWarnings?: string[];
 }
 
@@ -57,6 +58,7 @@ export const App = ({
   config,
   settings,
   cliVersion,
+  gitCommitInfo: _gitCommitInfo,
   startupWarnings = [],
 }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();

@@ -56,6 +56,7 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
+          gitCommitInfo: message.gitCommitInfo, // Added this line
         };
       } else {
         historyItemContent = {
@@ -176,6 +177,7 @@ export const useSlashCommandProcessor = (
             sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
+          const gitCommitInfo = process.env.GIT_COMMIT_INFO || 'N/A';
 
           addMessage({
             type: MessageType.ABOUT,
@@ -184,6 +186,7 @@ export const useSlashCommandProcessor = (
             osVersion,
             sandboxEnv,
             modelVersion,
+            gitCommitInfo,
           });
         },
       },

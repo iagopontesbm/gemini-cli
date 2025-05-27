@@ -13,6 +13,7 @@ interface AboutBoxProps {
   osVersion: string;
   sandboxEnv: string;
   modelVersion: string;
+  gitCommitInfo?: string;
 }
 
 export const AboutBox: React.FC<AboutBoxProps> = ({
@@ -20,6 +21,7 @@ export const AboutBox: React.FC<AboutBoxProps> = ({
   osVersion,
   sandboxEnv,
   modelVersion,
+  gitCommitInfo,
 }) => (
   <Box
     borderStyle="round"
@@ -44,6 +46,18 @@ export const AboutBox: React.FC<AboutBoxProps> = ({
         <Text>{cliVersion}</Text>
       </Box>
     </Box>
+    {gitCommitInfo && gitCommitInfo !== 'N/A' && (
+      <Box flexDirection="row">
+        <Box width="35%">
+          <Text bold color={Colors.LightBlue}>
+            Git Commit
+          </Text>
+        </Box>
+        <Box>
+          <Text>{gitCommitInfo}</Text>
+        </Box>
+      </Box>
+    )}
     <Box flexDirection="row">
       <Box width="35%">
         <Text bold color={Colors.LightBlue}>

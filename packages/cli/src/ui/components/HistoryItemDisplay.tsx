@@ -53,6 +53,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         osVersion={item.osVersion}
         sandboxEnv={item.sandboxEnv}
         modelVersion={item.modelVersion}
+        gitCommitInfo={item.gitCommitInfo} // Added this line
       />
     )}
     {item.type === 'tool_group' && (
