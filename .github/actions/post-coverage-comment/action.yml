@@ -67,13 +67,13 @@ runs:
         echo "<details>" >> "$comment_file"
         echo "<summary>CLI Package - Full Text Report</summary>" >> "$comment_file"
         echo "" >> "$comment_file"
-        echo '''text''' >> "$comment_file"
+        echo '```text' >> "$comment_file"
         if [ -f "$cli_full_text_summary_file" ]; then
           cat "$cli_full_text_summary_file" >> "$comment_file"
         else
           echo "CLI full-text-summary.txt not found at: $cli_full_text_summary_file" >> "$comment_file"
         fi
-        echo '''''' >> "$comment_file"
+        echo '```' >> "$comment_file"
         echo "</details>" >> "$comment_file"
         echo "" >> "$comment_file"
 
