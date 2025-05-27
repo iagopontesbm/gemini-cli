@@ -3,19 +3,12 @@ name: Post Coverage Comment
 on:
   workflow_call:
     inputs:
-      cli_json_file:
-        required: true
-        type: string
-      server_json_file:
-        required: true
-        type: string
-      cli_full_text_summary_file:
-        required: true
-        type: string
-      server_full_text_summary_file:
+      coverage_artifact_name:
+        description: 'Name of the coverage artifact to download'
         required: true
         type: string
       node_version:
+        description: 'Node.js version for context in messages'
         required: true
         type: string
 jobs:
@@ -25,14 +18,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Download coverage reports artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.coverage_artifact_name }}
+          path: coverage_artifact # Download to a specific directory
+
       - name: Prepare Coverage Comment
         id: prep_coverage_comment
         shell: bash
         run: |
-          cli_json_file="${{ inputs.cli_json_file }}"
-          server_json_file="${{ inputs.server_json_file }}"
-          cli_full_text_summary_file="${{ inputs.cli_full_text_summary_file }}"
-          server_full_text_summary_file="${{ inputs.server_full_text_summary_file }}"
+          cli_json_file="coverage_artifact/cli/coverage/coverage-summary.json"
+          server_json_file="coverage_artifact/server/coverage/coverage-summary.json"
+          cli_full_text_summary_file="coverage_artifact/cli/coverage/full-text-summary.txt"
+          server_full_text_summary_file="coverage_artifact/server/coverage/full-text-summary.txt"
           comment_file="coverage-comment.md"
 
           # Extract percentages using jq for the main table
