@@ -4,23 +4,18 @@ on:
   workflow_call:
     inputs:
       cli_json_file:
-        description: 'Path to CLI coverage-summary.json'
         required: true
         type: string
       server_json_file:
-        description: 'Path to Server coverage-summary.json'
         required: true
         type: string
       cli_full_text_summary_file:
-        description: 'Path to CLI full-text-summary.txt'
         required: true
         type: string
       server_full_text_summary_file:
-        description: 'Path to Server full-text-summary.txt'
         required: true
         type: string
       node_version:
-        description: 'Node.js version for context'
         required: true
         type: string
 jobs:
