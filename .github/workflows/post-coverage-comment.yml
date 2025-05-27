@@ -23,11 +23,6 @@ on:
         description: 'Node.js version for context'
         required: true
         type: string
-    secrets:
-      GH_TOKEN:
-        description: 'GitHub token for posting comments'
-        required: true
-
 jobs:
   comment:
     runs-on: ubuntu-latest
@@ -111,4 +106,4 @@ jobs:
         with:
           message: ${{ steps.prep_coverage_comment.outputs.comment_body }}
           comment-tag: code-coverage-summary
-          github-token: ${{ secrets.GH_TOKEN }}
+          github-token: ${{ github.token }}
