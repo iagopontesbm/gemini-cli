@@ -50,7 +50,7 @@ interface AppProps {
   config: Config;
   settings: LoadedSettings;
   cliVersion: string;
-  gitCommitInfo?: string;
+  // gitCommitInfo prop is removed
   startupWarnings?: string[];
 }
 
@@ -58,7 +58,7 @@ export const App = ({
   config,
   settings,
   cliVersion,
-  gitCommitInfo: _gitCommitInfo,
+  // gitCommitInfo is removed from destructuring
   startupWarnings = [],
 }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();

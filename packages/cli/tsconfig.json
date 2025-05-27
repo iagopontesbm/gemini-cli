@@ -4,12 +4,15 @@
     "outDir": "dist",
     "jsx": "react-jsx",
     "lib": ["DOM", "DOM.Iterable", "ES2020"],
-    "paths": {
-      "@gemini-code/*": ["./packages/*"]
-    },
+    // rootDir is removed to use the default
     "types": ["node", "vitest/globals"]
   },
-  "include": ["index.ts", "src/**/*.ts", "src/**/*.tsx", "src/**/*.json"],
+  "include": [
+    "index.ts", // Relative to packages/cli/
+    "src/**/*.ts", // Relative to packages/cli/, covers src/generated/**
+    "src/**/*.tsx",
+    "src/**/*.json"
+  ],
   "exclude": ["node_modules", "dist"],
   "references": [{ "path": "../server" }]
 }
