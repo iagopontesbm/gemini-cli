@@ -45,11 +45,7 @@ export const AboutBox: React.FC<AboutBoxProps> = ({
         <Text>{cliVersion}</Text>
       </Box>
     </Box>
-    {![
-      'N/A (not a git repo or git not found)',
-      'unknown (git error)',
-      'N/A',
-    ].includes(GIT_COMMIT_INFO) && (
+    {GIT_COMMIT_INFO && !['N/A'].includes(GIT_COMMIT_INFO) && (
       <Box flexDirection="row">
         <Box width="35%">
           <Text bold color={Colors.LightBlue}>
