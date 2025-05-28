@@ -76,7 +76,9 @@ describe('fileUtils', () => {
 
     it('should return true for paths directly within the root', () => {
       expect(isWithinRoot(path.join(root, 'file.txt'), root)).toBe(true);
-      expect(isWithinRoot(path.join(root, 'subdir', 'file.txt'), root)).toBe(true);
+      expect(isWithinRoot(path.join(root, 'subdir', 'file.txt'), root)).toBe(
+        true,
+      );
     });
 
     it('should return true for the root path itself', () => {
@@ -84,16 +86,27 @@ describe('fileUtils', () => {
     });
 
     it('should return false for paths outside the root', () => {
-      expect(isWithinRoot(path.resolve('/project/other', 'file.txt'), root)).toBe(false);
-      expect(isWithinRoot(path.resolve('/unrelated', 'file.txt'), root)).toBe(false);
+      expect(
+        isWithinRoot(path.resolve('/project/other', 'file.txt'), root),
+      ).toBe(false);
+      expect(isWithinRoot(path.resolve('/unrelated', 'file.txt'), root)).toBe(
+        false,
+      );
     });
 
     it('should return false for paths that only partially match the root prefix', () => {
-      expect(isWithinRoot(path.resolve('/project/root-but-actually-different'), root)).toBe(false);
+      expect(
+        isWithinRoot(
+          path.resolve('/project/root-but-actually-different'),
+          root,
+        ),
+      ).toBe(false);
     });
 
     it('should handle paths with trailing slashes correctly', () => {
-      expect(isWithinRoot(path.join(root, 'file.txt') + path.sep, root)).toBe(true);
+      expect(isWithinRoot(path.join(root, 'file.txt') + path.sep, root)).toBe(
+        true,
+      );
       expect(isWithinRoot(root + path.sep, root)).toBe(true);
     });
 
@@ -135,18 +148,25 @@ describe('fileUtils', () => {
     });
 
     it('should return false for a typical text file', () => {
-      actualNodeFs.writeFileSync(filePathForBinaryTest, 'Hello, world!\nThis is a test file with normal text content.');
+      actualNodeFs.writeFileSync(
+        filePathForBinaryTest,
+        'Hello, world!\nThis is a test file with normal text content.',
+      );
       expect(isBinaryFile(filePathForBinaryTest)).toBe(false);
     });
 
     it('should return true for a file with many null bytes', () => {
-      const binaryContent = Buffer.from([0x48, 0x65, 0x00, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x00, 0x00]); // "He\0llo\0\0\0\0\0"
+      const binaryContent = Buffer.from([
+        0x48, 0x65, 0x00, 0x6c, 0x6f, 0x00, 0x00, 0x00, 0x00, 0x00,
+      ]); // "He\0llo\0\0\0\0\0"
       actualNodeFs.writeFileSync(filePathForBinaryTest, binaryContent);
       expect(isBinaryFile(filePathForBinaryTest)).toBe(true);
     });
-    
+
     it('should return true for a file with high percentage of non-printable ASCII', () => {
-      const binaryContent = Buffer.from([0x41, 0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x43, 0x44, 0x06]); // AB\x01\x02\x03\x04\x05CD\x06
+      const binaryContent = Buffer.from([
+        0x41, 0x42, 0x01, 0x02, 0x03, 0x04, 0x05, 0x43, 0x44, 0x06,
+      ]); // AB\x01\x02\x03\x04\x05CD\x06
       actualNodeFs.writeFileSync(filePathForBinaryTest, binaryContent);
       expect(isBinaryFile(filePathForBinaryTest)).toBe(true);
     });
@@ -166,16 +186,15 @@ describe('fileUtils', () => {
     beforeEach(() => {
       filePathForDetectTest = path.join(tempRootDir, 'detectType.tmp');
       // Default: create as a text file for isBinaryFile fallback
-      actualNodeFs.writeFileSync(filePathForDetectTest, "Plain text content");
+      actualNodeFs.writeFileSync(filePathForDetectTest, 'Plain text content');
     });
-    
+
     afterEach(() => {
       if (actualNodeFs.existsSync(filePathForDetectTest)) {
         actualNodeFs.unlinkSync(filePathForDetectTest);
       }
-       vi.restoreAllMocks(); // Restore spies on actualNodeFs
+      vi.restoreAllMocks(); // Restore spies on actualNodeFs
     });
-
 
     it('should detect image type by extension (png)', () => {
       mockMimeLookup.mockReturnValueOnce('image/png');
@@ -204,7 +223,9 @@ describe('fileUtils', () => {
     it('should use isBinaryFile for unknown extensions and detect as binary', () => {
       mockMimeLookup.mockReturnValueOnce(false); // Unknown mime type
       // Create a file that isBinaryFile will identify as binary
-      const binaryContent = Buffer.from([0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a]);
+      const binaryContent = Buffer.from([
+        0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a,
+      ]);
       actualNodeFs.writeFileSync(filePathForDetectTest, binaryContent);
       expect(detectFileType(filePathForDetectTest)).toBe('binary');
     });
@@ -219,44 +240,60 @@ describe('fileUtils', () => {
   describe('processSingleFileContent', () => {
     beforeEach(() => {
       // Ensure files exist for statSync checks before readFile might be mocked
-      if (actualNodeFs.existsSync(testTextFilePath)) actualNodeFs.unlinkSync(testTextFilePath);
-      if (actualNodeFs.existsSync(testImageFilePath)) actualNodeFs.unlinkSync(testImageFilePath);
-      if (actualNodeFs.existsSync(testPdfFilePath)) actualNodeFs.unlinkSync(testPdfFilePath);
-      if (actualNodeFs.existsSync(testBinaryFilePath)) actualNodeFs.unlinkSync(testBinaryFilePath);
+      if (actualNodeFs.existsSync(testTextFilePath))
+        actualNodeFs.unlinkSync(testTextFilePath);
+      if (actualNodeFs.existsSync(testImageFilePath))
+        actualNodeFs.unlinkSync(testImageFilePath);
+      if (actualNodeFs.existsSync(testPdfFilePath))
+        actualNodeFs.unlinkSync(testPdfFilePath);
+      if (actualNodeFs.existsSync(testBinaryFilePath))
+        actualNodeFs.unlinkSync(testBinaryFilePath);
     });
 
     it('should read a text file successfully', async () => {
       const content = 'Line 1\\nLine 2\\nLine 3';
       actualNodeFs.writeFileSync(testTextFilePath, content);
-      const result = await processSingleFileContent(testTextFilePath, tempRootDir);
+      const result = await processSingleFileContent(
+        testTextFilePath,
+        tempRootDir,
+      );
       expect(result.llmContent).toBe(content);
       expect(result.returnDisplay).toContain('Read text file: test.txt');
       expect(result.error).toBeUndefined();
     });
 
     it('should handle file not found', async () => {
-      const result = await processSingleFileContent(nonExistentFilePath, tempRootDir);
+      const result = await processSingleFileContent(
+        nonExistentFilePath,
+        tempRootDir,
+      );
       expect(result.error).toContain('File not found');
       expect(result.returnDisplay).toContain('File not found');
     });
 
     it('should handle read errors for text files', async () => {
-      actualNodeFs.writeFileSync(testTextFilePath, "content"); // File must exist for initial statSync
+      actualNodeFs.writeFileSync(testTextFilePath, 'content'); // File must exist for initial statSync
       const readError = new Error('Simulated read error');
       vi.spyOn(fsPromises, 'readFile').mockRejectedValueOnce(readError);
 
-      const result = await processSingleFileContent(testTextFilePath, tempRootDir);
+      const result = await processSingleFileContent(
+        testTextFilePath,
+        tempRootDir,
+      );
       expect(result.error).toContain('Simulated read error');
       expect(result.returnDisplay).toContain('Simulated read error');
     });
-    
+
     it('should handle read errors for image/pdf files', async () => {
-      actualNodeFs.writeFileSync(testImageFilePath, "content"); // File must exist
+      actualNodeFs.writeFileSync(testImageFilePath, 'content'); // File must exist
       mockMimeLookup.mockReturnValue('image/png');
       const readError = new Error('Simulated image read error');
       vi.spyOn(fsPromises, 'readFile').mockRejectedValueOnce(readError);
 
-      const result = await processSingleFileContent(testImageFilePath, tempRootDir);
+      const result = await processSingleFileContent(
+        testImageFilePath,
+        tempRootDir,
+      );
       expect(result.error).toContain('Simulated image read error');
       expect(result.returnDisplay).toContain('Simulated image read error');
     });
@@ -265,10 +302,20 @@ describe('fileUtils', () => {
       const fakePngData = Buffer.from('fake png data');
       actualNodeFs.writeFileSync(testImageFilePath, fakePngData);
       mockMimeLookup.mockReturnValue('image/png');
-      const result = await processSingleFileContent(testImageFilePath, tempRootDir);
-      expect((result.llmContent as { inlineData: unknown }).inlineData).toBeDefined();
-      expect((result.llmContent as { inlineData: { mimeType: string } }).inlineData.mimeType).toBe('image/png');
-      expect((result.llmContent as { inlineData: { data: string } }).inlineData.data).toBe(fakePngData.toString('base64'));
+      const result = await processSingleFileContent(
+        testImageFilePath,
+        tempRootDir,
+      );
+      expect(
+        (result.llmContent as { inlineData: unknown }).inlineData,
+      ).toBeDefined();
+      expect(
+        (result.llmContent as { inlineData: { mimeType: string } }).inlineData
+          .mimeType,
+      ).toBe('image/png');
+      expect(
+        (result.llmContent as { inlineData: { data: string } }).inlineData.data,
+      ).toBe(fakePngData.toString('base64'));
       expect(result.returnDisplay).toContain('Read image file: image.png');
     });
 
@@ -276,20 +323,38 @@ describe('fileUtils', () => {
       const fakePdfData = Buffer.from('fake pdf data');
       actualNodeFs.writeFileSync(testPdfFilePath, fakePdfData);
       mockMimeLookup.mockReturnValue('application/pdf');
-      const result = await processSingleFileContent(testPdfFilePath, tempRootDir);
-      expect((result.llmContent as { inlineData: unknown }).inlineData).toBeDefined();
-      expect((result.llmContent as { inlineData: { mimeType: string } }).inlineData.mimeType).toBe('application/pdf');
-      expect((result.llmContent as { inlineData: { data: string } }).inlineData.data).toBe(fakePdfData.toString('base64'));
+      const result = await processSingleFileContent(
+        testPdfFilePath,
+        tempRootDir,
+      );
+      expect(
+        (result.llmContent as { inlineData: unknown }).inlineData,
+      ).toBeDefined();
+      expect(
+        (result.llmContent as { inlineData: { mimeType: string } }).inlineData
+          .mimeType,
+      ).toBe('application/pdf');
+      expect(
+        (result.llmContent as { inlineData: { data: string } }).inlineData.data,
+      ).toBe(fakePdfData.toString('base64'));
       expect(result.returnDisplay).toContain('Read pdf file: document.pdf');
     });
-    
+
     it('should skip binary files', async () => {
-      actualNodeFs.writeFileSync(testBinaryFilePath, Buffer.from([0x00,0x01,0x02]));
-      mockMimeLookup.mockReturnValueOnce('application/octet-stream'); 
+      actualNodeFs.writeFileSync(
+        testBinaryFilePath,
+        Buffer.from([0x00, 0x01, 0x02]),
+      );
+      mockMimeLookup.mockReturnValueOnce('application/octet-stream');
       // isBinaryFile will operate on the real file.
 
-      const result = await processSingleFileContent(testBinaryFilePath, tempRootDir);
-      expect(result.llmContent).toContain('Cannot display content of binary file');
+      const result = await processSingleFileContent(
+        testBinaryFilePath,
+        tempRootDir,
+      );
+      expect(result.llmContent).toContain(
+        'Cannot display content of binary file',
+      );
       expect(result.returnDisplay).toContain('Skipped binary file: app.exe');
     });
 
@@ -302,13 +367,22 @@ describe('fileUtils', () => {
     it('should paginate text files correctly (offset and limit)', async () => {
       const lines = Array.from({ length: 20 }, (_, i) => `Line ${i + 1}`);
       actualNodeFs.writeFileSync(testTextFilePath, lines.join('\n'));
-      
-      const result = await processSingleFileContent(testTextFilePath, tempRootDir, 5, 5); // Read lines 6-10
+
+      const result = await processSingleFileContent(
+        testTextFilePath,
+        tempRootDir,
+        5,
+        5,
+      ); // Read lines 6-10
       const expectedContent = lines.slice(5, 10).join('\n');
-      
+
       expect(result.llmContent).toContain(expectedContent);
-      expect(result.llmContent).toContain('[File content truncated: showing lines 6-10 of 20 total lines. Use offset/limit parameters to view more.]');
-      expect(result.returnDisplay).toContain('Read text file: test.txt (truncated)');
+      expect(result.llmContent).toContain(
+        '[File content truncated: showing lines 6-10 of 20 total lines. Use offset/limit parameters to view more.]',
+      );
+      expect(result.returnDisplay).toContain(
+        'Read text file: test.txt (truncated)',
+      );
       expect(result.isTruncated).toBe(true);
       expect(result.originalLineCount).toBe(20);
       expect(result.linesShown).toEqual([6, 10]);
@@ -317,10 +391,15 @@ describe('fileUtils', () => {
     it('should handle limit exceeding file length', async () => {
       const lines = ['Line 1', 'Line 2'];
       actualNodeFs.writeFileSync(testTextFilePath, lines.join('\n'));
-      
-      const result = await processSingleFileContent(testTextFilePath, tempRootDir, 0, 10);
+
+      const result = await processSingleFileContent(
+        testTextFilePath,
+        tempRootDir,
+        0,
+        10,
+      );
       const expectedContent = lines.join('\n');
-      
+
       expect(result.llmContent).toBe(expectedContent);
       expect(result.returnDisplay).toContain('Read text file: test.txt');
       expect(result.isTruncated).toBe(false);
@@ -330,14 +409,24 @@ describe('fileUtils', () => {
 
     it('should truncate long lines in text files', async () => {
       const longLine = 'a'.repeat(2500);
-      actualNodeFs.writeFileSync(testTextFilePath, `Short line\n${longLine}\nAnother short line`);
-      
-      const result = await processSingleFileContent(testTextFilePath, tempRootDir);
-      
+      actualNodeFs.writeFileSync(
+        testTextFilePath,
+        `Short line\n${longLine}\nAnother short line`,
+      );
+
+      const result = await processSingleFileContent(
+        testTextFilePath,
+        tempRootDir,
+      );
+
       expect(result.llmContent).toContain('Short line');
-      expect(result.llmContent).toContain(longLine.substring(0, 2000) + '... [truncated]');
+      expect(result.llmContent).toContain(
+        longLine.substring(0, 2000) + '... [truncated]',
+      );
       expect(result.llmContent).toContain('Another short line');
-      expect(result.llmContent).toContain('[File content partially truncated: some lines exceeded maximum length of 2000 characters.]');
+      expect(result.llmContent).toContain(
+        '[File content partially truncated: some lines exceeded maximum length of 2000 characters.]',
+      );
       expect(result.isTruncated).toBe(true);
     });
   });
