@@ -129,6 +129,13 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
   }
 
   getDescription(params: WriteFileToolParams): string {
+    if (!params.file_path) {
+      // If file_path is not provided (e.g., for a new file in planning stage),
+      // return a generic description.
+      // We could also try to use params.content to generate a more specific description,
+      // but for now, a generic one is safer.
+      return 'Writing new file content'; // Or "Writing content to a new file"
+    }
     const relativePath = makeRelative(
       params.file_path,
       this.config.getTargetDir(),

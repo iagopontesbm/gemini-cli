@@ -190,6 +190,26 @@ describe('WriteFileTool', () => {
     });
   });
 
+  describe('getDescription', () => {
+    it('should return a generic description if file_path is undefined', () => {
+      const params = { content: 'some content' } as any;
+      expect(tool.getDescription(params)).toBe('Writing new file content');
+    });
+
+    it('should return a generic description if file_path is an empty string', () => {
+      const params = { file_path: '', content: 'some content' };
+      expect(tool.getDescription(params)).toBe('Writing new file content');
+    });
+
+    it('should return the correct description if file_path is provided', () => {
+      const params = {
+        file_path: path.join(rootDir, 'test.txt'),
+        content: 'hello',
+      };
+      expect(tool.getDescription(params)).toBe('Writing to test.txt');
+    });
+  });
+
   describe('_getCorrectedFileContent', () => {
     it('should call ensureCorrectFileContent for a new file', async () => {
       const filePath = path.join(rootDir, 'new_corrected_file.txt');
