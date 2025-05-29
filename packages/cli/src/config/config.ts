@@ -28,6 +28,8 @@ const logger = {
 };
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
+const API_KEY_VALIDATION_ENDPOINT_BASE =
+  'https://generativelanguage.googleapis.com/v1beta/models/';
 
 interface CliArgs {
   model: string | undefined;
@@ -96,6 +98,58 @@ export async function loadHierarchicalGeminiMemory(
   return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
 }
 
+async function checkApiKeyValidity(
+  apiKey: string,
+  model: string,
+): Promise<void> {
+  if (!apiKey) {
+    // No key, no check. The main config load will error out.
+    return;
+  }
+  const validationUrl = `${API_KEY_VALIDATION_ENDPOINT_BASE}${model}:generateContent?key=${apiKey}`;
+  try {
+    // We don't want to wait too long, 2 seconds should be enough for a quick check.
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
+
+    const response = await fetch(validationUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: 'test' }] }],
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (response.status === 429) {
+      logger.warn(
+        `Warning: The API key is currently rate-limited (HTTP 429) for the model ${model}. You may experience issues making requests.`,
+      );
+    } else {
+      // For any other status (including 200 or other errors that aren't 429),
+      // we assume the key is usable for now to avoid blocking startup.
+      // More detailed errors will be caught during actual API calls.
+      logger.debug(
+        `API key pre-check for model ${model} returned status ${response.status}. Assuming usable for startup. Full validation occurs on first actual API call.`,
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      logger.debug(
+        `API key validation request for model ${model} timed out. Assuming usable for startup. Full validation occurs on first actual API call.`,
+      );
+    } else {
+      logger.warn(
+        `Warning: An error occurred while trying to validate the API key with ${validationUrl}: ${message}. Full validation occurs on first actual API call.`,
+      );
+    }
+  }
+}
+
 export async function loadCliConfig(settings: Settings): Promise<Config> {
   loadEnvironment();
 
@@ -122,7 +176,14 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     process.exit(1);
   }
 
+  const apiKeyForServer = geminiApiKey || googleApiKey || '';
+  const modelForValidation = process.env.GEMINI_MODEL || DEFAULT_GEMINI_MODEL;
+  // Perform the API key check early.
+  // We don't want to block config loading entirely if it fails, just warn.
+  await checkApiKeyValidity(apiKeyForServer, modelForValidation);
+
   const argv = await parseArguments();
+
   const debugMode = argv.debug || false;
 
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
@@ -132,7 +193,6 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
   );
 
   const userAgent = await createUserAgent();
-  const apiKeyForServer = geminiApiKey || googleApiKey || '';
   const useVertexAI = hasGeminiApiKey ? false : undefined;
 
   const configParams: ConfigParameters = {
