@@ -238,3 +238,7 @@ npm run auth
 npm run prerelease:dev
 npm publish --workspaces
 ```
+
+## Gemini APIs
+
+This project leverages the Gemini APIs to provide AI capabilities. For details on the terms of service governing the Gemini API, please refer to the [Gemini API Terms of Service](https://ai.google.dev/gemini-api/terms).
