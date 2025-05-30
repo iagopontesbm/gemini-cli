@@ -8,17 +8,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
 import process from 'node:process';
-
-const formatMemoryUsage = (bytes: number): string => {
-  const gb = bytes / (1024 * 1024 * 1024);
-  if (bytes < 1024 * 1024) {
-    return `${(bytes / 1024).toFixed(1)} KB`;
-  }
-  if (bytes < 1024 * 1024 * 1024) {
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  }
-  return `${gb.toFixed(2)} GB`;
-};
+import { formatMemoryUsage } from '../utils/formatters.js';
 
 export const MemoryUsageDisplay: React.FC = () => {
   const [memoryUsage, setMemoryUsage] = useState<string>('');
