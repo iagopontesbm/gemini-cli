@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render } from 'ink-testing-library';
+import { render } from '../../../test-utils/ink-testing.js';
 import { ToolMessage, ToolMessageProps } from './ToolMessage.js';
 import { StreamingState, ToolCallStatus } from '../../types.js';
 import { Text } from 'ink';

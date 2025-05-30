@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import { render } from 'ink-testing-library';
+import { render } from '../../test-utils/ink-testing.js';
 import { Text } from 'ink';
 import { LoadingIndicator } from './LoadingIndicator.js';
 import { StreamingContext } from '../contexts/StreamingContext.js';
