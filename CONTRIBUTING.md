@@ -46,16 +46,16 @@ This section guides contributors on how to build, modify, and understand the dev
 
 To clone the repository:
 
-  ```bash
-  git clone https://github.com/google-gemini/gemini-cli.git # Or your fork's URL
-  cd gemini-cli
-  ```
+```bash
+git clone https://github.com/google-gemini/gemini-cli.git # Or your fork's URL
+cd gemini-cli
+```
 
 To install dependencies defined in `package.json` as well as root dependencies:
 
-  ```bash
-  npm install
-  ```
+```bash
+npm install
+```
 
 To build the entire project (all packages):
 
@@ -85,7 +85,7 @@ To start the Gemini CLI from the source code (after building), run the following
 npm start
 ```
 
-If you’d like to run the source build outside of the gemini-cli folder you can utilize `npm link path/to/gemini-cli/packages/cli` (see: [docs](https://docs.npmjs.com/cli/v9/commands/npm-link)) or alias gemini="node path/to/gemini-cli/packages/cli" to run with `gemini`
+If you’d like to run the source build outside of the gemini-cli folder you can utilize `npm link path/to/gemini-cli/packages/cli` (see: [docs](https://docs.npmjs.com/cli/v9/commands/npm-link)) or `alias gemini="node path/to/gemini-cli/packages/cli"` to run with `gemini`
 
 ### Running Tests
 

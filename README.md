@@ -8,7 +8,9 @@ This repository contains the Gemini CLI tool.
 
 1. Install [Node 18+](https://nodejs.org/en/download)
 2. Set your API key: `export GEMINI_API_KEY="YOUR_API_KEY"` ([Get an API key](https://aistudio.google.com/apikey))
-  - For future sessions you can add this to your shell's configuration file, or use a `.env` file in your project's hierarchy
+
+- For future sessions you can add this to your shell's configuration file, or use a `.env` file in your project's hierarchy
+
 3. Run with: `npx https://github.com/google-gemini/gemini-cli#early-access`
 4. Enjoy
 

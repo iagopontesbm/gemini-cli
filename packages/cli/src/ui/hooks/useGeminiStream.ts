@@ -41,6 +41,18 @@ import { useLogger } from './useLogger.js';
 import { useToolScheduler, mapToDisplay } from './useToolScheduler.js';
 import { GeminiChat } from '@gemini-code/server/src/core/geminiChat.js';
 
+export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
+  const resultParts: PartListUnion = [];
+  for (const item of list) {
+    if (Array.isArray(item)) {
+      resultParts.push(...item);
+    } else {
+      resultParts.push(item);
+    }
+  }
+  return resultParts;
+}
+
 enum StreamProcessingStatus {
   Completed,
   UserCancelled,
@@ -74,16 +86,16 @@ export const useGeminiStream = (
     (tools) => {
       if (tools.length) {
         addItem(mapToDisplay(tools), Date.now());
-        submitQuery(
-          tools
-            .filter(
-              (t) =>
-                t.status === 'error' ||
-                t.status === 'cancelled' ||
-                t.status === 'success',
-            )
-            .map((t) => t.response.responsePart),
-        );
+        const toolResponses = tools
+          .filter(
+            (t) =>
+              t.status === 'error' ||
+              t.status === 'cancelled' ||
+              t.status === 'success',
+          )
+          .map((t) => t.response.responseParts);
+
+        submitQuery(mergePartListUnions(toolResponses));
       }
     },
     config,
@@ -149,7 +161,7 @@ export const useGeminiStream = (
     async (
       query: PartListUnion,
       userMessageTimestamp: number,
-      signal: AbortSignal,
+      abortSignal: AbortSignal,
     ): Promise<{
       queryToSend: PartListUnion | null;
       shouldProceed: boolean;
@@ -187,7 +199,7 @@ export const useGeminiStream = (
           return { queryToSend: null, shouldProceed: false }; // Handled by scheduling the tool
         }
 
-        if (shellModeActive && handleShellCommand(trimmedQuery)) {
+        if (shellModeActive && handleShellCommand(trimmedQuery, abortSignal)) {
           return { queryToSend: null, shouldProceed: false };
         }
 
@@ -199,7 +211,7 @@ export const useGeminiStream = (
             addItem,
             onDebugMessage,
             messageId: userMessageTimestamp,
-            signal,
+            signal: abortSignal,
           });
           if (!atCommandResult.shouldProceed) {
             return { queryToSend: null, shouldProceed: false };
@@ -313,7 +325,7 @@ export const useGeminiStream = (
     };
     const responseInfo: ToolCallResponseInfo = {
       callId: request.callId,
-      responsePart: functionResponse,
+      responseParts: functionResponse,
       resultDisplay,
       error: new Error(declineMessage),
     };
@@ -480,13 +492,13 @@ export const useGeminiStream = (
       const userMessageTimestamp = Date.now();
       setShowHelp(false);
 
-      abortControllerRef.current ??= new AbortController();
-      const signal = abortControllerRef.current.signal;
+      abortControllerRef.current = new AbortController();
+      const abortSignal = abortControllerRef.current.signal;
 
       const { queryToSend, shouldProceed } = await prepareQueryForGemini(
         query,
         userMessageTimestamp,
-        signal,
+        abortSignal,
       );
 
       if (!shouldProceed || queryToSend === null) {
@@ -503,7 +515,7 @@ export const useGeminiStream = (
       setInitError(null);
 
       try {
-        const stream = client.sendMessageStream(chat, queryToSend, signal);
+        const stream = client.sendMessageStream(chat, queryToSend, abortSignal);
         const processingStatus = await processGeminiStreamEvents(
           stream,
           userMessageTimestamp,

@@ -16,6 +16,8 @@ import path from 'path';
 import os from 'os';
 import fs from 'fs';
 
+const OUTPUT_UPDATE_INTERVAL_MS = 1000;
+
 /**
  * Hook to process shell commands (e.g., !ls, $pwd).
  * Executes the command in the target directory and adds output/errors to history.
@@ -35,7 +37,7 @@ export const useShellCommandProcessor = (
    * @returns True if the query was handled as a shell command, false otherwise.
    */
   const handleShellCommand = useCallback(
-    (rawQuery: PartListUnion): boolean => {
+    (rawQuery: PartListUnion, abortSignal: AbortSignal): boolean => {
       if (typeof rawQuery !== 'string') {
         return false;
       }
@@ -118,20 +120,25 @@ export const useShellCommandProcessor = (
           const child = spawn('bash', ['-c', commandToExecute], {
             cwd: targetDir,
             stdio: ['ignore', 'pipe', 'pipe'],
+            detached: true, // Important for process group killing
           });
 
           let exited = false;
           let output = '';
+          let lastUpdateTime = Date.now();
           const handleOutput = (data: string) => {
             // continue to consume post-exit for background processes
             // removing listeners can overflow OS buffer and block subprocesses
             // destroying (e.g. child.stdout.destroy()) can terminate subprocesses via SIGPIPE
             if (!exited) {
               output += data;
-              setPendingHistoryItem({
-                type: 'info',
-                text: output,
-              });
+              if (Date.now() - lastUpdateTime > OUTPUT_UPDATE_INTERVAL_MS) {
+                setPendingHistoryItem({
+                  type: 'info',
+                  text: output,
+                });
+                lastUpdateTime = Date.now();
+              }
             }
           };
           child.stdout.on('data', handleOutput);
@@ -142,18 +149,57 @@ export const useShellCommandProcessor = (
             error = err;
           });
 
+          const abortHandler = async () => {
+            if (child.pid && !exited) {
+              onDebugMessage(
+                `Aborting shell command (PID: ${child.pid}) due to signal.`,
+              );
+              try {
+                // attempt to SIGTERM process group (negative PID)
+                // fall back to SIGKILL (to group) after 200ms
+                process.kill(-child.pid, 'SIGTERM');
+                await new Promise((resolve) => setTimeout(resolve, 200));
+                if (child.pid && !exited) {
+                  process.kill(-child.pid, 'SIGKILL');
+                }
+              } catch (_e) {
+                // if group kill fails, fall back to killing just the main process
+                try {
+                  if (child.pid) {
+                    child.kill('SIGKILL');
+                  }
+                } catch (_e) {
+                  console.error(
+                    `failed to kill shell process ${child.pid}: ${_e}`,
+                  );
+                }
+              }
+            }
+          };
+
+          abortSignal.addEventListener('abort', abortHandler, { once: true });
+
           child.on('exit', (code, signal) => {
             exited = true;
+            abortSignal.removeEventListener('abort', abortHandler);
             setPendingHistoryItem(null);
             output = output.trim() || '(Command produced no output)';
             if (error) {
               const text = `${error.message.replace(commandToExecute, rawQuery)}\n${output}`;
               addItemToHistory({ type: 'error', text }, userMessageTimestamp);
-            } else if (code !== 0) {
+            } else if (code !== null && code !== 0) {
               const text = `Command exited with code ${code}\n${output}`;
               addItemToHistory({ type: 'error', text }, userMessageTimestamp);
+            } else if (abortSignal.aborted) {
+              addItemToHistory(
+                {
+                  type: 'info',
+                  text: `Command was cancelled.\n${output}`,
+                },
+                userMessageTimestamp,
+              );
             } else if (signal) {
-              const text = `Command terminated with signal ${signal}\n${output}`;
+              const text = `Command terminated with signal ${signal}.\n${output}`;
               addItemToHistory({ type: 'error', text }, userMessageTimestamp);
             } else {
               addItemToHistory(

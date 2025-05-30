@@ -115,6 +115,33 @@ describe('ReadManyFilesTool', () => {
       };
       expect(tool.validateParams(params)).toBeNull();
     });
+
+    it('should return error if paths array contains an empty string', () => {
+      const params = { paths: ['file1.txt', ''] };
+      expect(tool.validateParams(params)).toBe(
+        'Each item in "paths" must be a non-empty string/glob pattern.',
+      );
+    });
+
+    it('should return error if include array contains non-string elements', () => {
+      const params = {
+        paths: ['file1.txt'],
+        include: ['*.ts', 123] as string[],
+      };
+      expect(tool.validateParams(params)).toBe(
+        'If provided, "include" must be an array of strings/glob patterns.',
+      );
+    });
+
+    it('should return error if exclude array contains non-string elements', () => {
+      const params = {
+        paths: ['file1.txt'],
+        exclude: ['*.log', {}] as string[],
+      };
+      expect(tool.validateParams(params)).toBe(
+        'If provided, "exclude" must be an array of strings/glob patterns.',
+      );
+    });
   });
 
   describe('execute', () => {
@@ -293,9 +320,7 @@ describe('ReadManyFilesTool', () => {
           (c) => typeof c === 'string' && c.includes('--- notes.txt ---'),
         ),
       ).toBe(true);
-      expect(result.returnDisplay).toContain(
-        '**Skipped 1 item(s) (up to 5 shown):**',
-      );
+      expect(result.returnDisplay).toContain('**Skipped 1 item(s):**');
       expect(result.returnDisplay).toContain(
         '- `document.pdf` (Reason: asset file (image/pdf) was not explicitly requested by name or extension)',
       );
