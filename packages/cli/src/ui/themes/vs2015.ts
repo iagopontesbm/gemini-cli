@@ -7,7 +7,7 @@
 import { darkTheme, Theme } from './theme.js';
 
 export const DefaultDark: Theme = new Theme(
-  'Dark Default',
+  'Default',
   'dark',
   {
     hljs: {

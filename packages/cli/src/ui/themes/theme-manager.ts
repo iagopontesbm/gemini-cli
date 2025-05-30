@@ -13,6 +13,7 @@ import { DefaultDark } from './vs2015.js';
 import { XCode } from './xcode.js';
 import { Theme, ThemeType } from './theme.js';
 import { ANSI } from './ansi.js';
+import { ANSILight } from './ansi-light.js';
 
 export interface ThemeDisplay {
   name: string;
@@ -35,6 +36,7 @@ class ThemeManager {
       GoogleCode,
       XCode,
       ANSI,
+      ANSILight,
     ];
     this.activeTheme = DEFAULT_THEME;
   }
@@ -50,10 +52,8 @@ class ThemeManager {
             return 1;
           case 'light':
             return 2;
-          case 'ansi':
-            return 3;
           default:
-            return 4;
+            return 3;
         }
       };
 
