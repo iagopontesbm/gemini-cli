@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ansiTheme, Theme } from './theme.js';
+import { lightTheme, Theme } from './theme.js';
 
 export const ANSILight: Theme = new Theme(
   'ANSI Light',
@@ -126,5 +126,5 @@ export const ANSILight: Theme = new Theme(
       color: 'orange',
     },
   },
-  ansiTheme,
+  lightTheme,
 );

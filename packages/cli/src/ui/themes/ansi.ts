@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ansiTheme, Theme } from './theme.js';
+import { darkTheme, Theme } from './theme.js';
 
 export const ANSI: Theme = new Theme(
   'ANSI',
@@ -135,5 +135,5 @@ export const ANSI: Theme = new Theme(
       color: 'yellow', // Mapped from #D7BA7D
     },
   },
-  ansiTheme,
+  darkTheme,
 );

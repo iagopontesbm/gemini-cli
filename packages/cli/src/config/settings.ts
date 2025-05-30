@@ -9,6 +9,8 @@ import * as path from 'path';
 import { homedir } from 'os';
 import { MCPServerConfig } from '@gemini-code/server/src/config/config.js';
 import stripJsonComments from 'strip-json-comments';
+import { DefaultLight } from '../ui/themes/vs.js';
+import { DefaultDark } from '../ui/themes/vs2015.js';
 
 export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
@@ -96,9 +98,9 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
       userSettings = JSON.parse(stripJsonComments(userContent)) as Settings;
       // Support legacy theme names
       if (userSettings.theme && userSettings.theme === 'VS') {
-        userSettings.theme = 'Light Default';
+        userSettings.theme = DefaultLight.name;
       } else if (userSettings.theme && userSettings.theme === 'VS2015') {
-        userSettings.theme = 'Dark Default';
+        userSettings.theme = DefaultDark.name;
       }
     }
   } catch (error) {
@@ -119,12 +121,12 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
         stripJsonComments(projectContent),
       ) as Settings;
       if (workspaceSettings.theme && workspaceSettings.theme === 'VS') {
-        workspaceSettings.theme = 'Light Default';
+        workspaceSettings.theme = DefaultLight.name;
       } else if (
         workspaceSettings.theme &&
         workspaceSettings.theme === 'VS2015'
       ) {
-        workspaceSettings.theme = 'Dark Default';
+        workspaceSettings.theme = DefaultDark.name;
       }
     }
   } catch (error) {
