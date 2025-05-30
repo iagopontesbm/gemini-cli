@@ -38,7 +38,7 @@ export async function getEffectiveModel(
   const body = JSON.stringify({ contents: [{ parts: [{ text: 'test' }] }] });
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 500); // 100ms timeout for the request
+  const timeoutId = setTimeout(() => controller.abort(), 500); // 500ms timeout for the request
 
   try {
     const response = await fetch(endpoint, {

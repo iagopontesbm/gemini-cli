@@ -5,8 +5,14 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getEffectiveModel, type EffectiveModelCheckResult } from './modelCheck.js';
-import { DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL } from '../config/config.js';
+import {
+  getEffectiveModel,
+  type EffectiveModelCheckResult,
+} from './modelCheck.js';
+import {
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_FLASH_MODEL,
+} from '../config/config.js';
 
 // Mock global fetch
 global.fetch = vi.fn();
@@ -16,8 +22,8 @@ const mockAbort = vi.fn();
 global.AbortController = vi.fn(() => ({
   signal: { aborted: false }, // Start with not aborted
   abort: mockAbort,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
 })) as any;
-
 
 describe('getEffectiveModel', () => {
   const apiKey = 'test-api-key';
@@ -29,6 +35,7 @@ describe('getEffectiveModel', () => {
     global.AbortController = vi.fn(() => ({
       signal: { aborted: false },
       abort: mockAbort,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     })) as any;
   });
 
@@ -55,7 +62,10 @@ describe('getEffectiveModel', () => {
         ok: false,
         status: 429,
       });
-      const result = await getEffectiveModel(apiKey, DEFAULT_GEMINI_MODEL);
+      const result: EffectiveModelCheckResult = await getEffectiveModel(
+        apiKey,
+        DEFAULT_GEMINI_MODEL,
+      );
       expect(result).toEqual({
         effectiveModel: DEFAULT_GEMINI_FLASH_MODEL,
         switched: true,
@@ -64,7 +74,7 @@ describe('getEffectiveModel', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
       expect(fetch).toHaveBeenCalledWith(
         `https://generativelanguage.googleapis.com/v1beta/models/${DEFAULT_GEMINI_MODEL}:generateContent?key=${apiKey}`,
-        expect.any(Object)
+        expect.any(Object),
       );
     });
 
@@ -108,19 +118,25 @@ describe('getEffectiveModel', () => {
       // Simulate AbortController's signal changing and fetch throwing AbortError
       const abortControllerInstance = {
         signal: { aborted: false }, // mutable signal
-        abort: vi.fn(function(this: any) { this.signal.aborted = true; }),
+        abort: vi.fn(() => {
+          abortControllerInstance.signal.aborted = true; // Use abortControllerInstance
+        }),
       };
-      (global.AbortController as vi.Mock).mockImplementationOnce(() => abortControllerInstance);
+      (global.AbortController as vi.Mock).mockImplementationOnce(
+        () => abortControllerInstance,
+      );
 
-      (fetch as vi.Mock).mockImplementationOnce(async ({ signal }: { signal: AbortSignal }) => {
-        // Simulate the timeout advancing and abort being called
-        vi.advanceTimersByTime(2000);
-        if (signal.aborted) {
-          throw new DOMException('Aborted', 'AbortError');
-        }
-        // Should not reach here in a timeout scenario
-        return { ok: true, status: 200 };
-      });
+      (fetch as vi.Mock).mockImplementationOnce(
+        async ({ signal }: { signal: AbortSignal }) => {
+          // Simulate the timeout advancing and abort being called
+          vi.advanceTimersByTime(2000);
+          if (signal.aborted) {
+            throw new DOMException('Aborted', 'AbortError');
+          }
+          // Should not reach here in a timeout scenario
+          return { ok: true, status: 200 };
+        },
+      );
 
       const resultPromise = getEffectiveModel(apiKey, DEFAULT_GEMINI_MODEL);
       // Ensure timers are advanced to trigger the timeout within getEffectiveModel
@@ -137,7 +153,7 @@ describe('getEffectiveModel', () => {
       expect(fetch).toHaveBeenCalledTimes(1);
     });
 
-     it('should correctly pass API key and model in the fetch request', async () => {
+    it('should correctly pass API key and model in the fetch request', async () => {
       (fetch as vi.Mock).mockResolvedValueOnce({ ok: true, status: 200 });
       const specificApiKey = 'specific-key-for-this-test';
       await getEffectiveModel(specificApiKey, DEFAULT_GEMINI_MODEL);
@@ -148,7 +164,7 @@ describe('getEffectiveModel', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ contents: [{ parts: [{ text: 'test' }] }] }),
-        })
+        }),
       );
     });
   });
