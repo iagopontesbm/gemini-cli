@@ -97,13 +97,6 @@ class ThemeManager {
     if (!themeName) {
       return DEFAULT_THEME;
     }
-    // Support for old theme names
-    else if (themeName === 'VS2015') {
-      return this.availableThemes.find((theme) => theme.name === 'Dark Default',);
-    }
-    else if(themeName === 'VS') {
-      return this.availableThemes.find((theme) => theme.name === 'Light Default');
-    }
     return this.availableThemes.find((theme) => theme.name === themeName);
   }
 
