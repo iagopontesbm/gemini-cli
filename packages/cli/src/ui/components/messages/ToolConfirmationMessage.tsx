@@ -100,19 +100,19 @@ export const ToolConfirmationMessage: React.FC<
       </Box>
     );
 
-    question = `Allow MCP tool execution?`;
+    question = `Allow execution of MCP tool "${mcpProps.toolName}" from server "${mcpProps.serverName}"?`;
     options.push(
       {
         label: 'Yes, allow once',
         value: ToolConfirmationOutcome.ProceedOnce,
       },
       {
-        label: `Yes, always allow server "${mcpProps.serverName}"`,
-        value: ToolConfirmationOutcome.ProceedAlwaysServer,
+        label: `Yes, always allow tool "${mcpProps.toolName}" from server "${mcpProps.serverName}"`,
+        value: ToolConfirmationOutcome.ProceedAlwaysTool, // Cast until types are updated
       },
       {
-        label: `Yes, always allow tool "${mcpProps.serverName}.${mcpProps.toolName}"`,
-        value: ToolConfirmationOutcome.ProceedAlwaysTool, // Cast until types are updated
+        label: `Yes, always allow all tools from server "${mcpProps.serverName}"`,
+        value: ToolConfirmationOutcome.ProceedAlwaysServer,
       },
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
