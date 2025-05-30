@@ -8,8 +8,8 @@ import { AtomOneDark } from './atom-one-dark.js';
 import { Dracula } from './dracula.js';
 import { GitHub } from './github.js';
 import { GoogleCode } from './googlecode.js';
-import { VS } from './vs.js';
-import { VS2015 } from './vs2015.js';
+import { DefaultLight } from './vs.js';
+import { DefaultDark } from './vs2015.js';
 import { XCode } from './xcode.js';
 import { Theme, ThemeType } from './theme.js';
 import { ANSI } from './ansi.js';
@@ -19,7 +19,7 @@ export interface ThemeDisplay {
   type: ThemeType;
 }
 
-export const DEFAULT_THEME: Theme = VS2015;
+export const DEFAULT_THEME: Theme = DefaultDark;
 
 class ThemeManager {
   private readonly availableThemes: Theme[];
@@ -29,8 +29,8 @@ class ThemeManager {
     this.availableThemes = [
       AtomOneDark,
       Dracula,
-      VS, // Light mode.
-      VS2015,
+      DefaultLight, // Light mode.
+      DefaultDark,
       GitHub,
       GoogleCode,
       XCode,
@@ -96,6 +96,13 @@ class ThemeManager {
   findThemeByName(themeName: string | undefined): Theme | undefined {
     if (!themeName) {
       return DEFAULT_THEME;
+    }
+    // Support for old theme names
+    else if (themeName === 'VS2015') {
+      return this.availableThemes.find((theme) => theme.name === 'Dark Default',);
+    }
+    else if(themeName === 'VS') {
+      return this.availableThemes.find((theme) => theme.name === 'Light Default');
     }
     return this.availableThemes.find((theme) => theme.name === themeName);
   }
