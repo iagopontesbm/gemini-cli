@@ -9,8 +9,8 @@ import * as path from 'path';
 import { homedir } from 'os';
 import { MCPServerConfig } from '@gemini-code/server/src/config/config.js';
 import stripJsonComments from 'strip-json-comments';
-import { DefaultLight } from '../ui/themes/vs.js';
-import { DefaultDark } from '../ui/themes/vs2015.js';
+import { DefaultLight } from '../ui/themes/default-light.js';
+import { DefaultDark } from '../ui/themes/default.js';
 
 export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
