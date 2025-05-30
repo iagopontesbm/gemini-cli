@@ -71,7 +71,8 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
             {hiddenLines > 0 && (
               <Box>
                 <Text color={Colors.SubtleComment}>
-                  ... first {hiddenLines} line{hiddenLines === 1 ? '' : 's'} hidden ...
+                  ... first {hiddenLines} line{hiddenLines === 1 ? '' : 's'}{' '}
+                  hidden ...
                 </Text>
               </Box>
             )}
