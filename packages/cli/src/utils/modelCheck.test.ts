@@ -163,7 +163,15 @@ describe('getEffectiveModel', () => {
         expect.objectContaining({
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ contents: [{ parts: [{ text: 'test' }] }] }),
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'test' }] }],
+            generationConfig: {
+              maxOutputTokens: 1,
+              temperature: 0,
+              topK: 1,
+              thinkingConfig: { thinkingBudget: 0, includeThoughts: false },
+            },
+          }),
         }),
       );
     });
