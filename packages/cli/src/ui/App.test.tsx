@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest'; // Added Mock, afterEach
+import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { render } from 'ink-testing-library';
 import { App } from './App.js';
-import { Config as ServerConfig, MCPServerConfig } from '@gemini-code/server'; // Import the (to be) mocked Config
-import type { ToolRegistry } from '@gemini-code/server'; // Import type
+import { Config as ServerConfig, MCPServerConfig } from '@gemini-code/core';
+import type { ToolRegistry } from '@gemini-code/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 
 // Define a more complete mock server config based on actual Config
@@ -30,6 +30,7 @@ interface MockServerConfig {
   geminiMdFileCount: number;
   alwaysSkipModificationConfirmation: boolean;
   vertexai?: boolean;
+  showMemoryUsage?: boolean;
 
   getApiKey: Mock<() => string>;
   getModel: Mock<() => string>;
@@ -52,12 +53,12 @@ interface MockServerConfig {
   getAlwaysSkipModificationConfirmation: Mock<() => boolean>;
   setAlwaysSkipModificationConfirmation: Mock<(skip: boolean) => void>;
   getVertexAI: Mock<() => boolean | undefined>;
+  getShowMemoryUsage: Mock<() => boolean>;
 }
 
-// Mock @gemini-code/server and its Config class
-vi.mock('@gemini-code/server', async (importOriginal) => {
-  const actualServer =
-    await importOriginal<typeof import('@gemini-code/server')>();
+// Mock @gemini-code/core and its Config class
+vi.mock('@gemini-code/core', async (importOriginal) => {
+  const actualCore = await importOriginal<typeof import('@gemini-code/core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -82,6 +83,7 @@ vi.mock('@gemini-code/server', async (importOriginal) => {
         alwaysSkipModificationConfirmation:
           opts.alwaysSkipModificationConfirmation ?? false,
         vertexai: opts.vertexai,
+        showMemoryUsage: opts.showMemoryUsage ?? false,
 
         getApiKey: vi.fn(() => opts.apiKey || 'test-key'),
         getModel: vi.fn(() => opts.model || 'test-model-in-mock-factory'),
@@ -108,12 +110,13 @@ vi.mock('@gemini-code/server', async (importOriginal) => {
         ),
         setAlwaysSkipModificationConfirmation: vi.fn(),
         getVertexAI: vi.fn(() => opts.vertexai),
+        getShowMemoryUsage: vi.fn(() => opts.showMemoryUsage ?? false),
       };
     });
   return {
-    ...actualServer,
+    ...actualCore,
     Config: ConfigClassMock,
-    // Export MCPServerConfig if it's used by the mock, or ensure it's available
+    MCPServerConfig: actualCore.MCPServerConfig,
   };
 });
 
@@ -174,8 +177,15 @@ describe('App UI', () => {
       userAgent: 'test-agent',
       userMemory: '',
       geminiMdFileCount: 0,
+      showMemoryUsage: false,
       // Provide other required fields for ConfigParameters if necessary
     }) as unknown as MockServerConfig;
+
+    // Ensure the getShowMemoryUsage mock function is specifically set up if not covered by constructor mock
+    if (!mockConfig.getShowMemoryUsage) {
+      mockConfig.getShowMemoryUsage = vi.fn(() => false);
+    }
+    mockConfig.getShowMemoryUsage.mockReturnValue(false); // Default for most tests
 
     mockSettings = createMockSettings();
   });
@@ -185,10 +195,15 @@ describe('App UI', () => {
       currentUnmount();
       currentUnmount = undefined;
     }
+    vi.clearAllMocks(); // Clear mocks after each test
   });
 
   it('should display default "GEMINI.md" in footer when contextFileName is not set and count is 1', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(1);
+    // For this test, ensure showMemoryUsage is false or debugMode is false if it relies on that
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
+
     const { lastFrame, unmount } = render(
       <App
         config={mockConfig as unknown as ServerConfig}
@@ -203,6 +218,9 @@ describe('App UI', () => {
 
   it('should display default "GEMINI.md" with plural when contextFileName is not set and count is > 1', async () => {
     mockConfig.getGeminiMdFileCount.mockReturnValue(2);
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
+
     const { lastFrame, unmount } = render(
       <App
         config={mockConfig as unknown as ServerConfig}
@@ -218,6 +236,8 @@ describe('App UI', () => {
   it('should display custom contextFileName in footer when set and count is 1', async () => {
     mockSettings = createMockSettings({ contextFileName: 'AGENTS.MD' });
     mockConfig.getGeminiMdFileCount.mockReturnValue(1);
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
 
     const { lastFrame, unmount } = render(
       <App
@@ -234,6 +254,9 @@ describe('App UI', () => {
   it('should display custom contextFileName with plural when set and count is > 1', async () => {
     mockSettings = createMockSettings({ contextFileName: 'MY_NOTES.TXT' });
     mockConfig.getGeminiMdFileCount.mockReturnValue(3);
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
+
     const { lastFrame, unmount } = render(
       <App
         config={mockConfig as unknown as ServerConfig}
@@ -249,6 +272,8 @@ describe('App UI', () => {
   it('should not display context file message if count is 0, even if contextFileName is set', async () => {
     mockSettings = createMockSettings({ contextFileName: 'ANY_FILE.MD' });
     mockConfig.getGeminiMdFileCount.mockReturnValue(0);
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
 
     const { lastFrame, unmount } = render(
       <App

@@ -171,9 +171,8 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     vertexai: useVertexAI,
-    showMemoryUsage: argv.show_memory_usage || settings.showMemoryUsage || false,
-    // contextFileName is now handled by the setServerGeminiMdFilename above
-    // and then passed into the core Config constructor.
+    showMemoryUsage:
+      argv.show_memory_usage || settings.showMemoryUsage || false,
   };
 
   return createServerConfig(configParams);

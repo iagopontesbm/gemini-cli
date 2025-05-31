@@ -262,21 +262,3 @@ export function createToolRegistry(config: Config): ToolRegistry {
   registry.discoverTools();
   return registry;
 }
-
-
-// This function is now the primary implementation for loading hierarchical memory.
-// It's kept in the server package as it's server-side logic.
-export async function loadServerHierarchicalMemory(
-  currentWorkingDirectory: string,
-  debugMode: boolean,
-): Promise<{ memoryContent: string; fileCount: number }> {
-  const memoryTool = new MemoryTool();
-  if (debugMode) {
-    console.debug(
-      `Server: Loading hierarchical memory for CWD: ${currentWorkingDirectory}`,
-    );
-  }
-  // The MemoryTool's loadHierarchicalMemory method will handle finding GEMINI.md files
-  // starting from currentWorkingDirectory and going up to the user's home directory.
-  return memoryTool.loadHierarchicalMemory(currentWorkingDirectory);
-}
