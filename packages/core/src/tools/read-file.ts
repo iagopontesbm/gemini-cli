@@ -93,7 +93,11 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
   }
 
   getDescription(params: ReadFileToolParams): string {
-    if (!params || typeof params.path !== 'string' || params.path.trim() === '') {
+    if (
+      !params ||
+      typeof params.path !== 'string' ||
+      params.path.trim() === ''
+    ) {
       return `[${ReadFileTool.Name}: Path information unavailable]`;
     }
     const relativePath = makeRelative(params.path, this.rootDirectory);
