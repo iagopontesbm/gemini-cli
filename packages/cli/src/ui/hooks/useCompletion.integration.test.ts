@@ -1,0 +1,252 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useCompletion } from './useCompletion.js';
+import * as fs from 'fs/promises';
+import { FileDiscoveryService } from '@gemini-code/core';
+
+// Mock dependencies
+vi.mock('fs/promises');
+vi.mock('@gemini-code/core', async () => {
+  const actual = await vi.importActual('@gemini-code/core');
+  return {
+    ...actual,
+    FileDiscoveryService: vi.fn(),
+    isNodeError: vi.fn((error) => error.code === 'ENOENT'),
+    escapePath: vi.fn((path) => path),
+    unescapePath: vi.fn((path) => path),
+    getErrorMessage: vi.fn((error) => error.message),
+  };
+});
+
+describe('useCompletion git-aware filtering integration', () => {
+  let mockFileDiscoveryService: any;
+  let mockConfig: any;
+  const testCwd = '/test/project';
+  const slashCommands = [
+    { name: 'help', description: 'Show help', action: vi.fn() },
+    { name: 'clear', description: 'Clear screen', action: vi.fn() },
+  ];
+
+  beforeEach(() => {
+    mockFileDiscoveryService = {
+      initialize: vi.fn(),
+      shouldIgnoreFile: vi.fn(),
+      filterFiles: vi.fn(),
+      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+    };
+    
+    mockConfig = {
+      getFileFilteringRespectGitIgnore: vi.fn(() => true),
+      getFileFilteringCustomIgnorePatterns: vi.fn(() => []),
+      getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
+    };
+    
+    vi.mocked(FileDiscoveryService).mockImplementation(() => mockFileDiscoveryService);
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('should filter git-ignored directories from @ completions', async () => {
+    // Mock fs.readdir to return both regular and git-ignored directories
+    vi.mocked(fs.readdir).mockResolvedValue([
+      { name: 'src', isDirectory: () => true },
+      { name: 'node_modules', isDirectory: () => true },
+      { name: 'dist', isDirectory: () => true },
+      { name: 'README.md', isDirectory: () => false },
+      { name: '.env', isDirectory: () => false },
+    ] as any);
+
+    // Mock git ignore service to ignore certain files
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
+      return path.includes('node_modules') || path.includes('dist') || path.includes('.env');
+    });
+
+    const { result } = renderHook(() =>
+      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+    );
+
+    // Wait for async operations to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150)); // Account for debounce
+    });
+
+    expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
+    expect(result.current.suggestions).toHaveLength(2);
+    expect(result.current.suggestions).toEqual(
+      expect.arrayContaining([
+        { label: 'src/', value: 'src/' },
+        { label: 'README.md', value: 'README.md' },
+      ])
+    );
+    expect(result.current.showSuggestions).toBe(true);
+  });
+
+  it('should handle recursive search with git-aware filtering', async () => {
+    // Mock the recursive file search scenario
+    vi.mocked(fs.readdir).mockImplementation(async (dirPath: any) => {
+      if (dirPath === testCwd) {
+        return [
+          { name: 'src', isDirectory: () => true },
+          { name: 'node_modules', isDirectory: () => true },
+          { name: 'temp', isDirectory: () => true },
+        ] as any;
+      }
+      if (dirPath.endsWith('/src')) {
+        return [
+          { name: 'index.ts', isDirectory: () => false },
+          { name: 'components', isDirectory: () => true },
+        ] as any;
+      }
+      if (dirPath.endsWith('/temp')) {
+        return [
+          { name: 'temp.log', isDirectory: () => false },
+        ] as any;
+      }
+      return [] as any;
+    });
+
+    // Mock git ignore service
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
+      return path.includes('node_modules') || path.includes('temp');
+    });
+
+    const { result } = renderHook(() =>
+      useCompletion('@t', testCwd, true, slashCommands, mockConfig)
+    );
+
+    // Wait for async operations to complete
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
+    // Should not include anything from node_modules or temp directories
+    const suggestionLabels = result.current.suggestions.map(s => s.label);
+    expect(suggestionLabels).not.toContain('temp/');
+    expect(suggestionLabels.some(l => l.includes('node_modules'))).toBe(false);
+  });
+
+  it('should work without config (fallback behavior)', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue([
+      { name: 'src', isDirectory: () => true },
+      { name: 'node_modules', isDirectory: () => true },
+      { name: 'README.md', isDirectory: () => false },
+    ] as any);
+
+    const { result } = renderHook(() =>
+      useCompletion('@', testCwd, true, slashCommands, undefined)
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    // Without config, should include all files
+    expect(result.current.suggestions).toHaveLength(3);
+    expect(result.current.suggestions).toEqual(
+      expect.arrayContaining([
+        { label: 'src/', value: 'src/' },
+        { label: 'node_modules/', value: 'node_modules/' },
+        { label: 'README.md', value: 'README.md' },
+      ])
+    );
+  });
+
+  it('should handle git discovery service initialization failure gracefully', async () => {
+    mockFileDiscoveryService.initialize.mockRejectedValue(new Error('Git not found'));
+    
+    vi.mocked(fs.readdir).mockResolvedValue([
+      { name: 'src', isDirectory: () => true },
+      { name: 'README.md', isDirectory: () => false },
+    ] as any);
+
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const { result } = renderHook(() =>
+      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Git-aware filtering not available for completions:',
+      expect.any(Error)
+    );
+    // Should still show completions even if git discovery fails
+    expect(result.current.suggestions.length).toBeGreaterThan(0);
+    
+    consoleSpy.mockRestore();
+  });
+
+  it('should respect custom ignore patterns from config', async () => {
+    mockConfig.getFileFilteringCustomIgnorePatterns.mockReturnValue(['temp/', '*.log']);
+    
+    vi.mocked(fs.readdir).mockResolvedValue([
+      { name: 'src', isDirectory: () => true },
+      { name: 'temp', isDirectory: () => true },
+      { name: 'app.log', isDirectory: () => false },
+      { name: 'README.md', isDirectory: () => false },
+    ] as any);
+
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
+      return path.includes('temp') || path.includes('.log');
+    });
+
+    const { result } = renderHook(() =>
+      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    expect(mockFileDiscoveryService.initialize).toHaveBeenCalledWith({
+      respectGitIgnore: true,
+      customIgnorePatterns: ['temp/', '*.log'],
+    });
+    
+    expect(result.current.suggestions).toHaveLength(2);
+    expect(result.current.suggestions).toEqual(
+      expect.arrayContaining([
+        { label: 'src/', value: 'src/' },
+        { label: 'README.md', value: 'README.md' },
+      ])
+    );
+  });
+
+  it('should handle directory-specific completions with git filtering', async () => {
+    vi.mocked(fs.readdir).mockResolvedValue([
+      { name: 'component.tsx', isDirectory: () => false },
+      { name: 'temp.log', isDirectory: () => false },
+      { name: 'index.ts', isDirectory: () => false },
+    ] as any);
+
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
+      return path.includes('.log');
+    });
+
+    const { result } = renderHook(() =>
+      useCompletion('@src/comp', testCwd, true, slashCommands, mockConfig)
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 150));
+    });
+
+    // Should filter out .log files but include matching .tsx files
+    expect(result.current.suggestions).toEqual([
+      { label: 'component.tsx', value: 'component.tsx' },
+    ]);
+  });
+});
