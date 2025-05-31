@@ -57,22 +57,6 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
     }
     ```
 
-- **`sandboxCleanup`** (object, optional):
-  - **Description:** Controls automatic cleanup of git-ignored files in sandbox environments.
-  - **Properties:**
-    - **`autoCleanOnExit`** (boolean, default: `false`): Whether to automatically clean git-ignored files when exiting the CLI.
-    - **`preservePatterns`** (array of strings, default: `[]`): Patterns for files to preserve even if they are git-ignored (e.g., `["*.example", "README*"]`).
-    - **`aggressiveMode`** (boolean, default: `false`): When enabled, removes more files including some typically preserved ones like README or LICENSE files if they are git-ignored.
-    - **`confirmBeforeCleanup`** (boolean, default: `true`): Whether to require confirmation before performing cleanup operations.
-  - **Example:**
-    ```json
-    "sandboxCleanup": {
-      "autoCleanOnExit": false,
-      "preservePatterns": ["*.example", "important-config.*"],
-      "aggressiveMode": false,
-      "confirmBeforeCleanup": true
-    }
-    ```
 
 - **`coreTools`** (array of strings, optional):
   - **Description:** Allows you to specify a list of core tool names that should be made available to the model. This can be used to restrict or customize the set of built-in tools.

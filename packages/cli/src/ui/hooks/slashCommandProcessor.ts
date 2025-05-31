@@ -14,7 +14,6 @@ import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatMemoryUsage } from '../utils/formatters.js';
-import { SandboxCleanupService } from '@gemini-code/core';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -110,153 +109,7 @@ export const useSlashCommandProcessor = (
     [addMessage],
   );
 
-  const sandboxCleanupAction = useCallback(
-    async (
-      _mainCommand: string,
-      subCommand?: string,
-      args?: string,
-    ): Promise<void> => {
-      if (!config) {
-        addMessage({
-          type: MessageType.ERROR,
-          content: 'Config not available for sandbox cleanup.',
-          timestamp: new Date(),
-        });
-        return;
-      }
 
-      const targetDir = config.getTargetDir();
-      const cleanupService = new SandboxCleanupService(targetDir);
-      
-      // Get configuration settings
-      const configPreservePatterns = config.getSandboxCleanupPreservePatterns();
-      const configAggressiveMode = config.getSandboxCleanupAggressiveMode();
-      const configConfirmBeforeCleanup = config.getSandboxCleanupConfirmBeforeCleanup();
-      
-      try {
-        await cleanupService.initialize();
-
-        switch (subCommand) {
-          case 'status': {
-            const cleanupOptions = {
-              preservePatterns: configPreservePatterns,
-              aggressiveCleanup: configAggressiveMode,
-            };
-            const filesToClean = await cleanupService.identifyFilesToClean(cleanupOptions);
-            
-            let message = `Found ${filesToClean.length} git-ignored files that could be cleaned from sandbox.`;
-            if (configPreservePatterns.length > 0) {
-              message += `\nPreserving files matching: ${configPreservePatterns.join(', ')}`;
-            }
-            if (configAggressiveMode) {
-              message += '\nAggressive mode enabled - critical files may be removed.';
-            }
-            
-            addMessage({
-              type: MessageType.INFO,
-              content: message,
-              timestamp: new Date(),
-            });
-            break;
-          }
-          case 'clean': {
-            const isDryRun = args?.includes('--dry-run') || args?.includes('-n');
-            const isAggressive = args?.includes('--aggressive') || configAggressiveMode;
-            const shouldConfirm = configConfirmBeforeCleanup && !isDryRun;
-            
-            if (shouldConfirm) {
-              addMessage({
-                type: MessageType.INFO,
-                content: 'Use "--dry-run" first to preview what will be removed, then run without --dry-run to confirm.',
-                timestamp: new Date(),
-              });
-              return;
-            }
-            
-            const cleanupOptions = {
-              dryRun: isDryRun,
-              aggressiveCleanup: isAggressive,
-              preservePatterns: [...configPreservePatterns, ...(args?.match(/--preserve=(\S+)/g)?.map(p => p.split('=')[1]) || [])],
-            };
-            
-            const result = await cleanupService.cleanupSandbox(cleanupOptions);
-
-            const action = result.dryRun ? 'Would remove' : 'Removed';
-            let message = `${action} ${result.removedFiles.length} git-ignored files from sandbox.`;
-            
-            if (result.errors.length > 0) {
-              message += `\nErrors: ${result.errors.length} files could not be removed.`;
-            }
-            
-            if (result.dryRun && result.removedFiles.length > 0) {
-              message += '\n\nUse "/sandbox clean" to actually remove the files.';
-            }
-            
-            if (cleanupOptions.preservePatterns.length > 0) {
-              message += `\nPreserved files matching: ${cleanupOptions.preservePatterns.join(', ')}`;
-            }
-            
-            addMessage({
-              type: MessageType.INFO,
-              content: message,
-              timestamp: new Date(),
-            });
-            break;
-          }
-          case 'list-ignored': {
-            const cleanupOptions = {
-              preservePatterns: configPreservePatterns,
-              aggressiveCleanup: configAggressiveMode,
-            };
-            const filesToClean = await cleanupService.identifyFilesToClean(cleanupOptions);
-            
-            if (filesToClean.length === 0) {
-              addMessage({
-                type: MessageType.INFO,
-                content: 'No git-ignored files found in sandbox.',
-                timestamp: new Date(),
-              });
-            } else {
-              const relativePaths = filesToClean.map(f => 
-                f.replace(targetDir, '.').replace(/^\.\//, '')
-              );
-              const displayList = relativePaths.slice(0, 20).join('\n');
-              const remaining = relativePaths.length - 20;
-              
-              let message = `Git-ignored files in sandbox (${relativePaths.length} total):\n\n${displayList}`;
-              if (remaining > 0) {
-                message += `\n... and ${remaining} more files`;
-              }
-              
-              if (configPreservePatterns.length > 0) {
-                message += `\n\nNote: Files matching these patterns are preserved: ${configPreservePatterns.join(', ')}`;
-              }
-              
-              addMessage({
-                type: MessageType.INFO,
-                content: message,
-                timestamp: new Date(),
-              });
-            }
-            break;
-          }
-          default:
-            addMessage({
-              type: MessageType.ERROR,
-              content: `Unknown /sandbox command: ${subCommand}. Available: status, clean, list-ignored`,
-              timestamp: new Date(),
-            });
-        }
-      } catch (error) {
-        addMessage({
-          type: MessageType.ERROR,
-          content: `Sandbox cleanup error: ${error instanceof Error ? error.message : String(error)}`,
-          timestamp: new Date(),
-        });
-      }
-    },
-    [addMessage, config],
-  );
 
   const slashCommands: SlashCommand[] = useMemo(
     () => [
@@ -310,13 +163,7 @@ export const useSlashCommandProcessor = (
           }
         },
       },
-      {
-        name: 'sandbox',
-        description: 'Manage sandbox environment. Usage: /sandbox <status|clean|list-ignored> [--dry-run] [--aggressive] [--preserve=pattern]',
-        action: (mainCommand, subCommand, args) => {
-          sandboxCleanupAction(mainCommand, subCommand, args);
-        },
-      },
+
       {
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
@@ -430,7 +277,6 @@ Add any other context about the problem here.
       performMemoryRefresh,
       showMemoryAction,
       addMemoryAction,
-      sandboxCleanupAction,
       addMessage,
       toggleCorgiMode,
       config,

@@ -70,11 +70,6 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringCustomIgnorePatterns?: string[];
   fileFilteringAllowBuildArtifacts?: boolean;
-  // Sandbox cleanup options
-  sandboxCleanupAutoCleanOnExit?: boolean;
-  sandboxCleanupPreservePatterns?: string[];
-  sandboxCleanupAggressiveMode?: boolean;
-  sandboxCleanupConfirmBeforeCleanup?: boolean;
 }
 
 export class Config {
@@ -102,11 +97,6 @@ export class Config {
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringCustomIgnorePatterns: string[];
   private readonly fileFilteringAllowBuildArtifacts: boolean;
-  // Sandbox cleanup settings
-  private readonly sandboxCleanupAutoCleanOnExit: boolean;
-  private readonly sandboxCleanupPreservePatterns: string[];
-  private readonly sandboxCleanupAggressiveMode: boolean;
-  private readonly sandboxCleanupConfirmBeforeCleanup: boolean;
   // File discovery service
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
@@ -134,12 +124,6 @@ export class Config {
     this.fileFilteringRespectGitIgnore = params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringCustomIgnorePatterns = params.fileFilteringCustomIgnorePatterns ?? [];
     this.fileFilteringAllowBuildArtifacts = params.fileFilteringAllowBuildArtifacts ?? false;
-    
-    // Initialize sandbox cleanup settings
-    this.sandboxCleanupAutoCleanOnExit = params.sandboxCleanupAutoCleanOnExit ?? false;
-    this.sandboxCleanupPreservePatterns = params.sandboxCleanupPreservePatterns ?? [];
-    this.sandboxCleanupAggressiveMode = params.sandboxCleanupAggressiveMode ?? false;
-    this.sandboxCleanupConfirmBeforeCleanup = params.sandboxCleanupConfirmBeforeCleanup ?? true;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -251,23 +235,6 @@ export class Config {
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
-  }
-
-  // Sandbox cleanup getters
-  getSandboxCleanupAutoCleanOnExit(): boolean {
-    return this.sandboxCleanupAutoCleanOnExit;
-  }
-
-  getSandboxCleanupPreservePatterns(): string[] {
-    return this.sandboxCleanupPreservePatterns;
-  }
-
-  getSandboxCleanupAggressiveMode(): boolean {
-    return this.sandboxCleanupAggressiveMode;
-  }
-
-  getSandboxCleanupConfirmBeforeCleanup(): boolean {
-    return this.sandboxCleanupConfirmBeforeCleanup;
   }
 
   // File discovery service getter

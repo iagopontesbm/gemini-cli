@@ -40,13 +40,6 @@ export interface Settings {
     allowBuildArtifacts?: boolean;
   };
   
-  // Sandbox cleanup settings
-  sandboxCleanup?: {
-    autoCleanOnExit?: boolean;
-    preservePatterns?: string[];
-    aggressiveMode?: boolean;
-    confirmBeforeCleanup?: boolean;
-  };
   // Add other settings here.
 }
 

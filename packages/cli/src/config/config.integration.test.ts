@@ -21,10 +21,6 @@ vi.mock('@gemini-code/core', async () => {
       getFileFilteringRespectGitIgnore: () => params.fileFilteringRespectGitIgnore ?? true,
       getFileFilteringCustomIgnorePatterns: () => params.fileFilteringCustomIgnorePatterns ?? [],
       getFileFilteringAllowBuildArtifacts: () => params.fileFilteringAllowBuildArtifacts ?? false,
-      getSandboxCleanupAutoCleanOnExit: () => params.sandboxCleanupAutoCleanOnExit ?? false,
-      getSandboxCleanupPreservePatterns: () => params.sandboxCleanupPreservePatterns ?? [],
-      getSandboxCleanupAggressiveMode: () => params.sandboxCleanupAggressiveMode ?? false,
-      getSandboxCleanupConfirmBeforeCleanup: () => params.sandboxCleanupConfirmBeforeCleanup ?? true,
       getTargetDir: () => '/test/project',
       getApiKey: () => 'test-api-key',
       getModel: () => 'test-model',
@@ -129,73 +125,7 @@ describe('Configuration Integration Tests', () => {
     });
   });
 
-  describe('Sandbox Cleanup Configuration', () => {
-    it('should load default sandbox cleanup settings', async () => {
-      const settings: Settings = {};
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings }
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
-
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(false);
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual([]);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(false);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
-    });
-
-    it('should load custom sandbox cleanup settings from configuration', async () => {
-      const settings: Settings = {
-        sandboxCleanup: {
-          autoCleanOnExit: true,
-          preservePatterns: ['*.example', 'important.*'],
-          aggressiveMode: true,
-          confirmBeforeCleanup: false,
-        },
-      };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings }
-      );
-
-      const config = await loadCliConfig(loadedSettings.merged);
-
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(true);
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual(['*.example', 'important.*']);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(true);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(false);
-    });
-
-    it('should merge user and workspace sandbox cleanup settings', async () => {
-      const userSettings: Settings = {
-        sandboxCleanup: {
-          autoCleanOnExit: true,
-          preservePatterns: ['user-preserve'],
-        },
-      };
-      const workspaceSettings: Settings = {
-        sandboxCleanup: {
-          preservePatterns: ['workspace-preserve'],
-          aggressiveMode: true,
-        },
-      };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings: userSettings },
-        { path: '', settings: workspaceSettings }
-      );
-
-      const config = await loadCliConfig(loadedSettings.merged);
-
-      // Workspace settings should override user settings completely (object spread behavior)
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual(['workspace-preserve']);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(true);
-      // User setting is lost because workspace completely overrides the sandboxCleanup object
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(false);
-      // Default should be used when neither user nor workspace specifies
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
-    });
-  });
 
   describe('Configuration Integration', () => {
     it('should handle partial configuration objects gracefully', async () => {
@@ -203,10 +133,6 @@ describe('Configuration Integration Tests', () => {
         fileFiltering: {
           respectGitIgnore: false,
           // Missing customIgnorePatterns and allowBuildArtifacts
-        },
-        sandboxCleanup: {
-          aggressiveMode: true,
-          // Missing other sandbox cleanup settings
         },
       };
       const loadedSettings = new LoadedSettings(
@@ -218,20 +144,15 @@ describe('Configuration Integration Tests', () => {
 
       // Specified settings should be applied
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(true);
 
       // Missing settings should use defaults
       expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(false);
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual([]);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
     });
 
     it('should handle empty configuration objects gracefully', async () => {
       const settings: Settings = {
         fileFiltering: {},
-        sandboxCleanup: {},
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
@@ -244,16 +165,12 @@ describe('Configuration Integration Tests', () => {
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
       expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(false);
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual([]);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(false);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
     });
 
     it('should handle missing configuration sections gracefully', async () => {
       const settings: Settings = {
         theme: 'VS2015',
-        // Missing fileFiltering and sandboxCleanup sections
+        // Missing fileFiltering section
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
@@ -266,10 +183,6 @@ describe('Configuration Integration Tests', () => {
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
       expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(false);
-      expect(config.getSandboxCleanupPreservePatterns()).toEqual([]);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(false);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
     });
   });
 
@@ -280,12 +193,6 @@ describe('Configuration Integration Tests', () => {
           respectGitIgnore: true,
           customIgnorePatterns: ['secrets/', '*.key', '*.pem'],
           allowBuildArtifacts: false,
-        },
-        sandboxCleanup: {
-          autoCleanOnExit: false,
-          preservePatterns: ['*.example', '*.template'],
-          aggressiveMode: false,
-          confirmBeforeCleanup: true,
         },
       };
       const loadedSettings = new LoadedSettings(
@@ -298,8 +205,6 @@ describe('Configuration Integration Tests', () => {
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
       expect(config.getFileFilteringCustomIgnorePatterns()).toEqual(['secrets/', '*.key', '*.pem']);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(true);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(false);
     });
 
     it('should handle a development-focused configuration', async () => {
@@ -308,12 +213,6 @@ describe('Configuration Integration Tests', () => {
           respectGitIgnore: true,
           customIgnorePatterns: ['logs/', 'tmp/'],
           allowBuildArtifacts: true,
-        },
-        sandboxCleanup: {
-          autoCleanOnExit: true,
-          preservePatterns: ['config.*.example'],
-          aggressiveMode: false,
-          confirmBeforeCleanup: false,
         },
       };
       const loadedSettings = new LoadedSettings(
@@ -324,8 +223,6 @@ describe('Configuration Integration Tests', () => {
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(true);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(false);
     });
 
     it('should handle a CI/CD environment configuration', async () => {
@@ -335,12 +232,7 @@ describe('Configuration Integration Tests', () => {
           customIgnorePatterns: [],
           allowBuildArtifacts: true,
         },
-        sandboxCleanup: {
-          autoCleanOnExit: true,
-          preservePatterns: [],
-          aggressiveMode: true, // Clean everything in CI
-          confirmBeforeCleanup: false,
-        },
+
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
@@ -351,9 +243,6 @@ describe('Configuration Integration Tests', () => {
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
-      expect(config.getSandboxCleanupAutoCleanOnExit()).toBe(true);
-      expect(config.getSandboxCleanupAggressiveMode()).toBe(true);
-      expect(config.getSandboxCleanupConfirmBeforeCleanup()).toBe(false);
     });
   });
 });
