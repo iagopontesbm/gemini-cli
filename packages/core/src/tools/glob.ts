@@ -46,7 +46,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    * Creates a new instance of the GlobLogic
    * @param rootDirectory Root directory to ground this tool in.
    */
-  constructor(private rootDirectory: string) {
+  constructor(private rootDirectory: string, private config?: any) {
     super(
       GlobTool.Name,
       'FindFiles',
@@ -179,9 +179,13 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
       );
 
       // Initialize git-aware file discovery if enabled
-      const respectGitIgnore = params.respect_git_ignore ?? true;
+      const respectGitIgnore = params.respect_git_ignore ?? this.config?.getFileFilteringRespectGitIgnore() ?? true;
       const fileDiscovery = new FileDiscoveryService(this.rootDirectory);
-      await fileDiscovery.initialize({ respectGitIgnore });
+      const customIgnorePatterns = this.config?.getFileFilteringCustomIgnorePatterns() || [];
+      await fileDiscovery.initialize({ 
+        respectGitIgnore,
+        customIgnorePatterns 
+      });
 
       const entries = await fg(params.pattern, {
         cwd: searchDirAbsolute,

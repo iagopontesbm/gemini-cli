@@ -32,6 +32,21 @@ export interface Settings {
   showMemoryUsage?: boolean;
   contextFileName?: string;
   title?: string;
+  
+  // Git-aware file filtering settings
+  fileFiltering?: {
+    respectGitIgnore?: boolean;
+    customIgnorePatterns?: string[];
+    allowBuildArtifacts?: boolean;
+  };
+  
+  // Sandbox cleanup settings
+  sandboxCleanup?: {
+    autoCleanOnExit?: boolean;
+    preservePatterns?: string[];
+    aggressiveMode?: boolean;
+    confirmBeforeCleanup?: boolean;
+  };
   // Add other settings here.
 }
 

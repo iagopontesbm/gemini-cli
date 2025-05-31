@@ -137,7 +137,12 @@ export async function handleAtCommand({
 
   // Initialize git-aware file discovery
   const fileDiscovery = new FileDiscoveryService(config.getTargetDir());
-  await fileDiscovery.initialize();
+  const respectGitIgnore = config.getFileFilteringRespectGitIgnore();
+  const customIgnorePatterns = config.getFileFilteringCustomIgnorePatterns();
+  await fileDiscovery.initialize({ 
+    respectGitIgnore,
+    customIgnorePatterns 
+  });
 
   const pathSpecsToRead: string[] = [];
   const atPathToResolvedSpecMap = new Map<string, string>();
@@ -184,7 +189,10 @@ export async function handleAtCommand({
 
     // Check if path should be ignored by git
     if (fileDiscovery.shouldIgnoreFile(pathName)) {
-      onDebugMessage(`Path ${pathName} is git-ignored and will be skipped.`);
+      const reason = respectGitIgnore 
+        ? 'git-ignored and will be skipped for security'
+        : 'ignored by custom patterns';
+      onDebugMessage(`Path ${pathName} is ${reason}.`);
       ignoredPaths.push(pathName);
       continue;
     }
@@ -320,7 +328,8 @@ export async function handleAtCommand({
 
   // Inform user about ignored paths
   if (ignoredPaths.length > 0) {
-    onDebugMessage(`Ignored ${ignoredPaths.length} git-ignored files: ${ignoredPaths.join(', ')}`);
+    const ignoreType = respectGitIgnore ? 'git-ignored' : 'custom-ignored';
+    onDebugMessage(`Ignored ${ignoredPaths.length} ${ignoreType} files: ${ignoredPaths.join(', ')}`);
   }
 
   // Fallback for lone "@" or completely invalid @-commands resulting in empty initialQueryText
@@ -344,7 +353,7 @@ export async function handleAtCommand({
 
   const toolArgs = { 
     paths: pathSpecsToRead,
-    respectGitIgnore: true // Always respect git ignore for @ commands
+    respectGitIgnore: respectGitIgnore // Use configuration setting
   };
   let toolCallDisplay: IndividualToolCallDisplay;
 

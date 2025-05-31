@@ -128,27 +128,58 @@ export const useSlashCommandProcessor = (
       const targetDir = config.getTargetDir();
       const cleanupService = new SandboxCleanupService(targetDir);
       
+      // Get configuration settings
+      const configPreservePatterns = config.getSandboxCleanupPreservePatterns();
+      const configAggressiveMode = config.getSandboxCleanupAggressiveMode();
+      const configConfirmBeforeCleanup = config.getSandboxCleanupConfirmBeforeCleanup();
+      
       try {
         await cleanupService.initialize();
 
         switch (subCommand) {
           case 'status': {
-            const filesToClean = await cleanupService.identifyFilesToClean();
+            const cleanupOptions = {
+              preservePatterns: configPreservePatterns,
+              aggressiveCleanup: configAggressiveMode,
+            };
+            const filesToClean = await cleanupService.identifyFilesToClean(cleanupOptions);
+            
+            let message = `Found ${filesToClean.length} git-ignored files that could be cleaned from sandbox.`;
+            if (configPreservePatterns.length > 0) {
+              message += `\nPreserving files matching: ${configPreservePatterns.join(', ')}`;
+            }
+            if (configAggressiveMode) {
+              message += '\nAggressive mode enabled - critical files may be removed.';
+            }
+            
             addMessage({
               type: MessageType.INFO,
-              content: `Found ${filesToClean.length} git-ignored files that could be cleaned from sandbox.`,
+              content: message,
               timestamp: new Date(),
             });
             break;
           }
           case 'clean': {
             const isDryRun = args?.includes('--dry-run') || args?.includes('-n');
-            const isAggressive = args?.includes('--aggressive');
+            const isAggressive = args?.includes('--aggressive') || configAggressiveMode;
+            const shouldConfirm = configConfirmBeforeCleanup && !isDryRun;
             
-            const result = await cleanupService.cleanupSandbox({
+            if (shouldConfirm) {
+              addMessage({
+                type: MessageType.INFO,
+                content: 'Use "--dry-run" first to preview what will be removed, then run without --dry-run to confirm.',
+                timestamp: new Date(),
+              });
+              return;
+            }
+            
+            const cleanupOptions = {
               dryRun: isDryRun,
               aggressiveCleanup: isAggressive,
-            });
+              preservePatterns: [...configPreservePatterns, ...(args?.match(/--preserve=(\S+)/g)?.map(p => p.split('=')[1]) || [])],
+            };
+            
+            const result = await cleanupService.cleanupSandbox(cleanupOptions);
 
             const action = result.dryRun ? 'Would remove' : 'Removed';
             let message = `${action} ${result.removedFiles.length} git-ignored files from sandbox.`;
@@ -161,6 +192,10 @@ export const useSlashCommandProcessor = (
               message += '\n\nUse "/sandbox clean" to actually remove the files.';
             }
             
+            if (cleanupOptions.preservePatterns.length > 0) {
+              message += `\nPreserved files matching: ${cleanupOptions.preservePatterns.join(', ')}`;
+            }
+            
             addMessage({
               type: MessageType.INFO,
               content: message,
@@ -169,7 +204,12 @@ export const useSlashCommandProcessor = (
             break;
           }
           case 'list-ignored': {
-            const filesToClean = await cleanupService.identifyFilesToClean();
+            const cleanupOptions = {
+              preservePatterns: configPreservePatterns,
+              aggressiveCleanup: configAggressiveMode,
+            };
+            const filesToClean = await cleanupService.identifyFilesToClean(cleanupOptions);
+            
             if (filesToClean.length === 0) {
               addMessage({
                 type: MessageType.INFO,
@@ -186,6 +226,10 @@ export const useSlashCommandProcessor = (
               let message = `Git-ignored files in sandbox (${relativePaths.length} total):\n\n${displayList}`;
               if (remaining > 0) {
                 message += `\n... and ${remaining} more files`;
+              }
+              
+              if (configPreservePatterns.length > 0) {
+                message += `\n\nNote: Files matching these patterns are preserved: ${configPreservePatterns.join(', ')}`;
               }
               
               addMessage({
@@ -268,7 +312,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'sandbox',
-        description: 'Manage sandbox environment. Usage: /sandbox <status|clean|list-ignored> [--dry-run] [--aggressive]',
+        description: 'Manage sandbox environment. Usage: /sandbox <status|clean|list-ignored> [--dry-run] [--aggressive] [--preserve=pattern]',
         action: (mainCommand, subCommand, args) => {
           sandboxCleanupAction(mainCommand, subCommand, args);
         },

@@ -125,7 +125,7 @@ export class ReadManyFilesTool extends BaseTool<
    * @param targetDir The absolute root directory within which this tool is allowed to operate.
    * All paths provided in `params` will be resolved relative to this directory.
    */
-  constructor(readonly targetDir: string) {
+  constructor(readonly targetDir: string, private config?: any) {
     const parameterSchema: Record<string, unknown> = {
       type: 'object',
       properties: {
@@ -266,12 +266,16 @@ Use this tool when the user's query implies needing the content of several files
       include = [],
       exclude = [],
       useDefaultExcludes = true,
-      respectGitIgnore = true,
+      respectGitIgnore = params.respectGitIgnore ?? this.config?.getFileFilteringRespectGitIgnore() ?? true,
     } = params;
 
     // Initialize git-aware file discovery service
     const fileDiscovery = new FileDiscoveryService(this.targetDir);
-    await fileDiscovery.initialize({ respectGitIgnore });
+    const customIgnorePatterns = this.config?.getFileFilteringCustomIgnorePatterns() || [];
+    await fileDiscovery.initialize({ 
+      respectGitIgnore,
+      customIgnorePatterns 
+    });
 
     const toolBaseDir = this.targetDir;
     const filesToConsider = new Set<string>();
@@ -335,9 +339,12 @@ Use this tool when the user's query implies needing the content of several files
 
       // Add info about git-ignored files if any were filtered
       if (gitIgnoredCount > 0) {
+        const reason = respectGitIgnore 
+          ? 'git-ignored (filtered for security and performance)'
+          : 'filtered by custom ignore patterns';
         skippedFiles.push({
           path: `${gitIgnoredCount} file(s)`,
-          reason: 'git-ignored (filtered for security and performance)',
+          reason,
         });
       }
     } catch (error) {

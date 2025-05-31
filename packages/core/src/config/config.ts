@@ -65,6 +65,15 @@ export interface ConfigParameters {
   vertexai?: boolean;
   showMemoryUsage?: boolean;
   contextFileName?: string;
+  // Git-aware file filtering options
+  fileFilteringRespectGitIgnore?: boolean;
+  fileFilteringCustomIgnorePatterns?: string[];
+  fileFilteringAllowBuildArtifacts?: boolean;
+  // Sandbox cleanup options
+  sandboxCleanupAutoCleanOnExit?: boolean;
+  sandboxCleanupPreservePatterns?: string[];
+  sandboxCleanupAggressiveMode?: boolean;
+  sandboxCleanupConfirmBeforeCleanup?: boolean;
 }
 
 export class Config {
@@ -88,6 +97,15 @@ export class Config {
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly geminiClient: GeminiClient;
+  // Git-aware file filtering settings
+  private readonly fileFilteringRespectGitIgnore: boolean;
+  private readonly fileFilteringCustomIgnorePatterns: string[];
+  private readonly fileFilteringAllowBuildArtifacts: boolean;
+  // Sandbox cleanup settings
+  private readonly sandboxCleanupAutoCleanOnExit: boolean;
+  private readonly sandboxCleanupPreservePatterns: string[];
+  private readonly sandboxCleanupAggressiveMode: boolean;
+  private readonly sandboxCleanupConfirmBeforeCleanup: boolean;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -108,6 +126,17 @@ export class Config {
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
+    
+    // Initialize git-aware file filtering settings
+    this.fileFilteringRespectGitIgnore = params.fileFilteringRespectGitIgnore ?? true;
+    this.fileFilteringCustomIgnorePatterns = params.fileFilteringCustomIgnorePatterns ?? [];
+    this.fileFilteringAllowBuildArtifacts = params.fileFilteringAllowBuildArtifacts ?? false;
+    
+    // Initialize sandbox cleanup settings
+    this.sandboxCleanupAutoCleanOnExit = params.sandboxCleanupAutoCleanOnExit ?? false;
+    this.sandboxCleanupPreservePatterns = params.sandboxCleanupPreservePatterns ?? [];
+    this.sandboxCleanupAggressiveMode = params.sandboxCleanupAggressiveMode ?? false;
+    this.sandboxCleanupConfirmBeforeCleanup = params.sandboxCleanupConfirmBeforeCleanup ?? true;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -207,6 +236,36 @@ export class Config {
   getGeminiClient(): GeminiClient {
     return this.geminiClient;
   }
+
+  // Git-aware file filtering getters
+  getFileFilteringRespectGitIgnore(): boolean {
+    return this.fileFilteringRespectGitIgnore;
+  }
+
+  getFileFilteringCustomIgnorePatterns(): string[] {
+    return this.fileFilteringCustomIgnorePatterns;
+  }
+
+  getFileFilteringAllowBuildArtifacts(): boolean {
+    return this.fileFilteringAllowBuildArtifacts;
+  }
+
+  // Sandbox cleanup getters
+  getSandboxCleanupAutoCleanOnExit(): boolean {
+    return this.sandboxCleanupAutoCleanOnExit;
+  }
+
+  getSandboxCleanupPreservePatterns(): string[] {
+    return this.sandboxCleanupPreservePatterns;
+  }
+
+  getSandboxCleanupAggressiveMode(): boolean {
+    return this.sandboxCleanupAggressiveMode;
+  }
+
+  getSandboxCleanupConfirmBeforeCleanup(): boolean {
+    return this.sandboxCleanupConfirmBeforeCleanup;
+  }
 }
 
 function findEnvFile(startDir: string): string | null {
@@ -270,14 +329,14 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
     }
   };
 
-  registerCoreTool(LSTool, targetDir);
+  registerCoreTool(LSTool, targetDir, config);
   registerCoreTool(ReadFileTool, targetDir);
   registerCoreTool(GrepTool, targetDir);
-  registerCoreTool(GlobTool, targetDir);
+  registerCoreTool(GlobTool, targetDir, config);
   registerCoreTool(EditTool, config);
   registerCoreTool(WriteFileTool, config);
   registerCoreTool(WebFetchTool, config);
-  registerCoreTool(ReadManyFilesTool, targetDir);
+  registerCoreTool(ReadManyFilesTool, targetDir, config);
   registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);

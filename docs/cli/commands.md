@@ -37,13 +37,44 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
       - **Action:** All user-added memory entries for the current session are cleared.
   - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
+- **`/sandbox`**
+
+  - **Description:** Manages sandbox environment and git-ignored files. Provides tools for cleaning up build artifacts, dependencies, and other files that aren't version controlled.
+  - **Usage:** `/sandbox <sub_command> [options]`
+  - **Sub-commands:**
+    - **`status`**:
+      - **Description:** Shows the number of git-ignored files that could be cleaned from the sandbox environment.
+      - **Action:** Scans the project directory and reports how many files are git-ignored and eligible for cleanup. Also shows configuration settings like preserve patterns and aggressive mode status.
+      - **Example:** `/sandbox status`
+    - **`clean`**:
+      - **Description:** Removes git-ignored files from the sandbox environment to free up space and reduce clutter.
+      - **Options:**
+        - `--dry-run` or `-n`: Preview what would be removed without actually deleting files.
+        - `--aggressive`: More aggressive cleanup that may remove typically preserved files like README or LICENSE if they are git-ignored.
+        - `--preserve=pattern`: Additional patterns to preserve during cleanup.
+      - **Action:** Safely removes git-ignored files while preserving critical files by default. Always shows a summary of what was removed or would be removed.
+      - **Examples:** 
+        - `/sandbox clean --dry-run` (preview cleanup)
+        - `/sandbox clean` (perform cleanup)
+        - `/sandbox clean --aggressive --preserve=important.config`
+    - **`list-ignored`**:
+      - **Description:** Lists git-ignored files in the sandbox, showing up to 20 files with a total count.
+      - **Action:** Displays the specific files that are git-ignored and would be affected by cleanup operations.
+      - **Example:** `/sandbox list-ignored`
+  - **Safety Features:**
+    - Always preserves critical files like `.env.example`, `README*`, `LICENSE*` by default
+    - Respects custom preserve patterns from configuration
+    - Never touches the `.git` directory
+    - Provides clear feedback about what was or would be removed
+  - **Configuration:** Behavior can be customized via the `sandboxCleanup` section in `settings.json`. See [Configuration documentation](./configuration.md) for details.
+
 - **`/quit`** (or **`/exit`**)
   - **Description:** Exits the Gemini CLI application.
   - **Action:** Terminates the CLI process.
 
 ## At Commands (`@`)
 
-At commands are used to quickly include the content of files or directories as part of your prompt to Gemini.
+At commands are used to quickly include the content of files or directories as part of your prompt to Gemini. These commands now feature git-aware filtering for enhanced security and performance.
 
 - **`@<path_to_file_or_directory>`**
 
@@ -58,6 +89,7 @@ At commands are used to quickly include the content of files or directories as p
     - Spaces in paths should be escaped with a backslash (e.g., `@My\ Documents/file.txt`).
     - The command uses the `read_many_files` tool internally. The content is fetched and then prepended or inserted into your query before being sent to the Gemini model.
     - The text before and after the `@<path>` part of your query is preserved and sent along with the file content.
+    - **Git-Aware Filtering:** By default, git-ignored files (like `node_modules/`, `dist/`, `.env`, `.git/`) are automatically excluded for security and performance. This behavior can be configured via the `fileFiltering` settings.
     - **File Types:** The command is intended for text-based files. While it might attempt to read any file, binary files or very large files might be skipped or truncated by the underlying `read_many_files` tool to ensure performance and relevance. The tool will typically indicate if files were skipped.
   - **Output:** The CLI will show a tool call message indicating that `read_many_files` was used, along with an improved display message detailing the status (e.g., number of files read, total size) and the path(s) that were processed.
 
