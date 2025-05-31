@@ -84,10 +84,10 @@ All file system tools operate within a `rootDirectory` (usually the current work
   ```
 - **Confirmation:** No.
 
-## 5. `edit_file` (Edit)
+## 5. `edit_file` (EditFile)
 
 - **Tool Name:** `edit_file`
-- **Display Name:** Edit
+- **Display Name:** EditFile
 - **File:** `edit.ts`
 - **Description:** Modifies files with precise text replacements or creates new files. Supports both single edits and batch operations. This tool is designed for precise, targeted changes and can work in different modes: edit existing files, create new files, or overwrite entire files.
 - **Parameters:**
