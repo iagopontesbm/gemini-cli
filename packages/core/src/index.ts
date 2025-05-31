@@ -27,6 +27,7 @@ export * from './utils/gitIgnoreParser.js';
 
 // Export services
 export * from './services/fileDiscoveryService.js';
+export * from './services/sandboxCleanupService.js';
 
 // Export base tool definitions
 export * from './tools/tools.js';
