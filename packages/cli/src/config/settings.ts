@@ -30,6 +30,7 @@ export interface Settings {
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
+  contextFileName?: string; // Keep this for now for setServerGeminiMdFilename
   // Add other settings here.
 }
 

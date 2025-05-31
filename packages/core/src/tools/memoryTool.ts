@@ -46,8 +46,18 @@ Do NOT use this tool:
 `;
 
 export const GEMINI_CONFIG_DIR = '.gemini';
-export const GEMINI_MD_FILENAME = 'GEMINI.md';
+export let GEMINI_MD_FILENAME = 'GEMINI.md';
 export const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
+
+export function setGeminiMdFilename(newFilename: string): void {
+  if (newFilename && newFilename.trim() !== '') {
+    GEMINI_MD_FILENAME = newFilename.trim();
+  }
+}
+
+export function getCurrentGeminiMdFilename(): string {
+  return GEMINI_MD_FILENAME;
+}
 
 interface SaveMemoryParams {
   fact: string;

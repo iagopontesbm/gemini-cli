@@ -19,7 +19,7 @@ import { ShellTool } from '../tools/shell.js';
 import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
-import { MemoryTool } from '../tools/memoryTool.js';
+import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
 
 export class MCPServerConfig {
@@ -56,6 +56,7 @@ export interface ConfigParameters {
   alwaysSkipModificationConfirmation?: boolean;
   vertexai?: boolean;
   showMemoryUsage?: boolean;
+  contextFileName?: string; // This is used by the constructor to call setGeminiMdFilename
 }
 
 export class Config {
@@ -99,6 +100,10 @@ export class Config {
       params.alwaysSkipModificationConfirmation ?? false;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
+
+    if (params.contextFileName) {
+      setGeminiMdFilename(params.contextFileName);
+    }
 
     this.toolRegistry = createToolRegistry(this);
   }
@@ -256,4 +261,22 @@ export function createToolRegistry(config: Config): ToolRegistry {
   registerCoreTool(WebSearchTool, config);
   registry.discoverTools();
   return registry;
+}
+
+
+// This function is now the primary implementation for loading hierarchical memory.
+// It's kept in the server package as it's server-side logic.
+export async function loadServerHierarchicalMemory(
+  currentWorkingDirectory: string,
+  debugMode: boolean,
+): Promise<{ memoryContent: string; fileCount: number }> {
+  const memoryTool = new MemoryTool();
+  if (debugMode) {
+    console.debug(
+      `Server: Loading hierarchical memory for CWD: ${currentWorkingDirectory}`,
+    );
+  }
+  // The MemoryTool's loadHierarchicalMemory method will handle finding GEMINI.md files
+  // starting from currentWorkingDirectory and going up to the user's home directory.
+  return memoryTool.loadHierarchicalMemory(currentWorkingDirectory);
 }

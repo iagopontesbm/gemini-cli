@@ -5,7 +5,11 @@
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
-import { MemoryTool } from './memoryTool.js';
+import {
+  MemoryTool,
+  setGeminiMdFilename,
+  GEMINI_MD_FILENAME as ORIGINAL_GEMINI_MD_FILENAME,
+} from './memoryTool.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
@@ -50,6 +54,43 @@ describe('MemoryTool', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Reset GEMINI_MD_FILENAME to its original value after each test
+    setGeminiMdFilename(ORIGINAL_GEMINI_MD_FILENAME);
+  });
+
+  describe('setGeminiMdFilename', () => {
+    it('should update GEMINI_MD_FILENAME when a valid new name is provided', () => {
+      const newName = 'CUSTOM_CONTEXT.md';
+      setGeminiMdFilename(newName);
+      // To test this, we need to import the variable itself or have a getter
+      // For now, we'll infer by checking the path used in getGlobalMemoryFilePath
+      // This requires getGlobalMemoryFilePath to be accessible or its behavior tested indirectly
+      const memoryTool = new MemoryTool();
+      const params = { fact: 'Test fact' };
+      const performAddMemoryEntrySpy = vi
+        .spyOn(MemoryTool, 'performAddMemoryEntry')
+        .mockResolvedValue(undefined);
+      memoryTool.execute(params, mockAbortSignal);
+      const expectedFilePath = path.join('/mock/home', '.gemini', newName);
+      expect(performAddMemoryEntrySpy.mock.calls[0][1]).toBe(expectedFilePath);
+    });
+
+    it('should not update GEMINI_MD_FILENAME if the new name is empty or whitespace', () => {
+      const initialName = ORIGINAL_GEMINI_MD_FILENAME;
+      setGeminiMdFilename('  ');
+      const memoryTool = new MemoryTool();
+      const params = { fact: 'Test fact' };
+      const performAddMemoryEntrySpy = vi
+        .spyOn(MemoryTool, 'performAddMemoryEntry')
+        .mockResolvedValue(undefined);
+      memoryTool.execute(params, mockAbortSignal);
+      const expectedFilePath = path.join('/mock/home', '.gemini', initialName);
+      expect(performAddMemoryEntrySpy.mock.calls[0][1]).toBe(expectedFilePath);
+
+      setGeminiMdFilename('');
+      memoryTool.execute(params, mockAbortSignal); // Call again to check with empty string
+      expect(performAddMemoryEntrySpy.mock.calls[1][1]).toBe(expectedFilePath);
+    });
   });
 
   describe('performAddMemoryEntry (static method)', () => {
@@ -168,7 +209,12 @@ describe('MemoryTool', () => {
     it('should call performAddMemoryEntry with correct parameters and return success', async () => {
       const params = { fact: 'The sky is blue' };
       const result = await memoryTool.execute(params, mockAbortSignal);
-      const expectedFilePath = path.join('/mock/home', '.gemini', 'GEMINI.md');
+      // Use ORIGINAL_GEMINI_MD_FILENAME for the default expectation before any setGeminiMdFilename calls in a test
+      const expectedFilePath = path.join(
+        '/mock/home',
+        '.gemini',
+        ORIGINAL_GEMINI_MD_FILENAME,
+      );
 
       // For this test, we expect the actual fs methods to be passed
       const expectedFsArgument = {

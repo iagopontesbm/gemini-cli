@@ -398,7 +398,8 @@ export const App = ({
                     </Text>
                   ) : geminiMdFileCount > 0 ? (
                     <Text color={Colors.SubtleComment}>
-                      Using {geminiMdFileCount} GEMINI.md file
+                      Using {geminiMdFileCount}{' '}
+                      {settings.merged.contextFileName || 'GEMINI.md'} file
                       {geminiMdFileCount > 1 ? 's' : ''}
                     </Text>
                   ) : (
