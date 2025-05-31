@@ -90,7 +90,9 @@ describe('handleAtCommand', () => {
       filterFiles: vi.fn((files) => files),
       getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
     };
-    vi.mocked(FileDiscoveryService).mockImplementation(() => mockFileDiscoveryService);
+    vi.mocked(FileDiscoveryService).mockImplementation(
+      () => mockFileDiscoveryService,
+    );
   });
 
   afterEach(() => {
@@ -580,11 +582,13 @@ ${fileContent}`,
     it('should skip git-ignored files in @ commands', async () => {
       const gitIgnoredFile = 'node_modules/package.json';
       const query = `@${gitIgnoredFile}`;
-      
+
       // Mock the file discovery service to report this file as git-ignored
-      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-        return path === gitIgnoredFile;
-      });
+      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+        (path: string) => {
+          return path === gitIgnoredFile;
+        },
+      );
 
       const result = await handleAtCommand({
         query,
@@ -596,12 +600,14 @@ ${fileContent}`,
       });
 
       expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(gitIgnoredFile);
-      expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        `Path ${gitIgnoredFile} is git-ignored and will be skipped for security.`
+      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+        gitIgnoredFile,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        'Ignored 1 git-ignored files: node_modules/package.json'
+        `Path ${gitIgnoredFile} is git-ignored and will be skipped.`,
+      );
+      expect(mockOnDebugMessage).toHaveBeenCalledWith(
+        'Ignored 1 git-ignored files: node_modules/package.json',
       );
       expect(mockReadManyFilesExecute).not.toHaveBeenCalled();
       expect(result.processedQuery).toEqual([{ text: query }]);
@@ -612,7 +618,7 @@ ${fileContent}`,
       const validFile = 'src/index.ts';
       const query = `@${validFile}`;
       const fileContent = 'console.log("Hello world");';
-      
+
       mockFileDiscoveryService.shouldIgnoreFile.mockReturnValue(false);
       mockReadManyFilesExecute.mockResolvedValue({
         llmContent: `
@@ -630,10 +636,12 @@ ${fileContent}`,
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(validFile);
+      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+        validFile,
+      );
       expect(mockReadManyFilesExecute).toHaveBeenCalledWith(
         { paths: [validFile], respectGitIgnore: true },
-        abortController.signal
+        abortController.signal,
       );
       expect(result.processedQuery).toEqual([
         { text: `@${validFile}` },
@@ -650,10 +658,12 @@ ${fileContent}`,
       const gitIgnoredFile = '.env';
       const query = `@${validFile} @${gitIgnoredFile}`;
       const fileContent = '# Project README';
-      
-      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-        return path === gitIgnoredFile;
-      });
+
+      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+        (path: string) => {
+          return path === gitIgnoredFile;
+        },
+      );
       mockReadManyFilesExecute.mockResolvedValue({
         llmContent: `
 --- ${validFile} ---
@@ -670,17 +680,21 @@ ${fileContent}`,
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(validFile);
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(gitIgnoredFile);
-      expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        `Path ${gitIgnoredFile} is git-ignored and will be skipped for security.`
+      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+        validFile,
+      );
+      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+        gitIgnoredFile,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        'Ignored 1 git-ignored files: .env'
+        `Path ${gitIgnoredFile} is git-ignored and will be skipped.`,
+      );
+      expect(mockOnDebugMessage).toHaveBeenCalledWith(
+        'Ignored 1 git-ignored files: .env',
       );
       expect(mockReadManyFilesExecute).toHaveBeenCalledWith(
         { paths: [validFile], respectGitIgnore: true },
-        abortController.signal
+        abortController.signal,
       );
       expect(result.processedQuery).toEqual([
         { text: `@${validFile} @${gitIgnoredFile}` },
@@ -695,7 +709,7 @@ ${fileContent}`,
     it('should always ignore .git directory files', async () => {
       const gitFile = '.git/config';
       const query = `@${gitFile}`;
-      
+
       mockFileDiscoveryService.shouldIgnoreFile.mockReturnValue(true);
 
       const result = await handleAtCommand({
@@ -707,9 +721,11 @@ ${fileContent}`,
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(gitFile);
+      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+        gitFile,
+      );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
-        `Path ${gitFile} is git-ignored and will be skipped for security.`
+        `Path ${gitFile} is git-ignored and will be skipped.`,
       );
       expect(mockReadManyFilesExecute).not.toHaveBeenCalled();
       expect(result.processedQuery).toEqual([{ text: query }]);

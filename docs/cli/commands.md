@@ -53,7 +53,7 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
         - `--aggressive`: More aggressive cleanup that may remove typically preserved files like README or LICENSE if they are git-ignored.
         - `--preserve=pattern`: Additional patterns to preserve during cleanup.
       - **Action:** Safely removes git-ignored files while preserving critical files by default. Always shows a summary of what was removed or would be removed.
-      - **Examples:** 
+      - **Examples:**
         - `/sandbox clean --dry-run` (preview cleanup)
         - `/sandbox clean` (perform cleanup)
         - `/sandbox clean --aggressive --preserve=important.config`
@@ -89,7 +89,7 @@ At commands are used to quickly include the content of files or directories as p
     - Spaces in paths should be escaped with a backslash (e.g., `@My\ Documents/file.txt`).
     - The command uses the `read_many_files` tool internally. The content is fetched and then prepended or inserted into your query before being sent to the Gemini model.
     - The text before and after the `@<path>` part of your query is preserved and sent along with the file content.
-    - **Git-Aware Filtering:** By default, git-ignored files (like `node_modules/`, `dist/`, `.env`, `.git/`) are automatically excluded for security and performance. This behavior can be configured via the `fileFiltering` settings.
+    - **Git-Aware Filtering:** By default, git-ignored files (like `node_modules/`, `dist/`, `.env`, `.git/`) are automatically excluded. This behavior can be configured via the `fileFiltering` settings.
     - **File Types:** The command is intended for text-based files. While it might attempt to read any file, binary files or very large files might be skipped or truncated by the underlying `read_many_files` tool to ensure performance and relevance. The tool will typically indicate if files were skipped.
   - **Output:** The CLI will show a tool call message indicating that `read_many_files` was used, along with an improved display message detailing the status (e.g., number of files read, total size) and the path(s) that were processed.
 
