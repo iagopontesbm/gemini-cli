@@ -12,6 +12,7 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
+  FileDiscoveryService,
 } from '@gemini-code/core';
 import {
   HistoryItem,
@@ -134,9 +135,14 @@ export async function handleAtCommand({
 
   addItem({ type: 'user', text: query }, userMessageTimestamp);
 
+  // Initialize git-aware file discovery
+  const fileDiscovery = new FileDiscoveryService(config.getTargetDir());
+  await fileDiscovery.initialize();
+
   const pathSpecsToRead: string[] = [];
   const atPathToResolvedSpecMap = new Map<string, string>();
   const contentLabelsForDisplay: string[] = [];
+  const ignoredPaths: string[] = [];
 
   const toolRegistry = await config.getToolRegistry();
   const readManyFilesTool = toolRegistry.getTool('read_many_files');
@@ -174,6 +180,13 @@ export async function handleAtCommand({
       // Decide if this is a fatal error for the whole command or just skip this @ part
       // For now, let's be strict and fail the command if one @path is malformed.
       return { processedQuery: null, shouldProceed: false };
+    }
+
+    // Check if path should be ignored by git
+    if (fileDiscovery.shouldIgnoreFile(pathName)) {
+      onDebugMessage(`Path ${pathName} is git-ignored and will be skipped.`);
+      ignoredPaths.push(pathName);
+      continue;
     }
 
     let currentPathSpec = pathName;
@@ -305,6 +318,11 @@ export async function handleAtCommand({
   }
   initialQueryText = initialQueryText.trim();
 
+  // Inform user about ignored paths
+  if (ignoredPaths.length > 0) {
+    onDebugMessage(`Ignored ${ignoredPaths.length} git-ignored files: ${ignoredPaths.join(', ')}`);
+  }
+
   // Fallback for lone "@" or completely invalid @-commands resulting in empty initialQueryText
   if (pathSpecsToRead.length === 0) {
     onDebugMessage('No valid file paths found in @ commands to read.');
@@ -324,7 +342,10 @@ export async function handleAtCommand({
 
   const processedQueryParts: PartUnion[] = [{ text: initialQueryText }];
 
-  const toolArgs = { paths: pathSpecsToRead };
+  const toolArgs = { 
+    paths: pathSpecsToRead,
+    respectGitIgnore: true // Always respect git ignore for @ commands
+  };
   let toolCallDisplay: IndividualToolCallDisplay;
 
   try {

@@ -9,6 +9,7 @@ import path from 'path';
 import { BaseTool, ToolResult } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 /**
  * Parameters for the LS tool
@@ -20,9 +21,14 @@ export interface LSToolParams {
   path: string;
 
   /**
-   * List of glob patterns to ignore
+   * Array of glob patterns to ignore (optional)
    */
   ignore?: string[];
+
+  /**
+   * Whether to respect .gitignore patterns (optional, defaults to true)
+   */
+  respect_git_ignore?: boolean;
 }
 
 /**
@@ -83,6 +89,11 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
               type: 'string',
             },
             type: 'array',
+          },
+          respect_git_ignore: {
+            description:
+              'Optional: Whether to respect .gitignore patterns when listing files. Defaults to true.',
+            type: 'boolean',
           },
         },
         required: ['path'],
@@ -214,7 +225,15 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
       }
 
       const files = fs.readdirSync(params.path);
+      
+      // Initialize git-aware file discovery if enabled
+      const respectGitIgnore = params.respect_git_ignore ?? true;
+      const fileDiscovery = new FileDiscoveryService(this.rootDirectory);
+      await fileDiscovery.initialize({ respectGitIgnore });
+
       const entries: FileEntry[] = [];
+      let gitIgnoredCount = 0;
+
       if (files.length === 0) {
         // Changed error message to be more neutral for LLM
         return {
@@ -229,6 +248,14 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
         }
 
         const fullPath = path.join(params.path, file);
+        const relativePath = path.relative(this.rootDirectory, fullPath);
+
+        // Check if this file should be git-ignored
+        if (respectGitIgnore && fileDiscovery.shouldIgnoreFile(relativePath)) {
+          gitIgnoredCount++;
+          continue;
+        }
+
         try {
           const stats = fs.statSync(fullPath);
           const isDir = stats.isDirectory();
@@ -257,10 +284,19 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
         .map((entry) => `${entry.isDirectory ? '[DIR] ' : ''}${entry.name}`)
         .join('\n');
 
+      let resultMessage = `Directory listing for ${params.path}:\n${directoryContent}`;
+      if (gitIgnoredCount > 0) {
+        resultMessage += `\n\n(${gitIgnoredCount} items were git-ignored)`;
+      }
+
+      let displayMessage = `Listed ${entries.length} item(s).`;
+      if (gitIgnoredCount > 0) {
+        displayMessage += ` (${gitIgnoredCount} git-ignored)`;
+      }
+
       return {
-        llmContent: `Directory listing for ${params.path}:\n${directoryContent}`,
-        // Simplified display, CLI wrapper can enhance
-        returnDisplay: `Listed ${entries.length} item(s).`,
+        llmContent: resultMessage,
+        returnDisplay: displayMessage,
       };
     } catch (error) {
       const errorMsg = `Error listing directory: ${error instanceof Error ? error.message : String(error)}`;

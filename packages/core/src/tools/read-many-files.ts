@@ -16,6 +16,7 @@ import {
   DEFAULT_ENCODING,
 } from '../utils/fileUtils.js';
 import { PartListUnion } from '@google/genai';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 /**
  * Parameters for the ReadManyFilesTool.
@@ -54,6 +55,11 @@ export interface ReadManyFilesParams {
    * Optional. Apply default exclusion patterns. Defaults to true.
    */
   useDefaultExcludes?: boolean;
+
+  /**
+   * Optional. Whether to respect .gitignore patterns. Defaults to true.
+   */
+  respectGitIgnore?: boolean;
 }
 
 /**
@@ -155,6 +161,12 @@ export class ReadManyFilesTool extends BaseTool<
             'Optional. Whether to apply a list of default exclusion patterns (e.g., node_modules, .git, binary files). Defaults to true.',
           default: true,
         },
+        respectGitIgnore: {
+          type: 'boolean',
+          description:
+            'Optional. Whether to respect .gitignore patterns when discovering files. Defaults to true.',
+          default: true,
+        },
       },
       required: ['paths'],
     };
@@ -254,7 +266,12 @@ Use this tool when the user's query implies needing the content of several files
       include = [],
       exclude = [],
       useDefaultExcludes = true,
+      respectGitIgnore = true,
     } = params;
+
+    // Initialize git-aware file discovery service
+    const fileDiscovery = new FileDiscoveryService(this.targetDir);
+    await fileDiscovery.initialize({ respectGitIgnore });
 
     const toolBaseDir = this.targetDir;
     const filesToConsider = new Set<string>();
@@ -290,9 +307,15 @@ Use this tool when the user's query implies needing the content of several files
         caseSensitiveMatch: false,
       });
 
+      // Apply git-aware filtering if enabled
+      const filteredEntries = respectGitIgnore 
+        ? fileDiscovery.filterFiles(entries.map(p => path.relative(toolBaseDir, p)))
+            .map(relPath => path.resolve(toolBaseDir, relPath))
+        : entries;
+
+      let gitIgnoredCount = 0;
       for (const absoluteFilePath of entries) {
         // Security check: ensure the glob library didn't return something outside targetDir.
-        // This should be guaranteed by `cwd` and the library's sandboxing, but an extra check is good practice.
         if (!absoluteFilePath.startsWith(toolBaseDir)) {
           skippedFiles.push({
             path: absoluteFilePath,
@@ -300,7 +323,22 @@ Use this tool when the user's query implies needing the content of several files
           });
           continue;
         }
+
+        // Check if this file was filtered out by git ignore
+        if (respectGitIgnore && !filteredEntries.includes(absoluteFilePath)) {
+          gitIgnoredCount++;
+          continue;
+        }
+
         filesToConsider.add(absoluteFilePath);
+      }
+
+      // Add info about git-ignored files if any were filtered
+      if (gitIgnoredCount > 0) {
+        skippedFiles.push({
+          path: `${gitIgnoredCount} file(s)`,
+          reason: 'git-ignored (filtered for security and performance)',
+        });
       }
     } catch (error) {
       return {
