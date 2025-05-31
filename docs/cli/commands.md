@@ -74,7 +74,7 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
 
 ## At Commands (`@`)
 
-At commands are used to quickly include the content of files or directories as part of your prompt to Gemini. These commands now feature git-aware filtering for enhanced security and performance.
+At commands are used to quickly include the content of files or directories as part of your prompt to Gemini. These commands now feature git-aware filtering.
 
 - **`@<path_to_file_or_directory>`**
 
