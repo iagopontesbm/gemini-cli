@@ -11,9 +11,14 @@ import { Stats, Dirent } from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { loadServerHierarchicalMemory } from './memoryDiscovery.js';
-import { GEMINI_CONFIG_DIR, setGeminiMdFilename } from '../tools/memoryTool.js';
+import {
+  GEMINI_CONFIG_DIR,
+  setGeminiMdFilename,
+  getCurrentGeminiMdFilename,
+  DEFAULT_CONTEXT_FILENAME,
+} from '../tools/memoryTool.js';
 
-const ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST = 'GEMINI.md';
+const ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST = DEFAULT_CONTEXT_FILENAME;
 
 // Mock the entire fs/promises module
 vi.mock('fs/promises');
@@ -40,15 +45,15 @@ describe('loadServerHierarchicalMemory', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
-    setGeminiMdFilename(ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST); // Use defined const
+    setGeminiMdFilename(DEFAULT_CONTEXT_FILENAME); // Use defined const
     mockOs.homedir.mockReturnValue(USER_HOME);
 
     // Define these here to use potentially reset/updated values from imports
     GLOBAL_GEMINI_DIR = path.join(USER_HOME, GEMINI_CONFIG_DIR);
     GLOBAL_GEMINI_FILE = path.join(
       GLOBAL_GEMINI_DIR,
-      ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
-    ); // Use defined const
+      getCurrentGeminiMdFilename(), // Use current filename
+    );
 
     mockFs.stat.mockRejectedValue(new Error('File not found'));
     mockFs.readdir.mockResolvedValue([]);
@@ -68,7 +73,7 @@ describe('loadServerHierarchicalMemory', () => {
   it('should load only the global context file if present and others are not (default filename)', async () => {
     const globalDefaultFile = path.join(
       GLOBAL_GEMINI_DIR,
-      ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
+      DEFAULT_CONTEXT_FILENAME,
     );
     mockFs.access.mockImplementation(async (p) => {
       if (p === globalDefaultFile) {

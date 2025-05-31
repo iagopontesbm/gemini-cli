@@ -33,7 +33,8 @@ vi.mock('../tools/read-many-files');
 vi.mock('../tools/memoryTool', () => ({
   MemoryTool: vi.fn(),
   setGeminiMdFilename: vi.fn(),
-  GEMINI_MD_FILENAME: 'GEMINI.md', // Mock the original filename if needed elsewhere
+  getCurrentGeminiMdFilename: vi.fn(() => 'GEMINI.md'), // Mock the original filename
+  DEFAULT_CONTEXT_FILENAME: 'GEMINI.md',
 }));
 
 describe('Server Config (config.ts)', () => {

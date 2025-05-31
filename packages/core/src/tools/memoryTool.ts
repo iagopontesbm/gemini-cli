@@ -46,17 +46,21 @@ Do NOT use this tool:
 `;
 
 export const GEMINI_CONFIG_DIR = '.gemini';
-export let GEMINI_MD_FILENAME = 'GEMINI.md';
+export const DEFAULT_CONTEXT_FILENAME = 'GEMINI.md';
 export const MEMORY_SECTION_HEADER = '## Gemini Added Memories';
+
+// This variable will hold the currently configured filename for GEMINI.md context files.
+// It defaults to DEFAULT_CONTEXT_FILENAME but can be overridden by setGeminiMdFilename.
+let currentGeminiMdFilename = DEFAULT_CONTEXT_FILENAME;
 
 export function setGeminiMdFilename(newFilename: string): void {
   if (newFilename && newFilename.trim() !== '') {
-    GEMINI_MD_FILENAME = newFilename.trim();
+    currentGeminiMdFilename = newFilename.trim();
   }
 }
 
 export function getCurrentGeminiMdFilename(): string {
-  return GEMINI_MD_FILENAME;
+  return currentGeminiMdFilename;
 }
 
 interface SaveMemoryParams {
@@ -64,7 +68,7 @@ interface SaveMemoryParams {
 }
 
 function getGlobalMemoryFilePath(): string {
-  return path.join(homedir(), GEMINI_CONFIG_DIR, GEMINI_MD_FILENAME);
+  return path.join(homedir(), GEMINI_CONFIG_DIR, getCurrentGeminiMdFilename());
 }
 
 /**

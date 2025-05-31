@@ -14,6 +14,7 @@ import {
   loadServerHierarchicalMemory,
   ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
+  getCurrentGeminiMdFilename,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
 import { readPackageUp } from 'read-package-up';
@@ -141,7 +142,7 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     setServerGeminiMdFilename(settings.contextFileName);
   } else {
     // Reset to default if not provided in settings.
-    setServerGeminiMdFilename('GEMINI.md');
+    setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
