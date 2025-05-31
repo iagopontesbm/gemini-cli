@@ -12,7 +12,6 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-  FileDiscoveryService,
 } from '@gemini-code/core';
 import {
   HistoryItem,
@@ -135,14 +134,9 @@ export async function handleAtCommand({
 
   addItem({ type: 'user', text: query }, userMessageTimestamp);
 
-  // Initialize git-aware file discovery
-  const fileDiscovery = new FileDiscoveryService(config.getTargetDir());
+  // Get centralized file discovery service
+  const fileDiscovery = await config.getFileService();
   const respectGitIgnore = config.getFileFilteringRespectGitIgnore();
-  const customIgnorePatterns = config.getFileFilteringCustomIgnorePatterns();
-  await fileDiscovery.initialize({
-    respectGitIgnore,
-    customIgnorePatterns,
-  });
 
   const pathSpecsToRead: string[] = [];
   const atPathToResolvedSpecMap = new Map<string, string>();

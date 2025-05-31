@@ -17,6 +17,7 @@ import {
 } from '../utils/fileUtils.js';
 import { PartListUnion } from '@google/genai';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { Config } from '../config/config.js';
 
 /**
  * Parameters for the ReadManyFilesTool.
@@ -59,7 +60,7 @@ export interface ReadManyFilesParams {
   /**
    * Optional. Whether to respect .gitignore patterns. Defaults to true.
    */
-  respectGitIgnore?: boolean;
+  respect_git_ignore?: boolean;
 }
 
 /**
@@ -127,7 +128,7 @@ export class ReadManyFilesTool extends BaseTool<
    */
   constructor(
     readonly targetDir: string,
-    private config?: any,
+    private config: Config,
   ) {
     const parameterSchema: Record<string, unknown> = {
       type: 'object',
@@ -164,10 +165,10 @@ export class ReadManyFilesTool extends BaseTool<
             'Optional. Whether to apply a list of default exclusion patterns (e.g., node_modules, .git, binary files). Defaults to true.',
           default: true,
         },
-        respectGitIgnore: {
+        respect_git_ignore: {
           type: 'boolean',
           description:
-            'Optional. Whether to respect .gitignore patterns when discovering files. Defaults to true.',
+            'Optional. Whether to respect .gitignore patterns when discovering files. Only available in git repositories. Defaults to true.',
           default: true,
         },
       },
@@ -269,19 +270,14 @@ Use this tool when the user's query implies needing the content of several files
       include = [],
       exclude = [],
       useDefaultExcludes = true,
-      respectGitIgnore = params.respectGitIgnore ??
-        this.config?.getFileFilteringRespectGitIgnore() ??
-        true,
+      respect_git_ignore = true,
     } = params;
+    
+    const respectGitIgnore = respect_git_ignore ??
+      this.config.getFileFilteringRespectGitIgnore();
 
-    // Initialize git-aware file discovery service
-    const fileDiscovery = new FileDiscoveryService(this.targetDir);
-    const customIgnorePatterns =
-      this.config?.getFileFilteringCustomIgnorePatterns() || [];
-    await fileDiscovery.initialize({
-      respectGitIgnore,
-      customIgnorePatterns,
-    });
+    // Get centralized file discovery service
+    const fileDiscovery = await this.config.getFileService();
 
     const toolBaseDir = this.targetDir;
     const filesToConsider = new Set<string>();
@@ -317,11 +313,14 @@ Use this tool when the user's query implies needing the content of several files
         caseSensitiveMatch: false,
       });
 
-      // Apply git-aware filtering if enabled
-      const filteredEntries = respectGitIgnore
+      // Apply git-aware filtering if enabled and in git repository
+      const filteredEntries = respectGitIgnore && fileDiscovery.isGitRepository()
         ? fileDiscovery
-            .filterFiles(entries.map((p) => path.relative(toolBaseDir, p)))
-            .map((relPath) => path.resolve(toolBaseDir, relPath))
+            .filterFiles(entries.map((p) => path.relative(toolBaseDir, p)), {
+              respectGitIgnore,
+              customIgnorePatterns: this.config.getFileFilteringCustomIgnorePatterns(),
+            })
+            .map((p) => path.resolve(toolBaseDir, p))
         : entries;
 
       let gitIgnoredCount = 0;
@@ -336,7 +335,7 @@ Use this tool when the user's query implies needing the content of several files
         }
 
         // Check if this file was filtered out by git ignore
-        if (respectGitIgnore && !filteredEntries.includes(absoluteFilePath)) {
+        if (respectGitIgnore && fileDiscovery.isGitRepository() && !filteredEntries.includes(absoluteFilePath)) {
           gitIgnoredCount++;
           continue;
         }

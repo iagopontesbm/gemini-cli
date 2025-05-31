@@ -12,7 +12,6 @@ import {
   escapePath,
   unescapePath,
   getErrorMessage,
-  FileDiscoveryService,
 } from '@gemini-code/core';
 import {
   MAX_SUGGESTIONS_TO_SHOW,
@@ -186,7 +185,7 @@ export function useCompletion(
     const findFilesRecursively = async (
       startDir: string,
       searchPrefix: string,
-      fileDiscovery: FileDiscoveryService | null,
+      fileDiscovery: any,
       currentRelativePath = '',
       depth = 0,
       maxDepth = 10, // Limit recursion depth
@@ -249,17 +248,11 @@ export function useCompletion(
       setIsLoadingSuggestions(true);
       let fetchedSuggestions: Suggestion[] = [];
       
-      // Initialize git-aware file discovery if config is available
-      let fileDiscovery: FileDiscoveryService | null = null;
+      // Get centralized file discovery service if config is available
+      let fileDiscovery = null;
       if (config) {
         try {
-          fileDiscovery = new FileDiscoveryService(cwd);
-          const respectGitIgnore = config.getFileFilteringRespectGitIgnore?.() ?? true;
-          const customIgnorePatterns = config.getFileFilteringCustomIgnorePatterns?.() ?? [];
-          await fileDiscovery.initialize({ 
-            respectGitIgnore,
-            customIgnorePatterns 
-          });
+          fileDiscovery = await config.getFileService();
         } catch (error) {
           // If git discovery fails, continue without it
           console.warn('Git-aware filtering not available for completions:', error);
@@ -283,8 +276,8 @@ export function useCompletion(
           for (const entry of entries) {
             if (!entry.name.toLowerCase().startsWith(lowerPrefix)) continue;
             
-            const entryPathFromRoot = path.relative(cwd, path.join(baseDirAbsolute, entry.name));
-            if (fileDiscovery && fileDiscovery.shouldIgnoreFile(entryPathFromRoot)) {
+            const relativePath = path.relative(cwd, path.join(baseDirAbsolute, entry.name));
+            if (fileDiscovery && fileDiscovery.shouldIgnoreFile(relativePath)) {
               continue;
             }
             

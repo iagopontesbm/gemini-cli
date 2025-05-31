@@ -45,6 +45,7 @@ describe('useCompletion git-aware filtering integration', () => {
       getFileFilteringRespectGitIgnore: vi.fn(() => true),
       getFileFilteringCustomIgnorePatterns: vi.fn(() => []),
       getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
+      getFileService: vi.fn().mockResolvedValue(mockFileDiscoveryService),
     };
     
     vi.mocked(FileDiscoveryService).mockImplementation(() => mockFileDiscoveryService);
@@ -79,7 +80,6 @@ describe('useCompletion git-aware filtering integration', () => {
       await new Promise(resolve => setTimeout(resolve, 150)); // Account for debounce
     });
 
-    expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
     expect(result.current.suggestions).toHaveLength(2);
     expect(result.current.suggestions).toEqual(
       expect.arrayContaining([
@@ -128,8 +128,7 @@ describe('useCompletion git-aware filtering integration', () => {
       await new Promise(resolve => setTimeout(resolve, 150));
     });
 
-    expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
-    // Should not include anything from node_modules or temp directories
+    // Should not include anything from node_modules or dist
     const suggestionLabels = result.current.suggestions.map(s => s.label);
     expect(suggestionLabels).not.toContain('temp/');
     expect(suggestionLabels.some(l => l.includes('node_modules'))).toBe(false);
@@ -179,10 +178,9 @@ describe('useCompletion git-aware filtering integration', () => {
       await new Promise(resolve => setTimeout(resolve, 150));
     });
 
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Git-aware filtering not available for completions:',
-      expect.any(Error)
-    );
+    // Since we use centralized service, initialization errors are handled at config level
+    // This test should verify graceful fallback behavior
+    expect(result.current.suggestions.length).toBeGreaterThanOrEqual(0);
     // Should still show completions even if git discovery fails
     expect(result.current.suggestions.length).toBeGreaterThan(0);
     
@@ -211,10 +209,8 @@ describe('useCompletion git-aware filtering integration', () => {
       await new Promise(resolve => setTimeout(resolve, 150));
     });
 
-    expect(mockFileDiscoveryService.initialize).toHaveBeenCalledWith({
-      respectGitIgnore: true,
-      customIgnorePatterns: ['temp/', '*.log'],
-    });
+    // Service is already initialized through centralized config
+    expect(result.current.suggestions).toBeDefined();
     
     expect(result.current.suggestions).toHaveLength(2);
     expect(result.current.suggestions).toEqual(

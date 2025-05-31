@@ -11,6 +11,12 @@ import { GitIgnoreParser } from '../utils/gitIgnoreParser.js';
 // Mock the GitIgnoreParser
 vi.mock('../utils/gitIgnoreParser.js');
 
+// Mock gitUtils module
+vi.mock('../utils/gitUtils.js', () => ({
+  isGitRepository: vi.fn(() => true),
+  findGitRoot: vi.fn(() => '/test/project'),
+}));
+
 describe('FileDiscoveryService', () => {
   let service: FileDiscoveryService;
   let mockGitIgnoreParser: any;

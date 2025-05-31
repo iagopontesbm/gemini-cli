@@ -10,6 +10,7 @@ import { BaseTool, ToolResult } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { Config } from '../config/config.js';
 
 /**
  * Parameters for the LS tool
@@ -71,7 +72,7 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
    * Creates a new instance of the LSLogic
    * @param rootDirectory Root directory to ground this tool in. All operations will be restricted to this directory.
    */
-  constructor(private rootDirectory: string, private config?: any) {
+  constructor(private rootDirectory: string, private config: Config) {
     super(
       LSTool.Name,
       'ReadFolder',
@@ -92,7 +93,7 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
           },
           respect_git_ignore: {
             description:
-              'Optional: Whether to respect .gitignore patterns when listing files. Defaults to true.',
+              'Optional: Whether to respect .gitignore patterns when listing files. Only available in git repositories. Defaults to true.',
             type: 'boolean',
           },
         },
@@ -226,14 +227,9 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
 
       const files = fs.readdirSync(params.path);
       
-      // Initialize git-aware file discovery if enabled
-      const respectGitIgnore = params.respect_git_ignore ?? this.config?.getFileFilteringRespectGitIgnore() ?? true;
-      const fileDiscovery = new FileDiscoveryService(this.rootDirectory);
-      const customIgnorePatterns = this.config?.getFileFilteringCustomIgnorePatterns() || [];
-      await fileDiscovery.initialize({ 
-        respectGitIgnore,
-        customIgnorePatterns 
-      });
+      // Get centralized file discovery service
+      const respectGitIgnore = params.respect_git_ignore ?? this.config.getFileFilteringRespectGitIgnore();
+      const fileDiscovery = await this.config.getFileService();
 
       const entries: FileEntry[] = [];
       let gitIgnoredCount = 0;
@@ -254,8 +250,8 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
         const fullPath = path.join(params.path, file);
         const relativePath = path.relative(this.rootDirectory, fullPath);
 
-        // Check if this file should be git-ignored
-        if (respectGitIgnore && fileDiscovery.shouldIgnoreFile(relativePath)) {
+        // Check if this file should be git-ignored (only in git repositories)
+        if (respectGitIgnore && fileDiscovery.isGitRepository() && fileDiscovery.shouldIgnoreFile(relativePath)) {
           gitIgnoredCount++;
           continue;
         }

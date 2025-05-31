@@ -11,6 +11,7 @@ import { SchemaValidator } from '../utils/schemaValidator.js';
 import { BaseTool, ToolResult } from './tools.js';
 import { shortenPath, makeRelative } from '../utils/paths.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { Config } from '../config/config.js';
 
 /**
  * Parameters for the GlobTool
@@ -46,7 +47,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    * Creates a new instance of the GlobLogic
    * @param rootDirectory Root directory to ground this tool in.
    */
-  constructor(private rootDirectory: string, private config?: any) {
+  constructor(private rootDirectory: string, private config: Config) {
     super(
       GlobTool.Name,
       'FindFiles',
@@ -70,7 +71,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
           },
           respect_git_ignore: {
             description:
-              'Optional: Whether to respect .gitignore patterns when finding files. Defaults to true.',
+              'Optional: Whether to respect .gitignore patterns when finding files. Only available in git repositories. Defaults to true.',
             type: 'boolean',
           },
         },
@@ -178,14 +179,9 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         params.path || '.',
       );
 
-      // Initialize git-aware file discovery if enabled
-      const respectGitIgnore = params.respect_git_ignore ?? this.config?.getFileFilteringRespectGitIgnore() ?? true;
-      const fileDiscovery = new FileDiscoveryService(this.rootDirectory);
-      const customIgnorePatterns = this.config?.getFileFilteringCustomIgnorePatterns() || [];
-      await fileDiscovery.initialize({ 
-        respectGitIgnore,
-        customIgnorePatterns 
-      });
+      // Get centralized file discovery service
+      const respectGitIgnore = params.respect_git_ignore ?? this.config.getFileFilteringRespectGitIgnore();
+      const fileDiscovery = await this.config.getFileService();
 
       const entries = await fg(params.pattern, {
         cwd: searchDirAbsolute,
@@ -199,14 +195,17 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         suppressErrors: true,
       });
 
-      // Apply git-aware filtering if enabled
+      // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
       let gitIgnoredCount = 0;
       
-      if (respectGitIgnore) {
+      if (respectGitIgnore && fileDiscovery.isGitRepository()) {
         const allPaths = entries.map(entry => entry.path);
         const relativePaths = allPaths.map(p => path.relative(this.rootDirectory, p));
-        const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths);
+        const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths, {
+          respectGitIgnore,
+          customIgnorePatterns: this.config.getFileFilteringCustomIgnorePatterns(),
+        });
         const filteredAbsolutePaths = new Set(
           filteredRelativePaths.map(p => path.resolve(this.rootDirectory, p))
         );

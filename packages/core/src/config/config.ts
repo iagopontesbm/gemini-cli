@@ -23,6 +23,7 @@ import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -106,6 +107,8 @@ export class Config {
   private readonly sandboxCleanupPreservePatterns: string[];
   private readonly sandboxCleanupAggressiveMode: boolean;
   private readonly sandboxCleanupConfirmBeforeCleanup: boolean;
+  // File discovery service
+  private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -265,6 +268,19 @@ export class Config {
 
   getSandboxCleanupConfirmBeforeCleanup(): boolean {
     return this.sandboxCleanupConfirmBeforeCleanup;
+  }
+
+  // File discovery service getter
+  async getFileService(): Promise<FileDiscoveryService> {
+    if (!this.fileDiscoveryService) {
+      this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
+      await this.fileDiscoveryService.initialize({
+        respectGitIgnore: this.fileFilteringRespectGitIgnore,
+        customIgnorePatterns: this.fileFilteringCustomIgnorePatterns,
+        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
+      });
+    }
+    return this.fileDiscoveryService;
   }
 }
 

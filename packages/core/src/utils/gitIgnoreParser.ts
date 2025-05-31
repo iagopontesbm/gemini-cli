@@ -7,6 +7,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { minimatch } from 'minimatch';
+import { isGitRepository } from './gitUtils.js';
 
 export interface GitIgnoreFilter {
   isIgnored(filePath: string): boolean;
@@ -16,13 +17,17 @@ export interface GitIgnoreFilter {
 export class GitIgnoreParser implements GitIgnoreFilter {
   private ignorePatterns: string[] = [];
   private projectRoot: string;
+  private isGitRepo: boolean = false;
 
   constructor(projectRoot: string) {
     this.projectRoot = path.resolve(projectRoot);
   }
 
   async initialize(): Promise<void> {
-    await this.loadGitIgnorePatterns();
+    this.isGitRepo = isGitRepository(this.projectRoot);
+    if (this.isGitRepo) {
+      await this.loadGitIgnorePatterns();
+    }
   }
 
   private async loadGitIgnorePatterns(): Promise<void> {
@@ -78,6 +83,11 @@ export class GitIgnoreParser implements GitIgnoreFilter {
   }
 
   isIgnored(filePath: string): boolean {
+    // If not a git repository, nothing is ignored
+    if (!this.isGitRepo) {
+      return false;
+    }
+
     // Normalize the input path (handle ./ prefixes)
     let cleanPath = filePath;
     if (cleanPath.startsWith('./')) {

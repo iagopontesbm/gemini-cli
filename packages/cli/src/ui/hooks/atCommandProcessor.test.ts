@@ -18,6 +18,10 @@ const mockConfig = {
   getToolRegistry: mockGetToolRegistry,
   getTargetDir: mockGetTargetDir,
   isSandboxed: vi.fn(() => false),
+  getFileService: vi.fn(),
+  getFileFilteringRespectGitIgnore: vi.fn(() => true),
+  getFileFilteringCustomIgnorePatterns: vi.fn(() => []),
+  getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
 } as unknown as Config;
 
 const mockReadManyFilesExecute = vi.fn();
@@ -89,10 +93,14 @@ describe('handleAtCommand', () => {
       shouldIgnoreFile: vi.fn(() => false),
       filterFiles: vi.fn((files) => files),
       getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+      isGitRepository: vi.fn(() => true),
     };
     vi.mocked(FileDiscoveryService).mockImplementation(
       () => mockFileDiscoveryService,
     );
+
+    // Mock getFileService to return the mocked FileDiscoveryService
+    mockConfig.getFileService = vi.fn().mockResolvedValue(mockFileDiscoveryService);
   });
 
   afterEach(() => {
@@ -599,7 +607,6 @@ ${fileContent}`,
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.initialize).toHaveBeenCalled();
       expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
         gitIgnoredFile,
       );

@@ -5,6 +5,7 @@
  */
 
 import { GitIgnoreParser, GitIgnoreFilter } from '../utils/gitIgnoreParser.js';
+import { isGitRepository } from '../utils/gitUtils.js';
 import * as path from 'path';
 
 export interface FileDiscoveryOptions {
@@ -16,13 +17,16 @@ export interface FileDiscoveryOptions {
 export class FileDiscoveryService {
   private gitIgnoreFilter: GitIgnoreFilter | null = null;
   private projectRoot: string;
+  private isGitRepo: boolean = false;
 
   constructor(projectRoot: string) {
     this.projectRoot = path.resolve(projectRoot);
   }
 
   async initialize(options: FileDiscoveryOptions = {}): Promise<void> {
-    if (options.respectGitIgnore !== false) {
+    this.isGitRepo = isGitRepository(this.projectRoot);
+    
+    if (options.respectGitIgnore !== false && this.isGitRepo) {
       const parser = new GitIgnoreParser(this.projectRoot);
       await parser.initialize();
       this.gitIgnoreFilter = parser;
@@ -43,7 +47,7 @@ export class FileDiscoveryService {
 
       // Apply custom ignore patterns
       if (options.customIgnorePatterns) {
-        const relativePath = path.relative(this.projectRoot, path.resolve(this.projectRoot, filePath));
+        const relativePath = path.relative(this.projectRoot, filePath);
         for (const pattern of options.customIgnorePatterns) {
           // Check if the path starts with the pattern (for directory matching)
           // or if any directory component matches the pattern
@@ -74,9 +78,16 @@ export class FileDiscoveryService {
    * Checks if a single file should be ignored
    */
   shouldIgnoreFile(filePath: string, options: FileDiscoveryOptions = {}): boolean {
-    if (options.respectGitIgnore !== false && this.gitIgnoreFilter) {
+    if (options.respectGitIgnore !== false && this.isGitRepo && this.gitIgnoreFilter) {
       return this.gitIgnoreFilter.isIgnored(filePath);
     }
     return false;
+  }
+
+  /**
+   * Returns whether the project is a git repository
+   */
+  isGitRepository(): boolean {
+    return this.isGitRepo;
   }
 }

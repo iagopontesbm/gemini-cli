@@ -12,6 +12,12 @@ import * as path from 'path';
 // Mock fs module
 vi.mock('fs/promises');
 
+// Mock gitUtils module
+vi.mock('./gitUtils.js', () => ({
+  isGitRepository: vi.fn(() => true),
+  findGitRoot: vi.fn(() => '/test/project'),
+}));
+
 describe('GitIgnoreParser', () => {
   let parser: GitIgnoreParser;
   const mockProjectRoot = '/test/project';
