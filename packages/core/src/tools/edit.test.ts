@@ -589,6 +589,80 @@ describe('EditTool', () => {
       expect(result.editsAttempted).toBe(1);
       expect(result.editsFailed).toBe(1);
     });
+
+    it('should create a new file using content parameter', async () => {
+      const params: EditToolParams = {
+        file_path: filePath,
+        content: 'This is the initial content of the file.\nSecond line here.',
+        mode: 'create',
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+
+      expect(result.llmContent).toMatch(/Created new file/);
+      expect(result.editsApplied).toBe(1);
+      expect(result.editsAttempted).toBe(1);
+      expect(result.editsFailed).toBe(0);
+
+      const writtenContent = fs.readFileSync(filePath, 'utf8');
+      expect(writtenContent).toBe('This is the initial content of the file.\nSecond line here.');
+    });
+
+    it('should overwrite file using content parameter', async () => {
+      const existingContent = 'Old content that will be replaced.';
+      fs.writeFileSync(filePath, existingContent, 'utf8');
+
+      const params: EditToolParams = {
+        file_path: filePath,
+        content: 'New content that replaces everything.',
+        mode: 'overwrite',
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+
+      expect(result.editsApplied).toBe(1);
+      expect(result.editsAttempted).toBe(1);
+      expect(result.editsFailed).toBe(0);
+
+      const writtenContent = fs.readFileSync(filePath, 'utf8');
+      expect(writtenContent).toBe('New content that replaces everything.');
+    });
+
+    it('should fail if create mode and file already exists with content parameter', async () => {
+      const existingContent = 'File already exists.';
+      fs.writeFileSync(filePath, existingContent, 'utf8');
+
+      const params: EditToolParams = {
+        file_path: filePath,
+        content: 'New content',
+        mode: 'create',
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+
+      expect(result.llmContent).toMatch(/File already exists/);
+      expect(result.editsApplied).toBe(0);
+      expect(result.editsFailed).toBe(1);
+    });
+
+    it('should validate content parameter for create/overwrite modes', () => {
+      const validParams: EditToolParams = {
+        file_path: filePath,
+        content: 'Some content',
+        mode: 'create',
+      };
+
+      const error = tool.validateParams(validParams);
+      expect(error).toBeNull();
+
+      const invalidParams: EditToolParams = {
+        file_path: filePath,
+        mode: 'create',
+      };
+
+      const error2 = tool.validateParams(invalidParams);
+      expect(error2).toMatch(/must provide either "content" parameter/);
+    });
   });
 
   describe('getDescription', () => {

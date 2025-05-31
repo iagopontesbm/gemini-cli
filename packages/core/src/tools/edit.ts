@@ -39,7 +39,6 @@ export interface EditToolParams {
   edits?: Array<{
     old_string: string;
     new_string: string;
-    description?: string;
   }>;
 
   /**
@@ -57,6 +56,11 @@ export interface EditToolParams {
    * Use when you want to replace multiple occurrences.
    */
   expected_replacements?: number;
+
+  /**
+   * Content for create or overwrite modes
+   */
+  content?: string;
 
   /**
    * Edit mode: 'edit' (default), 'create', or 'overwrite'
@@ -88,7 +92,7 @@ interface FailedEdit {
  * Implementation of the Edit tool logic
  */
 export class EditTool extends BaseTool<EditToolParams, EditResult> {
-  static readonly Name = 'replace';
+  static readonly Name = 'edit';
   private readonly config: Config;
   private readonly rootDirectory: string;
   private readonly client: GeminiClient;
@@ -134,10 +138,6 @@ Expectation for required parameters:
                     'The exact literal text to replace `old_string` with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
                   type: 'string',
                 },
-                description: {
-                  description: 'Optional description of what this edit does.',
-                  type: 'string',
-                },
               },
               required: ['old_string', 'new_string'],
             },
@@ -157,6 +157,11 @@ Expectation for required parameters:
             description:
               'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
             minimum: 1,
+          },
+          content: {
+            description:
+              'Content for create or overwrite modes. When mode is "create", this is the initial content for the new file. When mode is "overwrite", this replaces the entire file content.',
+            type: 'string',
           },
           mode: {
             description:
@@ -215,13 +220,28 @@ Expectation for required parameters:
       return `File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`;
     }
 
-    // Validate that we have either edits array or old_string/new_string pair
-    const hasEditsArray = params.edits && params.edits.length > 0;
-    const hasSingleEdit =
-      params.old_string !== undefined && params.new_string !== undefined;
+    const mode = params.mode || 'edit';
+    
+    // Validate parameters based on mode
+    if (mode === 'create' || mode === 'overwrite') {
+      // For create/overwrite modes, we need either content parameter or edits array or old_string/new_string
+      const hasContent = params.content !== undefined;
+      const hasEditsArray = params.edits && params.edits.length > 0;
+      const hasSingleEdit =
+        params.old_string !== undefined && params.new_string !== undefined;
 
-    if (!hasEditsArray && !hasSingleEdit) {
-      return 'Must provide either "edits" array or "old_string"/"new_string" pair.';
+      if (!hasContent && !hasEditsArray && !hasSingleEdit) {
+        return `For ${mode} mode, must provide either "content" parameter, "edits" array, or "old_string"/"new_string" pair.`;
+      }
+    } else {
+      // For edit mode, we need either edits array or old_string/new_string pair
+      const hasEditsArray = params.edits && params.edits.length > 0;
+      const hasSingleEdit =
+        params.old_string !== undefined && params.new_string !== undefined;
+
+      if (!hasEditsArray && !hasSingleEdit) {
+        return 'Must provide either "edits" array or "old_string"/"new_string" pair.';
+      }
     }
 
     // If using single edit mode, ensure both old_string and new_string are provided
@@ -258,11 +278,13 @@ Expectation for required parameters:
   /**
    * Applies multiple edits to file content
    * @param params Parameters containing edits to apply
+   * @param mode Edit mode (edit, create, overwrite)
    * @param abortSignal Abort signal for cancellation
    * @returns Result with detailed edit metrics
    */
   private async applyMultipleEdits(
     params: EditToolParams,
+    mode: string,
     abortSignal: AbortSignal,
   ): Promise<{
     newContent: string;
@@ -273,6 +295,47 @@ Expectation for required parameters:
     isNewFile: boolean;
     originalContent: string | null;
   }> {
+    // Handle content parameter for create/overwrite modes
+    if ((mode === 'create' || mode === 'overwrite') && params.content !== undefined) {
+      // For content-based creation/overwrite, we don't need to process edits
+      let fileExists = false;
+      try {
+        fs.readFileSync(params.file_path, 'utf8');
+        fileExists = true;
+      } catch (err: unknown) {
+        if (!isNodeError(err) || err.code !== 'ENOENT') {
+          throw err;
+        }
+      }
+      
+      if (mode === 'create' && fileExists) {
+        return {
+          newContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : '',
+          editsApplied: 0,
+          editsAttempted: 1,
+          editsFailed: 1,
+          failedEdits: [{
+            index: 0,
+            oldString: '',
+            newString: params.content,
+            error: `File already exists: ${params.file_path}`
+          }],
+          isNewFile: false,
+          originalContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : null,
+        };
+      }
+      
+      return {
+        newContent: params.content,
+        editsApplied: 1,
+        editsAttempted: 1,
+        editsFailed: 0,
+        failedEdits: [],
+        isNewFile: mode === 'create' || !fileExists,
+        originalContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : null,
+      };
+    }
+
     // Normalize edits - convert single edit to array format
     const edits = [];
     if (params.edits && params.edits.length > 0) {
@@ -285,7 +348,6 @@ Expectation for required parameters:
       });
     }
 
-    const mode = params.mode || 'edit';
     const expectedReplacements = params.expected_replacements ?? 1;
     let currentContent: string | null = null;
     let fileExists = false;
@@ -431,7 +493,7 @@ Expectation for required parameters:
 
     try {
       // Calculate what the edits would produce
-      const editResult = await this.applyMultipleEdits(params, abortSignal);
+      const editResult = await this.applyMultipleEdits(params, params.mode || 'edit', abortSignal);
 
       // Don't show confirmation if no edits would be applied
       if (editResult.editsApplied === 0 && !editResult.isNewFile) {
@@ -552,7 +614,7 @@ Expectation for required parameters:
     }
 
     try {
-      const editResult = await this.applyMultipleEdits(params, abortSignal);
+      const editResult = await this.applyMultipleEdits(params, params.mode || 'edit', abortSignal);
 
       // Apply the changes to the file
       await this.handleEditModes(params, editResult.newContent);
