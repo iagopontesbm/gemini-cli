@@ -119,11 +119,14 @@ export class Config {
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
-    
+
     // Initialize git-aware file filtering settings
-    this.fileFilteringRespectGitIgnore = params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringCustomIgnorePatterns = params.fileFilteringCustomIgnorePatterns ?? [];
-    this.fileFilteringAllowBuildArtifacts = params.fileFilteringAllowBuildArtifacts ?? false;
+    this.fileFilteringRespectGitIgnore =
+      params.fileFilteringRespectGitIgnore ?? true;
+    this.fileFilteringCustomIgnorePatterns =
+      params.fileFilteringCustomIgnorePatterns ?? [];
+    this.fileFilteringAllowBuildArtifacts =
+      params.fileFilteringAllowBuildArtifacts ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);

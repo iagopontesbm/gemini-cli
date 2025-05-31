@@ -32,14 +32,14 @@ export interface Settings {
   showMemoryUsage?: boolean;
   contextFileName?: string;
   title?: string;
-  
+
   // Git-aware file filtering settings
   fileFiltering?: {
     respectGitIgnore?: boolean;
     customIgnorePatterns?: string[];
     allowBuildArtifacts?: boolean;
   };
-  
+
   // Add other settings here.
 }
 

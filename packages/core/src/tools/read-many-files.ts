@@ -272,9 +272,9 @@ Use this tool when the user's query implies needing the content of several files
       useDefaultExcludes = true,
       respect_git_ignore = true,
     } = params;
-    
-    const respectGitIgnore = respect_git_ignore ??
-      this.config.getFileFilteringRespectGitIgnore();
+
+    const respectGitIgnore =
+      respect_git_ignore ?? this.config.getFileFilteringRespectGitIgnore();
 
     // Get centralized file discovery service
     const fileDiscovery = await this.config.getFileService();
@@ -314,14 +314,19 @@ Use this tool when the user's query implies needing the content of several files
       });
 
       // Apply git-aware filtering if enabled and in git repository
-      const filteredEntries = respectGitIgnore && fileDiscovery.isGitRepository()
-        ? fileDiscovery
-            .filterFiles(entries.map((p) => path.relative(toolBaseDir, p)), {
-              respectGitIgnore,
-              customIgnorePatterns: this.config.getFileFilteringCustomIgnorePatterns(),
-            })
-            .map((p) => path.resolve(toolBaseDir, p))
-        : entries;
+      const filteredEntries =
+        respectGitIgnore && fileDiscovery.isGitRepository()
+          ? fileDiscovery
+              .filterFiles(
+                entries.map((p) => path.relative(toolBaseDir, p)),
+                {
+                  respectGitIgnore,
+                  customIgnorePatterns:
+                    this.config.getFileFilteringCustomIgnorePatterns(),
+                },
+              )
+              .map((p) => path.resolve(toolBaseDir, p))
+          : entries;
 
       let gitIgnoredCount = 0;
       for (const absoluteFilePath of entries) {
@@ -335,7 +340,11 @@ Use this tool when the user's query implies needing the content of several files
         }
 
         // Check if this file was filtered out by git ignore
-        if (respectGitIgnore && fileDiscovery.isGitRepository() && !filteredEntries.includes(absoluteFilePath)) {
+        if (
+          respectGitIgnore &&
+          fileDiscovery.isGitRepository() &&
+          !filteredEntries.includes(absoluteFilePath)
+        ) {
           gitIgnoredCount++;
           continue;
         }

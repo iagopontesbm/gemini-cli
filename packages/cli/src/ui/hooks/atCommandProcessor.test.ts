@@ -100,7 +100,9 @@ describe('handleAtCommand', () => {
     );
 
     // Mock getFileService to return the mocked FileDiscoveryService
-    mockConfig.getFileService = vi.fn().mockResolvedValue(mockFileDiscoveryService);
+    mockConfig.getFileService = vi
+      .fn()
+      .mockResolvedValue(mockFileDiscoveryService);
   });
 
   afterEach(() => {

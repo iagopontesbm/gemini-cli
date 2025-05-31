@@ -203,10 +203,16 @@ export function useCompletion(
           if (foundSuggestions.length >= maxResults) break;
 
           const entryPathRelative = path.join(currentRelativePath, entry.name);
-          const entryPathFromRoot = path.relative(cwd, path.join(startDir, entry.name));
-          
+          const entryPathFromRoot = path.relative(
+            cwd,
+            path.join(startDir, entry.name),
+          );
+
           // Check if this entry should be ignored by git-aware filtering
-          if (fileDiscovery && fileDiscovery.shouldIgnoreFile(entryPathFromRoot)) {
+          if (
+            fileDiscovery &&
+            fileDiscovery.shouldIgnoreFile(entryPathFromRoot)
+          ) {
             continue;
           }
 
@@ -247,7 +253,7 @@ export function useCompletion(
     const fetchSuggestions = async () => {
       setIsLoadingSuggestions(true);
       let fetchedSuggestions: Suggestion[] = [];
-      
+
       // Get centralized file discovery service if config is available
       let fileDiscovery = null;
       if (config) {
@@ -255,35 +261,45 @@ export function useCompletion(
           fileDiscovery = await config.getFileService();
         } catch (error) {
           // If git discovery fails, continue without it
-          console.warn('Git-aware filtering not available for completions:', error);
+          console.warn(
+            'Git-aware filtering not available for completions:',
+            error,
+          );
           fileDiscovery = null;
         }
       }
-      
+
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
         if (partialPath.indexOf('/') === -1 && prefix) {
-          fetchedSuggestions = await findFilesRecursively(cwd, prefix, fileDiscovery);
+          fetchedSuggestions = await findFilesRecursively(
+            cwd,
+            prefix,
+            fileDiscovery,
+          );
         } else {
           // Original behavior: list files in the specific directory
           const lowerPrefix = prefix.toLowerCase();
           const entries = await fs.readdir(baseDirAbsolute, {
             withFileTypes: true,
           });
-          
+
           // Filter entries using git-aware filtering
           const filteredEntries = [];
           for (const entry of entries) {
             if (!entry.name.toLowerCase().startsWith(lowerPrefix)) continue;
-            
-            const relativePath = path.relative(cwd, path.join(baseDirAbsolute, entry.name));
+
+            const relativePath = path.relative(
+              cwd,
+              path.join(baseDirAbsolute, entry.name),
+            );
             if (fileDiscovery && fileDiscovery.shouldIgnoreFile(relativePath)) {
               continue;
             }
-            
+
             filteredEntries.push(entry);
           }
-          
+
           fetchedSuggestions = filteredEntries.map((entry) => {
             const label = entry.isDirectory() ? entry.name + '/' : entry.name;
             return {

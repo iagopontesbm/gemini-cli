@@ -37,10 +37,7 @@ export class GitIgnoreParser implements GitIgnoreFilter {
     ];
 
     // Always ignore .git directory regardless of .gitignore content
-    this.ignorePatterns = [
-      '.git/**',
-      '.git',
-    ];
+    this.ignorePatterns = ['.git/**', '.git'];
 
     for (const gitIgnoreFile of gitIgnoreFiles) {
       try {
@@ -56,29 +53,29 @@ export class GitIgnoreParser implements GitIgnoreFilter {
   private parseGitIgnoreContent(content: string): string[] {
     return content
       .split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#'))
-      .map(pattern => {
+      .map((line) => line.trim())
+      .filter((line) => line && !line.startsWith('#'))
+      .map((pattern) => {
         // Handle negation patterns (!) - for now we'll skip them
         if (pattern.startsWith('!')) {
           return null;
         }
-        
+
         // Convert gitignore patterns to minimatch-compatible patterns
         if (pattern.endsWith('/')) {
           // Directory pattern - match directory and all contents
           const dirPattern = pattern.slice(0, -1); // Remove trailing slash
           return [dirPattern, dirPattern + '/**'];
         }
-        
+
         // If pattern doesn't contain /, it should match at any level
         if (!pattern.includes('/') && !pattern.startsWith('**/')) {
           return '**/' + pattern;
         }
-        
+
         return pattern;
       })
-      .filter(pattern => pattern !== null)
+      .filter((pattern) => pattern !== null)
       .flat() as string[];
   }
 
@@ -93,23 +90,26 @@ export class GitIgnoreParser implements GitIgnoreFilter {
     if (cleanPath.startsWith('./')) {
       cleanPath = cleanPath.slice(2);
     }
-    
+
     // Convert to relative path from project root
-    const relativePath = path.relative(this.projectRoot, path.resolve(this.projectRoot, cleanPath));
-    
+    const relativePath = path.relative(
+      this.projectRoot,
+      path.resolve(this.projectRoot, cleanPath),
+    );
+
     // Handle paths that go outside project root
     if (relativePath.startsWith('..')) {
       return false;
     }
-    
+
     // Normalize path separators for cross-platform compatibility
     const normalizedPath = relativePath.replace(/\\/g, '/');
-    
-    return this.ignorePatterns.some(pattern => {
-      return minimatch(normalizedPath, pattern, { 
+
+    return this.ignorePatterns.some((pattern) => {
+      return minimatch(normalizedPath, pattern, {
         dot: true,
         matchBase: false,
-        flipNegate: false 
+        flipNegate: false,
       });
     });
   }

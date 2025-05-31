@@ -25,7 +25,7 @@ export class FileDiscoveryService {
 
   async initialize(options: FileDiscoveryOptions = {}): Promise<void> {
     this.isGitRepo = isGitRepository(this.projectRoot);
-    
+
     if (options.respectGitIgnore !== false && this.isGitRepo) {
       const parser = new GitIgnoreParser(this.projectRoot);
       await parser.initialize();
@@ -36,8 +36,11 @@ export class FileDiscoveryService {
   /**
    * Filters a list of file paths based on git ignore rules and options
    */
-  filterFiles(filePaths: string[], options: FileDiscoveryOptions = {}): string[] {
-    return filePaths.filter(filePath => {
+  filterFiles(
+    filePaths: string[],
+    options: FileDiscoveryOptions = {},
+  ): string[] {
+    return filePaths.filter((filePath) => {
       // Always respect git ignore unless explicitly disabled
       if (options.respectGitIgnore !== false && this.gitIgnoreFilter) {
         if (this.gitIgnoreFilter.isIgnored(filePath)) {
@@ -52,9 +55,11 @@ export class FileDiscoveryService {
           // Check if the path starts with the pattern (for directory matching)
           // or if any directory component matches the pattern
           const pathParts = relativePath.split(path.sep);
-          if (relativePath.startsWith(pattern + '/') || 
-              relativePath === pattern || 
-              pathParts.some(part => part === pattern)) {
+          if (
+            relativePath.startsWith(pattern + '/') ||
+            relativePath === pattern ||
+            pathParts.some((part) => part === pattern)
+          ) {
             return false;
           }
         }
@@ -67,7 +72,7 @@ export class FileDiscoveryService {
   /**
    * Gets patterns that would be ignored for debugging/transparency
    */
-  getIgnoreInfo(): { gitIgnored: string[], customIgnored: string[] } {
+  getIgnoreInfo(): { gitIgnored: string[]; customIgnored: string[] } {
     return {
       gitIgnored: this.gitIgnoreFilter?.getIgnoredPatterns() || [],
       customIgnored: [], // Can be extended later
@@ -77,8 +82,15 @@ export class FileDiscoveryService {
   /**
    * Checks if a single file should be ignored
    */
-  shouldIgnoreFile(filePath: string, options: FileDiscoveryOptions = {}): boolean {
-    if (options.respectGitIgnore !== false && this.isGitRepo && this.gitIgnoreFilter) {
+  shouldIgnoreFile(
+    filePath: string,
+    options: FileDiscoveryOptions = {},
+  ): boolean {
+    if (
+      options.respectGitIgnore !== false &&
+      this.isGitRepo &&
+      this.gitIgnoreFilter
+    ) {
       return this.gitIgnoreFilter.isIgnored(filePath);
     }
     return false;

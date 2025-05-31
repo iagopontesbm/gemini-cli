@@ -109,8 +109,6 @@ export const useSlashCommandProcessor = (
     [addMessage],
   );
 
-
-
   const slashCommands: SlashCommand[] = useMemo(
     () => [
       {

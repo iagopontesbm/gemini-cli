@@ -72,7 +72,10 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
    * Creates a new instance of the LSLogic
    * @param rootDirectory Root directory to ground this tool in. All operations will be restricted to this directory.
    */
-  constructor(private rootDirectory: string, private config: Config) {
+  constructor(
+    private rootDirectory: string,
+    private config: Config,
+  ) {
     super(
       LSTool.Name,
       'ReadFolder',
@@ -226,9 +229,11 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
       }
 
       const files = fs.readdirSync(params.path);
-      
+
       // Get centralized file discovery service
-      const respectGitIgnore = params.respect_git_ignore ?? this.config.getFileFilteringRespectGitIgnore();
+      const respectGitIgnore =
+        params.respect_git_ignore ??
+        this.config.getFileFilteringRespectGitIgnore();
       const fileDiscovery = await this.config.getFileService();
 
       const entries: FileEntry[] = [];
@@ -251,7 +256,11 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
         const relativePath = path.relative(this.rootDirectory, fullPath);
 
         // Check if this file should be git-ignored (only in git repositories)
-        if (respectGitIgnore && fileDiscovery.isGitRepository() && fileDiscovery.shouldIgnoreFile(relativePath)) {
+        if (
+          respectGitIgnore &&
+          fileDiscovery.isGitRepository() &&
+          fileDiscovery.shouldIgnoreFile(relativePath)
+        ) {
           gitIgnoredCount++;
           continue;
         }

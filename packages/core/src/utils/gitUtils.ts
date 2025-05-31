@@ -15,25 +15,25 @@ import * as path from 'path';
 export function isGitRepository(directory: string): boolean {
   try {
     let currentDir = path.resolve(directory);
-    
+
     while (true) {
       const gitDir = path.join(currentDir, '.git');
-      
+
       // Check if .git exists (either as directory or file for worktrees)
       if (fs.existsSync(gitDir)) {
         return true;
       }
-      
+
       const parentDir = path.dirname(currentDir);
-      
+
       // If we've reached the root directory, stop searching
       if (parentDir === currentDir) {
         break;
       }
-      
+
       currentDir = parentDir;
     }
-    
+
     return false;
   } catch (error) {
     // If any filesystem error occurs, assume not a git repo
@@ -49,23 +49,23 @@ export function isGitRepository(directory: string): boolean {
 export function findGitRoot(directory: string): string | null {
   try {
     let currentDir = path.resolve(directory);
-    
+
     while (true) {
       const gitDir = path.join(currentDir, '.git');
-      
+
       if (fs.existsSync(gitDir)) {
         return currentDir;
       }
-      
+
       const parentDir = path.dirname(currentDir);
-      
+
       if (parentDir === currentDir) {
         break;
       }
-      
+
       currentDir = parentDir;
     }
-    
+
     return null;
   } catch (error) {
     return null;

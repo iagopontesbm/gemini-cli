@@ -34,7 +34,7 @@ describe('GitIgnoreParser', () => {
   describe('initialization', () => {
     it('should initialize without errors when no .gitignore exists', async () => {
       vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
-      
+
       await expect(parser.initialize()).resolves.not.toThrow();
     });
 
@@ -50,7 +50,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('.git/**');
       expect(patterns).toContain('.git');
       expect(patterns).toContain('node_modules/**');
@@ -64,7 +64,9 @@ dist
         if (filePath === path.join(mockProjectRoot, '.gitignore')) {
           throw new Error('ENOENT');
         }
-        if (filePath === path.join(mockProjectRoot, '.git', 'info', 'exclude')) {
+        if (
+          filePath === path.join(mockProjectRoot, '.git', 'info', 'exclude')
+        ) {
           return 'temp/\n*.tmp';
         }
         throw new Error('Unexpected file');
@@ -72,7 +74,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('temp/**');
       expect(patterns).toContain('**/*.tmp');
     });
@@ -85,7 +87,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('node_modules/**');
       expect(patterns).toContain('build/**');
     });
@@ -96,7 +98,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('**/*.log');
       expect(patterns).toContain('**/.env');
       expect(patterns).toContain('**/config.json');
@@ -114,7 +116,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).not.toContain('# This is a comment');
       expect(patterns).not.toContain('# Another comment');
       expect(patterns).toContain('**/*.log');
@@ -127,7 +129,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('**/*.log');
       expect(patterns).not.toContain('!important.log');
     });
@@ -138,7 +140,7 @@ dist
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('src/*.log');
       expect(patterns).toContain('docs/temp/**');
     });
@@ -185,7 +187,11 @@ src/*.tmp
     });
 
     it('should handle absolute paths correctly', () => {
-      const absolutePath = path.join(mockProjectRoot, 'node_modules', 'package');
+      const absolutePath = path.join(
+        mockProjectRoot,
+        'node_modules',
+        'package',
+      );
       expect(parser.isIgnored(absolutePath)).toBe(true);
     });
 
@@ -213,7 +219,7 @@ src/*.tmp
       await parser.initialize();
       const patterns1 = parser.getIgnoredPatterns();
       const patterns2 = parser.getIgnoredPatterns();
-      
+
       expect(patterns1).not.toBe(patterns2); // Different array instances
       expect(patterns1).toEqual(patterns2); // Same content
     });
@@ -223,7 +229,7 @@ src/*.tmp
 
       await parser.initialize();
       const patterns = parser.getIgnoredPatterns();
-      
+
       expect(patterns).toContain('.git/**');
       expect(patterns).toContain('.git');
     });

@@ -47,7 +47,10 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    * Creates a new instance of the GlobLogic
    * @param rootDirectory Root directory to ground this tool in.
    */
-  constructor(private rootDirectory: string, private config: Config) {
+  constructor(
+    private rootDirectory: string,
+    private config: Config,
+  ) {
     super(
       GlobTool.Name,
       'FindFiles',
@@ -180,7 +183,9 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
       );
 
       // Get centralized file discovery service
-      const respectGitIgnore = params.respect_git_ignore ?? this.config.getFileFilteringRespectGitIgnore();
+      const respectGitIgnore =
+        params.respect_git_ignore ??
+        this.config.getFileFilteringRespectGitIgnore();
       const fileDiscovery = await this.config.getFileService();
 
       const entries = await fg(params.pattern, {
@@ -198,19 +203,24 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
       // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
       let gitIgnoredCount = 0;
-      
+
       if (respectGitIgnore && fileDiscovery.isGitRepository()) {
-        const allPaths = entries.map(entry => entry.path);
-        const relativePaths = allPaths.map(p => path.relative(this.rootDirectory, p));
+        const allPaths = entries.map((entry) => entry.path);
+        const relativePaths = allPaths.map((p) =>
+          path.relative(this.rootDirectory, p),
+        );
         const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths, {
           respectGitIgnore,
-          customIgnorePatterns: this.config.getFileFilteringCustomIgnorePatterns(),
+          customIgnorePatterns:
+            this.config.getFileFilteringCustomIgnorePatterns(),
         });
         const filteredAbsolutePaths = new Set(
-          filteredRelativePaths.map(p => path.resolve(this.rootDirectory, p))
+          filteredRelativePaths.map((p) => path.resolve(this.rootDirectory, p)),
         );
-        
-        filteredEntries = entries.filter(entry => filteredAbsolutePaths.has(entry.path));
+
+        filteredEntries = entries.filter((entry) =>
+          filteredAbsolutePaths.has(entry.path),
+        );
         gitIgnoredCount = entries.length - filteredEntries.length;
       }
 

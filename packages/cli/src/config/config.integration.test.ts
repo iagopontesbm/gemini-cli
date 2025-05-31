@@ -18,9 +18,12 @@ vi.mock('@gemini-code/core', async () => {
     ...actual,
     loadEnvironment: vi.fn(),
     createServerConfig: vi.fn((params) => ({
-      getFileFilteringRespectGitIgnore: () => params.fileFilteringRespectGitIgnore ?? true,
-      getFileFilteringCustomIgnorePatterns: () => params.fileFilteringCustomIgnorePatterns ?? [],
-      getFileFilteringAllowBuildArtifacts: () => params.fileFilteringAllowBuildArtifacts ?? false,
+      getFileFilteringRespectGitIgnore: () =>
+        params.fileFilteringRespectGitIgnore ?? true,
+      getFileFilteringCustomIgnorePatterns: () =>
+        params.fileFilteringCustomIgnorePatterns ?? [],
+      getFileFilteringAllowBuildArtifacts: () =>
+        params.fileFilteringAllowBuildArtifacts ?? false,
       getTargetDir: () => '/test/project',
       getApiKey: () => 'test-api-key',
       getModel: () => 'test-model',
@@ -67,7 +70,7 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {};
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
@@ -87,13 +90,16 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual(['temp/', '*.log']);
+      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
+        'temp/',
+        '*.log',
+      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
@@ -112,20 +118,20 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings: userSettings },
-        { path: '', settings: workspaceSettings }
+        { path: '', settings: workspaceSettings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
 
       // Workspace settings should override user settings completely (object spread behavior)
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual(['workspace-pattern']);
+      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
+        'workspace-pattern',
+      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
       // User setting is lost because workspace completely overrides the fileFiltering object
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true); // Default value since not specified in workspace
     });
   });
-
-
 
   describe('Configuration Integration', () => {
     it('should handle partial configuration objects gracefully', async () => {
@@ -137,7 +143,7 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
@@ -156,7 +162,7 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
@@ -174,7 +180,7 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
@@ -197,13 +203,17 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual(['secrets/', '*.key', '*.pem']);
+      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
+        'secrets/',
+        '*.key',
+        '*.pem',
+      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
@@ -217,7 +227,7 @@ describe('Configuration Integration Tests', () => {
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);
@@ -232,11 +242,10 @@ describe('Configuration Integration Tests', () => {
           customIgnorePatterns: [],
           allowBuildArtifacts: true,
         },
-
       };
       const loadedSettings = new LoadedSettings(
         { path: '', settings },
-        { path: '', settings }
+        { path: '', settings },
       );
 
       const config = await loadCliConfig(loadedSettings.merged);

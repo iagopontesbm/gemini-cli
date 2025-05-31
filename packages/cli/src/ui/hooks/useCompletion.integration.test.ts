@@ -40,15 +40,17 @@ describe('useCompletion git-aware filtering integration', () => {
       filterFiles: vi.fn(),
       getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
     };
-    
+
     mockConfig = {
       getFileFilteringRespectGitIgnore: vi.fn(() => true),
       getFileFilteringCustomIgnorePatterns: vi.fn(() => []),
       getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
       getFileService: vi.fn().mockResolvedValue(mockFileDiscoveryService),
     };
-    
-    vi.mocked(FileDiscoveryService).mockImplementation(() => mockFileDiscoveryService);
+
+    vi.mocked(FileDiscoveryService).mockImplementation(
+      () => mockFileDiscoveryService,
+    );
     vi.clearAllMocks();
   });
 
@@ -67,17 +69,23 @@ describe('useCompletion git-aware filtering integration', () => {
     ] as any);
 
     // Mock git ignore service to ignore certain files
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-      return path.includes('node_modules') || path.includes('dist') || path.includes('.env');
-    });
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      (path: string) => {
+        return (
+          path.includes('node_modules') ||
+          path.includes('dist') ||
+          path.includes('.env')
+        );
+      },
+    );
 
     const { result } = renderHook(() =>
-      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+      useCompletion('@', testCwd, true, slashCommands, mockConfig),
     );
 
     // Wait for async operations to complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150)); // Account for debounce
+      await new Promise((resolve) => setTimeout(resolve, 150)); // Account for debounce
     });
 
     expect(result.current.suggestions).toHaveLength(2);
@@ -85,7 +93,7 @@ describe('useCompletion git-aware filtering integration', () => {
       expect.arrayContaining([
         { label: 'src/', value: 'src/' },
         { label: 'README.md', value: 'README.md' },
-      ])
+      ]),
     );
     expect(result.current.showSuggestions).toBe(true);
   });
@@ -107,31 +115,33 @@ describe('useCompletion git-aware filtering integration', () => {
         ] as any;
       }
       if (dirPath.endsWith('/temp')) {
-        return [
-          { name: 'temp.log', isDirectory: () => false },
-        ] as any;
+        return [{ name: 'temp.log', isDirectory: () => false }] as any;
       }
       return [] as any;
     });
 
     // Mock git ignore service
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-      return path.includes('node_modules') || path.includes('temp');
-    });
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      (path: string) => {
+        return path.includes('node_modules') || path.includes('temp');
+      },
+    );
 
     const { result } = renderHook(() =>
-      useCompletion('@t', testCwd, true, slashCommands, mockConfig)
+      useCompletion('@t', testCwd, true, slashCommands, mockConfig),
     );
 
     // Wait for async operations to complete
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
 
     // Should not include anything from node_modules or dist
-    const suggestionLabels = result.current.suggestions.map(s => s.label);
+    const suggestionLabels = result.current.suggestions.map((s) => s.label);
     expect(suggestionLabels).not.toContain('temp/');
-    expect(suggestionLabels.some(l => l.includes('node_modules'))).toBe(false);
+    expect(suggestionLabels.some((l) => l.includes('node_modules'))).toBe(
+      false,
+    );
   });
 
   it('should work without config (fallback behavior)', async () => {
@@ -142,11 +152,11 @@ describe('useCompletion git-aware filtering integration', () => {
     ] as any);
 
     const { result } = renderHook(() =>
-      useCompletion('@', testCwd, true, slashCommands, undefined)
+      useCompletion('@', testCwd, true, slashCommands, undefined),
     );
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
 
     // Without config, should include all files
@@ -156,13 +166,15 @@ describe('useCompletion git-aware filtering integration', () => {
         { label: 'src/', value: 'src/' },
         { label: 'node_modules/', value: 'node_modules/' },
         { label: 'README.md', value: 'README.md' },
-      ])
+      ]),
     );
   });
 
   it('should handle git discovery service initialization failure gracefully', async () => {
-    mockFileDiscoveryService.initialize.mockRejectedValue(new Error('Git not found'));
-    
+    mockFileDiscoveryService.initialize.mockRejectedValue(
+      new Error('Git not found'),
+    );
+
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'src', isDirectory: () => true },
       { name: 'README.md', isDirectory: () => false },
@@ -171,11 +183,11 @@ describe('useCompletion git-aware filtering integration', () => {
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const { result } = renderHook(() =>
-      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+      useCompletion('@', testCwd, true, slashCommands, mockConfig),
     );
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
 
     // Since we use centralized service, initialization errors are handled at config level
@@ -183,13 +195,16 @@ describe('useCompletion git-aware filtering integration', () => {
     expect(result.current.suggestions.length).toBeGreaterThanOrEqual(0);
     // Should still show completions even if git discovery fails
     expect(result.current.suggestions.length).toBeGreaterThan(0);
-    
+
     consoleSpy.mockRestore();
   });
 
   it('should respect custom ignore patterns from config', async () => {
-    mockConfig.getFileFilteringCustomIgnorePatterns.mockReturnValue(['temp/', '*.log']);
-    
+    mockConfig.getFileFilteringCustomIgnorePatterns.mockReturnValue([
+      'temp/',
+      '*.log',
+    ]);
+
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'src', isDirectory: () => true },
       { name: 'temp', isDirectory: () => true },
@@ -197,27 +212,29 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'README.md', isDirectory: () => false },
     ] as any);
 
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-      return path.includes('temp') || path.includes('.log');
-    });
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      (path: string) => {
+        return path.includes('temp') || path.includes('.log');
+      },
+    );
 
     const { result } = renderHook(() =>
-      useCompletion('@', testCwd, true, slashCommands, mockConfig)
+      useCompletion('@', testCwd, true, slashCommands, mockConfig),
     );
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
 
     // Service is already initialized through centralized config
     expect(result.current.suggestions).toBeDefined();
-    
+
     expect(result.current.suggestions).toHaveLength(2);
     expect(result.current.suggestions).toEqual(
       expect.arrayContaining([
         { label: 'src/', value: 'src/' },
         { label: 'README.md', value: 'README.md' },
-      ])
+      ]),
     );
   });
 
@@ -228,16 +245,18 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'index.ts', isDirectory: () => false },
     ] as any);
 
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation((path: string) => {
-      return path.includes('.log');
-    });
+    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      (path: string) => {
+        return path.includes('.log');
+      },
+    );
 
     const { result } = renderHook(() =>
-      useCompletion('@src/comp', testCwd, true, slashCommands, mockConfig)
+      useCompletion('@src/comp', testCwd, true, slashCommands, mockConfig),
     );
 
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
     });
 
     // Should filter out .log files but include matching .tsx files
