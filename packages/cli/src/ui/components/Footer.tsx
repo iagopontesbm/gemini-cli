@@ -63,15 +63,16 @@ export const Footer: React.FC<FooterProps> = ({
           {process.env.SANDBOX.replace(/^gemini-(?:cli-)?/, '')}
         </Text>
       ) : process.env.SANDBOX === 'sandbox-exec' ? (
-        <Box>
-          <Text color={Colors.AccentYellow}>sandbox-exec </Text>
-          <Text color={Colors.SubtleComment}>({process.env.SEATBELT_PROFILE})</Text>
-        </Box>
+        <Text color={Colors.AccentYellow}>
+          sandbox-exec{' '}
+          <Text color={Colors.SubtleComment}>
+            ({process.env.SEATBELT_PROFILE})
+          </Text>
+        </Text>
       ) : (
-        <Box>
-          <Text color={Colors.AccentRed}>no sandbox </Text>
-          <Text color={Colors.SubtleComment}>(see README)</Text>
-        </Box>
+        <Text color={Colors.AccentRed}>
+          no sandbox <Text color={Colors.SubtleComment}>(see README)</Text>
+        </Text>
       )}
     </Box>
 
