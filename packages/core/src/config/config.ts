@@ -56,7 +56,7 @@ export interface ConfigParameters {
   alwaysSkipModificationConfirmation?: boolean;
   vertexai?: boolean;
   showMemoryUsage?: boolean;
-  contextFileName?: string; // This is used by the constructor to call setGeminiMdFilename
+  contextFileName?: string;
 }
 
 export class Config {
