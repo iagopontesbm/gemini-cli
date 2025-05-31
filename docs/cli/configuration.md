@@ -37,6 +37,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
 ### Available Settings in `settings.json`:
 
 - **`contextFileName`** (string, optional):
+
   - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`).
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
