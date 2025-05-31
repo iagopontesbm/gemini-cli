@@ -92,7 +92,7 @@ interface FailedEdit {
  * Implementation of the Edit tool logic
  */
 export class EditTool extends BaseTool<EditToolParams, EditResult> {
-  static readonly Name = 'edit';
+  static readonly Name = 'edit_file';
   private readonly config: Config;
   private readonly rootDirectory: string;
   private readonly client: GeminiClient;
@@ -276,8 +276,8 @@ Expectation for required parameters:
   }
 
   /**
-   * Applies multiple edits to file content
-   * @param params Parameters containing edits to apply
+   * Applies multiple edits to file content in sequence
+   * @param params Edit parameters
    * @param mode Edit mode (edit, create, overwrite)
    * @param abortSignal Abort signal for cancellation
    * @returns Result with detailed edit metrics
@@ -295,22 +295,40 @@ Expectation for required parameters:
     isNewFile: boolean;
     originalContent: string | null;
   }> {
-    // Handle content parameter for create/overwrite modes
-    if ((mode === 'create' || mode === 'overwrite') && params.content !== undefined) {
-      // For content-based creation/overwrite, we don't need to process edits
-      let fileExists = false;
-      try {
-        fs.readFileSync(params.file_path, 'utf8');
-        fileExists = true;
-      } catch (err: unknown) {
-        if (!isNodeError(err) || err.code !== 'ENOENT') {
-          throw err;
-        }
+    // Read current file content or determine if this is a new file
+    let currentContent: string | null = null;
+    let fileExists = false;
+    let isNewFile = false;
+
+    try {
+      currentContent = fs.readFileSync(params.file_path, 'utf8');
+      fileExists = true;
+    } catch (err: unknown) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') {
+        throw err;
       }
-      
+    }
+
+    // Handle mode validation
+    if (mode === 'edit' && !fileExists) {
+      throw new Error(`File does not exist: ${params.file_path}`);
+    }
+
+    // Set up initial content based on mode
+    if (mode === 'overwrite') {
+      currentContent = '';
+      isNewFile = !fileExists;
+    } else if (!fileExists) {
+      isNewFile = true;
+      currentContent = '';
+    }
+
+    // Handle simple content replacement for create/overwrite modes
+    if ((mode === 'create' || mode === 'overwrite') && params.content !== undefined) {
+      // For create mode, fail if file already exists
       if (mode === 'create' && fileExists) {
         return {
-          newContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : '',
+          newContent: currentContent || '',
           editsApplied: 0,
           editsAttempted: 1,
           editsFailed: 1,
@@ -321,7 +339,7 @@ Expectation for required parameters:
             error: `File already exists: ${params.file_path}`
           }],
           isNewFile: false,
-          originalContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : null,
+          originalContent: currentContent,
         };
       }
       
@@ -331,7 +349,7 @@ Expectation for required parameters:
         editsAttempted: 1,
         editsFailed: 0,
         failedEdits: [],
-        isNewFile: mode === 'create' || !fileExists,
+        isNewFile,
         originalContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : null,
       };
     }
@@ -349,37 +367,23 @@ Expectation for required parameters:
     }
 
     const expectedReplacements = params.expected_replacements ?? 1;
-    let currentContent: string | null = null;
-    let fileExists = false;
-    let isNewFile = false;
 
-    // Read current file content
-    try {
-      currentContent = fs.readFileSync(params.file_path, 'utf8');
-      fileExists = true;
-    } catch (err: unknown) {
-      if (!isNodeError(err) || err.code !== 'ENOENT') {
-        throw err;
-      }
-    }
-
-    // Handle different modes
-    if (mode === 'create' && fileExists) {
-      throw new Error(`File already exists: ${params.file_path}`);
-    }
-    if (mode === 'edit' && !fileExists) {
-      throw new Error(`File does not exist: ${params.file_path}`);
-    }
-    if (mode === 'overwrite') {
-      currentContent = '';
-      isNewFile = true;
-    }
-    if (
-      !fileExists &&
-      (mode === 'create' || (edits.length === 1 && edits[0].old_string === ''))
-    ) {
-      isNewFile = true;
-      currentContent = '';
+    // Additional mode validation for edits-based operations
+    if (mode === 'create' && fileExists && edits.length > 0) {
+      return {
+        newContent: currentContent || '',
+        editsApplied: 0,
+        editsAttempted: edits.length,
+        editsFailed: edits.length,
+        failedEdits: edits.map((edit, index) => ({
+          index,
+          oldString: edit.old_string,
+          newString: edit.new_string,
+          error: `File already exists: ${params.file_path}`
+        })),
+        isNewFile: false,
+        originalContent: currentContent,
+      };
     }
 
     const result = {
@@ -396,8 +400,8 @@ Expectation for required parameters:
     for (let i = 0; i < edits.length; i++) {
       const edit = edits[i];
 
+      // Handle new file creation with empty old_string
       if (isNewFile && edit.old_string === '') {
-        // Creating new file with content
         result.newContent = edit.new_string;
         result.editsApplied++;
         continue;

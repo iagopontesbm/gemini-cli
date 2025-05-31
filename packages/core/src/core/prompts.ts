@@ -62,9 +62,71 @@ You are an interactive CLI agent specializing in software engineering tasks. You
 - **'create':** For creating new files. Will fail if file already exists.
 - **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
+## Examples
+
+### Batch Editing for Multiple Related Changes
+When making several related changes to the same file, use the 'edits' array:
+\`\`\`json
+{
+  "file_path": "/absolute/path/to/component.js",
+  "edits": [
+    {
+      "old_string": "const handleClick = () => {\\n  console.log('old handler');\\n  return false;\\n}",
+      "new_string": "const handleClick = () => {\\n  console.log('updated handler');\\n  return true;\\n}"
+    },
+    {
+      "old_string": "// TODO: implement validation\\nconst isValid = false;",
+      "new_string": "// Validation implemented\\nconst isValid = validateInput(input);"
+    }
+  ]
+}
+\`\`\`
+
+### Mode Selection Examples
+\`\`\`json
+// Create new file
+{
+  "file_path": "/absolute/path/to/newFile.js", 
+  "mode": "create", 
+  "content": "export const newModule = {};\\n"
+}
+
+// Replace entire file content
+{
+  "file_path": "/absolute/path/to/config.json", 
+  "mode": "overwrite", 
+  "content": "{\\n  \\"version\\": \\"2.0\\",\\n  \\"settings\\": {}\\n}\\n"
+}
+
+// Edit existing file (default mode)
+{
+  "file_path": "/absolute/path/to/existing.js",
+  "old_string": "function oldFunction() {\\n  return 'legacy';\\n}",
+  "new_string": "function newFunction() {\\n  return 'updated';\\n}"
+}
+\`\`\`
+
+### Context Requirements
+Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
+\`\`\`json
+{
+  "file_path": "/absolute/path/to/app.js",
+  "old_string": "  // Initialize app\\n  const app = express();\\n  app.use(middleware);\\n  \\n  // Start server\\n  app.listen(3000);",
+  "new_string": "  // Initialize app\\n  const app = express();\\n  app.use(middleware);\\n  app.use(newMiddleware);\\n  \\n  // Start server\\n  app.listen(3000);"
+}
+\`\`\`
+
+### When to Use Different Approaches
+- **Single targeted change:** Use single edit with old_string/new_string
+- **Multiple related changes:** Use batch edits array for efficiency and consistency  
+- **File creation:** Use create mode with content parameter
+- **Complete file replacement:** Use overwrite mode when rewriting substantial portions
+- **Adding to existing file:** Use edit mode with empty old_string only for simple appends
+
 ## Error Recovery
 - **Failed Edits:** When edits fail, examine the specific error messages in 'failedEdits' array. Common issues: insufficient context, multiple matches, or missing target text.
 - **Retry Strategy:** For failed batch edits, retry individually with more specific context rather than re-running the entire batch.
+- **Context Improvement:** Add more surrounding lines or unique identifiers to old_string when facing multiple matches.
 
 # Primary Workflows
 
