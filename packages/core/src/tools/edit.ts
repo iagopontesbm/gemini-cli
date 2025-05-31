@@ -135,7 +135,7 @@ Expectation for required parameters:
                 },
                 new_string: {
                   description:
-                    'The exact literal text to replace `old_string` with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
+                    'The exact literal text to replace old_string with, preferably unescaped. Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
                   type: 'string',
                 },
               },
@@ -149,7 +149,7 @@ Expectation for required parameters:
           },
           new_string: {
             description:
-              'The exact literal text to replace `old_string` with (for single edit - backward compatibility). Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
+              'The exact literal text to replace old_string with (for single edit - backward compatibility). Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
             type: 'string',
           },
           expected_replacements: {
@@ -221,7 +221,7 @@ Expectation for required parameters:
     }
 
     const mode = params.mode || 'edit';
-    
+
     // Validate parameters based on mode
     if (mode === 'create' || mode === 'overwrite') {
       // For create/overwrite modes, we need either content parameter or edits array or old_string/new_string
@@ -324,7 +324,10 @@ Expectation for required parameters:
     }
 
     // Handle simple content replacement for create/overwrite modes
-    if ((mode === 'create' || mode === 'overwrite') && params.content !== undefined) {
+    if (
+      (mode === 'create' || mode === 'overwrite') &&
+      params.content !== undefined
+    ) {
       // For create mode, fail if file already exists
       if (mode === 'create' && fileExists) {
         return {
@@ -332,17 +335,19 @@ Expectation for required parameters:
           editsApplied: 0,
           editsAttempted: 1,
           editsFailed: 1,
-          failedEdits: [{
-            index: 0,
-            oldString: '',
-            newString: params.content,
-            error: `File already exists: ${params.file_path}`
-          }],
+          failedEdits: [
+            {
+              index: 0,
+              oldString: '',
+              newString: params.content,
+              error: `File already exists: ${params.file_path}`,
+            },
+          ],
           isNewFile: false,
           originalContent: currentContent,
         };
       }
-      
+
       return {
         newContent: params.content,
         editsApplied: 1,
@@ -350,7 +355,9 @@ Expectation for required parameters:
         editsFailed: 0,
         failedEdits: [],
         isNewFile,
-        originalContent: fileExists ? fs.readFileSync(params.file_path, 'utf8') : null,
+        originalContent: fileExists
+          ? fs.readFileSync(params.file_path, 'utf8')
+          : null,
       };
     }
 
@@ -379,7 +386,7 @@ Expectation for required parameters:
           index,
           oldString: edit.old_string,
           newString: edit.new_string,
-          error: `File already exists: ${params.file_path}`
+          error: `File already exists: ${params.file_path}`,
         })),
         isNewFile: false,
         originalContent: currentContent,
@@ -497,7 +504,11 @@ Expectation for required parameters:
 
     try {
       // Calculate what the edits would produce
-      const editResult = await this.applyMultipleEdits(params, params.mode || 'edit', abortSignal);
+      const editResult = await this.applyMultipleEdits(
+        params,
+        params.mode || 'edit',
+        abortSignal,
+      );
 
       // Don't show confirmation if no edits would be applied
       if (editResult.editsApplied === 0 && !editResult.isNewFile) {
@@ -618,7 +629,11 @@ Expectation for required parameters:
     }
 
     try {
-      const editResult = await this.applyMultipleEdits(params, params.mode || 'edit', abortSignal);
+      const editResult = await this.applyMultipleEdits(
+        params,
+        params.mode || 'edit',
+        abortSignal,
+      );
 
       // Apply the changes to the file
       await this.handleEditModes(params, editResult.newContent);
