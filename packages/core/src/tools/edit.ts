@@ -365,11 +365,13 @@ Expectation for parameters:
       let snippet = lines.slice(0, MAX_SNIPPET_LINES).join('\n');
       if (snippet.length > MAX_SNIPPET_CHARS) {
         snippet = snippet.substring(0, MAX_SNIPPET_CHARS - 3) + '...';
-      } else if (lines.length > MAX_SNIPPET_LINES || 
-                 (lines.length === MAX_SNIPPET_LINES && 
-                  lines.length > 0 && 
-                  lines[MAX_SNIPPET_LINES - 1].length > MAX_SNIPPET_CHARS)) {
-        snippet += '...'; 
+      } else if (
+        lines.length > MAX_SNIPPET_LINES ||
+        (lines.length === MAX_SNIPPET_LINES &&
+          lines.length > 0 &&
+          lines[MAX_SNIPPET_LINES - 1].length > MAX_SNIPPET_CHARS)
+      ) {
+        snippet += '...';
       }
       return snippet;
     };
