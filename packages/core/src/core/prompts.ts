@@ -254,7 +254,7 @@ Okay, I see src/auth.py currently uses 'urllib'. Before changing it, I need to c
 Okay, 'requests' is available. Let me double check how it's used across the codebase:
 [tool_call: ${GrepTool.Name} 'requests\\.(get|post)']
 I will now refactor src/auth.py.
-[tool_call: Uses ${EditTool.Name} edit tool following conventions]
+[tool_call: Uses ${EditTool.Name}]
 (After editing)
 [tool_call: Runs project-specific lint/typecheck commands found previously, e.g., ${ShellTool.Name} for 'npm run build', 'ruff', 'check', 'src/auth.py']
 </example>
