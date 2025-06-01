@@ -105,31 +105,7 @@ async function main() {
     process.exit(1);
   }
 
-  // Non-interactive mode handled by runNonInteractive
-  let existingCoreTools = config.getCoreTools();
-  existingCoreTools = existingCoreTools || [
-    ReadFileTool.Name,
-    LSTool.Name,
-    GrepTool.Name,
-    GlobTool.Name,
-    EditTool.Name,
-    WriteFileTool.Name,
-    WebFetchTool.Name,
-    WebSearchTool.Name,
-    ReadManyFilesTool.Name,
-    ShellTool.Name,
-    MemoryTool.Name,
-  ];
-  const interactiveTools = [ShellTool.Name, EditTool.Name, WriteFileTool.Name];
-  const nonInteractiveTools = existingCoreTools.filter(
-    (tool) => !interactiveTools.includes(tool),
-  );
-  const nonInteractiveSettings = {
-    ...settings.merged,
-    coreTools: nonInteractiveTools,
-  };
-  const nonInteractiveConfig = await loadCliConfig(nonInteractiveSettings);
-  await runNonInteractive(nonInteractiveConfig, input);
+  await runNonInteractive(config, input);
 }
 
 // --- Global Unhandled Rejection Handler ---
