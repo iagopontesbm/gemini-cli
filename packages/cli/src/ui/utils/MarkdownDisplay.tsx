@@ -238,8 +238,8 @@ const RenderInlineInternal: React.FC<RenderInlineProps> = ({ text }) => {
         !/\w/.test(
           text.substring(inlineRegex.lastIndex, inlineRegex.lastIndex + 1),
         ) &&
-        !/\w\./.test(text.substring(match.index - 2, match.index)) &&
-        !/\.\w/.test(
+        !/\S[./\\]/.test(text.substring(match.index - 2, match.index)) &&
+        !/[./\\]\S/.test(
           text.substring(inlineRegex.lastIndex, inlineRegex.lastIndex + 2),
         )
       ) {
