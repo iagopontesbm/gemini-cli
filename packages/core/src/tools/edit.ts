@@ -75,7 +75,7 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
     super(
       EditTool.Name,
       'Edit',
-      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when expected_replacements is specified. This tool requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool} tool to examine the file's current content before attempting a text replacement.
+      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when \`expected_replacements\` is specified. This tool requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool} tool to examine the file's current content before attempting a text replacement.
 
 Expectation for parameters:
 1. \`file_path\` MUST be an absolute path; otherwise an error will be thrown.
