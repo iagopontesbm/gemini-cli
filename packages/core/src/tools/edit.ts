@@ -83,7 +83,8 @@ Expectation for required parameters:
 3. \`new_string\` MUST be the exact literal text to replace \`old_string\` with (also including all whitespace, indentation, newlines, and surrounding code etc.). Ensure the resulting code is correct and idiomatic.
 4. NEVER escape \`old_string\` or \`new_string\`, that would break the exact literal text requirement.
 **Important:** If ANY of the above are not satisfied, the tool will fail. CRITICAL for \`old_string\`: Must uniquely identify the single instance to change. Include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. If this string matches multiple locations, or does not match exactly, the tool will fail.,
-**Multiple replacements:** Set \`expected_replacements\` to the number of occurrences you want to replace. The tool will replace ALL occurrences that match \`old_string\` exactly. Ensure the number of replacements matches your expectation.`,      {
+**Multiple replacements:** Set \`expected_replacements\` to the number of occurrences you want to replace. The tool will replace ALL occurrences that match \`old_string\` exactly. Ensure the number of replacements matches your expectation.`,
+      {
         properties: {
           file_path: {
             description:
@@ -102,7 +103,8 @@ Expectation for required parameters:
           },
           expected_replacements: {
             type: 'number',
-            description: 'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
+            description:
+              'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
             minimum: 1,
           },
         },
