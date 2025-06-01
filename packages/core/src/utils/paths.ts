@@ -51,6 +51,7 @@ export function shortenPath(filePath: string, maxLen: number = 35): string {
   }
 
   const firstDir = segments[0];
+  const lastDir = segments[segments.length - 1];
   const startComponent = root + firstDir;
 
   const endPartSegments: string[] = [];
@@ -68,6 +69,10 @@ export function shortenPath(filePath: string, maxLen: number = 35): string {
       currentLength = lengthWithSegment;
     } else {
       // Adding this segment would exceed maxLen
+      if (endPartSegments.length === 0) {
+        // Lets try to keep the last directory so that we have "firstDir/.../lastDir"
+        endPartSegments.unshift(lastDir);
+      }
       break;
     }
   }

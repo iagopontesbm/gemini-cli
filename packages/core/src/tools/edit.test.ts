@@ -496,4 +496,138 @@ describe('EditTool', () => {
       );
     });
   });
+
+  // New describe block for getDescription parameter validation
+  describe('EditTool.getDescription parameter validation', () => {
+    // 'tool' and 'rootDir' are inherited from the outer 'describe' scope's 'beforeEach'
+    // 'path' is imported at the top of the file.
+
+    it('should return error message if file_path is empty, old_string and new_string are present', () => {
+      const params: EditToolParams = {
+        file_path: '',
+        old_string: 'old content',
+        new_string: 'new content',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe('EditTool params cannot be empty {file_path: , old_string: old content, new_string: new content}');
+    });
+
+    it('should return error message if old_string is empty, file_path and new_string are present', () => {
+      const testFilePath = path.join(rootDir, 'some', 'file.txt');
+      const params: EditToolParams = {
+        file_path: testFilePath,
+        old_string: '',
+        new_string: 'new content',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe(`EditTool params cannot be empty {file_path: ${testFilePath}, old_string: , new_string: new content}`);
+    });
+
+    it('should return error message if new_string is empty, file_path and old_string are present', () => {
+      const testFilePath = path.join(rootDir, 'some', 'file.txt');
+      const params: EditToolParams = {
+        file_path: testFilePath,
+        old_string: 'old content',
+        new_string: '',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe(`EditTool params cannot be empty {file_path: ${testFilePath}, old_string: old content, new_string: }`);
+    });
+
+    it('should return error message if all relevant params (file_path, old_string, new_string) are empty', () => {
+      const params: EditToolParams = {
+        file_path: '',
+        old_string: '',
+        new_string: '',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe('EditTool params cannot be empty {file_path: , old_string: , new_string: }');
+    });
+
+    it('should return error message if file_path is undefined', () => {
+      const params: EditToolParams = {
+        file_path: undefined as any,
+        old_string: 'old content',
+        new_string: 'new content',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe('EditTool params cannot be empty {file_path: undefined, old_string: old content, new_string: new content}');
+    });
+    
+    it('should return error message if old_string is undefined', () => {
+      const testFilePath = path.join(rootDir, 'some', 'file.txt');
+      const params: EditToolParams = {
+        file_path: testFilePath,
+        old_string: undefined as any,
+        new_string: 'new content',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe(`EditTool params cannot be empty {file_path: ${testFilePath}, old_string: undefined, new_string: new content}`);
+    });
+
+    it('should return error message if new_string is undefined', () => {
+      const testFilePath = path.join(rootDir, 'some', 'file.txt');
+      const params: EditToolParams = {
+        file_path: testFilePath,
+        old_string: 'old content',
+        new_string: undefined as any,
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe(`EditTool params cannot be empty {file_path: ${testFilePath}, old_string: old content, new_string: undefined}`);
+    });
+
+    it('should return error message for "Create file" scenario due to new validation on empty old_string', () => {
+      const newFileName = 'new_file_for_desc.txt';
+      const newFilePath = path.join(rootDir, newFileName);
+      const params: EditToolParams = {
+        file_path: newFilePath,
+        old_string: '', 
+        new_string: 'content for new file',
+      };
+      const description = tool.getDescription(params);
+      expect(description).toBe(`EditTool params cannot be empty {file_path: ${newFilePath}, old_string: , new_string: content for new file}`);
+    });
+
+    it('should produce a valid description for normal parameters with multi-line snippets', () => {
+        const testFilePath = path.join(rootDir, 'dir1', 'file_for_desc.txt');
+        const oldContent = 'Original line 1\nOriginal line 2\nOriginal line 3\nOriginal line 4'; // 4 lines
+        const newContent = 'New line 1'; // 1 line
+        const params: EditToolParams = {
+            file_path: testFilePath,
+            old_string: oldContent,
+            new_string: newContent,
+        };
+        const description = tool.getDescription(params);
+        
+        const relativePath = path.relative(rootDir, testFilePath); // 'dir1/file_for_desc.txt'
+        // Assuming shortenPath with default maxLen=35 does not shorten 'dir1/file_for_desc.txt' (length 23)
+        const expectedShortenedPath = relativePath; 
+
+        // Snippets based on createSnippet logic (MAX_LINES=3, MAX_CHARS=80)
+        const expectedOldSnippet = 'Original line 1\nOriginal line 2\nOriginal line 3...'; // First 3 lines + ... because 4 lines total
+        const expectedNewSnippet = 'New line 1'; // Single line, no truncation or ellipsis
+
+        expect(description).toBe(`${expectedShortenedPath}: ${expectedOldSnippet} => ${expectedNewSnippet}`);
+    });
+
+    it('should produce a valid description with character truncation in snippets', () => {
+        const testFilePath = path.join(rootDir, 'dir2', 'another_file.txt');
+        const oldContent = 'This is a very long single line of text that will definitely exceed the eighty character limit for snippets and should be truncated with an ellipsis.';
+        const newContent = 'Short.';
+        const params: EditToolParams = {
+            file_path: testFilePath,
+            old_string: oldContent,
+            new_string: newContent,
+        };
+        const description = tool.getDescription(params);
+
+        const relativePath = path.relative(rootDir, testFilePath);
+        const expectedShortenedPath = relativePath; // 'dir2/another_file.txt' (length 21)
+
+        const expectedOldSnippet = oldContent.substring(0, 80 - 3) + '...';
+        const expectedNewSnippet = 'Short.';
+
+        expect(description).toBe(`${expectedShortenedPath}: ${expectedOldSnippet} => ${expectedNewSnippet}`);
+    });
+  });
 });
