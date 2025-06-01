@@ -37,7 +37,7 @@ export function useCompletion(
   cwd: string,
   isActive: boolean,
   slashCommands: SlashCommand[],
-  config?: any,
+  config: Config,
 ): UseCompletionReturn {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
