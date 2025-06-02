@@ -91,7 +91,6 @@ export async function ensureCorrectEdit(
       );
     }
   } else if (occurrences > expectedReplacements) {
-
     // If occurrences don't match expected, return as-is (will fail validation later)
     const result: CorrectedEditResult = {
       params: { ...originalParams },
@@ -522,9 +521,7 @@ function trimPairIfPossible(
       trimmedTargetString,
     );
 
-    if (
-      trimmedTargetOccurrences === expectedReplacements
-    ) {
+    if (trimmedTargetOccurrences === expectedReplacements) {
       const trimmedReactiveString = trimIfTargetTrims.trim();
       return {
         targetString: trimmedTargetString,
