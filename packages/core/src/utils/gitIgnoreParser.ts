@@ -26,26 +26,22 @@ export class GitIgnoreParser implements GitIgnoreFilter {
   async initialize(): Promise<void> {
     this.isGitRepo = isGitRepository(this.projectRoot);
     if (this.isGitRepo) {
-      await this.loadGitIgnorePatterns();
-    }
-  }
+      const gitIgnoreFiles = [
+        path.join(this.projectRoot, '.gitignore'),
+        path.join(this.projectRoot, '.git', 'info', 'exclude'),
+      ];
 
-  private async loadGitIgnorePatterns(): Promise<void> {
-    const gitIgnoreFiles = [
-      path.join(this.projectRoot, '.gitignore'),
-      path.join(this.projectRoot, '.git', 'info', 'exclude'),
-    ];
+      // Always ignore .git directory regardless of .gitignore content
+      this.ignorePatterns = ['.git/**', '.git'];
 
-    // Always ignore .git directory regardless of .gitignore content
-    this.ignorePatterns = ['.git/**', '.git'];
-
-    for (const gitIgnoreFile of gitIgnoreFiles) {
-      try {
-        const content = await fs.readFile(gitIgnoreFile, 'utf-8');
-        const patterns = this.parseGitIgnoreContent(content);
-        this.ignorePatterns.push(...patterns);
-      } catch (error) {
-        // File doesn't exist or can't be read, continue silently
+      for (const gitIgnoreFile of gitIgnoreFiles) {
+        try {
+          const content = await fs.readFile(gitIgnoreFile, 'utf-8');
+          const patterns = this.parseGitIgnoreContent(content);
+          this.ignorePatterns.push(...patterns);
+        } catch (error) {
+          // File doesn't exist or can't be read, continue silently
+        }
       }
     }
   }
