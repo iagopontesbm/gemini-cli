@@ -65,7 +65,8 @@ runs:
 
         # CLI Package - Collapsible Section (with full text summary from file)
         echo "<details>" >> "$comment_file"
-        echo "<summary>CLI Package - Full Text Report</summary>" >> "$comment_file"
+        echo "<summary>CLI Package - Full Text Report</summary>"
+        echo "" >> "$comment_file"
         echo '```text' >> "$comment_file"
         if [ -f "$cli_full_text_summary_file" ]; then
           cat "$cli_full_text_summary_file" >> "$comment_file"
@@ -78,7 +79,8 @@ runs:
 
         # Core Package - Collapsible Section (with full text summary from file)
         echo "<details>" >> "$comment_file"
-        echo "<summary>Core Package - Full Text Report</summary>" >> "$comment_file"
+        echo "<summary>Core Package - Full Text Report</summary>"
+        echo "" >> "$comment_file"
         echo '```text' >> "$comment_file"
         if [ -f "$core_full_text_summary_file" ]; then
           cat "$core_full_text_summary_file" >> "$comment_file"
