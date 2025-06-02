@@ -15,6 +15,7 @@ import {
   ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
+  ApprovalMode,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
 import { readPackageUp } from 'read-package-up';
@@ -43,6 +44,7 @@ interface CliArgs {
   prompt: string | undefined;
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
+  yolo: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -78,6 +80,13 @@ async function parseArguments(): Promise<CliArgs> {
     .option('show_memory_usage', {
       type: 'boolean',
       description: 'Show memory usage in status bar',
+      default: false,
+    })
+    .option('yolo', {
+      alias: 'y',
+      type: 'boolean',
+      description:
+        'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
     .version() // This will enable the --version flag based on package.json
@@ -190,7 +199,7 @@ export async function loadCliConfig(
   const configParams: ConfigParameters = {
     apiKey: apiKeyForServer,
     model: modelToUse,
-    sandbox: argv.sandbox ?? settings.sandbox ?? false,
+    sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
@@ -203,6 +212,7 @@ export async function loadCliConfig(
     userAgent,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
+    approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
