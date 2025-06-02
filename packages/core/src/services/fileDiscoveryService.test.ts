@@ -213,6 +213,63 @@ describe('FileDiscoveryService', () => {
     });
   });
 
+  describe('isGitRepository', () => {
+    it('should return true when isGitRepo is explicitly set to true in options', () => {
+      const result = service.isGitRepository({ isGitRepo: true });
+      expect(result).toBe(true);
+    });
+
+    it('should return false when isGitRepo is explicitly set to false in options', () => {
+      const result = service.isGitRepository({ isGitRepo: false });
+      expect(result).toBe(false);
+    });
+
+    it('should use git utility function when isGitRepo is not specified', () => {
+      const result = service.isGitRepository();
+      expect(result).toBe(true); // mocked to return true
+    });
+
+    it('should use git utility function when options are undefined', () => {
+      const result = service.isGitRepository(undefined);
+      expect(result).toBe(true); // mocked to return true
+    });
+  });
+
+  describe('initialization with isGitRepo config', () => {
+    it('should initialize git ignore parser when isGitRepo is true in options', async () => {
+      await service.initialize({ isGitRepo: true });
+
+      expect(GitIgnoreParser).toHaveBeenCalledWith(mockProjectRoot);
+      expect(mockGitIgnoreParser.initialize).toHaveBeenCalled();
+    });
+
+    it('should not initialize git ignore parser when isGitRepo is false in options', async () => {
+      await service.initialize({ isGitRepo: false });
+
+      expect(GitIgnoreParser).not.toHaveBeenCalled();
+      expect(mockGitIgnoreParser.initialize).not.toHaveBeenCalled();
+    });
+
+    it('should initialize git ignore parser when isGitRepo is not specified but respectGitIgnore is true', async () => {
+      await service.initialize({ respectGitIgnore: true });
+
+      expect(GitIgnoreParser).toHaveBeenCalledWith(mockProjectRoot);
+      expect(mockGitIgnoreParser.initialize).toHaveBeenCalled();
+    });
+  });
+
+  describe('shouldIgnoreFile with isGitRepo config', () => {
+    it('should respect isGitRepo option when checking if file should be ignored', async () => {
+      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) => {
+        return path.includes('node_modules');
+      });
+      await service.initialize({ isGitRepo: true });
+
+      expect(service.shouldIgnoreFile('node_modules/package/index.js', { isGitRepo: true })).toBe(true);
+      expect(service.shouldIgnoreFile('node_modules/package/index.js', { isGitRepo: false })).toBe(false);
+    });
+  });
+
   describe('edge cases', () => {
     it('should handle relative project root paths', () => {
       const relativeService = new FileDiscoveryService('./relative/path');

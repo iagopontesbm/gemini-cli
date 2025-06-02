@@ -70,6 +70,7 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringCustomIgnorePatterns?: string[];
   fileFilteringAllowBuildArtifacts?: boolean;
+  isGitRepo?: boolean;
 }
 
 export class Config {
@@ -97,6 +98,7 @@ export class Config {
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringCustomIgnorePatterns: string[];
   private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private readonly isGitRepo: boolean | undefined;
   // File discovery service
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
@@ -127,6 +129,7 @@ export class Config {
       params.fileFilteringCustomIgnorePatterns ?? [];
     this.fileFilteringAllowBuildArtifacts =
       params.fileFilteringAllowBuildArtifacts ?? false;
+    this.isGitRepo = params.isGitRepo;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -240,6 +243,10 @@ export class Config {
     return this.fileFilteringAllowBuildArtifacts;
   }
 
+  getIsGitRepo(): boolean | undefined {
+    return this.isGitRepo;
+  }
+
   // File discovery service getter
   async getFileService(): Promise<FileDiscoveryService> {
     if (!this.fileDiscoveryService) {
@@ -248,6 +255,7 @@ export class Config {
         respectGitIgnore: this.fileFilteringRespectGitIgnore,
         customIgnorePatterns: this.fileFilteringCustomIgnorePatterns,
         includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
+        isGitRepo: this.isGitRepo,
       });
     }
     return this.fileDiscoveryService;
