@@ -16,7 +16,12 @@ import {
 } from 'vitest';
 import { ToolRegistry, DiscoveredTool } from './tool-registry.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
-import { Config, ConfigParameters, MCPServerConfig, ApprovalMode } from '../config/config.js';
+import {
+  Config,
+  ConfigParameters,
+  MCPServerConfig,
+  ApprovalMode,
+} from '../config/config.js';
 import { BaseTool, ToolResult } from './tools.js';
 import {
   FunctionDeclaration,

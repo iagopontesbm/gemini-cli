@@ -84,16 +84,13 @@ async function connectAndDiscover(
     transport.stderr.on('data', (data) => {
       const stderrStr = data.toString();
       // Filter out verbose INFO logs from some MCP servers
-      if (
-        !stderrStr.includes('] INFO') &&
-        !stderrStr.includes('DEBUG rustls')
-      ) {
+      if (!stderrStr.includes('] INFO')) {
         console.debug(`MCP STDERR (${mcpServerName}):`, stderrStr);
       }
     });
   }
 
-  const toolRegistry = config.getToolRegistry();
+  const toolRegistry = await config.getToolRegistry();
   try {
     const mcpCallableTool: CallableTool = mcpToTool(mcpClient);
     const discoveredToolFunctions = await mcpCallableTool.tool();
@@ -122,13 +119,14 @@ async function connectAndDiscover(
       }
 
       let toolNameForModel = funcDecl.name;
+
+      // Replace invalid characters (based on 400 error message from Gemini API) with underscores
+      toolNameForModel = toolNameForModel.replace(/[^a-zA-Z0-9_.-]/g, '_');
+
       const existingTool = toolRegistry.getTool(toolNameForModel);
       if (existingTool) {
         toolNameForModel = mcpServerName + '__' + toolNameForModel;
       }
-
-      // Replace invalid characters (based on 400 error message from Gemini API) with underscores
-      toolNameForModel = toolNameForModel.replace(/[^a-zA-Z0-9_.-]/g, '_');
 
       // If longer than 63 characters, replace middle with '___'
       // (Gemini API says max length 64, but actual limit seems to be 63)
@@ -161,25 +159,27 @@ async function connectAndDiscover(
       `Failed to list or register tools for MCP server '${mcpServerName}': ${error}`,
     );
     // Ensure transport is cleaned up on error too
-    if (transport instanceof StdioClientTransport) {
-      await transport.close();
-    } else if (transport instanceof SSEClientTransport) {
+    if (
+      transport instanceof StdioClientTransport ||
+      transport instanceof SSEClientTransport
+    ) {
       await transport.close();
     }
   }
 
-  // Note: We might want to keep the client connected if tools are registered successfully,
-  // or dispose/close it if no tools were found or an error occurred.
-  // For now, let's assume the client connection is managed by the lifecycle of the DiscoveredMCPTool instances
-  // or should be explicitly closed if no tools are usable from this server.
-  // If no tools were registered from this server, we can probably close the connection.
+  // If no tools were registered from this MCP server, the following 'if' block
+  // will close the connection. This is done to conserve resources and prevent
+  // an orphaned connection to a server that isn't providing any usable
+  // functionality. Connections to servers that did provide tools are kept
+  // open, as those tools will require the connection to function.
   if (toolRegistry.getToolsByServer(mcpServerName).length === 0) {
     console.log(
       `No tools registered from MCP server '${mcpServerName}'. Closing connection.`,
     );
-    if (transport instanceof StdioClientTransport) {
-      await transport.close();
-    } else if (transport instanceof SSEClientTransport) {
+    if (
+      transport instanceof StdioClientTransport ||
+      transport instanceof SSEClientTransport
+    ) {
       await transport.close();
     }
   }

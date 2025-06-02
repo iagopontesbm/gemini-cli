@@ -185,7 +185,6 @@ export class ToolRegistry {
   getToolsByServer(serverName: string): Tool[] {
     const serverTools: Tool[] = [];
     for (const tool of this.tools.values()) {
-      // Check if the tool instance has a serverName property and if it matches
       if ((tool as DiscoveredMCPTool)?.serverName === serverName) {
         serverTools.push(tool);
       }

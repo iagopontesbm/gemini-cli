@@ -14,8 +14,8 @@ import {
   afterEach,
   Mocked,
 } from 'vitest';
-import { DiscoveredMCPTool } from './mcp-tool.js';
-import { ToolResult } from './tools.js';
+import { DiscoveredMCPTool } from './mcp-tool.js'; // Added getStringifiedResultForDisplay
+import { ToolResult, ToolConfirmationOutcome } from './tools.js'; // Added ToolConfirmationOutcome
 import { CallableTool, Part } from '@google/genai';
 
 // Mock @google/genai mcpToTool and CallableTool
@@ -38,11 +38,13 @@ describe('DiscoveredMCPTool', () => {
     type: 'object' as const,
     properties: { param: { type: 'string' } },
     required: ['param'],
-  }; // Use FunctionDeclaration['parameters'] type
+  };
 
   beforeEach(() => {
     mockCallTool.mockClear();
-    mockToolMethod.mockClear(); // Though not used in these tests directly
+    mockToolMethod.mockClear();
+    // Clear allowlist before each relevant test, especially for shouldConfirmExecute
+    (DiscoveredMCPTool as any).allowlist.clear();
   });
 
   afterEach(() => {
@@ -50,10 +52,10 @@ describe('DiscoveredMCPTool', () => {
   });
 
   describe('constructor', () => {
-    it('should set properties correctly and augment description', () => {
+    it('should set properties correctly and augment description (non-generic server)', () => {
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
-        serverName,
+        serverName, // serverName is 'mock-mcp-server', not 'mcp'
         toolNameForModel,
         baseDescription,
         inputSchema,
@@ -62,18 +64,28 @@ describe('DiscoveredMCPTool', () => {
 
       expect(tool.name).toBe(toolNameForModel);
       expect(tool.schema.name).toBe(toolNameForModel);
-      expect(tool.schema.description).toContain(baseDescription);
-      expect(tool.schema.description).toContain('This MCP tool was discovered');
-      expect(tool.schema.description).toContain(`Server: '${serverName}'.`);
-      expect(tool.schema.description).toContain(
-        `Original tool name on server: \`${serverToolName}\``,
-      );
+      const expectedDescription = `${baseDescription}\n\nThis MCP tool named '${serverToolName}' was discovered from an MCP server.`;
+      expect(tool.schema.description).toBe(expectedDescription);
       expect(tool.schema.parameters).toEqual(inputSchema);
       expect(tool.serverToolName).toBe(serverToolName);
-      expect(tool.timeout).toBeUndefined(); // Timeout is now part of mcpServerConfig
+      expect(tool.timeout).toBeUndefined();
     });
 
-    it('should accept and store a custom timeout (passed from mcpServerConfig)', () => {
+    it('should set properties correctly and augment description (generic "mcp" server)', () => {
+      const genericServerName = 'mcp';
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        genericServerName, // serverName is 'mcp'
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      const expectedDescription = `${baseDescription}\n\nThis MCP tool named '${serverToolName}' was discovered from '${genericServerName}' MCP server.`;
+      expect(tool.schema.description).toBe(expectedDescription);
+    });
+
+    it('should accept and store a custom timeout', () => {
       const customTimeout = 5000;
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
@@ -82,14 +94,14 @@ describe('DiscoveredMCPTool', () => {
         baseDescription,
         inputSchema,
         serverToolName,
-        customTimeout, // This timeout is passed from MCPServerConfig
+        customTimeout,
       );
       expect(tool.timeout).toBe(customTimeout);
     });
   });
 
   describe('execute', () => {
-    it('should call mcpTool.callTool with correct parameters', async () => {
+    it('should call mcpTool.callTool with correct parameters and format display output', async () => {
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
         serverName,
@@ -97,21 +109,20 @@ describe('DiscoveredMCPTool', () => {
         baseDescription,
         inputSchema,
         serverToolName,
-        // No explicit timeout here, assuming mcpTool handles it or gets from its own config
       );
       const params = { param: 'testValue' };
-      const mockToolSuccessResult = { success: true, details: 'executed' };
-      // response.content should be an array of actual Part objects, e.g., TextPart
+      const mockToolSuccessResultObject = {
+        success: true,
+        details: 'executed',
+      };
       const mockFunctionResponseContent: Part[] = [
-        { text: JSON.stringify(mockToolSuccessResult) },
+        { text: JSON.stringify(mockToolSuccessResultObject) },
       ];
       const mockMcpToolResponseParts: Part[] = [
         {
           functionResponse: {
-            name: serverToolName, // The name of the function that was called
-            response: {
-              content: mockFunctionResponseContent,
-            },
+            name: serverToolName,
+            response: { content: mockFunctionResponseContent },
           },
         },
       ];
@@ -119,23 +130,36 @@ describe('DiscoveredMCPTool', () => {
 
       const toolResult: ToolResult = await tool.execute(params);
 
-      expect(mockCallTool).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({
-            name: serverToolName,
-            args: params,
-          }),
-        ]),
-      );
-
-      // llmContent is now the raw Part[]
+      expect(mockCallTool).toHaveBeenCalledWith([
+        { name: serverToolName, args: params },
+      ]);
       expect(toolResult.llmContent).toEqual(mockMcpToolResponseParts);
 
-      // returnDisplay should be the stringified version of the *content* of the functionResponse
-      // Our getStringifiedResultForDisplay logic:
-      // If one funcResponse, and its content is all text and only one text part, return that text.
-      const expectedDisplayOutput = JSON.stringify(mockToolSuccessResult);
+      const stringifiedResponseContent = JSON.stringify(
+        mockToolSuccessResultObject,
+      );
+      // getStringifiedResultForDisplay joins text parts, then wraps the array of processed parts in JSON
+      const expectedDisplayOutput =
+        '```json\n' +
+        JSON.stringify([stringifiedResponseContent], null, 2) +
+        '\n```';
       expect(toolResult.returnDisplay).toBe(expectedDisplayOutput);
+    });
+
+    it('should handle empty result from getStringifiedResultForDisplay', async () => {
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      const params = { param: 'testValue' };
+      const mockMcpToolResponsePartsEmpty: Part[] = [];
+      mockCallTool.mockResolvedValue(mockMcpToolResponsePartsEmpty);
+      const toolResult: ToolResult = await tool.execute(params);
+      expect(toolResult.returnDisplay).toBe('```json\n[]\n```');
     });
 
     it('should propagate rejection if mcpTool.callTool rejects', async () => {
@@ -155,14 +179,8 @@ describe('DiscoveredMCPTool', () => {
     });
   });
 
-  // Tests for shouldConfirmExecute can remain largely the same,
-  // as they don't directly involve the mcpClient/mcpTool interaction details,
-  // but rather the whitelisting logic and trust flag.
   describe('shouldConfirmExecute', () => {
-    beforeEach(() => {
-      // Clear whitelist before each confirmation test
-      (DiscoveredMCPTool as any).whitelist.clear();
-    });
+    // beforeEach is already clearing allowlist
 
     it('should return false if trust is true', async () => {
       const tool = new DiscoveredMCPTool(
@@ -173,15 +191,15 @@ describe('DiscoveredMCPTool', () => {
         inputSchema,
         serverToolName,
         undefined,
-        true, // trust = true
+        true,
       );
       expect(
         await tool.shouldConfirmExecute({}, new AbortController().signal),
       ).toBe(false);
     });
 
-    it('should return false if server is whitelisted', async () => {
-      (DiscoveredMCPTool as any).whitelist.add(serverName);
+    it('should return false if server is allowlisted', async () => {
+      (DiscoveredMCPTool as any).allowlist.add(serverName);
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
         serverName,
@@ -195,9 +213,9 @@ describe('DiscoveredMCPTool', () => {
       ).toBe(false);
     });
 
-    it('should return false if tool is whitelisted', async () => {
-      const toolWhitelistKey = `${serverName}.${serverToolName}`;
-      (DiscoveredMCPTool as any).whitelist.add(toolWhitelistKey);
+    it('should return false if tool is allowlisted', async () => {
+      const toolAllowlistKey = `${serverName}.${serverToolName}`;
+      (DiscoveredMCPTool as any).allowlist.add(toolAllowlistKey);
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
         serverName,
@@ -211,7 +229,7 @@ describe('DiscoveredMCPTool', () => {
       ).toBe(false);
     });
 
-    it('should return confirmation details if not trusted and not whitelisted', async () => {
+    it('should return confirmation details if not trusted and not allowlisted', async () => {
       const tool = new DiscoveredMCPTool(
         mockCallableToolInstance,
         serverName,
@@ -225,8 +243,83 @@ describe('DiscoveredMCPTool', () => {
         new AbortController().signal,
       );
       expect(confirmation).not.toBe(false);
-      if (confirmation) {
+      if (confirmation && confirmation.type === 'mcp') {
+        // Type guard for ToolMcpConfirmationDetails
         expect(confirmation.type).toBe('mcp');
+        expect(confirmation.serverName).toBe(serverName);
+        expect(confirmation.toolName).toBe(serverToolName);
+      } else if (confirmation) {
+        // Handle other possible confirmation types if necessary, or strengthen test if only MCP is expected
+        throw new Error(
+          'Confirmation was not of expected type MCP or was false',
+        );
+      } else {
+        throw new Error(
+          'Confirmation details not in expected format or was false',
+        );
+      }
+    });
+
+    it('should add server to allowlist on ProceedAlwaysServer', async () => {
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      const confirmation = await tool.shouldConfirmExecute(
+        {},
+        new AbortController().signal,
+      );
+      expect(confirmation).not.toBe(false);
+      if (
+        confirmation &&
+        typeof confirmation === 'object' &&
+        'onConfirm' in confirmation &&
+        typeof confirmation.onConfirm === 'function'
+      ) {
+        await confirmation.onConfirm(
+          ToolConfirmationOutcome.ProceedAlwaysServer,
+        );
+        expect((DiscoveredMCPTool as any).allowlist.has(serverName)).toBe(true);
+      } else {
+        throw new Error(
+          'Confirmation details or onConfirm not in expected format',
+        );
+      }
+    });
+
+    it('should add tool to allowlist on ProceedAlwaysTool', async () => {
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      const toolAllowlistKey = `${serverName}.${serverToolName}`;
+      const confirmation = await tool.shouldConfirmExecute(
+        {},
+        new AbortController().signal,
+      );
+      expect(confirmation).not.toBe(false);
+      if (
+        confirmation &&
+        typeof confirmation === 'object' &&
+        'onConfirm' in confirmation &&
+        typeof confirmation.onConfirm === 'function'
+      ) {
+        await confirmation.onConfirm(ToolConfirmationOutcome.ProceedAlwaysTool);
+        expect((DiscoveredMCPTool as any).allowlist.has(toolAllowlistKey)).toBe(
+          true,
+        );
+      } else {
+        throw new Error(
+          'Confirmation details or onConfirm not in expected format',
+        );
       }
     });
   });
