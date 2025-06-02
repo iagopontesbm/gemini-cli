@@ -266,8 +266,8 @@ export class GeminiClient {
 
   async generateContent(
     contents: Content[],
-    generationConfig?: GenerateContentConfig,
-    abortSignal?: AbortSignal,
+    generationConfig: GenerateContentConfig,
+    abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
     const modelToUse = this.model;
     const configToUse: GenerateContentConfig = {
@@ -276,13 +276,13 @@ export class GeminiClient {
     };
 
     try {
-      const userMemory = this.config.getUserMemory(); // Assuming systemInstruction might be needed or good to have
+      const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
 
       const requestConfig = {
-        ...(abortSignal ? { abortSignal } : {}),
+        abortSignal,
         ...configToUse,
-        systemInstruction, // Including systemInstruction as generateJson does
+        systemInstruction,
       };
 
       const apiCall = () =>
@@ -293,12 +293,12 @@ export class GeminiClient {
         });
 
       const result = await retryWithBackoff(apiCall);
-      return result; // Return the raw GenerateContentResponse
+      return result;
     } catch (error) {
-      if (abortSignal?.aborted) {
-        throw error; // Propagate cancellation error
+      if (abortSignal.aborted) {
+        throw error;
       }
-      // Generic error reporting for this new method
+
       await reportError(
         error,
         `Error generating content via API with model ${modelToUse}.`,
