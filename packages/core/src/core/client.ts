@@ -292,7 +292,6 @@ export class GeminiClient {
           contents,
         });
 
-      // Not using this.client.generateContent directly to ensure consistent retry logic
       const result = await retryWithBackoff(apiCall);
       return result; // Return the raw GenerateContentResponse
     } catch (error) {
