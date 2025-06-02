@@ -255,19 +255,7 @@ export function useCompletion(
       let fetchedSuggestions: Suggestion[] = [];
 
       // Get centralized file discovery service if config is available
-      let fileDiscovery = null;
-      if (config) {
-        try {
-          fileDiscovery = await config.getFileService();
-        } catch (error) {
-          // If git discovery fails, continue without it
-          console.warn(
-            'Git-aware filtering not available for completions:',
-            error,
-          );
-          fileDiscovery = null;
-        }
-      }
+      const fileDiscovery = await config.getFileService();
 
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
