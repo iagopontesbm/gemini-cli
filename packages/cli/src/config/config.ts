@@ -80,7 +80,8 @@ async function parseArguments(): Promise<CliArgs> {
     .option('yolo', {
       alias: 'y',
       type: 'boolean',
-      description: 'Automatically accept all actions (aka YOLO mode)?',
+      description:
+        'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
     .version() // This will enable the --version flag based on package.json
