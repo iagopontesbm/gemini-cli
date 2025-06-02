@@ -170,6 +170,82 @@ Always provide sufficient context (3+ lines before/after target) to ensure uniqu
   ]
 }
 
+// Multiple edit operations in a single call (alternative example)
+{
+  "file_path": "/absolute/path/to/anotherFile.js",
+  "edits": [
+    {
+      "old_string": "const oldVariable = 123;",
+      "new_string": "const newVariable = 456;"
+    },
+    {
+      "old_string": "function oldFunction() {\n  // ...\n}",
+      "new_string": "function newFunction() {\n  // updated logic...\n}"
+    }
+  ]
+}
+
+## JSON Escaping for Edit Operations
+
+**CRITICAL:** When using the edit_file tool, strings in old_string and new_string must use standard JSON escaping - one level only. The content must match exactly what appears in the actual file.
+
+### Escaping Rules
+- **Newlines:** Use \\n (not \\\\n or \\\\\\\\n)
+- **Double quotes:** Use \\" (not \\\\" or \\\\\\\\")
+- **Single quotes:** Use ' as-is (not \\' unless the file actually contains \\')
+- **Backslashes:** Use \\\\ (not \\\\\\\\)
+- **Never double-escape or over-escape content**
+- **Don't treat JSON examples within your edit operations as requiring additional escaping**
+
+### Examples
+
+#### ✅ CORRECT - Adding JSON content to a file
+{
+  "file_path": "/path/to/config.js",
+  "edits": [
+    {
+      "old_string": "const config = {};\\n\\nmodule.exports = config;",
+      "new_string": "const config = {\\n  "apiUrl": "https://api.example.com",\\n  "timeout": 5000\\n};\\n\\nmodule.exports = config;"
+    }
+  ]
+}
+
+#### ❌ INCORRECT - Over-escaped version (will fail to match)
+{
+  "file_path": "/path/to/config.js",
+  "edits": [
+    {
+      "old_string": "const config = {};\\\\n\\\\nmodule.exports = config;",
+      "new_string": "const config = {\\\\n  \\\\\\"apiUrl\\\\\\": \\\\\\"https://api.example.com\\\\\\",\\\\n  \\\\\\"timeout\\\\\\": 5000\\\\n};\\\\n\\\\nmodule.exports = config;"
+    }
+  ]
+}
+
+#### ✅ CORRECT - Adding a multi-line function
+{
+  "file_path": "/path/to/utils.js",
+  "edits": [
+    {
+      "old_string": "// TODO: Add helper functions",
+      "new_string": "function formatDate(date) {\\n  return date.toISOString().split('T')[0];\\n}\\n\\n// TODO: Add more helper functions"
+    }
+  ]
+}
+
+#### ❌ INCORRECT - Over-escaped newlines (will fail to match)
+{
+  "file_path": "/path/to/utils.js",
+  "edits": [
+    {
+      "old_string": "// TODO: Add helper functions",
+      "new_string": "function formatDate(date) {\\\\n  return date.toISOString().split('T')[0];\\\\n}\\\\n\\\\n// TODO: Add more helper functions"
+    }
+  ]
+}
+
+### Validation Check
+**Before submitting an edit:** Verify that your old_string would literally match the text in the target file. If you're editing a file that contains JSON, your old_string should match the JSON as it appears in the file, not as a JSON-escaped version.
+
 ### When to Use Different Approaches
 - **Single targeted change:** Use single edit with old_string/new_string
 - **Multiple related changes:** Use batch edits array for efficiency and consistency
