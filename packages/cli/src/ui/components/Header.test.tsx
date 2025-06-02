@@ -43,8 +43,4 @@ describe('<Header />', () => {
     // For this test, we'll assume it renders the empty string.
     expect(output).toContain(''); // or check for a specific structure if BigText behaves differently
   });
-
-  // Test to ensure Gradient is used if Colors.GradientColors is defined
-  // This requires a bit more setup for the Colors mock or context
-  // For now, we assume the logic within Header.tsx correctly handles this
 });
