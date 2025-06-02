@@ -110,6 +110,66 @@ Always provide sufficient context (3+ lines before/after target) to ensure uniqu
   "new_string": "  // Initialize app\n  const app = express();\n  app.use(middleware);\n  app.use(newMiddleware);\n  \n  // Start server\n  app.listen(3000);"
 }
 
+### Mode Selection Examples
+// Create new file
+{
+  "file_path": "/absolute/path/to/newFile.js",
+  "mode": "create",
+  "content": "export const newModule = {};\n"
+}
+
+// Replace entire file content
+{
+  "file_path": "/absolute/path/to/config.json",
+  "mode": "overwrite",
+  "content": "{\n  'version': '2.0',\n  'settings': {}\n}\n"
+}
+
+// Edit existing file (default mode)
+{
+  "file_path": "/absolute/path/to/existing.js",
+  "old_string": "function oldFunction() {\n  return 'legacy';\n}",
+  "new_string": "function newFunction() {\n  return 'updated';\n}"
+}
+
+### API v2 Style Edit Examples
+// Single edit operation
+{
+  "file_path": "/absolute/path/to/file.txt",
+  "edits": [
+    {
+      "old_string": "text to be replaced",
+      "new_string": "new text"
+    }
+  ]
+}
+
+// Multiple edit operations in a single call
+{
+  "file_path": "/absolute/path/to/anotherFile.js",
+  "edits": [
+    {
+      "old_string": "const oldVariable = 123;",
+      "new_string": "const newVariable = 456;"
+    },
+    {
+      "old_string": "function oldFunction() {\n  // ...\n}",
+      "new_string": "function newFunction() {\n  // updated logic...\n}"
+    }
+  ]
+}
+
+// Creating a new file using the edits array
+{
+  "file_path": "/absolute/path/to/newly_created_file.md",
+  "edits": [
+    {
+      "old_string": "",
+      "new_string": "# New File Content\nThis is a new file."
+    }
+  ]
+}
+
 ### When to Use Different Approaches
 - **Single targeted change:** Use single edit with old_string/new_string
 - **Multiple related changes:** Use batch edits array for efficiency and consistency
@@ -248,7 +308,7 @@ Okay, I see src/auth.py currently uses 'urllib'. Before changing it, I need to c
 [tool_call: ${ReadFileTool.Name} 'requirements.txt']
 (After confirming dependency)
 Okay, 'requests' is available. Let me double check how it's used across the codebase:
-[tool_call: ${GrepTool.Name} 'requests\\.(get|post)']
+[tool_call: ${GrepTool.Name} 'requests.(get|post)']
 I will now refactor src/auth.py.
 [tool_call: Uses ${EditTool.Name}]
 (After editing)
