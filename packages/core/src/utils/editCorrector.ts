@@ -112,7 +112,7 @@ export async function ensureCorrectEdit(
       editCorrectionCache.set(cacheKey, result);
       return result;
     }
-    
+
     // If occurrences don't match expected, return as-is (will fail validation later)
     const result: CorrectedEditResult = {
       params: { ...originalParams },
