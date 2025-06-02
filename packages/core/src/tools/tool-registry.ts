@@ -155,7 +155,7 @@ export class ToolRegistry {
       }
     }
     // discover tools using MCP servers, if configured
-    await discoverMcpTools(this.config, this);
+    await discoverMcpTools(this.config);
   }
 
   /**
@@ -177,6 +177,20 @@ export class ToolRegistry {
    */
   getAllTools(): Tool[] {
     return Array.from(this.tools.values());
+  }
+
+  /**
+   * Returns an array of tools registered from a specific MCP server.
+   */
+  getToolsByServer(serverName: string): Tool[] {
+    const serverTools: Tool[] = [];
+    for (const tool of this.tools.values()) {
+      // Check if the tool instance has a serverName property and if it matches
+      if ((tool as DiscoveredMCPTool)?.serverName === serverName) {
+        serverTools.push(tool);
+      }
+    }
+    return serverTools;
   }
 
   /**

@@ -14,37 +14,35 @@ import {
   afterEach,
   Mocked,
 } from 'vitest';
-import {
-  DiscoveredMCPTool,
-  MCP_TOOL_DEFAULT_TIMEOUT_MSEC,
-} from './mcp-tool.js';
-import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { DiscoveredMCPTool } from './mcp-tool.js';
 import { ToolResult } from './tools.js';
+import { CallableTool, Part } from '@google/genai';
 
-// Mock MCP SDK Client
-vi.mock('@modelcontextprotocol/sdk/client/index.js', () => {
-  const MockClient = vi.fn();
-  MockClient.prototype.callTool = vi.fn();
-  return { Client: MockClient };
-});
+// Mock @google/genai mcpToTool and CallableTool
+// We only need to mock the parts of CallableTool that DiscoveredMCPTool uses.
+const mockCallTool = vi.fn();
+const mockToolMethod = vi.fn();
+
+const mockCallableToolInstance: Mocked<CallableTool> = {
+  tool: mockToolMethod as any, // Not directly used by DiscoveredMCPTool instance methods
+  callTool: mockCallTool as any,
+  // Add other methods if DiscoveredMCPTool starts using them
+};
 
 describe('DiscoveredMCPTool', () => {
-  let mockMcpClient: Mocked<Client>;
-  const toolName = 'test-mcp-tool';
+  const serverName = 'mock-mcp-server';
+  const toolNameForModel = 'test-mcp-tool-for-model';
   const serverToolName = 'actual-server-tool-name';
   const baseDescription = 'A test MCP tool.';
-  const inputSchema = {
+  const inputSchema: Record<string, unknown> = {
     type: 'object' as const,
     properties: { param: { type: 'string' } },
-  };
+    required: ['param'],
+  }; // Use FunctionDeclaration['parameters'] type
 
   beforeEach(() => {
-    // Create a new mock client for each test to reset call history
-    mockMcpClient = new (Client as any)({
-      name: 'test-client',
-      version: '0.0.1',
-    }) as Mocked<Client>;
-    vi.mocked(mockMcpClient.callTool).mockClear();
+    mockCallTool.mockClear();
+    mockToolMethod.mockClear(); // Though not used in these tests directly
   });
 
   afterEach(() => {
@@ -54,114 +52,182 @@ describe('DiscoveredMCPTool', () => {
   describe('constructor', () => {
     it('should set properties correctly and augment description', () => {
       const tool = new DiscoveredMCPTool(
-        mockMcpClient,
-        'mock-mcp-server',
-        toolName,
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
         baseDescription,
         inputSchema,
         serverToolName,
       );
 
-      expect(tool.name).toBe(toolName);
-      expect(tool.schema.name).toBe(toolName);
+      expect(tool.name).toBe(toolNameForModel);
+      expect(tool.schema.name).toBe(toolNameForModel);
       expect(tool.schema.description).toContain(baseDescription);
       expect(tool.schema.description).toContain('This MCP tool was discovered');
-      // Corrected assertion for backticks and template literal
+      expect(tool.schema.description).toContain(`Server: '${serverName}'.`);
       expect(tool.schema.description).toContain(
-        `tools/call\` method for tool name \`${toolName}\``,
+        `Original tool name on server: \`${serverToolName}\``,
       );
       expect(tool.schema.parameters).toEqual(inputSchema);
       expect(tool.serverToolName).toBe(serverToolName);
-      expect(tool.timeout).toBeUndefined();
+      expect(tool.timeout).toBeUndefined(); // Timeout is now part of mcpServerConfig
     });
 
-    it('should accept and store a custom timeout', () => {
+    it('should accept and store a custom timeout (passed from mcpServerConfig)', () => {
       const customTimeout = 5000;
       const tool = new DiscoveredMCPTool(
-        mockMcpClient,
-        'mock-mcp-server',
-        toolName,
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
         baseDescription,
         inputSchema,
         serverToolName,
-        customTimeout,
+        customTimeout, // This timeout is passed from MCPServerConfig
       );
       expect(tool.timeout).toBe(customTimeout);
     });
   });
 
   describe('execute', () => {
-    it('should call mcpClient.callTool with correct parameters and default timeout', async () => {
+    it('should call mcpTool.callTool with correct parameters', async () => {
       const tool = new DiscoveredMCPTool(
-        mockMcpClient,
-        'mock-mcp-server',
-        toolName,
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
         baseDescription,
         inputSchema,
         serverToolName,
+        // No explicit timeout here, assuming mcpTool handles it or gets from its own config
       );
       const params = { param: 'testValue' };
-      const expectedMcpResult = { success: true, details: 'executed' };
-      vi.mocked(mockMcpClient.callTool).mockResolvedValue(expectedMcpResult);
-
-      const result: ToolResult = await tool.execute(params);
-
-      expect(mockMcpClient.callTool).toHaveBeenCalledWith(
+      const mockToolSuccessResult = { success: true, details: 'executed' };
+      // response.content should be an array of actual Part objects, e.g., TextPart
+      const mockFunctionResponseContent: Part[] = [
+        { text: JSON.stringify(mockToolSuccessResult) },
+      ];
+      const mockMcpToolResponseParts: Part[] = [
         {
-          name: serverToolName,
-          arguments: params,
+          functionResponse: {
+            name: serverToolName, // The name of the function that was called
+            response: {
+              content: mockFunctionResponseContent,
+            },
+          },
         },
-        undefined,
-        {
-          timeout: MCP_TOOL_DEFAULT_TIMEOUT_MSEC,
-        },
+      ];
+      mockCallTool.mockResolvedValue(mockMcpToolResponseParts);
+
+      const toolResult: ToolResult = await tool.execute(params);
+
+      expect(mockCallTool).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: serverToolName,
+            args: params,
+          }),
+        ]),
       );
-      const expectedOutput =
-        '```json\n' + JSON.stringify(expectedMcpResult, null, 2) + '\n```';
-      expect(result.llmContent).toBe(expectedOutput);
-      expect(result.returnDisplay).toBe(expectedOutput);
+
+      // llmContent is now the raw Part[]
+      expect(toolResult.llmContent).toEqual(mockMcpToolResponseParts);
+
+      // returnDisplay should be the stringified version of the *content* of the functionResponse
+      // Our getStringifiedResultForDisplay logic:
+      // If one funcResponse, and its content is all text and only one text part, return that text.
+      const expectedDisplayOutput = JSON.stringify(mockToolSuccessResult);
+      expect(toolResult.returnDisplay).toBe(expectedDisplayOutput);
     });
 
-    it('should call mcpClient.callTool with custom timeout if provided', async () => {
-      const customTimeout = 15000;
+    it('should propagate rejection if mcpTool.callTool rejects', async () => {
       const tool = new DiscoveredMCPTool(
-        mockMcpClient,
-        'mock-mcp-server',
-        toolName,
-        baseDescription,
-        inputSchema,
-        serverToolName,
-        customTimeout,
-      );
-      const params = { param: 'anotherValue' };
-      const expectedMcpResult = { result: 'done' };
-      vi.mocked(mockMcpClient.callTool).mockResolvedValue(expectedMcpResult);
-
-      await tool.execute(params);
-
-      expect(mockMcpClient.callTool).toHaveBeenCalledWith(
-        expect.anything(),
-        undefined,
-        {
-          timeout: customTimeout,
-        },
-      );
-    });
-
-    it('should propagate rejection if mcpClient.callTool rejects', async () => {
-      const tool = new DiscoveredMCPTool(
-        mockMcpClient,
-        'mock-mcp-server',
-        toolName,
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
         baseDescription,
         inputSchema,
         serverToolName,
       );
       const params = { param: 'failCase' };
       const expectedError = new Error('MCP call failed');
-      vi.mocked(mockMcpClient.callTool).mockRejectedValue(expectedError);
+      mockCallTool.mockRejectedValue(expectedError);
 
       await expect(tool.execute(params)).rejects.toThrow(expectedError);
+    });
+  });
+
+  // Tests for shouldConfirmExecute can remain largely the same,
+  // as they don't directly involve the mcpClient/mcpTool interaction details,
+  // but rather the whitelisting logic and trust flag.
+  describe('shouldConfirmExecute', () => {
+    beforeEach(() => {
+      // Clear whitelist before each confirmation test
+      (DiscoveredMCPTool as any).whitelist.clear();
+    });
+
+    it('should return false if trust is true', async () => {
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+        undefined,
+        true, // trust = true
+      );
+      expect(
+        await tool.shouldConfirmExecute({}, new AbortController().signal),
+      ).toBe(false);
+    });
+
+    it('should return false if server is whitelisted', async () => {
+      (DiscoveredMCPTool as any).whitelist.add(serverName);
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      expect(
+        await tool.shouldConfirmExecute({}, new AbortController().signal),
+      ).toBe(false);
+    });
+
+    it('should return false if tool is whitelisted', async () => {
+      const toolWhitelistKey = `${serverName}.${serverToolName}`;
+      (DiscoveredMCPTool as any).whitelist.add(toolWhitelistKey);
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      expect(
+        await tool.shouldConfirmExecute({}, new AbortController().signal),
+      ).toBe(false);
+    });
+
+    it('should return confirmation details if not trusted and not whitelisted', async () => {
+      const tool = new DiscoveredMCPTool(
+        mockCallableToolInstance,
+        serverName,
+        toolNameForModel,
+        baseDescription,
+        inputSchema,
+        serverToolName,
+      );
+      const confirmation = await tool.shouldConfirmExecute(
+        {},
+        new AbortController().signal,
+      );
+      expect(confirmation).not.toBe(false);
+      if (confirmation) {
+        expect(confirmation.type).toBe('mcp');
+      }
     });
   });
 });
