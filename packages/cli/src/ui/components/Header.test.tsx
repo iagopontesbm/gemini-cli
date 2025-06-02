@@ -13,8 +13,10 @@ vi.mock('ink-gradient', () => ({
   default: vi.fn(({ children }) => children), // Pass through children
 }));
 
+import { Text } from 'ink'; // Import the actual Text component from Ink
+
 vi.mock('ink-big-text', () => ({
-  default: vi.fn(({ text }) => <div>{text}</div>), // Render text directly for testing
+  default: vi.fn(({ text }) => <Text>{text}</Text>), // Use Ink's Text component
 }));
 
 describe('<Header />', () => {
