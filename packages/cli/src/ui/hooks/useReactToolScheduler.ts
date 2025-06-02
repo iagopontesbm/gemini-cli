@@ -134,7 +134,7 @@ export function useReactToolScheduler(
       outputUpdateHandler,
       onAllToolCallsComplete: allToolCallsCompleteHandler,
       onToolCallsUpdate: toolCallsUpdateHandler,
-      yoloMode: config.getYoloMode(),
+      approvalMode: config.getApprovalMode(),
     });
   }, [config, onComplete, setPendingHistoryItem]);
 

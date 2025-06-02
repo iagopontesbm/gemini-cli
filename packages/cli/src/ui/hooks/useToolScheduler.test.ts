@@ -28,7 +28,8 @@ import {
   ToolCallResponseInfo,
   formatLlmContentForFunctionResponse, // Import from core
   ToolCall, // Import from core
-  Status as ToolCallStatusType, // Import from core
+  Status as ToolCallStatusType,
+  ApprovalMode, // Import from core
 } from '@gemini-code/core';
 import {
   HistoryItemWithoutId,
@@ -52,7 +53,7 @@ const mockToolRegistry = {
 
 const mockConfig = {
   getToolRegistry: vi.fn(() => mockToolRegistry as unknown as ToolRegistry),
-  getYoloMode: vi.fn(() => false),
+  getApprovalMode: vi.fn(() => ApprovalMode.DEFAULT),
 };
 
 const mockTool: Tool = {
@@ -218,7 +219,7 @@ describe('useReactToolScheduler in YOLO Mode', () => {
     (mockToolRequiresConfirmation.shouldConfirmExecute as Mock).mockClear();
 
     // IMPORTANT: Enable YOLO mode for this test suite
-    (mockConfig.getYoloMode as Mock).mockReturnValue(true);
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.YOLO);
 
     vi.useFakeTimers();
   });
@@ -227,7 +228,7 @@ describe('useReactToolScheduler in YOLO Mode', () => {
     vi.clearAllTimers();
     vi.useRealTimers();
     // IMPORTANT: Disable YOLO mode after this test suite
-    (mockConfig.getYoloMode as Mock).mockReturnValue(false);
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.DEFAULT);
   });
 
   const renderSchedulerInYoloMode = () =>

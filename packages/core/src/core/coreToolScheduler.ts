@@ -12,6 +12,7 @@ import {
   ToolCallConfirmationDetails,
   ToolResult,
   ToolRegistry,
+  ApprovalMode,
 } from '../index.js';
 import { Part, PartUnion, PartListUnion } from '@google/genai';
 
@@ -159,7 +160,7 @@ interface CoreToolSchedulerOptions {
   outputUpdateHandler?: OutputUpdateHandler;
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
-  yoloMode?: boolean;
+  approvalMode?: ApprovalMode;
 }
 
 export class CoreToolScheduler {
@@ -169,14 +170,14 @@ export class CoreToolScheduler {
   private outputUpdateHandler?: OutputUpdateHandler;
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
-  private yoloMode: boolean;
+  private approvalMode: ApprovalMode;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
     this.outputUpdateHandler = options.outputUpdateHandler;
     this.onAllToolCallsComplete = options.onAllToolCallsComplete;
     this.onToolCallsUpdate = options.onToolCallsUpdate;
-    this.yoloMode = options.yoloMode || false;
+    this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
     this.abortController = new AbortController();
   }
 
@@ -326,7 +327,7 @@ export class CoreToolScheduler {
 
       const { request: reqInfo, tool: toolInstance } = toolCall;
       try {
-        if (this.yoloMode) {
+        if (this.approvalMode === ApprovalMode.YOLO) {
           this.setStatusInternal(reqInfo.callId, 'scheduled');
         } else {
           const confirmationDetails = await toolInstance.shouldConfirmExecute(

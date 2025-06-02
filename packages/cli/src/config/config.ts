@@ -15,6 +15,7 @@ import {
   ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
+  ApprovalMode,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
 import { readPackageUp } from 'read-package-up';
@@ -178,10 +179,10 @@ export async function loadCliConfig(settings: Settings): Promise<Config> {
     userAgent,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
+    approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
-    yoloMode: argv.yolo || false,
   };
 
   return createServerConfig(configParams);
