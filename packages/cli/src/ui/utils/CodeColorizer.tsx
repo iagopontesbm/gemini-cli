@@ -97,6 +97,11 @@ export function colorizeCode(
     // Render the HAST tree using the adapted theme
     // Apply the theme's default foreground color to the top-level Text element
     const lines = codeToHighlight.split('\n');
+    const getHighlightedLines = (line: string) =>
+      !language || !lowlight.registered(language)
+        ? lowlight.highlightAuto(line)
+        : lowlight.highlight(language, line);
+
     return (
       <Text>
         {lines.map((line, index) => (
@@ -106,9 +111,7 @@ export function colorizeCode(
             </Text>
             <Text color={activeTheme.defaultColor}>
               {renderHastNode(
-                !language || !lowlight.registered(language)
-                  ? lowlight.highlightAuto(line)
-                  : lowlight.highlight(language, line),
+                getHighlightedLines(line),
                 activeTheme,
                 undefined,
               )}
