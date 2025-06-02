@@ -65,8 +65,6 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
         type: 'object',
       },
     );
-
-    // GeminiClient will be fetched from config in execute method
   }
 
   validateParams(params: WebFetchToolParams): string | null {
@@ -101,7 +99,7 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
 
   async execute(
     params: WebFetchToolParams,
-    signal: AbortSignal, // Changed _signal to signal to use it
+    signal: AbortSignal,
   ): Promise<ToolResult> {
     const validationError = this.validateParams(params);
     if (validationError) {

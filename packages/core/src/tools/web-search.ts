@@ -79,7 +79,6 @@ export class WebSearchTool extends BaseTool<
         required: ['query'],
       },
     );
-    // GeminiClient will be fetched from config in execute method
   }
 
   validateParams(params: WebSearchToolParams): string | null {
@@ -104,7 +103,7 @@ export class WebSearchTool extends BaseTool<
 
   async execute(
     params: WebSearchToolParams,
-    signal: AbortSignal, // Added signal
+    signal: AbortSignal,
   ): Promise<WebSearchToolResult> {
     const validationError = this.validateParams(params);
     if (validationError) {
