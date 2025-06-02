@@ -41,7 +41,6 @@ export async function runNonInteractive(
 ): Promise<void> {
   const geminiClient = new GeminiClient(config);
   const toolRegistry: ToolRegistry = config.getToolRegistry();
-  await toolRegistry.discoverTools();
 
   const chat = await geminiClient.startChat();
   const abortController = new AbortController();
