@@ -56,6 +56,7 @@ export interface ConfigParameters {
   alwaysSkipModificationConfirmation?: boolean;
   vertexai?: boolean;
   showMemoryUsage?: boolean;
+  yoloMode?: boolean;
   contextFileName?: string;
 }
 
@@ -79,6 +80,7 @@ export class Config {
   private alwaysSkipModificationConfirmation: boolean;
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
+  private yoloMode: boolean;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -100,6 +102,7 @@ export class Config {
       params.alwaysSkipModificationConfirmation ?? false;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
+    this.yoloMode = params.yoloMode ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -193,6 +196,14 @@ export class Config {
 
   getShowMemoryUsage(): boolean {
     return this.showMemoryUsage;
+  }
+
+  getYoloMode(): boolean {
+    return this.yoloMode;
+  }
+
+  setYoloMode(yoloMode: boolean): void {
+    this.yoloMode = yoloMode;
   }
 }
 
