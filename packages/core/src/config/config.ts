@@ -80,7 +80,7 @@ export class Config {
   private alwaysSkipModificationConfirmation: boolean;
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
-  private geminiClient: GeminiClient;
+  private readonly geminiClient: GeminiClient;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
