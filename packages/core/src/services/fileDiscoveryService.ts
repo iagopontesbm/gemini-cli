@@ -11,7 +11,6 @@ import * as path from 'path';
 export interface FileDiscoveryOptions {
   respectGitIgnore?: boolean;
   includeBuildArtifacts?: boolean;
-  customIgnorePatterns?: string[];
   isGitRepo?: boolean;
 }
 
@@ -34,7 +33,7 @@ export class FileDiscoveryService {
   }
 
   /**
-   * Filters a list of file paths based on git ignore rules and options
+   * Filters a list of file paths based on git ignore rules
    */
   filterFiles(
     filePaths: string[],
@@ -48,23 +47,6 @@ export class FileDiscoveryService {
         }
       }
 
-      // Apply custom ignore patterns
-      if (options.customIgnorePatterns) {
-        const relativePath = path.relative(this.projectRoot, filePath);
-        for (const pattern of options.customIgnorePatterns) {
-          // Check if the path starts with the pattern (for directory matching)
-          // or if any directory component matches the pattern
-          const pathParts = relativePath.split(path.sep);
-          if (
-            relativePath.startsWith(pattern + '/') ||
-            relativePath === pattern ||
-            pathParts.some((part) => part === pattern)
-          ) {
-            return false;
-          }
-        }
-      }
-
       return true;
     });
   }
@@ -72,10 +54,9 @@ export class FileDiscoveryService {
   /**
    * Gets patterns that would be ignored for debugging/transparency
    */
-  getIgnoreInfo(): { gitIgnored: string[]; customIgnored: string[] } {
+  getIgnoreInfo(): { gitIgnored: string[] } {
     return {
       gitIgnored: this.gitIgnoreFilter?.getIgnoredPatterns() || [],
-      customIgnored: [], // Can be extended later
     };
   }
 

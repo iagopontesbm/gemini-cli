@@ -20,8 +20,6 @@ vi.mock('@gemini-code/core', async () => {
     createServerConfig: vi.fn((params) => ({
       getFileFilteringRespectGitIgnore: () =>
         params.fileFilteringRespectGitIgnore ?? true,
-      getFileFilteringCustomIgnorePatterns: () =>
-        params.fileFilteringCustomIgnorePatterns ?? [],
       getFileFilteringAllowBuildArtifacts: () =>
         params.fileFilteringAllowBuildArtifacts ?? false,
       getTargetDir: () => '/test/project',
@@ -76,7 +74,6 @@ describe('Configuration Integration Tests', () => {
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
@@ -84,7 +81,6 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {
         fileFiltering: {
           respectGitIgnore: false,
-          customIgnorePatterns: ['temp/', '*.log'],
           allowBuildArtifacts: true,
         },
       };
@@ -96,10 +92,6 @@ describe('Configuration Integration Tests', () => {
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
-        'temp/',
-        '*.log',
-      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
@@ -107,12 +99,10 @@ describe('Configuration Integration Tests', () => {
       const userSettings: Settings = {
         fileFiltering: {
           respectGitIgnore: true,
-          customIgnorePatterns: ['user-pattern'],
         },
       };
       const workspaceSettings: Settings = {
         fileFiltering: {
-          customIgnorePatterns: ['workspace-pattern'],
           allowBuildArtifacts: true,
         },
       };
@@ -124,9 +114,6 @@ describe('Configuration Integration Tests', () => {
       const config = await loadCliConfig(loadedSettings.merged);
 
       // Workspace settings should override user settings completely (object spread behavior)
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
-        'workspace-pattern',
-      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
       // User setting is lost because workspace completely overrides the fileFiltering object
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true); // Default value since not specified in workspace
@@ -138,7 +125,7 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {
         fileFiltering: {
           respectGitIgnore: false,
-          // Missing customIgnorePatterns and allowBuildArtifacts
+          // Missing allowBuildArtifacts
         },
       };
       const loadedSettings = new LoadedSettings(
@@ -152,7 +139,6 @@ describe('Configuration Integration Tests', () => {
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
 
       // Missing settings should use defaults
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
@@ -169,7 +155,6 @@ describe('Configuration Integration Tests', () => {
 
       // All settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
@@ -187,7 +172,6 @@ describe('Configuration Integration Tests', () => {
 
       // All git-aware settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
   });
@@ -197,7 +181,6 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {
         fileFiltering: {
           respectGitIgnore: true,
-          customIgnorePatterns: ['secrets/', '*.key', '*.pem'],
           allowBuildArtifacts: false,
         },
       };
@@ -209,11 +192,6 @@ describe('Configuration Integration Tests', () => {
       const config = await loadCliConfig(loadedSettings.merged);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringCustomIgnorePatterns()).toEqual([
-        'secrets/',
-        '*.key',
-        '*.pem',
-      ]);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
@@ -221,7 +199,6 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {
         fileFiltering: {
           respectGitIgnore: true,
-          customIgnorePatterns: ['logs/', 'tmp/'],
           allowBuildArtifacts: true,
         },
       };
@@ -239,7 +216,6 @@ describe('Configuration Integration Tests', () => {
       const settings: Settings = {
         fileFiltering: {
           respectGitIgnore: false, // CI might need to see all files
-          customIgnorePatterns: [],
           allowBuildArtifacts: true,
         },
       };

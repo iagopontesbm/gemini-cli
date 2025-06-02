@@ -97,57 +97,16 @@ describe('FileDiscoveryService', () => {
       expect(filtered).toEqual(files);
     });
 
-    it('should apply custom ignore patterns', () => {
-      const files = [
-        'src/index.ts',
-        'temp/file.txt',
-        'logs/app.log',
-        'README.md',
-      ];
 
-      const filtered = service.filterFiles(files, {
-        customIgnorePatterns: ['temp', 'logs'],
-      });
 
-      expect(filtered).toEqual(['src/index.ts', 'README.md']);
-    });
 
-    it('should apply both git ignore and custom patterns', () => {
-      const files = [
-        'src/index.ts',
-        'node_modules/package/index.js',
-        'temp/file.txt',
-        'README.md',
-      ];
-
-      const filtered = service.filterFiles(files, {
-        customIgnorePatterns: ['temp'],
-      });
-
-      expect(filtered).toEqual(['src/index.ts', 'README.md']);
-    });
 
     it('should handle empty file list', () => {
       const filtered = service.filterFiles([]);
       expect(filtered).toEqual([]);
     });
 
-    it('should handle custom patterns with directory matching', () => {
-      const files = [
-        'temp/subfolder/file.txt',
-        'temporary/file.txt',
-        'src/temp.ts',
-      ];
 
-      const filtered = service.filterFiles(files, {
-        customIgnorePatterns: ['temp'],
-      });
-
-      expect(filtered).toEqual([
-        'temporary/file.txt', // Not filtered because 'temporary' != 'temp'
-        'src/temp.ts', // Not filtered because 'temp' is filename, not directory
-      ]);
-    });
   });
 
   describe('shouldIgnoreFile', () => {
@@ -193,7 +152,6 @@ describe('FileDiscoveryService', () => {
       const info = service.getIgnoreInfo();
 
       expect(info.gitIgnored).toEqual(['.git/**', 'node_modules/**']);
-      expect(info.customIgnored).toEqual([]);
     });
 
     it('should return empty arrays when git ignore parser is not initialized', async () => {
@@ -201,7 +159,6 @@ describe('FileDiscoveryService', () => {
       const info = uninitializedService.getIgnoreInfo();
 
       expect(info.gitIgnored).toEqual([]);
-      expect(info.customIgnored).toEqual([]);
     });
 
     it('should handle git ignore parser returning null patterns', async () => {

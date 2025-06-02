@@ -216,8 +216,6 @@ export async function loadCliConfig(
       argv.show_memory_usage || settings.showMemoryUsage || false,
     // Git-aware file filtering settings
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-    fileFilteringCustomIgnorePatterns:
-      settings.fileFiltering?.customIgnorePatterns,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
   };

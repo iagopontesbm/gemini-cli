@@ -321,8 +321,6 @@ Use this tool when the user's query implies needing the content of several files
                 entries.map((p) => path.relative(toolBaseDir, p)),
                 {
                   respectGitIgnore,
-                  customIgnorePatterns:
-                    this.config.getFileFilteringCustomIgnorePatterns(),
                 },
               )
               .map((p) => path.resolve(toolBaseDir, p))

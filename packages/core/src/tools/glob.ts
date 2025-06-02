@@ -211,8 +211,6 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         );
         const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths, {
           respectGitIgnore,
-          customIgnorePatterns:
-            this.config.getFileFilteringCustomIgnorePatterns(),
         });
         const filteredAbsolutePaths = new Set(
           filteredRelativePaths.map((p) => path.resolve(this.rootDirectory, p)),

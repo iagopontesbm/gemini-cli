@@ -68,7 +68,6 @@ export interface ConfigParameters {
   contextFileName?: string;
   // Git-aware file filtering options
   fileFilteringRespectGitIgnore?: boolean;
-  fileFilteringCustomIgnorePatterns?: string[];
   fileFilteringAllowBuildArtifacts?: boolean;
   isGitRepo?: boolean;
 }
@@ -96,7 +95,6 @@ export class Config {
   private readonly geminiClient: GeminiClient;
   // Git-aware file filtering settings
   private readonly fileFilteringRespectGitIgnore: boolean;
-  private readonly fileFilteringCustomIgnorePatterns: string[];
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly isGitRepo: boolean | undefined;
   // File discovery service
@@ -125,8 +123,6 @@ export class Config {
     // Initialize git-aware file filtering settings
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringCustomIgnorePatterns =
-      params.fileFilteringCustomIgnorePatterns ?? [];
     this.fileFilteringAllowBuildArtifacts =
       params.fileFilteringAllowBuildArtifacts ?? false;
     this.isGitRepo = params.isGitRepo;
@@ -235,9 +231,7 @@ export class Config {
     return this.fileFilteringRespectGitIgnore;
   }
 
-  getFileFilteringCustomIgnorePatterns(): string[] {
-    return this.fileFilteringCustomIgnorePatterns;
-  }
+
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
@@ -253,7 +247,6 @@ export class Config {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
       await this.fileDiscoveryService.initialize({
         respectGitIgnore: this.fileFilteringRespectGitIgnore,
-        customIgnorePatterns: this.fileFilteringCustomIgnorePatterns,
         includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
         isGitRepo: this.isGitRepo,
       });

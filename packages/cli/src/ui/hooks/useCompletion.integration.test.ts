@@ -43,7 +43,6 @@ describe('useCompletion git-aware filtering integration', () => {
 
     mockConfig = {
       getFileFilteringRespectGitIgnore: vi.fn(() => true),
-      getFileFilteringCustomIgnorePatterns: vi.fn(() => []),
       getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
       getFileService: vi.fn().mockResolvedValue(mockFileDiscoveryService),
     };
@@ -199,44 +198,7 @@ describe('useCompletion git-aware filtering integration', () => {
     consoleSpy.mockRestore();
   });
 
-  it('should respect custom ignore patterns from config', async () => {
-    mockConfig.getFileFilteringCustomIgnorePatterns.mockReturnValue([
-      'temp/',
-      '*.log',
-    ]);
 
-    vi.mocked(fs.readdir).mockResolvedValue([
-      { name: 'src', isDirectory: () => true },
-      { name: 'temp', isDirectory: () => true },
-      { name: 'app.log', isDirectory: () => false },
-      { name: 'README.md', isDirectory: () => false },
-    ] as any);
-
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
-      (path: string) => {
-        return path.includes('temp') || path.includes('.log');
-      },
-    );
-
-    const { result } = renderHook(() =>
-      useCompletion('@', testCwd, true, slashCommands, mockConfig),
-    );
-
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    });
-
-    // Service is already initialized through centralized config
-    expect(result.current.suggestions).toBeDefined();
-
-    expect(result.current.suggestions).toHaveLength(2);
-    expect(result.current.suggestions).toEqual(
-      expect.arrayContaining([
-        { label: 'src/', value: 'src/' },
-        { label: 'README.md', value: 'README.md' },
-      ]),
-    );
-  });
 
   it('should handle directory-specific completions with git filtering', async () => {
     vi.mocked(fs.readdir).mockResolvedValue([

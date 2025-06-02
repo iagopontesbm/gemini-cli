@@ -36,7 +36,6 @@ export interface Settings {
   // Git-aware file filtering settings
   fileFiltering?: {
     respectGitIgnore?: boolean;
-    customIgnorePatterns?: string[];
     allowBuildArtifacts?: boolean;
   };
 
