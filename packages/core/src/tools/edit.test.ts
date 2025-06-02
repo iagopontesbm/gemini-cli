@@ -25,7 +25,7 @@ import { FileDiff } from './tools.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { Config } from '../config/config.js';
+import { ApprovalMode, Config } from '../config/config.js';
 import { Content, Part, SchemaUnion } from '@google/genai';
 
 describe('EditTool', () => {
@@ -41,8 +41,8 @@ describe('EditTool', () => {
 
     mockConfig = {
       getTargetDir: () => rootDir,
-      getAlwaysSkipModificationConfirmation: vi.fn(() => false),
-      setAlwaysSkipModificationConfirmation: vi.fn(),
+      getApprovalMode: vi.fn(() => false),
+      setApprovalMode: vi.fn(),
       // getGeminiConfig: () => ({ apiKey: 'test-api-key' }), // This was not a real Config method
       // Add other properties/methods of Config if EditTool uses them
       // Minimal other methods to satisfy Config type if needed by EditTool constructor or other direct uses:
@@ -65,12 +65,10 @@ describe('EditTool', () => {
     } as unknown as Config;
 
     // Reset mocks before each test
-    (mockConfig.getAlwaysSkipModificationConfirmation as Mock).mockClear();
-    (mockConfig.setAlwaysSkipModificationConfirmation as Mock).mockClear();
+    (mockConfig.getApprovalMode as Mock).mockClear();
+    (mockConfig.getApprovalMode as Mock).mockClear();
     // Default to not skipping confirmation
-    (mockConfig.getAlwaysSkipModificationConfirmation as Mock).mockReturnValue(
-      false,
-    );
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.DEFAULT);
 
     // Reset mocks and set default implementation for ensureCorrectEdit
     mockEnsureCorrectEdit.mockReset();
@@ -439,9 +437,9 @@ describe('EditTool', () => {
         new_string: fileContent,
       };
 
-      (
-        mockConfig.getAlwaysSkipModificationConfirmation as Mock
-      ).mockReturnValueOnce(true);
+      (mockConfig.getApprovalMode as Mock).mockReturnValueOnce(
+        ApprovalMode.AUTO_EDIT,
+      );
       const result = await tool.execute(params, new AbortController().signal);
 
       expect(result.llmContent).toMatch(/Created new file/);
@@ -481,6 +479,49 @@ describe('EditTool', () => {
       );
       expect(result.returnDisplay).toMatch(
         /Failed to edit, expected 1 occurrence\(s\) but found 2/,
+      );
+    });
+
+    it('should successfully replace multiple occurrences when expected_replacements specified', async () => {
+      fs.writeFileSync(filePath, 'old text old text old text', 'utf8');
+      const params: EditToolParams = {
+        file_path: filePath,
+        old_string: 'old',
+        new_string: 'new',
+        expected_replacements: 3,
+      };
+
+      // Simulate confirmation by setting shouldAlwaysEdit
+      (tool as any).shouldAlwaysEdit = true;
+
+      const result = await tool.execute(params, new AbortController().signal);
+
+      (tool as any).shouldAlwaysEdit = false; // Reset for other tests
+
+      expect(result.llmContent).toMatch(/Successfully modified file/);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe(
+        'new text new text new text',
+      );
+      const display = result.returnDisplay as FileDiff;
+      expect(display.fileDiff).toMatch(/old text old text old text/);
+      expect(display.fileDiff).toMatch(/new text new text new text/);
+      expect(display.fileName).toBe(testFile);
+    });
+
+    it('should return error if expected_replacements does not match actual occurrences', async () => {
+      fs.writeFileSync(filePath, 'old text old text', 'utf8');
+      const params: EditToolParams = {
+        file_path: filePath,
+        old_string: 'old',
+        new_string: 'new',
+        expected_replacements: 3, // Expecting 3 but only 2 exist
+      };
+      const result = await tool.execute(params, new AbortController().signal);
+      expect(result.llmContent).toMatch(
+        /Expected 3 occurrences but found 2 for old_string in file/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Failed to edit, expected 3 occurrence\(s\) but found 2/,
       );
     });
 
