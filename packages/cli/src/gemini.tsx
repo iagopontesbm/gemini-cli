@@ -50,7 +50,8 @@ async function main() {
     console.warn(
       'GEMINI_CODE_SANDBOX_IMAGE is deprecated. Use GEMINI_SANDBOX_IMAGE_NAME instead.',
     );
-    process.env.GEMINI_SANDBOX_IMAGE_NAME = process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
+    process.env.GEMINI_SANDBOX_IMAGE_NAME =
+      process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
   }
 
   const settings = loadSettings(process.cwd());
@@ -135,8 +136,10 @@ async function main() {
     ...settings.merged,
     coreTools: nonInteractiveTools,
   };
-  const nonInteractiveConfig = await loadCliConfig(nonInteractiveSettings); // Ensure config is reloaded with non-interactive tools
-  await runNonInteractive(nonInteractiveConfig, input);
+  const nonInteractiveConfigResult = await loadCliConfig(
+    nonInteractiveSettings,
+  ); // Ensure config is reloaded with non-interactive tools
+  await runNonInteractive(nonInteractiveConfigResult.config, input);
 }
 
 // --- Global Unhandled Rejection Handler ---

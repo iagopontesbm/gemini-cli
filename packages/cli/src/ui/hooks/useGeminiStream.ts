@@ -40,7 +40,7 @@ import {
   TrackedCompletedToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
-import { GeminiChat } from '@gemini-code/core/src/core/geminiChat.js';
+import { GeminiChat } from '@gemini-code/core';
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   const resultParts: PartListUnion = [];
