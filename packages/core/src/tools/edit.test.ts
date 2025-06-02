@@ -660,8 +660,30 @@ describe('EditTool', () => {
         mode: 'create',
       };
 
-      const error2 = tool.validateParams(invalidParams);
+      const error2 = tool.validateToolParams(invalidParams);
       expect(error2).toMatch(/must provide either "content" parameter/);
+    });
+
+    it('should reject multiple edits with mixed file creation and editing on non-existent file', async () => {
+      // Ensure file doesn't exist
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      
+      const params: EditToolParams = {
+        file_path: filePath,
+        edits: [
+          { old_string: '', new_string: 'new content' },
+          { old_string: 'some text', new_string: 'replacement' }
+        ],
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+      expect(result.llmContent).toMatch(/No edits were applied/);
+      expect(result.llmContent).toMatch(/File creation requires exactly one edit with old_string: "". Multiple edits are not allowed for file creation/);
+      
+      // File should still not exist
+      expect(fs.existsSync(filePath)).toBe(false);
     });
   });
 

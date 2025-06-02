@@ -92,7 +92,7 @@ interface FailedEdit {
  * Implementation of the Edit tool logic
  */
 export class EditTool extends BaseTool<EditToolParams, EditResult> {
-  static readonly Name = 'edit_file';
+  static readonly Name = 'replace';
   private readonly config: Config;
   private readonly rootDirectory: string;
   private readonly client: GeminiClient;
