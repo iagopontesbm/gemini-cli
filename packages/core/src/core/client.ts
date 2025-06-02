@@ -12,6 +12,7 @@ import {
   PartListUnion,
   Content,
   Tool,
+  GenerateContentResponse,
 } from '@google/genai';
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
@@ -260,6 +261,59 @@ export class GeminiClient {
       const message =
         error instanceof Error ? error.message : 'Unknown API error.';
       throw new Error(`Failed to generate JSON content: ${message}`);
+    }
+  }
+
+  async generateContent(
+    contents: Content[],
+    generationConfig?: GenerateContentConfig,
+    abortSignal?: AbortSignal,
+  ): Promise<GenerateContentResponse> {
+    const modelToUse = this.model;
+    const configToUse: GenerateContentConfig = {
+      ...this.generateContentConfig,
+      ...generationConfig,
+    };
+
+    try {
+      const userMemory = this.config.getUserMemory(); // Assuming systemInstruction might be needed or good to have
+      const systemInstruction = getCoreSystemPrompt(userMemory);
+
+      const requestConfig = {
+        ...(abortSignal ? { abortSignal } : {}),
+        ...configToUse,
+        systemInstruction, // Including systemInstruction as generateJson does
+      };
+
+      const apiCall = () =>
+        this.client.models.generateContent({
+          model: modelToUse,
+          config: requestConfig,
+          contents,
+        });
+
+      // Not using this.client.generateContent directly to ensure consistent retry logic
+      const result = await retryWithBackoff(apiCall);
+      return result; // Return the raw GenerateContentResponse
+    } catch (error) {
+      if (abortSignal?.aborted) {
+        throw error; // Propagate cancellation error
+      }
+      // Generic error reporting for this new method
+      await reportError(
+        error,
+        `Error generating content via API with model ${modelToUse}.`,
+        {
+          requestContents: contents,
+          requestConfig: configToUse,
+        },
+        'generateContent-api',
+      );
+      const message =
+        error instanceof Error ? error.message : 'Unknown API error.';
+      throw new Error(
+        `Failed to generate content with model ${modelToUse}: ${message}`,
+      );
     }
   }
 }

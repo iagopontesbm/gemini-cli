@@ -21,6 +21,7 @@ import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
+import { GeminiClient } from '../core/client.js';
 
 export class MCPServerConfig {
   constructor(
@@ -79,6 +80,7 @@ export class Config {
   private alwaysSkipModificationConfirmation: boolean;
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
+  private geminiClient: GeminiClient;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -106,6 +108,7 @@ export class Config {
     }
 
     this.toolRegistry = createToolRegistry(this);
+    this.geminiClient = new GeminiClient(this);
   }
 
   getApiKey(): string {
@@ -193,6 +196,10 @@ export class Config {
 
   getShowMemoryUsage(): boolean {
     return this.showMemoryUsage;
+  }
+
+  getGeminiClient(): GeminiClient {
+    return this.geminiClient;
   }
 }
 
