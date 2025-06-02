@@ -22,7 +22,6 @@ import { ContentGenerator } from './contentGenerator.js';
 /**
  * Returns true if the response is valid, false otherwise.
  */
-// hello keith
 function isValidResponse(response: GenerateContentResponse): boolean {
   if (response.candidates === undefined || response.candidates.length === 0) {
     return false;
@@ -34,7 +33,6 @@ function isValidResponse(response: GenerateContentResponse): boolean {
   return isValidContent(content);
 }
 
-// hello keith
 function isValidContent(content: Content): boolean {
   if (content.parts === undefined || content.parts.length === 0) {
     return false;
@@ -77,7 +75,6 @@ function validateHistory(history: Content[]) {
  * filters or recitation). Extracting valid turns from the history
  * ensures that subsequent requests could be accpeted by the model.
  */
-// hello keith
 function extractCuratedHistory(comprehensiveHistory: Content[]): Content[] {
   if (comprehensiveHistory === undefined || comprehensiveHistory.length === 0) {
     return [];
@@ -294,7 +291,6 @@ getHistory(curated: boolean = false): Content[] {
     return structuredClone(history);
   }
 
-  // hello keith
 private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,
     inputContent: Content,
@@ -312,7 +308,6 @@ private async *processStreamResponse(
     this.recordHistory(inputContent, outputContent);
   }
 
-  // hello keith
 private recordHistory(
     userInput: Content,
     modelOutput: Content[],
