@@ -351,7 +351,7 @@ Expectation for parameters:
 
   getDescription(params: EditToolParams): string {
     if (!params.file_path || !params.old_string || !params.new_string) {
-      return `EditTool params cannot be empty {file_path: ${params.file_path}, old_string: ${params.old_string}, new_string: ${params.new_string}}`;
+      return `Model did not provide valid parameters for edit tool`;
     }
     const relativePath = makeRelative(params.file_path, this.rootDirectory);
     if (params.old_string === '') {
