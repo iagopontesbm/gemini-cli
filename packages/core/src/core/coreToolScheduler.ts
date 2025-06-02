@@ -159,6 +159,7 @@ interface CoreToolSchedulerOptions {
   outputUpdateHandler?: OutputUpdateHandler;
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
+  yoloMode?: boolean;
 }
 
 export class CoreToolScheduler {
@@ -168,12 +169,14 @@ export class CoreToolScheduler {
   private outputUpdateHandler?: OutputUpdateHandler;
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
+  private yoloMode: boolean;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
     this.outputUpdateHandler = options.outputUpdateHandler;
     this.onAllToolCallsComplete = options.onAllToolCallsComplete;
     this.onToolCallsUpdate = options.onToolCallsUpdate;
+    this.yoloMode = options.yoloMode || false;
     this.abortController = new AbortController();
   }
 
@@ -323,29 +326,33 @@ export class CoreToolScheduler {
 
       const { request: reqInfo, tool: toolInstance } = toolCall;
       try {
-        const confirmationDetails = await toolInstance.shouldConfirmExecute(
-          reqInfo.args,
-          this.abortController.signal,
-        );
-
-        if (confirmationDetails) {
-          const originalOnConfirm = confirmationDetails.onConfirm;
-          const wrappedConfirmationDetails: ToolCallConfirmationDetails = {
-            ...confirmationDetails,
-            onConfirm: (outcome: ToolConfirmationOutcome) =>
-              this.handleConfirmationResponse(
-                reqInfo.callId,
-                originalOnConfirm,
-                outcome,
-              ),
-          };
-          this.setStatusInternal(
-            reqInfo.callId,
-            'awaiting_approval',
-            wrappedConfirmationDetails,
-          );
-        } else {
+        if (this.yoloMode) {
           this.setStatusInternal(reqInfo.callId, 'scheduled');
+        } else {
+          const confirmationDetails = await toolInstance.shouldConfirmExecute(
+            reqInfo.args,
+            this.abortController.signal,
+          );
+
+          if (confirmationDetails) {
+            const originalOnConfirm = confirmationDetails.onConfirm;
+            const wrappedConfirmationDetails: ToolCallConfirmationDetails = {
+              ...confirmationDetails,
+              onConfirm: (outcome: ToolConfirmationOutcome) =>
+                this.handleConfirmationResponse(
+                  reqInfo.callId,
+                  originalOnConfirm,
+                  outcome,
+                ),
+            };
+            this.setStatusInternal(
+              reqInfo.callId,
+              'awaiting_approval',
+              wrappedConfirmationDetails,
+            );
+          } else {
+            this.setStatusInternal(reqInfo.callId, 'scheduled');
+          }
         }
       } catch (error) {
         this.setStatusInternal(
