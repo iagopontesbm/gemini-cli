@@ -25,7 +25,7 @@ import { FileDiff } from './tools.js';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { Config } from '../config/config.js';
+import { ApprovalMode, Config } from '../config/config.js';
 import { Content, Part, SchemaUnion } from '@google/genai';
 
 describe('EditTool', () => {
@@ -41,8 +41,8 @@ describe('EditTool', () => {
 
     mockConfig = {
       getTargetDir: () => rootDir,
-      getAlwaysSkipModificationConfirmation: vi.fn(() => false),
-      setAlwaysSkipModificationConfirmation: vi.fn(),
+      getApprovalMode: vi.fn(() => false),
+      setApprovalMode: vi.fn(),
       // getGeminiConfig: () => ({ apiKey: 'test-api-key' }), // This was not a real Config method
       // Add other properties/methods of Config if EditTool uses them
       // Minimal other methods to satisfy Config type if needed by EditTool constructor or other direct uses:
@@ -65,12 +65,10 @@ describe('EditTool', () => {
     } as unknown as Config;
 
     // Reset mocks before each test
-    (mockConfig.getAlwaysSkipModificationConfirmation as Mock).mockClear();
-    (mockConfig.setAlwaysSkipModificationConfirmation as Mock).mockClear();
+    (mockConfig.getApprovalMode as Mock).mockClear();
+    (mockConfig.getApprovalMode as Mock).mockClear();
     // Default to not skipping confirmation
-    (mockConfig.getAlwaysSkipModificationConfirmation as Mock).mockReturnValue(
-      false,
-    );
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.DEFAULT);
 
     // Reset mocks and set default implementation for ensureCorrectEdit
     mockEnsureCorrectEdit.mockReset();
@@ -178,14 +176,14 @@ describe('EditTool', () => {
     });
   });
 
-  describe('validateParams', () => {
+  describe('validateToolParams', () => {
     it('should return null for valid params', () => {
       const params: EditToolParams = {
         file_path: path.join(rootDir, 'test.txt'),
         old_string: 'old',
         new_string: 'new',
       };
-      expect(tool.validateParams(params)).toBeNull();
+      expect(tool.validateToolParams(params)).toBeNull();
     });
 
     it('should return error for relative path', () => {
@@ -194,7 +192,9 @@ describe('EditTool', () => {
         old_string: 'old',
         new_string: 'new',
       };
-      expect(tool.validateParams(params)).toMatch(/File path must be absolute/);
+      expect(tool.validateToolParams(params)).toMatch(
+        /File path must be absolute/,
+      );
     });
 
     it('should return error for path outside root', () => {
@@ -203,7 +203,7 @@ describe('EditTool', () => {
         old_string: 'old',
         new_string: 'new',
       };
-      expect(tool.validateParams(params)).toMatch(
+      expect(tool.validateToolParams(params)).toMatch(
         /File path must be within the root directory/,
       );
     });
@@ -437,9 +437,9 @@ describe('EditTool', () => {
         new_string: fileContent,
       };
 
-      (
-        mockConfig.getAlwaysSkipModificationConfirmation as Mock
-      ).mockReturnValueOnce(true);
+      (mockConfig.getApprovalMode as Mock).mockReturnValueOnce(
+        ApprovalMode.AUTO_EDIT,
+      );
       const result = await tool.execute(params, new AbortController().signal);
 
       expect(result.llmContent).toMatch(/Created new file/);

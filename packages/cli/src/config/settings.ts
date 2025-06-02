@@ -7,8 +7,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
-import { MCPServerConfig } from '@gemini-code/core/src/config/config.js';
+import { MCPServerConfig } from '@gemini-code/core';
 import stripJsonComments from 'strip-json-comments';
+import { DefaultLight } from '../ui/themes/default-light.js';
+import { DefaultDark } from '../ui/themes/default.js';
 
 export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
@@ -28,6 +30,7 @@ export interface Settings {
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
+  contextFileName?: string;
   // Add other settings here.
 }
 
@@ -88,13 +91,19 @@ export class LoadedSettings {
  */
 export function loadSettings(workspaceDir: string): LoadedSettings {
   let userSettings: Settings = {};
-  let workspaceSettings = {};
+  let workspaceSettings: Settings = {};
 
   // Load user settings
   try {
     if (fs.existsSync(USER_SETTINGS_PATH)) {
       const userContent = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
-      userSettings = JSON.parse(stripJsonComments(userContent));
+      userSettings = JSON.parse(stripJsonComments(userContent)) as Settings;
+      // Support legacy theme names
+      if (userSettings.theme && userSettings.theme === 'VS') {
+        userSettings.theme = DefaultLight.name;
+      } else if (userSettings.theme && userSettings.theme === 'VS2015') {
+        userSettings.theme = DefaultDark.name;
+      }
     }
   } catch (error) {
     console.error('Error reading user settings file:', error);
@@ -110,7 +119,17 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
   try {
     if (fs.existsSync(workspaceSettingsPath)) {
       const projectContent = fs.readFileSync(workspaceSettingsPath, 'utf-8');
-      workspaceSettings = JSON.parse(stripJsonComments(projectContent));
+      workspaceSettings = JSON.parse(
+        stripJsonComments(projectContent),
+      ) as Settings;
+      if (workspaceSettings.theme && workspaceSettings.theme === 'VS') {
+        workspaceSettings.theme = DefaultLight.name;
+      } else if (
+        workspaceSettings.theme &&
+        workspaceSettings.theme === 'VS2015'
+      ) {
+        workspaceSettings.theme = DefaultDark.name;
+      }
     }
   } catch (error) {
     console.error('Error reading workspace settings file:', error);
