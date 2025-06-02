@@ -18,7 +18,6 @@ import {
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
-import { ReadFileTool } from './read-file.js';
 import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
@@ -298,7 +297,6 @@ Expectation for required parameters:
     // Read current file content or determine if this is a new file
     let currentContent: string | null = null;
     let fileExists = false;
-    let isNewFile = false;
 
     try {
       currentContent = fs.readFileSync(params.file_path, 'utf8');

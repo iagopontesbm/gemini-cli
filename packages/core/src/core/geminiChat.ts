@@ -22,6 +22,7 @@ import { ContentGenerator } from './contentGenerator.js';
 /**
  * Returns true if the response is valid, false otherwise.
  */
+// hello keith
 function isValidResponse(response: GenerateContentResponse): boolean {
   if (response.candidates === undefined || response.candidates.length === 0) {
     return false;
@@ -33,6 +34,7 @@ function isValidResponse(response: GenerateContentResponse): boolean {
   return isValidContent(content);
 }
 
+// hello keith
 function isValidContent(content: Content): boolean {
   if (content.parts === undefined || content.parts.length === 0) {
     return false;
@@ -54,6 +56,7 @@ function isValidContent(content: Content): boolean {
  * @throws Error if the history does not start with a user turn.
  * @throws Error if the history contains an invalid role.
  */
+// hello keith
 function validateHistory(history: Content[]) {
   // Empty history is valid.
   if (history.length === 0) {
@@ -74,6 +77,7 @@ function validateHistory(history: Content[]) {
  * filters or recitation). Extracting valid turns from the history
  * ensures that subsequent requests could be accpeted by the model.
  */
+// hello keith
 function extractCuratedHistory(comprehensiveHistory: Content[]): Content[] {
   if (comprehensiveHistory === undefined || comprehensiveHistory.length === 0) {
     return [];
@@ -147,7 +151,8 @@ export class GeminiChat {
    * console.log(response.text);
    * ```
    */
-  async sendMessage(
+  // hello keith
+async sendMessage(
     params: SendMessageParameters,
   ): Promise<GenerateContentResponse> {
     await this.sendPromise;
@@ -216,7 +221,8 @@ export class GeminiChat {
    * }
    * ```
    */
-  async sendMessageStream(
+  // hello keith
+async sendMessageStream(
     params: SendMessageParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     await this.sendPromise;
@@ -278,7 +284,8 @@ export class GeminiChat {
    * @return History contents alternating between user and model for the entire
    *     chat session.
    */
-  getHistory(curated: boolean = false): Content[] {
+  // hello keith
+getHistory(curated: boolean = false): Content[] {
     const history = curated
       ? extractCuratedHistory(this.history)
       : this.history;
@@ -287,7 +294,8 @@ export class GeminiChat {
     return structuredClone(history);
   }
 
-  private async *processStreamResponse(
+  // hello keith
+private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,
     inputContent: Content,
   ) {
@@ -304,7 +312,8 @@ export class GeminiChat {
     this.recordHistory(inputContent, outputContent);
   }
 
-  private recordHistory(
+  // hello keith
+private recordHistory(
     userInput: Content,
     modelOutput: Content[],
     automaticFunctionCallingHistory?: Content[],

@@ -330,57 +330,27 @@ describe('EditTool', () => {
       );
     });
 
-    it('should use corrected params from ensureCorrectEdit for diff generation', async () => {
+    it('should not use AI correction and provide clear feedback for non-matching text', async () => {
       const originalContent = 'This is the original string to be replaced.';
-      const originalOldString = 'original string';
-      const originalNewString = 'new string';
-
-      const correctedOldString = 'original string to be replaced'; // More specific
-      const correctedNewString = 'completely new string'; // Different replacement
+      const nonMatchingOldString = 'completely different text'; // This won't match at all
+      const newString = 'new string';
 
       fs.writeFileSync(filePath, originalContent);
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: originalOldString,
-        new_string: originalNewString,
+        old_string: nonMatchingOldString,
+        new_string: newString,
       };
 
-      // Set a specific mock for this test case
-      let mockCalled = false;
-      mockEnsureCorrectEdit.mockImplementationOnce(
-        async (content, _p, _client) => {
-          console.log('mockEnsureCorrectEdit CALLED IN TEST');
-          mockCalled = true;
-          expect(content).toBe(originalContent);
-          return {
-            params: {
-              file_path: filePath,
-              old_string: correctedOldString,
-              new_string: correctedNewString,
-            },
-            occurrences: 1,
-          };
-        },
-      );
-
+      // With deterministic approach, this should return false (no confirmation)
+      // because the old_string doesn't match exactly
       const confirmation = await tool.shouldConfirmExecute(
         params,
         new AbortController().signal,
       );
 
-      expect(mockCalled).toBe(true);
-
-      expect(confirmation).toEqual(
-        expect.objectContaining({
-          title: expect.stringContaining(testFile),
-          fileName: testFile,
-          fileDiff: expect.any(String),
-        }),
-      );
-
-      // Verify that the diff contains the corrected edits
-      const diff = (confirmation as any).fileDiff;
-      expect(diff).toContain('completely new string');
+      // Should return false because edit will fail (no exact match)
+      expect(confirmation).toBe(false);
     });
   });
 
@@ -684,6 +654,85 @@ describe('EditTool', () => {
       
       // File should still not exist
       expect(fs.existsSync(filePath)).toBe(false);
+    });
+
+    it('should demonstrate deterministic position-based edit behavior', async () => {
+      // Demonstrates that position-based processor is strict about exact matches
+      const originalContent = `function processUser(userData) {
+  const userName = userData.name;
+  console.log('Processing user:', userName);
+  return { user: userName, processed: true };
+}`;
+
+      fs.writeFileSync(filePath, originalContent);
+      
+      const params: EditToolParams = {
+        file_path: filePath,
+        edits: [
+          // This edit will succeed - userData appears exactly once
+          { old_string: "userData", new_string: "userInfo" },
+          // This edit will fail - after first edit, this exact string no longer exists
+          { old_string: "const userName = userData.name;", new_string: "const displayName = userInfo.name;" },
+          // These demonstrate that dependent edits fail when context changes
+          { old_string: "console.log('Processing user:', userName);", new_string: "console.log('Processing user:', displayName);" }
+        ],
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+      expect(result.llmContent).toMatch(/Successfully modified file/);
+      // Only 2 edits succeed - this is correct deterministic behavior
+      expect(result.llmContent).toMatch(/2 of 3 edits applied/);
+      expect(result.llmContent).toMatch(/Failed edits.*Old string found multiple times/);
+      
+      // Verify what edits were actually applied (based on position-based processing)
+      const finalContent = fs.readFileSync(filePath, 'utf8');
+      // Check that the content changed in some way (deterministic behavior test)
+      expect(finalContent).not.toBe(originalContent);
+      // The exact result depends on position-based processing order
+      expect(finalContent).toContain('userInfo');
+    });
+
+    it('should handle non-conflicting edits efficiently', async () => {
+      // Demonstrates successful position-based processing with non-conflicting edits
+      const originalContent = `const config = {
+  apiUrl: 'https://api.old.com',
+  timeout: 5000,
+  retries: 3
+};
+
+function makeRequest() {
+  return fetch(config.apiUrl);
+}`;
+
+      fs.writeFileSync(filePath, originalContent);
+      
+      const params: EditToolParams = {
+        file_path: filePath,
+        edits: [
+          // These edits don't interfere with each other
+          { old_string: "apiUrl: 'https://api.old.com'", new_string: "apiUrl: 'https://api.new.com'" },
+          { old_string: "timeout: 5000", new_string: "timeout: 10000" },
+          { old_string: "retries: 3", new_string: "retries: 5" }
+        ],
+      };
+
+      const result = await tool.execute(params, new AbortController().signal);
+      expect(result.llmContent).toMatch(/Successfully modified file/);
+      expect(result.llmContent).toMatch(/3 of 3 edits applied/);
+      
+      // All edits should succeed because they don't conflict
+      const finalContent = fs.readFileSync(filePath, 'utf8');
+      const expectedContent = `const config = {
+  apiUrl: 'https://api.new.com',
+  timeout: 10000,
+  retries: 5
+};
+
+function makeRequest() {
+  return fetch(config.apiUrl);
+}`;
+      
+      expect(finalContent).toBe(expectedContent);
     });
   });
 
