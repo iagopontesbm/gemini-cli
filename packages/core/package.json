@@ -4,15 +4,6 @@
   "description": "Gemini CLI Server",
   "type": "module",
   "main": "dist/index.js",
-  "module": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./package.json": "./package.json"
-  },
   "scripts": {
     "start": "node dist/src/index.js",
     "build": "../../scripts/build_package.sh",
