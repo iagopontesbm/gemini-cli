@@ -143,6 +143,23 @@ For more detailed architecture, see `docs/architecture.md`.
 
 ## Debugging
 
+### VS Code:
+
+1.  Start the CLI in debug mode from the root directory:
+    ```bash
+    npm run debug
+    ```
+    This command runs `node --inspect-brk dist/gemini.js` within the `packages/cli` directory, pausing execution until a debugger attaches. You can then open `chrome://inspect` in your Chrome browser to connect to the debugger.
+2.  In VS Code, use the "Attach" launch configuration (found in `.vscode/launch.json`).
+
+Alternatively, you can use the "Launch Program" configuration in VS Code if you prefer to launch the currently open file directly, but the "Attach" method is generally recommended for debugging the main CLI entry point.
+
+To hit a breakpoint inside the sandbox container run:
+
+```bash
+DEBUG=1 gemini
+```
+
 ### React DevTools
 
 To debug the CLI's React-based UI, you can use React DevTools. Ink, the library used for the CLI's interface, is compatible with React DevTools version 4.x.
@@ -169,24 +186,7 @@ To debug the CLI's React-based UI, you can use React DevTools. Ink, the library 
     ```
 
     Your running CLI application should then connect to React DevTools.
-
-
-### VS Code:
-
-1.  Start the CLI in debug mode from the root directory:
-    ```bash
-    npm run debug
-    ```
-    This command runs `node --inspect-brk dist/gemini.js` within the `packages/cli` directory, pausing execution until a debugger attaches. You can then open `chrome://inspect` in your Chrome browser to connect to the debugger.
-2.  In VS Code, use the "Attach" launch configuration (found in `.vscode/launch.json`).
-
-Alternatively, you can use the "Launch Program" configuration in VS Code if you prefer to launch the currently open file directly, but the "Attach" method is generally recommended for debugging the main CLI entry point.
-
-To hit a breakpoint inside the sandbox container run:
-
-```bash
-DEBUG=1 gemini
-```
+    ![](/docs/assets/connected_devtools.png)
 
 ## Sandboxing
 
