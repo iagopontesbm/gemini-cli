@@ -62,6 +62,7 @@ export const WITTY_LOADING_PHRASES = [
   "Just a moment, I'm tuning the algorithms...",
   'Warp speed engaged...',
   'Mining for more Dilithium crystals...',
+  "I'm Giving Her all she's got Captain!",
   "Don't panic...",
   'Following the white rabbit...',
   'The truth is in here... somewhere...',
