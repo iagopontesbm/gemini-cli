@@ -69,13 +69,11 @@ describe('useCompletion git-aware filtering integration', () => {
 
     // Mock git ignore service to ignore certain files
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
-      (path: string) => {
-        return (
+      (path: string) => (
           path.includes('node_modules') ||
           path.includes('dist') ||
           path.includes('.env')
-        );
-      },
+        ),
     );
 
     const { result } = renderHook(() =>
@@ -121,9 +119,7 @@ describe('useCompletion git-aware filtering integration', () => {
 
     // Mock git ignore service
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
-      (path: string) => {
-        return path.includes('node_modules') || path.includes('temp');
-      },
+      (path: string) => path.includes('node_modules') || path.includes('temp'),
     );
 
     const { result } = renderHook(() =>
@@ -206,9 +202,7 @@ describe('useCompletion git-aware filtering integration', () => {
     ] as any);
 
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
-      (path: string) => {
-        return path.includes('.log');
-      },
+      (path: string) => path.includes('.log'),
     );
 
     const { result } = renderHook(() =>

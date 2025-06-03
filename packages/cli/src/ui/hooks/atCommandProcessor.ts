@@ -349,7 +349,7 @@ export async function handleAtCommand({
 
   const toolArgs = {
     paths: pathSpecsToRead,
-    respectGitIgnore: respectGitIgnore, // Use configuration setting
+    respectGitIgnore, // Use configuration setting
   };
   let toolCallDisplay: IndividualToolCallDisplay;
 

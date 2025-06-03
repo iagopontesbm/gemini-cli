@@ -186,7 +186,7 @@ export function useCompletion(
     const findFilesRecursively = async (
       startDir: string,
       searchPrefix: string,
-      fileDiscovery: any,
+      fileDiscovery: { shouldIgnoreFile: (path: string) => boolean } | null,
       currentRelativePath = '',
       depth = 0,
       maxDepth = 10, // Limit recursion depth
@@ -347,7 +347,7 @@ export function useCompletion(
       isMounted = false;
       clearTimeout(debounceTimeout);
     };
-  }, [query, cwd, isActive, resetCompletionState, slashCommands]);
+  }, [query, cwd, isActive, resetCompletionState, slashCommands, config]);
 
   return {
     suggestions,

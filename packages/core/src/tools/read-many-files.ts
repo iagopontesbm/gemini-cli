@@ -16,7 +16,6 @@ import {
   DEFAULT_ENCODING,
 } from '../utils/fileUtils.js';
 import { PartListUnion } from '@google/genai';
-import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { Config } from '../config/config.js';
 
 /**

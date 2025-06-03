@@ -39,7 +39,7 @@ export class GitIgnoreParser implements GitIgnoreFilter {
           const content = await fs.readFile(gitIgnoreFile, 'utf-8');
           const patterns = this.parseGitIgnoreContent(content);
           this.ignorePatterns.push(...patterns);
-        } catch (error) {
+        } catch (_error) {
           // File doesn't exist or can't be read, continue silently
         }
       }
@@ -101,13 +101,11 @@ export class GitIgnoreParser implements GitIgnoreFilter {
     // Normalize path separators for cross-platform compatibility
     const normalizedPath = relativePath.replace(/\\/g, '/');
 
-    return this.ignorePatterns.some((pattern) => {
-      return minimatch(normalizedPath, pattern, {
+    return this.ignorePatterns.some((pattern) => minimatch(normalizedPath, pattern, {
         dot: true,
         matchBase: false,
         flipNegate: false,
-      });
-    });
+      }));
   }
 
   getIgnoredPatterns(): string[] {
