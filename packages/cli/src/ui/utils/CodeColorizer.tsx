@@ -107,7 +107,7 @@ export function colorizeCode(
         {lines.map((line, index) => (
           <Text key={index}>
             <Text color={activeTheme.colors.SubtleComment}>
-              {`${String(index + 1).padStart(3, ' ')} `}
+              {`${String(index + 1).padStart(0, ' ')} `}
             </Text>
             <Text color={activeTheme.defaultColor}>
               {renderHastNode(
@@ -133,10 +133,10 @@ export function colorizeCode(
       <Text>
         {lines.map((line, index) => (
           <Text key={index}>
-            <Text color={activeTheme.colors.SubtleComment}>
-              {`${String(index + 1).padStart(3, ' ')} `}
+            <Text color={activeTheme.defaultColor}>
+              {`${String(index + 1).padStart(0, ' ')} `}
             </Text>
-            <Text color={activeTheme.defaultColor}>{line}</Text>
+            <Text color={activeTheme.colors.SubtleComment}>{line}</Text>
             {index < lines.length - 1 && '\n'}
           </Text>
         ))}
