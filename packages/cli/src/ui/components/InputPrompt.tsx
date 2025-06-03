@@ -76,9 +76,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
   const handleSubmitAndClear = useCallback(
     (submittedValue: string) => {
+      // Clear the buffer *before* calling onSubmit to prevent potential re-submission
+      // if onSubmit triggers a re-render while the buffer still holds the old value.
       buffer.setText('');
       onSubmit(submittedValue);
-      resetCompletionState(); // Ensure completion is reset on submit
+      resetCompletionState();
     },
     [onSubmit, buffer, resetCompletionState],
   );
@@ -86,7 +88,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   const customSetTextAndResetCompletionSignal = useCallback(
     (newText: string) => {
       buffer.setText(newText);
-      setJustNavigatedHistory(true); // Signal that history navigation just updated the text
+      setJustNavigatedHistory(true);
     },
     [buffer, setJustNavigatedHistory],
   );
@@ -102,21 +104,15 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   // Effect to reset completion if history navigation just occurred and set the text
   useEffect(() => {
     if (justNavigatedHistory) {
-      // if (process.env.GEMINI_DEBUG_HISTORY) {
-      //   console.log(
-      //     '[InputPrompt.useEffect] History navigation detected, resetting completion state for text:',
-      //     buffer.text,
-      //   );
-      // }
-      resetCompletionState(); // Use the stable resetCompletionState from useCompletion
-      setJustNavigatedHistory(false); // Reset the signal
+      resetCompletionState();
+      setJustNavigatedHistory(false);
     }
   }, [
     justNavigatedHistory,
     buffer.text,
     resetCompletionState,
     setJustNavigatedHistory,
-  ]); // buffer.text is a dep to re-run if text changes by other means too
+  ]);
 
   const completionSuggestions = completion.suggestions;
   const handleAutocomplete = useCallback(
@@ -155,16 +151,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
   useInput(
     (input, key) => {
-      // --- BEGIN DIAGNOSTIC LOG (useInput entry) ---
-      // if (process.env.GEMINI_DEBUG_HISTORY) {
-      //   console.log('[InputPrompt.useInput] Entry', {
-      //     currentBufferText: buffer.text,
-      //     inputChar: input, // Log input character
-      //     keyObj: key, // Log the whole key object for inspection
-      //     completionShowSuggestions: completion.showSuggestions,
-      //   });
-      // }
-      // --- END DIAGNOSTIC LOG (useInput entry) ---
       if (!focus) {
         return;
       }
@@ -177,18 +163,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       }
 
       if (completion.showSuggestions) {
-        // --- BEGIN DIAGNOSTIC LOG (Inside completion.showSuggestions block) ---
-        // if (process.env.GEMINI_DEBUG_HISTORY) {
-        //   console.log(
-        //     '[InputPrompt.useInput] In completion.showSuggestions block',
-        //     {
-        //       inputChar: input,
-        //       keyObj: key,
-        //       currentBufferText: buffer.text,
-        //     },
-        //   );
-        // }
-        // --- END DIAGNOSTIC LOG (Inside completion.showSuggestions block) ---
         if (key.upArrow) {
           completion.navigateUp();
           return;
@@ -224,20 +198,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           return true;
         }
         if (key.ctrl && input === 'p') {
-          // --- BEGIN DIAGNOSTIC LOG (Ctrl+P) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] Ctrl+P detected', { currentBufferText: buffer.text });
-          // }
-          // --- END DIAGNOSTIC LOG (Ctrl+P) ---
           inputHistory.navigateUp();
           return true;
         }
         if (key.ctrl && input === 'n') {
-          // --- BEGIN DIAGNOSTIC LOG (Ctrl+N) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] Ctrl+N detected', { currentBufferText: buffer.text });
-          // }
-          // --- END DIAGNOSTIC LOG (Ctrl+N) ---
           inputHistory.navigateDown();
           return true;
         }
@@ -270,23 +234,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       }
       // Ctrl+P (History Up)
       if (key.ctrl && input === 'p' && !completion.showSuggestions) {
-        // This block is redundant due to the one in the 'else' above but kept for safety / original structure
-        // --- BEGIN DIAGNOSTIC LOG (Ctrl+P Redundant) ---
-        // if (process.env.GEMINI_DEBUG_HISTORY) {
-        //     console.log('[InputPrompt.useInput] Ctrl+P Redundant Check', { currentBufferText: buffer.text, completionShowSuggestions: completion.showSuggestions });
-        // }
-        // --- END DIAGNOSTIC LOG (Ctrl+P Redundant) ---
         inputHistory.navigateUp();
         return;
       }
       // Ctrl+N (History Down)
       if (key.ctrl && input === 'n' && !completion.showSuggestions) {
-        // This block is redundant due to the one in the 'else' above but kept for safety / original structure
-        // --- BEGIN DIAGNOSTIC LOG (Ctrl+N Redundant) ---
-        // if (process.env.GEMINI_DEBUG_HISTORY) {
-        //     console.log('[InputPrompt.useInput] Ctrl+N Redundant Check', { currentBufferText: buffer.text, completionShowSuggestions: completion.showSuggestions });
-        // }
-        // --- END DIAGNOSTIC LOG (Ctrl+N Redundant) ---
         inputHistory.navigateDown();
         return;
       }
@@ -345,82 +297,24 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
       // Standard arrow navigation within the buffer
       if (key.upArrow && !completion.showSuggestions) {
-        // --- BEGIN DIAGNOSTIC LOG (UP Arrow Condition Check) ---
-        // if (process.env.GEMINI_DEBUG_HISTORY) {
-        //   console.log('[InputPrompt.useInput] UP Arrow Check', {
-        //     currentBufferText: buffer.text,
-        //     'buffer.visualCursor[0]': buffer.visualCursor[0],
-        //     'buffer.visualScrollRow': buffer.visualScrollRow,
-        //     'buffer.allVisualLines.length': buffer.allVisualLines.length,
-        //     shouldCallNavigateUp:
-        //       buffer.allVisualLines.length === 1 ||
-        //       (buffer.visualCursor[0] === 0 && buffer.visualScrollRow === 0),
-        //   });
-        // }
-        // --- END DIAGNOSTIC LOG (UP Arrow Condition Check) ---
         if (
           (buffer.allVisualLines.length === 1 || // Always navigate for single line
             (buffer.visualCursor[0] === 0 && buffer.visualScrollRow === 0)) &&
           inputHistory.navigateUp
         ) {
-          // --- BEGIN DIAGNOSTIC LOG (UP) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] BEFORE navigateUp', {
-          //     currentBufferText: buffer.text,
-          //     userMessagesSlice: userMessages.slice(-5),
-          //   });
-          // }
-          // --- END DIAGNOSTIC LOG (UP) ---
           inputHistory.navigateUp();
-          // completion.resetCompletionState(); // <--- REMOVED, handled by useEffect
-          // --- BEGIN DIAGNOSTIC LOG (UP) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] AFTER navigateUp', {
-          //     newBufferText: buffer.text, // This will reflect change if onChange was synchronous
-          //   });
-          // }
-          // --- END DIAGNOSTIC LOG (UP) ---
         } else {
           buffer.move('up');
         }
         return;
       }
       if (key.downArrow && !completion.showSuggestions) {
-        // --- BEGIN DIAGNOSTIC LOG (DOWN Arrow Condition Check) ---
-        // if (process.env.GEMINI_DEBUG_HISTORY) {
-        //   console.log('[InputPrompt.useInput] DOWN Arrow Check', {
-        //     currentBufferText: buffer.text,
-        //     'buffer.visualCursor[0]': buffer.visualCursor[0],
-        //     'buffer.allVisualLines.length - 1':
-        //       buffer.allVisualLines.length - 1,
-        //     shouldCallNavigateDown:
-        //       buffer.allVisualLines.length === 1 ||
-        //       buffer.visualCursor[0] === buffer.allVisualLines.length - 1,
-        //   });
-        // }
-        // --- END DIAGNOSTIC LOG (DOWN Arrow Condition Check) ---
         if (
           (buffer.allVisualLines.length === 1 || // Always navigate for single line
             buffer.visualCursor[0] === buffer.allVisualLines.length - 1) &&
           inputHistory.navigateDown
         ) {
-          // --- BEGIN DIAGNOSTIC LOG (DOWN) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] BEFORE navigateDown', {
-          //     currentBufferText: buffer.text,
-          //     userMessagesSlice: userMessages.slice(-5),
-          //   });
-          // }
-          // --- END DIAGNOSTIC LOG (DOWN) ---
           inputHistory.navigateDown();
-          // completion.resetCompletionState(); // <--- REMOVED, handled by useEffect
-          // --- BEGIN DIAGNOSTIC LOG (DOWN) ---
-          // if (process.env.GEMINI_DEBUG_HISTORY) {
-          //   console.log('[InputPrompt.useInput] AFTER navigateDown', {
-          //     newBufferText: buffer.text,
-          //   });
-          // }
-          // --- END DIAGNOSTIC LOG (DOWN) ---
         } else {
           buffer.move('down');
         }
