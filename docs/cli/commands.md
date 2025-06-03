@@ -37,7 +37,6 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
       - **Action:** All user-added memory entries for the current session are cleared.
   - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
-
 - **`/quit`** (or **`/exit`**)
   - **Description:** Exits the Gemini CLI application.
   - **Action:** Terminates the CLI process.

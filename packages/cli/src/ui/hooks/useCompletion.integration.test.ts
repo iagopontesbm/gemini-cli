@@ -198,8 +198,6 @@ describe('useCompletion git-aware filtering integration', () => {
     consoleSpy.mockRestore();
   });
 
-
-
   it('should handle directory-specific completions with git filtering', async () => {
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'component.tsx', isDirectory: () => false },

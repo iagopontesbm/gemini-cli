@@ -97,16 +97,10 @@ describe('FileDiscoveryService', () => {
       expect(filtered).toEqual(files);
     });
 
-
-
-
-
     it('should handle empty file list', () => {
       const filtered = service.filterFiles([]);
       expect(filtered).toEqual([]);
     });
-
-
   });
 
   describe('shouldIgnoreFile', () => {
@@ -222,8 +216,16 @@ describe('FileDiscoveryService', () => {
       });
       await service.initialize({ isGitRepo: true });
 
-      expect(service.shouldIgnoreFile('node_modules/package/index.js', { isGitRepo: true })).toBe(true);
-      expect(service.shouldIgnoreFile('node_modules/package/index.js', { isGitRepo: false })).toBe(false);
+      expect(
+        service.shouldIgnoreFile('node_modules/package/index.js', {
+          isGitRepo: true,
+        }),
+      ).toBe(true);
+      expect(
+        service.shouldIgnoreFile('node_modules/package/index.js', {
+          isGitRepo: false,
+        }),
+      ).toBe(false);
     });
   });
 

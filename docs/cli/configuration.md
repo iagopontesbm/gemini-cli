@@ -43,6 +43,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Example:** `"contextFileName": "AGENTS.md"`
 
 - **`fileFiltering`** (object, optional):
+
   - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
   - **Properties:**
     - **`respectGitIgnore`** (boolean, default: `true`): Whether to respect .gitignore patterns when discovering files. When enabled, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
@@ -56,7 +57,6 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
       "allowBuildArtifacts": false
     }
     ```
-
 
 - **`coreTools`** (array of strings, optional):
   - **Description:** Allows you to specify a list of core tool names that should be made available to the model. This can be used to restrict or customize the set of built-in tools.

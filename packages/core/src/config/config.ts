@@ -231,8 +231,6 @@ export class Config {
     return this.fileFilteringRespectGitIgnore;
   }
 
-
-
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
   }
