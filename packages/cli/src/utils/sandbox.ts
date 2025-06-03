@@ -221,67 +221,58 @@ function entrypoint(workdir: string): string[] {
   return ['bash', '-c', args.join(' ')];
 }
 
-export async function start_sandbox(sandbox: string) {
-  if (sandbox === 'sandbox-exec') {
-    // disallow BUILD_SANDBOX
-    if (process.env.BUILD_SANDBOX) {
-      console.error('ERROR: cannot BUILD_SANDBOX when using MacOC Seatbelt');
-      process.exit(1);
-    }
-    const profile = (process.env.SEATBELT_PROFILE ??= 'minimal');
-    let profileFile = new URL(`sandbox-macos-${profile}.sb`, import.meta.url)
-      .pathname;
-    // if profile is anything other than 'minimal' or 'strict', then look for the profile file under the project settings directory
-    if (profile !== 'minimal' && profile !== 'strict') {
-      profileFile = path.join(
-        SETTINGS_DIRECTORY_NAME,
-        `sandbox-macos-${profile}.sb`,
-      );
-    }
-    if (!fs.existsSync(profileFile)) {
-      console.error(
-        `ERROR: missing macos seatbelt profile file '${profileFile}'`,
-      );
-      process.exit(1);
-    }
-    console.error(`using macos seatbelt (profile: ${profile}) ...`);
-    // if DEBUG is set, convert to --inspect-brk in NODE_OPTIONS
-    if (process.env.DEBUG) {
-      process.env.NODE_OPTIONS ??= '';
-      process.env.NODE_OPTIONS += ` --inspect-brk`;
-    }
-    const args = [
-      '-D',
-      `TARGET_DIR=${fs.realpathSync(process.cwd())}`,
-      '-D',
-      `TMP_DIR=${fs.realpathSync(os.tmpdir())}`,
-      '-D',
-      `HOME_DIR=${fs.realpathSync(os.homedir())}`,
-      '-D',
-      `CACHE_DIR=${fs.realpathSync(execSync(`getconf DARWIN_USER_CACHE_DIR`).toString().trim())}`,
-      '-f',
-      profileFile,
-      'bash',
-      '-c',
-      [
-        `SANDBOX='sandbox-exec (${profile})'`,
-        `SANDBOX_PROMPT=${quote([MACOS_SEATBELT_PROMPT_TEXT])}`,
-        `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`,
-        ...process.argv.map((arg) => quote([arg])),
-      ].join(' '),
-    ];
-    spawnSync(sandbox, args, { stdio: 'inherit' });
-    return;
+function _startSeatbeltSandbox(sandbox: string) {
+  // disallow BUILD_SANDBOX
+  if (process.env.BUILD_SANDBOX) {
+    console.error('ERROR: cannot BUILD_SANDBOX when using MacOC Seatbelt');
+    process.exit(1);
   }
+  const profile = (process.env.SEATBELT_PROFILE ??= 'minimal');
+  let profileFile = new URL(`sandbox-macos-${profile}.sb`, import.meta.url)
+    .pathname;
+  // if profile is anything other than 'minimal' or 'strict', then look for the profile file under the project settings directory
+  if (profile !== 'minimal' && profile !== 'strict') {
+    profileFile = path.join(
+      SETTINGS_DIRECTORY_NAME,
+      `sandbox-macos-${profile}.sb`,
+    );
+  }
+  if (!fs.existsSync(profileFile)) {
+    console.error(
+      `ERROR: missing macos seatbelt profile file '${profileFile}'`,
+    );
+    process.exit(1);
+  }
+  console.error(`using macos seatbelt (profile: ${profile}) ...`);
+  // if DEBUG is set, convert to --inspect-brk in NODE_OPTIONS
+  if (process.env.DEBUG) {
+    process.env.NODE_OPTIONS ??= '';
+    process.env.NODE_OPTIONS += ` --inspect-brk`;
+  }
+  const args = [
+    '-D',
+    `TARGET_DIR=${fs.realpathSync(process.cwd())}`,
+    '-D',
+    `TMP_DIR=${fs.realpathSync(os.tmpdir())}`,
+    '-D',
+    `HOME_DIR=${fs.realpathSync(os.homedir())}`,
+    '-D',
+    `CACHE_DIR=${fs.realpathSync(execSync(`getconf DARWIN_USER_CACHE_DIR`).toString().trim())}`,
+    '-f',
+    profileFile,
+    'bash',
+    '-c',
+    [
+      `SANDBOX='sandbox-exec (${profile})'`,
+      `SANDBOX_PROMPT=${quote([MACOS_SEATBELT_PROMPT_TEXT])}`,
+      `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`,
+      ...process.argv.map((arg) => quote([arg])),
+    ].join(' '),
+  ];
+  spawnSync(sandbox, args, { stdio: 'inherit' });
+}
 
-  console.error(`hopping into sandbox (command: ${sandbox}) ...`);
-
-  // determine full path for gemini-code to distinguish linked vs installed setting
-  const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
-
-  const image = await getSandboxImageName();
-  const workdir = process.cwd();
-
+function _maybeBuildSandboxImage(gcPath: string): void {
   // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-code repo
   // note this can only be done with binary linked from gemini-code repo
   if (process.env.BUILD_SANDBOX) {
@@ -310,24 +301,35 @@ export async function start_sandbox(sandbox: string) {
       });
     }
   }
+}
 
-  // stop if image is missing
-  if (!(await ensureSandboxImageIsPresent(sandbox, image))) {
-    const remedy = gcPath.includes('gemini-code/packages/')
-      ? 'Try running `BUILD_SANDBOX=1 gemini` or `scripts/build_sandbox.sh` under the gemini-code repo to build it locally, or check the image name and your network connection.'
-      : 'Please check the image name, your network connection, or notify gemini-cli-dev@google.com if the issue persists.';
-    console.error(
-      `ERROR: Sandbox image '${image}' is missing or could not be pulled. ${remedy}`,
-    );
-    process.exit(1);
+function _getUniqueContainerName(
+  sandboxCommand: string,
+  baseImageName: string,
+): string {
+  let index = 0;
+  while (
+    execSync(
+      `${sandboxCommand} ps -a --format "{{.Names}}" | grep "${baseImageName}-${index}" || true`,
+    )
+      .toString()
+      .trim()
+  ) {
+    index++;
   }
+  return `${baseImageName}-${index}`;
+}
 
+function _assembleBaseContainerArgs(workdir: string): string[] {
   // use interactive tty mode and auto-remove container on exit
   // run init binary inside container to forward signals & reap zombies
-  const args = ['run', '-it', '--rm', '--init', '--workdir', workdir];
+  return ['run', '-it', '--rm', '--init', '--workdir', workdir];
+}
 
+function _assembleVolumeMountArgs(workdir: string): string[] {
+  const volumeArgs: string[] = [];
   // mount current directory as working directory in sandbox (set via --workdir)
-  args.push('--volume', `${process.cwd()}:${workdir}`);
+  volumeArgs.push('--volume', `${process.cwd()}:${workdir}`);
 
   // mount user settings directory inside container, after creating if missing
   // note user/home changes inside sandbox and we mount at BOTH paths for consistency
@@ -336,16 +338,16 @@ export async function start_sandbox(sandbox: string) {
   if (!fs.existsSync(userSettingsDirOnHost)) {
     fs.mkdirSync(userSettingsDirOnHost);
   }
-  args.push('--volume', `${userSettingsDirOnHost}:${userSettingsDirOnHost}`);
+  volumeArgs.push('--volume', `${userSettingsDirOnHost}:${userSettingsDirOnHost}`);
   if (userSettingsDirInSandbox !== userSettingsDirOnHost) {
-    args.push(
+    volumeArgs.push(
       '--volume',
       `${userSettingsDirOnHost}:${userSettingsDirInSandbox}`,
     );
   }
 
   // mount os.tmpdir() as /tmp inside container
-  args.push('--volume', `${os.tmpdir()}:/tmp`);
+  volumeArgs.push('--volume', `${os.tmpdir()}:/tmp`);
 
   // mount paths listed in SANDBOX_MOUNTS
   if (process.env.SANDBOX_MOUNTS) {
@@ -371,51 +373,47 @@ export async function start_sandbox(sandbox: string) {
           process.exit(1);
         }
         console.error(`SANDBOX_MOUNTS: ${from} -> ${to} (${opts})`);
-        args.push('--volume', mount);
+        volumeArgs.push('--volume', mount);
       }
     }
   }
+  return volumeArgs;
+}
 
+function _assemblePortPublishArgs(): string[] {
+  const portArgs: string[] = [];
   // expose env-specified ports on the sandbox
-  ports().forEach((p) => args.push('--publish', `${p}:${p}`));
+  ports().forEach((p) => portArgs.push('--publish', `${p}:${p}`));
 
   // if DEBUG is set, expose debugging port
   if (process.env.DEBUG) {
     const debugPort = process.env.DEBUG_PORT || '9229';
-    args.push(`--publish`, `${debugPort}:${debugPort}`);
+    portArgs.push(`--publish`, `${debugPort}:${debugPort}`);
   }
+  return portArgs;
+}
 
-  // name container after image, plus numeric suffix to avoid conflicts
-  const imageName = parseImageName(image);
-  let index = 0;
-  while (
-    execSync(
-      `${sandbox} ps -a --format "{{.Names}}" | grep "${imageName}-${index}" || true`,
-    )
-      .toString()
-      .trim()
-  ) {
-    index++;
-  }
-  const containerName = `${imageName}-${index}`;
-  args.push('--name', containerName, '--hostname', containerName);
-
+function _assembleEnvironmentVariableArgs(
+  workdir: string,
+  sandboxCommand: string,
+): string[] {
+  const envArgs: string[] = [];
   // copy GEMINI_API_KEY
   if (process.env.GEMINI_API_KEY) {
-    args.push('--env', `GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+    envArgs.push('--env', `GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
   }
 
   // copy GEMINI_MODEL
   if (process.env.GEMINI_MODEL) {
-    args.push('--env', `GEMINI_MODEL=${process.env.GEMINI_MODEL}`);
+    envArgs.push('--env', `GEMINI_MODEL=${process.env.GEMINI_MODEL}`);
   }
 
   // copy TERM and COLORTERM to try to maintain terminal setup
   if (process.env.TERM) {
-    args.push('--env', `TERM=${process.env.TERM}`);
+    envArgs.push('--env', `TERM=${process.env.TERM}`);
   }
   if (process.env.COLORTERM) {
-    args.push('--env', `COLORTERM=${process.env.COLORTERM}`);
+    envArgs.push('--env', `COLORTERM=${process.env.COLORTERM}`);
   }
 
   // copy VIRTUAL_ENV if under working directory
@@ -430,8 +428,8 @@ export async function start_sandbox(sandbox: string) {
     if (!fs.existsSync(sandboxVenvPath)) {
       fs.mkdirSync(sandboxVenvPath, { recursive: true });
     }
-    args.push('--volume', `${sandboxVenvPath}:${process.env.VIRTUAL_ENV}`);
-    args.push('--env', `VIRTUAL_ENV=${process.env.VIRTUAL_ENV}`);
+    envArgs.push('--volume', `${sandboxVenvPath}:${process.env.VIRTUAL_ENV}`);
+    envArgs.push('--env', `VIRTUAL_ENV=${process.env.VIRTUAL_ENV}`);
   }
 
   // copy additional environment variables from SANDBOX_ENV
@@ -440,7 +438,7 @@ export async function start_sandbox(sandbox: string) {
       if ((env = env.trim())) {
         if (env.includes('=')) {
           console.error(`SANDBOX_ENV: ${env}`);
-          args.push('--env', env);
+          envArgs.push('--env', env);
         } else {
           console.error(
             'ERROR: SANDBOX_ENV must be a comma-separated list of key=value pairs',
@@ -453,18 +451,24 @@ export async function start_sandbox(sandbox: string) {
 
   // copy NODE_OPTIONS
   if (process.env.NODE_OPTIONS) {
-    args.push('--env', `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`);
+    envArgs.push('--env', `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`);
   }
 
   // set SANDBOX as sandbox command and SANDBOX_PROMPT for prompt text
-  args.push('--env', `SANDBOX=${sandbox}`);
-  args.push('--env', `SANDBOX_PROMPT=${CONTAINER_SANDBOX_PROMPT_TEXT}`);
+  envArgs.push('--env', `SANDBOX=${sandboxCommand}`);
+  envArgs.push('--env', `SANDBOX_PROMPT=${CONTAINER_SANDBOX_PROMPT_TEXT}`);
+  return envArgs;
+}
 
+async function _applyPodmanAndUserSpecificArgs(
+  sandboxCommand: string,
+): Promise<string[]> {
+  const specificArgs: string[] = [];
   // for podman only, use empty --authfile to skip unnecessary auth refresh overhead
-  if (sandbox === 'podman') {
+  if (sandboxCommand === 'podman') {
     const emptyAuthFilePath = path.join(os.tmpdir(), 'empty_auth.json');
     fs.writeFileSync(emptyAuthFilePath, '{}', 'utf-8');
-    args.push('--authfile', emptyAuthFilePath);
+    specificArgs.push('--authfile', emptyAuthFilePath);
   }
 
   // Determine if the current user's UID/GID should be passed to the sandbox.
@@ -472,10 +476,73 @@ export async function start_sandbox(sandbox: string) {
   if (await shouldUseCurrentUserInSandbox()) {
     const uid = execSync('id -u').toString().trim();
     const gid = execSync('id -g').toString().trim();
-    args.push('--user', `${uid}:${gid}`);
+    specificArgs.push('--user', `${uid}:${gid}`);
     // when forcing a UID in the sandbox, $HOME can be reset to '/', so we copy $HOME as well
-    args.push('--env', `HOME=${os.homedir()}`);
+    specificArgs.push('--env', `HOME=${os.homedir()}`);
   }
+  return specificArgs;
+}
+
+async function _assembleContainerArgs(
+  workdir: string,
+  image: string,
+  sandboxCommand: string,
+): Promise<string[]> {
+  const args = [
+    ..._assembleBaseContainerArgs(workdir),
+    ..._assembleVolumeMountArgs(workdir),
+    ..._assemblePortPublishArgs(),
+    ..._assembleEnvironmentVariableArgs(workdir, sandboxCommand),
+    ...(await _applyPodmanAndUserSpecificArgs(sandboxCommand)),
+  ];
+
+  const baseImageName = parseImageName(image);
+  const containerName = _getUniqueContainerName(sandboxCommand, baseImageName);
+  args.push('--name', containerName, '--hostname', containerName);
+
+  return args;
+}
+
+async function _spawnAndWaitForContainer(
+  sandboxCommand: string,
+  args: string[],
+): Promise<void> {
+  // spawn child and let it inherit stdio
+  const child = spawn(sandboxCommand, args, {
+    stdio: 'inherit',
+    detached: true,
+  });
+
+  // uncomment this line (and comment the await on following line) to let parent exit
+  // child.unref();
+  await new Promise<void>((resolve) => {
+    child.on('close', resolve);
+  });
+}
+
+async function _startContainerSandbox(sandbox: string) {
+  console.error(`hopping into sandbox (command: ${sandbox}) ...`);
+
+  // determine full path for gemini-code to distinguish linked vs installed setting
+  const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
+
+  _maybeBuildSandboxImage(gcPath);
+
+  const image = await getSandboxImageName();
+  const workdir = process.cwd();
+
+  // stop if image is missing
+  if (!(await ensureSandboxImageIsPresent(sandbox, image))) {
+    const remedy = gcPath.includes('gemini-code/packages/')
+      ? 'Try running `BUILD_SANDBOX=1 gemini` or `scripts/build_sandbox.sh` under the gemini-code repo to build it locally, or check the image name and your network connection.'
+      : 'Please check the image name, your network connection, or notify gemini-cli-dev@google.com if the issue persists.';
+    console.error(
+      `ERROR: Sandbox image '${image}' is missing or could not be pulled. ${remedy}`,
+    );
+    process.exit(1);
+  }
+
+  const args = await _assembleContainerArgs(workdir, image, sandbox);
 
   // push container image name
   args.push(image);
@@ -483,17 +550,15 @@ export async function start_sandbox(sandbox: string) {
   // push container entrypoint (including args)
   args.push(...entrypoint(workdir));
 
-  // spawn child and let it inherit stdio
-  const child = spawn(sandbox, args, {
-    stdio: 'inherit',
-    detached: true,
-  });
+  await _spawnAndWaitForContainer(sandbox, args);
+}
 
-  // uncomment this line (and comment the await on following line) to let parent exit
-  // child.unref();
-  await new Promise((resolve) => {
-    child.on('close', resolve);
-  });
+export async function start_sandbox(sandbox: string) {
+  if (sandbox === 'sandbox-exec') {
+    _startSeatbeltSandbox(sandbox);
+    return;
+  }
+  await _startContainerSandbox(sandbox);
 }
 
 // Helper functions to ensure sandbox image is present
