@@ -66,10 +66,8 @@ export interface ConfigParameters {
   vertexai?: boolean;
   showMemoryUsage?: boolean;
   contextFileName?: string;
-  // Git-aware file filtering options
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
-  isGitRepo?: boolean;
 }
 
 export class Config {
@@ -93,12 +91,8 @@ export class Config {
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly geminiClient: GeminiClient;
-  // Git-aware file filtering settings
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
-  private readonly isGitRepo: boolean | undefined;
-  // File discovery service
-  private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -119,13 +113,8 @@ export class Config {
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
-
-    // Initialize git-aware file filtering settings
-    this.fileFilteringRespectGitIgnore =
-      params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringAllowBuildArtifacts =
-      params.fileFilteringAllowBuildArtifacts ?? false;
-    this.isGitRepo = params.isGitRepo;
+    this.fileFilteringRespectGitIgnore = params.fileFilteringRespectGitIgnore ?? true;
+    this.fileFilteringAllowBuildArtifacts = params.fileFilteringAllowBuildArtifacts ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -226,30 +215,12 @@ export class Config {
     return this.geminiClient;
   }
 
-  // Git-aware file filtering getters
   getFileFilteringRespectGitIgnore(): boolean {
     return this.fileFilteringRespectGitIgnore;
   }
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
-  }
-
-  getIsGitRepo(): boolean | undefined {
-    return this.isGitRepo;
-  }
-
-  // File discovery service getter
-  async getFileService(): Promise<FileDiscoveryService> {
-    if (!this.fileDiscoveryService) {
-      this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
-      await this.fileDiscoveryService.initialize({
-        respectGitIgnore: this.fileFilteringRespectGitIgnore,
-        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
-        isGitRepo: this.isGitRepo,
-      });
-    }
-    return this.fileDiscoveryService;
   }
 }
 
