@@ -12,6 +12,7 @@ import {
   escapePath,
   unescapePath,
   getErrorMessage,
+  Config,
 } from '@gemini-code/core';
 import {
   MAX_SUGGESTIONS_TO_SHOW,
@@ -37,7 +38,7 @@ export function useCompletion(
   cwd: string,
   isActive: boolean,
   slashCommands: SlashCommand[],
-  config: Config,
+  config?: Config,
 ): UseCompletionReturn {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
@@ -255,7 +256,7 @@ export function useCompletion(
       let fetchedSuggestions: Suggestion[] = [];
 
       // Get centralized file discovery service if config is available
-      const fileDiscovery = await config.getFileService();
+      const fileDiscovery = config ? await config.getFileService() : null;
 
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
