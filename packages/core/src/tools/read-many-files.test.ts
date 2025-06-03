@@ -10,6 +10,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mockControl } from '../__mocks__/fs/promises.js';
 import { ReadManyFilesTool } from './read-many-files.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { Config } from '../config/config.js';
 import path from 'path';
 import fs from 'fs'; // Actual fs for setup
 import os from 'os';
@@ -30,7 +31,7 @@ describe('ReadManyFilesTool', () => {
     getFileFilteringRespectGitIgnore: () => true,
     getFileFilteringCustomIgnorePatterns: () => [],
     getFileFilteringAllowBuildArtifacts: () => false,
-  } as any;
+  } as Partial<Config> as Config;
 
   beforeEach(async () => {
     tempRootDir = fs.mkdtempSync(

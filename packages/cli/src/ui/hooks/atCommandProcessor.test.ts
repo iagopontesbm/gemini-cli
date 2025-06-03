@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
+import type { Mocked } from 'vitest';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { Config, FileDiscoveryService } from '@gemini-code/core';
 import { ToolCallStatus } from '../types.js';
@@ -61,7 +62,7 @@ vi.mock('@gemini-code/core', async () => {
 
 describe('handleAtCommand', () => {
   let abortController: AbortController;
-  let mockFileDiscoveryService: any;
+  let mockFileDiscoveryService: Mocked<FileDiscoveryService>;
 
   beforeEach(() => {
     vi.resetAllMocks();

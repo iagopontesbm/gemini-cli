@@ -12,6 +12,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'; // Removed vi
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { Config } from '../config/config.js';
 
 describe('GlobTool', () => {
   let tempRootDir: string; // This will be the rootDirectory for the GlobTool instance
@@ -28,7 +29,7 @@ describe('GlobTool', () => {
     getFileFilteringRespectGitIgnore: () => true,
     getFileFilteringCustomIgnorePatterns: () => [],
     getFileFilteringAllowBuildArtifacts: () => false,
-  } as any;
+  } as Partial<Config> as Config;
 
   beforeEach(async () => {
     // Create a unique root directory for each test run

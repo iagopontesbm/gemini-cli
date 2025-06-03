@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { Mocked } from 'vitest';
 import { FileDiscoveryService } from './fileDiscoveryService.js';
 import { GitIgnoreParser } from '../utils/gitIgnoreParser.js';
 
@@ -19,7 +20,7 @@ vi.mock('../utils/gitUtils.js', () => ({
 
 describe('FileDiscoveryService', () => {
   let service: FileDiscoveryService;
-  let mockGitIgnoreParser: any;
+  let mockGitIgnoreParser: Mocked<GitIgnoreParser>;
   const mockProjectRoot = '/test/project';
 
   beforeEach(() => {
@@ -29,7 +30,8 @@ describe('FileDiscoveryService', () => {
       initialize: vi.fn(),
       isIgnored: vi.fn(),
       getIgnoredPatterns: vi.fn(() => ['.git/**', 'node_modules/**']),
-    };
+      parseGitIgnoreContent: vi.fn(),
+    } as unknown as Mocked<GitIgnoreParser>;
 
     vi.mocked(GitIgnoreParser).mockImplementation(() => mockGitIgnoreParser);
     vi.clearAllMocks();
@@ -157,7 +159,7 @@ describe('FileDiscoveryService', () => {
     });
 
     it('should handle git ignore parser returning null patterns', async () => {
-      mockGitIgnoreParser.getIgnoredPatterns.mockReturnValue(null);
+      mockGitIgnoreParser.getIgnoredPatterns.mockReturnValue([] as string[]);
 
       const info = service.getIgnoreInfo();
 

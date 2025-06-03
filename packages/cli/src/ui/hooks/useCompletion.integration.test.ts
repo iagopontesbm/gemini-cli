@@ -5,6 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import type { Mocked } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
@@ -25,8 +26,8 @@ vi.mock('@gemini-code/core', async () => {
 });
 
 describe('useCompletion git-aware filtering integration', () => {
-  let mockFileDiscoveryService: any;
-  let mockConfig: any;
+  let mockFileDiscoveryService: Mocked<FileDiscoveryService>;
+  let mockConfig: { fileFiltering?: { enabled?: boolean; respectGitignore?: boolean } };
   const testCwd = '/test/project';
   const slashCommands = [
     { name: 'help', description: 'Show help', action: vi.fn() },
@@ -65,7 +66,7 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'dist', isDirectory: () => true },
       { name: 'README.md', isDirectory: () => false },
       { name: '.env', isDirectory: () => false },
-    ] as any);
+    ] as Array<{ name: string; isDirectory: () => boolean }>);
 
     // Mock git ignore service to ignore certain files
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
@@ -96,24 +97,24 @@ describe('useCompletion git-aware filtering integration', () => {
 
   it('should handle recursive search with git-aware filtering', async () => {
     // Mock the recursive file search scenario
-    vi.mocked(fs.readdir).mockImplementation(async (dirPath: any) => {
+    vi.mocked(fs.readdir).mockImplementation(async (dirPath: string | Buffer | URL) => {
       if (dirPath === testCwd) {
         return [
           { name: 'src', isDirectory: () => true },
           { name: 'node_modules', isDirectory: () => true },
           { name: 'temp', isDirectory: () => true },
-        ] as any;
+        ] as Array<{ name: string; isDirectory: () => boolean }>;
       }
       if (dirPath.endsWith('/src')) {
         return [
           { name: 'index.ts', isDirectory: () => false },
           { name: 'components', isDirectory: () => true },
-        ] as any;
+        ] as Array<{ name: string; isDirectory: () => boolean }>;
       }
       if (dirPath.endsWith('/temp')) {
-        return [{ name: 'temp.log', isDirectory: () => false }] as any;
+        return [{ name: 'temp.log', isDirectory: () => false }] as Array<{ name: string; isDirectory: () => boolean }>;
       }
-      return [] as any;
+      return [] as Array<{ name: string; isDirectory: () => boolean }>;
     });
 
     // Mock git ignore service
@@ -143,7 +144,7 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'src', isDirectory: () => true },
       { name: 'node_modules', isDirectory: () => true },
       { name: 'README.md', isDirectory: () => false },
-    ] as any);
+    ] as Array<{ name: string; isDirectory: () => boolean }>);
 
     const { result } = renderHook(() =>
       useCompletion('@', testCwd, true, slashCommands, undefined),
@@ -172,7 +173,7 @@ describe('useCompletion git-aware filtering integration', () => {
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'src', isDirectory: () => true },
       { name: 'README.md', isDirectory: () => false },
-    ] as any);
+    ] as Array<{ name: string; isDirectory: () => boolean }>);
 
     const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
@@ -198,7 +199,7 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'component.tsx', isDirectory: () => false },
       { name: 'temp.log', isDirectory: () => false },
       { name: 'index.ts', isDirectory: () => false },
-    ] as any);
+    ] as Array<{ name: string; isDirectory: () => boolean }>);
 
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
       (path: string) => path.includes('.log'),
