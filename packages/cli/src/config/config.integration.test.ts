@@ -5,43 +5,20 @@
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { loadCliConfig } from './config.js';
-import { LoadedSettings, Settings } from './settings.js';
 import * as fs from 'fs';
 import * as path from 'path';
 import { tmpdir } from 'os';
+import { Config, ConfigParameters } from '@gemini-code/core';
 
-// Mock dependencies
+// Mock file discovery service and tool registry
 vi.mock('@gemini-code/core', async () => {
   const actual = await vi.importActual('@gemini-code/core');
   return {
     ...actual,
-    loadEnvironment: vi.fn(),
-    createServerConfig: vi.fn((params) => ({
-      getFileFilteringRespectGitIgnore: () =>
-        params.fileFilteringRespectGitIgnore ?? true,
-      getFileFilteringAllowBuildArtifacts: () =>
-        params.fileFilteringAllowBuildArtifacts ?? false,
-      getTargetDir: () => '/test/project',
-      getApiKey: () => 'test-api-key',
-      getModel: () => 'test-model',
-      getSandbox: () => false,
-      getDebugMode: () => false,
-      getQuestion: () => '',
-      getFullContext: () => false,
-      getCoreTools: () => undefined,
-      getToolDiscoveryCommand: () => undefined,
-      getToolCallCommand: () => undefined,
-      getMcpServerCommand: () => undefined,
-      getMcpServers: () => undefined,
-      getUserAgent: () => 'test-agent',
-      getUserMemory: () => '',
-      getGeminiMdFileCount: () => 0,
-      getAlwaysSkipModificationConfirmation: () => false,
-      getVertexAI: () => false,
-      getShowMemoryUsage: () => false,
+    FileDiscoveryService: vi.fn().mockImplementation(() => ({
+      initialize: vi.fn(),
     })),
-    loadServerHierarchicalMemory: vi.fn().mockResolvedValue(['', 0]),
+    createToolRegistry: vi.fn().mockResolvedValue({}),
   };
 });
 
@@ -65,75 +42,74 @@ describe('Configuration Integration Tests', () => {
 
   describe('File Filtering Configuration', () => {
     it('should load default file filtering settings', async () => {
-      const settings: Settings = {};
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: undefined, // Should default to true
+        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
+      };
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
     it('should load custom file filtering settings from configuration', async () => {
-      const settings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: false,
-          allowBuildArtifacts: true,
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: false,
+        fileFilteringAllowBuildArtifacts: true,
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
     it('should merge user and workspace file filtering settings', async () => {
-      const userSettings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: true,
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: true,
+        fileFilteringAllowBuildArtifacts: true,
       };
-      const workspaceSettings: Settings = {
-        fileFiltering: {
-          allowBuildArtifacts: true,
-        },
-      };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings: userSettings },
-        { path: '', settings: workspaceSettings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
-      // Workspace settings should override user settings completely (object spread behavior)
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
-      // User setting is lost because workspace completely overrides the fileFiltering object
-      expect(config.getFileFilteringRespectGitIgnore()).toBe(true); // Default value since not specified in workspace
+      expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
     });
   });
 
   describe('Configuration Integration', () => {
     it('should handle partial configuration objects gracefully', async () => {
-      const settings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: false,
-          // Missing allowBuildArtifacts
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: false,
+        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       // Specified settings should be applied
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
@@ -143,15 +119,18 @@ describe('Configuration Integration Tests', () => {
     });
 
     it('should handle empty configuration objects gracefully', async () => {
-      const settings: Settings = {
-        fileFiltering: {},
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: undefined,
+        fileFilteringAllowBuildArtifacts: undefined,
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       // All settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
@@ -159,16 +138,17 @@ describe('Configuration Integration Tests', () => {
     });
 
     it('should handle missing configuration sections gracefully', async () => {
-      const settings: Settings = {
-        theme: 'VS2015',
-        // Missing fileFiltering section
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        // Missing fileFiltering configuration
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       // All git-aware settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
@@ -178,53 +158,53 @@ describe('Configuration Integration Tests', () => {
 
   describe('Real-world Configuration Scenarios', () => {
     it('should handle a security-focused configuration', async () => {
-      const settings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: true,
-          allowBuildArtifacts: false,
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: true,
+        fileFilteringAllowBuildArtifacts: false,
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
     it('should handle a development-focused configuration', async () => {
-      const settings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: true,
-          allowBuildArtifacts: true,
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: true,
+        fileFilteringAllowBuildArtifacts: true,
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
     it('should handle a CI/CD environment configuration', async () => {
-      const settings: Settings = {
-        fileFiltering: {
-          respectGitIgnore: false, // CI might need to see all files
-          allowBuildArtifacts: true,
-        },
+      const configParams: ConfigParameters = {
+        apiKey: 'test-key',
+        model: 'test-model',
+        sandbox: false,
+        targetDir: tempDir,
+        debugMode: false,
+        userAgent: 'test-agent',
+        fileFilteringRespectGitIgnore: false, // CI might need to see all files
+        fileFilteringAllowBuildArtifacts: true,
       };
-      const loadedSettings = new LoadedSettings(
-        { path: '', settings },
-        { path: '', settings },
-      );
 
-      const config = await loadCliConfig(loadedSettings.merged);
+      const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
       expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
