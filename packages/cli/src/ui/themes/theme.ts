@@ -34,7 +34,7 @@ export const lightTheme: ColorsTheme = {
   AccentCyan: '#06B6D4',
   AccentGreen: '#3CA84B',
   AccentYellow: '#D5A40A',
-  AccentRed: '#EF4444',
+  AccentRed: '#DD4C4C',
   SubtleComment: '#9CA3AF',
   Gray: 'gray',
   GradientColors: ['#4796E4', '#847ACE', '#C3677F'],
