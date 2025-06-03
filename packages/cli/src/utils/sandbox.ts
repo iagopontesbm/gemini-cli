@@ -16,6 +16,14 @@ import {
   SETTINGS_DIRECTORY_NAME,
 } from '../config/settings.js';
 
+const MACOS_SEATBELT_PROMPT_TEXT = `
+# MacOS Seatbelt
+You are running under macos seatbelt with limited access to files outside the project directory or system temp directory, and with limited access to host system resources such as ports. If you encounter failures that could be due to MacOS Seatbelt (e.g. if a command fails with 'Operation not permitted' or similar error), as you report the error to the user, also explain why you think it could be due to MacOS Seatbelt, and how the user may need to adjust their Seatbelt profile.`;
+
+const CONTAINER_SANDBOX_PROMPT_TEXT = `
+# Sandbox
+You are running in a sandbox container with limited access to files outside the project directory or system temp directory, and with limited access to host system resources such as ports. If you encounter failures that could be due to sandboxing (e.g. if a command fails with 'Operation not permitted' or similar error), when you report the error to the user, also explain why you think it could be due to sandboxing, and how the user may need to adjust their sandbox configuration.`;
+
 /**
  * Determines whether the sandbox container should be run with the current user's UID and GID.
  * This is often necessary on Linux systems (especially Debian/Ubuntu based) when using
@@ -256,7 +264,8 @@ export async function start_sandbox(sandbox: string) {
       'bash',
       '-c',
       [
-        `SANDBOX=sandbox-exec`,
+        `SANDBOX='sandbox-exec (${profile})'`,
+        `SANDBOX_PROMPT=${quote([MACOS_SEATBELT_PROMPT_TEXT])}`,
         `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`,
         ...process.argv.map((arg) => quote([arg])),
       ].join(' '),
@@ -447,8 +456,9 @@ export async function start_sandbox(sandbox: string) {
     args.push('--env', `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`);
   }
 
-  // set SANDBOX as container name
-  args.push('--env', `SANDBOX=${containerName}`);
+  // set SANDBOX as sandbox command and SANDBOX_PROMPT for prompt text
+  args.push('--env', `SANDBOX=${sandbox}`);
+  args.push('--env', `SANDBOX_PROMPT=${CONTAINER_SANDBOX_PROMPT_TEXT}`);
 
   // for podman only, use empty --authfile to skip unnecessary auth refresh overhead
   if (sandbox === 'podman') {

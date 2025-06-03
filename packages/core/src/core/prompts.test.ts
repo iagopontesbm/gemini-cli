@@ -25,33 +25,19 @@ vi.mock('../tools/write-file', () => ({
 }));
 
 describe('Core System Prompt (prompts.ts)', () => {
-  // Store original env vars that we modify
-  let originalSandboxEnv: string | undefined;
-
-  beforeEach(() => {
-    // Store original value before each test
-    originalSandboxEnv = process.env.SANDBOX;
-  });
-
   afterEach(() => {
-    // Restore original value after each test
-    if (originalSandboxEnv === undefined) {
-      delete process.env.SANDBOX;
-    } else {
-      process.env.SANDBOX = originalSandboxEnv;
-    }
+    delete process.env.SANDBOX;
+    delete process.env.SANDBOX_PROMPT;
   });
 
   it('should return the base prompt when no userMemory is provided', () => {
-    delete process.env.SANDBOX; // Ensure default state for snapshot
     const prompt = getCoreSystemPrompt();
-    expect(prompt).not.toContain('---\n\n'); // Separator should not be present
-    expect(prompt).toContain('You are an interactive CLI agent'); // Check for core content
-    expect(prompt).toMatchSnapshot(); // Use snapshot for base prompt structure
+    expect(prompt).not.toContain('---\n\n');
+    expect(prompt).toContain('You are an interactive CLI agent');
+    expect(prompt).toMatchSnapshot();
   });
 
   it('should return the base prompt when userMemory is empty string', () => {
-    delete process.env.SANDBOX;
     const prompt = getCoreSystemPrompt('');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are an interactive CLI agent');
@@ -59,7 +45,6 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should return the base prompt when userMemory is whitespace only', () => {
-    delete process.env.SANDBOX;
     const prompt = getCoreSystemPrompt('   \n  \t ');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are an interactive CLI agent');
@@ -67,40 +52,29 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should append userMemory with separator when provided', () => {
-    delete process.env.SANDBOX;
     const memory = 'This is custom user memory.\nBe extra polite.';
     const expectedSuffix = `\n\n---\n\n${memory}`;
     const prompt = getCoreSystemPrompt(memory);
-
     expect(prompt.endsWith(expectedSuffix)).toBe(true);
-    expect(prompt).toContain('You are an interactive CLI agent'); // Ensure base prompt follows
-    expect(prompt).toMatchSnapshot(); // Snapshot the combined prompt
+    expect(prompt).toContain('You are an interactive CLI agent');
+    expect(prompt).toMatchSnapshot();
   });
 
-  it('should include sandbox-specific instructions when SANDBOX env var is set', () => {
-    process.env.SANDBOX = 'true'; // Generic sandbox value
+  it('should include SANDBOX_PROMPT text when the environment variable is set', () => {
+    const customSandboxText =
+      '### MY CUSTOM SANDBOX INSTRUCTIONS ###\nThis is a test.';
+    process.env.SANDBOX_PROMPT = customSandboxText;
     const prompt = getCoreSystemPrompt();
-    expect(prompt).toContain('# Sandbox');
-    expect(prompt).not.toContain('# MacOS Seatbelt');
+    expect(prompt).toContain(customSandboxText);
     expect(prompt).not.toContain('# Outside of Sandbox');
     expect(prompt).toMatchSnapshot();
   });
 
-  it('should include seatbelt-specific instructions when SANDBOX env var is "sandbox-exec"', () => {
-    process.env.SANDBOX = 'sandbox-exec';
-    const prompt = getCoreSystemPrompt();
-    expect(prompt).toContain('# MacOS Seatbelt');
-    expect(prompt).not.toContain('# Sandbox');
-    expect(prompt).not.toContain('# Outside of Sandbox');
-    expect(prompt).toMatchSnapshot();
-  });
-
-  it('should include non-sandbox instructions when SANDBOX env var is not set', () => {
-    delete process.env.SANDBOX; // Ensure it's not set
+  it('should include non-sandbox instructions when SANDBOX_PROMPT is not set', () => {
+    // SANDBOX_PROMPT is deleted by beforeEach
     const prompt = getCoreSystemPrompt();
     expect(prompt).toContain('# Outside of Sandbox');
-    expect(prompt).not.toContain('# Sandbox');
-    expect(prompt).not.toContain('# MacOS Seatbelt');
+    expect(prompt).not.toContain('### MY CUSTOM SANDBOX INSTRUCTIONS ###');
     expect(prompt).toMatchSnapshot();
   });
 });

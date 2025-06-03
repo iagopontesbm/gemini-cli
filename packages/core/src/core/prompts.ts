@@ -107,19 +107,11 @@ When requested to perform tasks like fixing bugs, adding features, refactoring, 
 - **Feedback:** To report a bug or provide feedback, please use the /bug command.
 
 ${(function () {
-  // Determine sandbox status based on environment variables
-  const isSandboxExec = process.env.SANDBOX === 'sandbox-exec';
-  const isGenericSandbox = !!process.env.SANDBOX; // Check if SANDBOX is set to any non-empty value
-
-  if (isSandboxExec) {
+  const sandboxPromptText = process.env.SANDBOX_PROMPT;
+  if (sandboxPromptText && sandboxPromptText.trim() !== '') {
+    // Ensure the prompt text is on its own lines, similar to other sections
     return `
-# MacOS Seatbelt
-You are running under macos seatbelt with limited access to files outside the project directory or system temp directory, and with limited access to host system resources such as ports. If you encounter failures that could be due to MacOS Seatbelt (e.g. if a command fails with 'Operation not permitted' or similar error), as you report the error to the user, also explain why you think it could be due to MacOS Seatbelt, and how the user may need to adjust their Seatbelt profile.
-`;
-  } else if (isGenericSandbox) {
-    return `
-# Sandbox
-You are running in a sandbox container with limited access to files outside the project directory or system temp directory, and with limited access to host system resources such as ports. If you encounter failures that could be due to sandboxing (e.g. if a command fails with 'Operation not permitted' or similar error), when you report the error to the user, also explain why you think it could be due to sandboxing, and how the user may need to adjust their sandbox configuration.
+${sandboxPromptText.trim()}
 `;
   } else {
     return `
