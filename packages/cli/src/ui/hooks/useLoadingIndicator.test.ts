@@ -51,10 +51,6 @@ describe('useLoadingIndicator', () => {
     expect(WITTY_LOADING_PHRASES).toContain(
       result.current.currentLoadingPhrase,
     );
-    // It's possible it picks the same phrase, but it should be a witty one.
-    if (WITTY_LOADING_PHRASES.length > 1) {
-      // This check is probabilistic
-    }
   });
 
   it('should show waiting phrase and retain elapsedTime when WaitingForConfirmation', () => {
