@@ -27,7 +27,9 @@ vi.mock('@gemini-code/core', async () => {
 
 describe('useCompletion git-aware filtering integration', () => {
   let mockFileDiscoveryService: Mocked<FileDiscoveryService>;
-  let mockConfig: { fileFiltering?: { enabled?: boolean; respectGitignore?: boolean } };
+  let mockConfig: {
+    fileFiltering?: { enabled?: boolean; respectGitignore?: boolean };
+  };
   const testCwd = '/test/project';
   const slashCommands = [
     { name: 'help', description: 'Show help', action: vi.fn() },
@@ -97,25 +99,30 @@ describe('useCompletion git-aware filtering integration', () => {
 
   it('should handle recursive search with git-aware filtering', async () => {
     // Mock the recursive file search scenario
-    vi.mocked(fs.readdir).mockImplementation(async (dirPath: string | Buffer | URL) => {
-      if (dirPath === testCwd) {
-        return [
-          { name: 'src', isDirectory: () => true },
-          { name: 'node_modules', isDirectory: () => true },
-          { name: 'temp', isDirectory: () => true },
-        ] as Array<{ name: string; isDirectory: () => boolean }>;
-      }
-      if (dirPath.endsWith('/src')) {
-        return [
-          { name: 'index.ts', isDirectory: () => false },
-          { name: 'components', isDirectory: () => true },
-        ] as Array<{ name: string; isDirectory: () => boolean }>;
-      }
-      if (dirPath.endsWith('/temp')) {
-        return [{ name: 'temp.log', isDirectory: () => false }] as Array<{ name: string; isDirectory: () => boolean }>;
-      }
-      return [] as Array<{ name: string; isDirectory: () => boolean }>;
-    });
+    vi.mocked(fs.readdir).mockImplementation(
+      async (dirPath: string | Buffer | URL) => {
+        if (dirPath === testCwd) {
+          return [
+            { name: 'src', isDirectory: () => true },
+            { name: 'node_modules', isDirectory: () => true },
+            { name: 'temp', isDirectory: () => true },
+          ] as Array<{ name: string; isDirectory: () => boolean }>;
+        }
+        if (dirPath.endsWith('/src')) {
+          return [
+            { name: 'index.ts', isDirectory: () => false },
+            { name: 'components', isDirectory: () => true },
+          ] as Array<{ name: string; isDirectory: () => boolean }>;
+        }
+        if (dirPath.endsWith('/temp')) {
+          return [{ name: 'temp.log', isDirectory: () => false }] as Array<{
+            name: string;
+            isDirectory: () => boolean;
+          }>;
+        }
+        return [] as Array<{ name: string; isDirectory: () => boolean }>;
+      },
+    );
 
     // Mock git ignore service
     mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
