@@ -51,12 +51,12 @@ export function shortenPath(filePath: string, maxLen: number = 35): string {
   }
 
   const firstDir = segments[0];
-  const lastDir = segments[segments.length - 1];
+  const lastSegment = segments[segments.length - 1];
   const startComponent = root + firstDir;
 
   const endPartSegments: string[] = [];
   // Base length: separator + "..." + lastDir
-  let currentLength = separator.length + lastDir.length;
+  let currentLength = separator.length + lastSegment.length;
 
   // Iterate backwards through segments (excluding the first one)
   for (let i = segments.length - 2; i >= 0; i--) {
@@ -72,8 +72,7 @@ export function shortenPath(filePath: string, maxLen: number = 35): string {
     }
   }
 
-  let result = endPartSegments.join(separator) + separator + lastDir;
-  // if we have reached the limit return the path as is
+  let result = endPartSegments.join(separator) + separator + lastSegment;
 
   if (currentLength > maxLen) {
     return result;
@@ -85,8 +84,7 @@ export function shortenPath(filePath: string, maxLen: number = 35): string {
   // As a final check, if the result is somehow still too long
   // truncate the result string from the beginning, prefixing with "...".
   if (result.length > maxLen) {
-    const numCharsFromResult = maxLen - 3;
-    return '...' + result.substring(result.length - numCharsFromResult);
+    return '...' + result.substring(result.length - maxLen - 3);
   }
 
   return result;
