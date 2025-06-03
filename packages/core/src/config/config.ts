@@ -93,6 +93,7 @@ export class Config {
   private readonly geminiClient: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -221,6 +222,17 @@ export class Config {
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
+  }
+
+  async getFileService(): Promise<FileDiscoveryService> {
+    if (!this.fileDiscoveryService) {
+      this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
+      await this.fileDiscoveryService.initialize({
+        respectGitIgnore: this.fileFilteringRespectGitIgnore,
+        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
+      });
+    }
+    return this.fileDiscoveryService;
   }
 }
 
