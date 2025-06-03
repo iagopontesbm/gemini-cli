@@ -54,21 +54,12 @@ describe('usePhraseCycler', () => {
     });
     // Phrase should change and be one of the witty phrases
     expect(WITTY_LOADING_PHRASES).toContain(result.current);
-    // It's possible, though unlikely, to randomly pick the same phrase.
-    // For robustness, we primarily check it's a valid phrase.
-    // If the list is very small, this test might be flaky for difference.
-    if (WITTY_LOADING_PHRASES.length > 1) {
-      // A stronger check could be to run multiple cycles if this remains an issue
-    }
 
     const _secondPhrase = result.current;
     act(() => {
       vi.advanceTimersByTime(PHRASE_CHANGE_INTERVAL_MS);
     });
     expect(WITTY_LOADING_PHRASES).toContain(result.current);
-    if (WITTY_LOADING_PHRASES.length > 2) {
-      // Ensure it's not stuck if possible
-    }
   });
 
   it('should reset to a witty phrase when isActive becomes true after being false (and not waiting)', () => {
