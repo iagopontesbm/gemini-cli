@@ -59,12 +59,16 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - Specifies the visual theme for the CLI.
   - Example: `"theme": "VS2015"`
   - See the [Theming section in README.md](../../README.md#theming) for available theme names.
-- **`sandbox`** (boolean or string):
-  - Controls whether and how to use sandboxing for tool execution.
-  - `true`: Enable default sandbox (see [README](../../README.md) for behavior).
-  - `false`: Disable sandboxing (WARNING: this is inherently unsafe).
-  - `"docker"` or `"podman"`: Explicitly choose container-based sandboxing command.
-  - `<command>`: Specify custom command for container-based sandboxing.
+- **`sandbox`** (boolean or string, optional):
+  - Controls whether and how to use sandboxing for tool execution. This setting is overridden by the `GEMINI_SANDBOX` environment variable if it is set.
+  - `true`: Attempts to enable sandboxing. The CLI will try to find a suitable command in the following order:
+    1.  `docker`
+    2.  `podman`
+    3.  If on macOS and neither `docker` nor `podman` is found, `sandbox-exec` (macOS Seatbelt) is used, unless the `SEATBELT_PROFILE` environment variable is set to `'none'`.
+    If no suitable sandbox command is found after these checks (and sandboxing was explicitly requested as `true`), an error will occur.
+  - `false`: Explicitly disables all sandboxing. No fallback mechanisms (like `sandbox-exec` on macOS) will be attempted. (WARNING: Disabling sandboxing is inherently unsafe for commands that execute code or modify the file system).
+  - `"docker"`, `"podman"`, or a `<custom_command_string>`: Attempts to use the specified command for sandboxing. If the command is not found, an error will occur.
+  - **Default Behavior (if `sandbox` is not specified in `settings.json` and `GEMINI_SANDBOX` is not set):** Sandboxing is **disabled** by default.
 - **`toolDiscoveryCommand`** (string, advanced):
   - Custom shell command for discovering tools from your project, if available.
   - Must return on `stdout` a JSON array of [function declarations](https://ai.google.dev/gemini-api/docs/function-calling#function-declarations).
@@ -173,11 +177,20 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Overrides the hardcoded default, which is currently `gemini-2.5-pro-preview-05-06`.
   - Example: `export GEMINI_MODEL="gemini-1.5-flash-latest"`
 - **`GEMINI_SANDBOX`**:
-  - Alternative to the `sandbox` setting in `settings.json`.
-  - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
+  - Overrides the `sandbox` setting in `settings.json` if both are present.
+  - **Behavior:**
+    - `"true"` or `"1"`: Attempts to enable sandboxing. The CLI will try to find a suitable command in the following order:
+      1.  `docker`
+      2.  `podman`
+      3.  If on macOS and neither `docker` nor `podman` is found, `sandbox-exec` (macOS Seatbelt) is used, unless the `SEATBELT_PROFILE` environment variable is set to `'none'`.
+      If no suitable sandbox command is found after these checks (and sandboxing was explicitly requested as `true`), an error will occur.
+    - `"false"` or `"0"`: Explicitly disables all sandboxing. No fallback mechanisms (like `sandbox-exec` on macOS) will be attempted.
+    - `"docker"`, `"podman"`, or a `<custom_command_string>`: Attempts to use the specified command for sandboxing. If the command is not found, an error will occur.
+  - **Default Behavior (if `GEMINI_SANDBOX` is not set and `sandbox` is not in `settings.json`):** If neither this environment variable nor the `sandbox` setting in `settings.json` is specified, sandboxing is **disabled** by default.
 - **`SEATBELT_PROFILE`** (macOS specific):
-  - Switches the Seatbelt (`sandbox-exec`) profile on macOS.
-  - `minimal`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-minimal.sb`) but allows other operations.
+  - Switches the Seatbelt (`sandbox-exec`) profile on macOS **if `sandbox-exec` is being used as the sandboxing mechanism** (e.g., when `GEMINI_SANDBOX=true` and Docker/Podman are not found, or if `GEMINI_SANDBOX` is explicitly set to `sandbox-exec`).
+  - Setting this to `'none'` will prevent `sandbox-exec` from being used as a fallback when `GEMINI_SANDBOX=true`.
+  - `minimal`: (Default if `sandbox-exec` is active and `SEATBELT_PROFILE` is not set) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-minimal.sb`) but allows other operations.
   - `strict`: Uses a strict profile that declines operations by default.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):

@@ -92,38 +92,20 @@ async function getSandboxImageName(): Promise<string> {
 }
 
 // node.js equivalent of scripts/sandbox_command.sh
-export function sandbox_command(sandbox?: string | boolean): string {
-  // note environment variable takes precedence over argument (from command line or settings)
-  sandbox = process.env.GEMINI_SANDBOX?.toLowerCase().trim() ?? sandbox;
-  if (sandbox === '1' || sandbox === 'true') sandbox = true;
-  else if (sandbox === '0' || sandbox === 'false') sandbox = false;
+export function sandbox_command(sandboxConfigValue?: string | boolean): string {
+  // 1. Determine the effective sandbox setting, prioritizing environment variable
+  const setting =
+    process.env.GEMINI_SANDBOX?.toLowerCase().trim() ?? sandboxConfigValue;
 
-  if (sandbox === true) {
-    // look for docker or podman, in that order
+  // 2. Handle based on the setting
+  if (setting === '1' || setting === 'true' || setting === true) {
+    // Explicitly enabled: try Docker, then Podman, then Seatbelt (macOS only)
     if (execSync('command -v docker || true').toString().trim()) {
-      return 'docker'; // Set sandbox to 'docker' if found
-    } else if (execSync('command -v podman || true').toString().trim()) {
-      return 'podman'; // Set sandbox to 'podman' if found
-    } else {
-      console.error(
-        'ERROR: failed to determine command for sandbox; ' +
-          'install docker or podman or specify command in GEMINI_SANDBOX',
-      );
-      process.exit(1);
+      return 'docker';
     }
-  } else if (sandbox) {
-    // confirm that specfied command exists
-    if (execSync(`command -v ${sandbox} || true`).toString().trim()) {
-      return sandbox;
-    } else {
-      console.error(
-        `ERROR: missing sandbox command '${sandbox}' (from GEMINI_SANDBOX)`,
-      );
-      process.exit(1);
+    if (execSync('command -v podman || true').toString().trim()) {
+      return 'podman';
     }
-  } else {
-    // if we are on macOS (Darwin) and sandbox-exec is available, use that for minimal sandboxing
-    // unless SEATBELT_PROFILE is set to 'none', which we allow as an escape hatch
     if (
       os.platform() === 'darwin' &&
       execSync('command -v sandbox-exec || true').toString().trim() &&
@@ -131,8 +113,28 @@ export function sandbox_command(sandbox?: string | boolean): string {
     ) {
       return 'sandbox-exec';
     }
-
-    return ''; // no sandbox
+    // If none of the above were found, but sandboxing was explicitly requested
+    console.error(
+      'ERROR: Sandboxing was enabled (GEMINI_SANDBOX=true or via settings), but no suitable sandbox command (docker, podman, or sandbox-exec on macOS) was found. Please install one or set GEMINI_SANDBOX to a specific command or "false".',
+    );
+    process.exit(1);
+  } else if (setting === '0' || setting === 'false' || setting === false) {
+    // Explicitly disabled
+    return ''; // No sandbox
+  } else if (typeof setting === 'string' && setting.trim() !== '') {
+    // Custom command specified
+    const customCommand = setting.trim();
+    if (execSync(`command -v ${customCommand} || true`).toString().trim()) {
+      return customCommand;
+    } else {
+      console.error(
+        `ERROR: Specified sandbox command '${customCommand}' (from GEMINI_SANDBOX or settings) was not found.`,
+      );
+      process.exit(1);
+    }
+  } else {
+    // Not set, or empty string from env/config - default to no sandbox
+    return ''; // No sandbox
   }
 }
 
@@ -161,8 +163,7 @@ function entrypoint(workdir: string): string[] {
   // instead we construct a suffix and append as part of bashCmd below
   let pathSuffix = '';
   if (process.env.PATH) {
-    const paths = process.env.PATH.split(':');
-    for (const path of paths) {
+    for (const path of process.env.PATH.split(':')) {
       if (path.startsWith(workdir)) {
         pathSuffix += `:${path}`;
       }
@@ -221,7 +222,7 @@ function entrypoint(workdir: string): string[] {
   return ['bash', '-c', args.join(' ')];
 }
 
-function _startSeatbeltSandbox(sandbox: string) {
+function startSeatbeltSandbox(sandbox: string) {
   // disallow BUILD_SANDBOX
   if (process.env.BUILD_SANDBOX) {
     console.error('ERROR: cannot BUILD_SANDBOX when using MacOC Seatbelt');
@@ -272,7 +273,7 @@ function _startSeatbeltSandbox(sandbox: string) {
   spawnSync(sandbox, args, { stdio: 'inherit' });
 }
 
-function _maybeBuildSandboxImage(gcPath: string): void {
+function maybeBuildSandboxImage(gcPath: string): void {
   // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-code repo
   // note this can only be done with binary linked from gemini-code repo
   if (process.env.BUILD_SANDBOX) {
@@ -303,7 +304,7 @@ function _maybeBuildSandboxImage(gcPath: string): void {
   }
 }
 
-function _getUniqueContainerName(
+function getUniqueContainerName(
   sandboxCommand: string,
   baseImageName: string,
 ): string {
@@ -320,13 +321,13 @@ function _getUniqueContainerName(
   return `${baseImageName}-${index}`;
 }
 
-function _assembleBaseContainerArgs(workdir: string): string[] {
+function assembleBaseContainerArgs(workdir: string): string[] {
   // use interactive tty mode and auto-remove container on exit
   // run init binary inside container to forward signals & reap zombies
   return ['run', '-it', '--rm', '--init', '--workdir', workdir];
 }
 
-function _assembleVolumeMountArgs(workdir: string): string[] {
+function assembleVolumeMountArgs(workdir: string): string[] {
   const volumeArgs: string[] = [];
   // mount current directory as working directory in sandbox (set via --workdir)
   volumeArgs.push('--volume', `${process.cwd()}:${workdir}`);
@@ -338,7 +339,10 @@ function _assembleVolumeMountArgs(workdir: string): string[] {
   if (!fs.existsSync(userSettingsDirOnHost)) {
     fs.mkdirSync(userSettingsDirOnHost);
   }
-  volumeArgs.push('--volume', `${userSettingsDirOnHost}:${userSettingsDirOnHost}`);
+  volumeArgs.push(
+    '--volume',
+    `${userSettingsDirOnHost}:${userSettingsDirOnHost}`,
+  );
   if (userSettingsDirInSandbox !== userSettingsDirOnHost) {
     volumeArgs.push(
       '--volume',
@@ -380,7 +384,7 @@ function _assembleVolumeMountArgs(workdir: string): string[] {
   return volumeArgs;
 }
 
-function _assemblePortPublishArgs(): string[] {
+function assemblePortPublishArgs(): string[] {
   const portArgs: string[] = [];
   // expose env-specified ports on the sandbox
   ports().forEach((p) => portArgs.push('--publish', `${p}:${p}`));
@@ -393,7 +397,7 @@ function _assemblePortPublishArgs(): string[] {
   return portArgs;
 }
 
-function _assembleEnvironmentVariableArgs(
+function assembleEnvironmentVariableArgs(
   workdir: string,
   sandboxCommand: string,
 ): string[] {
@@ -460,7 +464,7 @@ function _assembleEnvironmentVariableArgs(
   return envArgs;
 }
 
-async function _applyPodmanAndUserSpecificArgs(
+async function applyPodmanAndUserSpecificArgs(
   sandboxCommand: string,
 ): Promise<string[]> {
   const specificArgs: string[] = [];
@@ -483,27 +487,27 @@ async function _applyPodmanAndUserSpecificArgs(
   return specificArgs;
 }
 
-async function _assembleContainerArgs(
+async function assembleContainerArgs(
   workdir: string,
   image: string,
   sandboxCommand: string,
 ): Promise<string[]> {
   const args = [
-    ..._assembleBaseContainerArgs(workdir),
-    ..._assembleVolumeMountArgs(workdir),
-    ..._assemblePortPublishArgs(),
-    ..._assembleEnvironmentVariableArgs(workdir, sandboxCommand),
-    ...(await _applyPodmanAndUserSpecificArgs(sandboxCommand)),
+    ...assembleBaseContainerArgs(workdir),
+    ...assembleVolumeMountArgs(workdir),
+    ...assemblePortPublishArgs(),
+    ...assembleEnvironmentVariableArgs(workdir, sandboxCommand),
+    ...(await applyPodmanAndUserSpecificArgs(sandboxCommand)),
   ];
 
   const baseImageName = parseImageName(image);
-  const containerName = _getUniqueContainerName(sandboxCommand, baseImageName);
+  const containerName = getUniqueContainerName(sandboxCommand, baseImageName);
   args.push('--name', containerName, '--hostname', containerName);
 
   return args;
 }
 
-async function _spawnAndWaitForContainer(
+async function spawnAndWaitForContainer(
   sandboxCommand: string,
   args: string[],
 ): Promise<void> {
@@ -520,13 +524,13 @@ async function _spawnAndWaitForContainer(
   });
 }
 
-async function _startContainerSandbox(sandbox: string) {
+async function startContainerSandbox(sandbox: string) {
   console.error(`hopping into sandbox (command: ${sandbox}) ...`);
 
   // determine full path for gemini-code to distinguish linked vs installed setting
   const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
 
-  _maybeBuildSandboxImage(gcPath);
+  maybeBuildSandboxImage(gcPath);
 
   const image = await getSandboxImageName();
   const workdir = process.cwd();
@@ -542,7 +546,7 @@ async function _startContainerSandbox(sandbox: string) {
     process.exit(1);
   }
 
-  const args = await _assembleContainerArgs(workdir, image, sandbox);
+  const args = await assembleContainerArgs(workdir, image, sandbox);
 
   // push container image name
   args.push(image);
@@ -550,15 +554,15 @@ async function _startContainerSandbox(sandbox: string) {
   // push container entrypoint (including args)
   args.push(...entrypoint(workdir));
 
-  await _spawnAndWaitForContainer(sandbox, args);
+  await spawnAndWaitForContainer(sandbox, args);
 }
 
 export async function start_sandbox(sandbox: string) {
   if (sandbox === 'sandbox-exec') {
-    _startSeatbeltSandbox(sandbox);
+    startSeatbeltSandbox(sandbox);
     return;
   }
-  await _startContainerSandbox(sandbox);
+  await startContainerSandbox(sandbox);
 }
 
 // Helper functions to ensure sandbox image is present
