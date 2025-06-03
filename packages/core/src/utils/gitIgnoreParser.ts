@@ -101,11 +101,13 @@ export class GitIgnoreParser implements GitIgnoreFilter {
     // Normalize path separators for cross-platform compatibility
     const normalizedPath = relativePath.replace(/\\/g, '/');
 
-    return this.ignorePatterns.some((pattern) => minimatch(normalizedPath, pattern, {
+    return this.ignorePatterns.some((pattern) =>
+      minimatch(normalizedPath, pattern, {
         dot: true,
         matchBase: false,
         flipNegate: false,
-      }));
+      }),
+    );
   }
 
   getIgnoredPatterns(): string[] {

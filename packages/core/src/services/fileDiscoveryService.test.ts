@@ -65,7 +65,10 @@ describe('FileDiscoveryService', () => {
 
   describe('filterFiles', () => {
     beforeEach(async () => {
-      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) => path.includes('node_modules') || path.includes('.git'));
+      mockGitIgnoreParser.isIgnored.mockImplementation(
+        (path: string) =>
+          path.includes('node_modules') || path.includes('.git'),
+      );
       await service.initialize();
     });
 
@@ -103,7 +106,9 @@ describe('FileDiscoveryService', () => {
 
   describe('shouldIgnoreFile', () => {
     beforeEach(async () => {
-      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) => path.includes('node_modules'));
+      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) =>
+        path.includes('node_modules'),
+      );
       await service.initialize();
     });
 
@@ -207,7 +212,9 @@ describe('FileDiscoveryService', () => {
 
   describe('shouldIgnoreFile with isGitRepo config', () => {
     it('should respect isGitRepo option when checking if file should be ignored', async () => {
-      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) => path.includes('node_modules'));
+      mockGitIgnoreParser.isIgnored.mockImplementation((path: string) =>
+        path.includes('node_modules'),
+      );
       await service.initialize({ isGitRepo: true });
 
       expect(
