@@ -357,27 +357,13 @@ Expectation for parameters:
     if (params.old_string === '') {
       return `Create ${shortenPath(relativePath)}`;
     }
-    const MAX_SNIPPET_LINES = 3;
-    const MAX_SNIPPET_CHARS = 80;
 
-    const createSnippet = (text: string): string => {
-      const lines = text.split('\n');
-      let snippet = lines.slice(0, MAX_SNIPPET_LINES).join('\n');
-      if (snippet.length > MAX_SNIPPET_CHARS) {
-        snippet = snippet.substring(0, MAX_SNIPPET_CHARS - 3) + '...';
-      } else if (
-        lines.length > MAX_SNIPPET_LINES ||
-        (lines.length === MAX_SNIPPET_LINES &&
-          lines.length > 0 &&
-          lines[MAX_SNIPPET_LINES - 1].length > MAX_SNIPPET_CHARS)
-      ) {
-        snippet += '...';
-      }
-      return snippet;
-    };
-
-    const oldStringSnippet = createSnippet(params.old_string);
-    const newStringSnippet = createSnippet(params.new_string);
+    const oldStringSnippet =
+      params.old_string.split('\n')[0].substring(0, 30) +
+      (params.old_string.length > 30 ? '...' : '');
+    const newStringSnippet =
+      params.new_string.split('\n')[0].substring(0, 30) +
+      (params.new_string.length > 30 ? '...' : '');
 
     return `${shortenPath(relativePath)}: ${oldStringSnippet} => ${newStringSnippet}`;
   }
