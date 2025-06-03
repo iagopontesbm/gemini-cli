@@ -37,12 +37,14 @@ import { Tips } from './components/Tips.js';
 import { useConsolePatcher } from './components/ConsolePatcher.js';
 import { DetailedMessagesDisplay } from './components/DetailedMessagesDisplay.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
+import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
 import process from 'node:process';
 import {
   getErrorMessage,
   type Config,
   getCurrentGeminiMdFilename,
+  ApprovalMode,
 } from '@gemini-code/core';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
@@ -200,7 +202,6 @@ export const App = ({
   const { streamingState, submitQuery, initError, pendingHistoryItems } =
     useGeminiStream(
       addItem,
-      refreshStatic,
       setShowHelp,
       config,
       setDebugMessage,
@@ -321,7 +322,7 @@ export const App = ({
           key={staticKey}
           items={[
             <Box flexDirection="column" key="header">
-              <Header />
+              <Header title={settings.merged.title} />
               <Tips config={config} />
             </Box>,
             ...history.map((h) => (
@@ -400,22 +401,24 @@ export const App = ({
                     <Text color={Colors.AccentYellow}>
                       Press Ctrl+C again to exit.
                     </Text>
-                  ) : geminiMdFileCount > 0 ? (
-                    <Text color={Colors.SubtleComment}>
-                      Using {geminiMdFileCount}{' '}
-                      {settings.merged.contextFileName ||
-                        getCurrentGeminiMdFilename()}{' '}
-                      file
-                      {geminiMdFileCount > 1 ? 's' : ''}
-                    </Text>
                   ) : (
-                    <Text> </Text> // Render an empty space to reserve height
+                    <ContextSummaryDisplay
+                      geminiMdFileCount={geminiMdFileCount}
+                      contextFileName={
+                        settings.merged.contextFileName ||
+                        getCurrentGeminiMdFilename()
+                      }
+                      mcpServers={config.getMcpServers()}
+                    />
                   )}
                 </Box>
                 <Box>
-                  {showAutoAcceptIndicator && !shellModeActive && (
-                    <AutoAcceptIndicator />
-                  )}
+                  {showAutoAcceptIndicator !== ApprovalMode.DEFAULT &&
+                    !shellModeActive && (
+                      <AutoAcceptIndicator
+                        approvalMode={showAutoAcceptIndicator}
+                      />
+                    )}
                   {shellModeActive && <ShellModeIndicator />}
                 </Box>
               </Box>

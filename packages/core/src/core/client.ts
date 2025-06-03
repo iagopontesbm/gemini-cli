@@ -12,6 +12,7 @@ import {
   PartListUnion,
   Content,
   Tool,
+  GenerateContentResponse,
 } from '@google/genai';
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
@@ -70,13 +71,14 @@ export class GeminiClient {
           `.trim();
 
     const initialParts: Part[] = [{ text: context }];
+    const toolRegistry = await this.config.getToolRegistry();
 
     // Add full file context if the flag is set
     if (this.config.getFullContext()) {
       try {
-        const readManyFilesTool = this.config
-          .getToolRegistry()
-          .getTool('read_many_files') as ReadManyFilesTool;
+        const readManyFilesTool = toolRegistry.getTool(
+          'read_many_files',
+        ) as ReadManyFilesTool;
         if (readManyFilesTool) {
           // Read all files in the target directory
           const result = await readManyFilesTool.execute(
@@ -114,9 +116,8 @@ export class GeminiClient {
 
   async startChat(): Promise<GeminiChat> {
     const envParts = await this.getEnvironment();
-    const toolDeclarations = this.config
-      .getToolRegistry()
-      .getFunctionDeclarations();
+    const toolRegistry = await this.config.getToolRegistry();
+    const toolDeclarations = toolRegistry.getFunctionDeclarations();
     const tools: Tool[] = [{ functionDeclarations: toolDeclarations }];
     const history: Content[] = [
       {
@@ -260,6 +261,58 @@ export class GeminiClient {
       const message =
         error instanceof Error ? error.message : 'Unknown API error.';
       throw new Error(`Failed to generate JSON content: ${message}`);
+    }
+  }
+
+  async generateContent(
+    contents: Content[],
+    generationConfig: GenerateContentConfig,
+    abortSignal: AbortSignal,
+  ): Promise<GenerateContentResponse> {
+    const modelToUse = this.model;
+    const configToUse: GenerateContentConfig = {
+      ...this.generateContentConfig,
+      ...generationConfig,
+    };
+
+    try {
+      const userMemory = this.config.getUserMemory();
+      const systemInstruction = getCoreSystemPrompt(userMemory);
+
+      const requestConfig = {
+        abortSignal,
+        ...configToUse,
+        systemInstruction,
+      };
+
+      const apiCall = () =>
+        this.client.models.generateContent({
+          model: modelToUse,
+          config: requestConfig,
+          contents,
+        });
+
+      const result = await retryWithBackoff(apiCall);
+      return result;
+    } catch (error) {
+      if (abortSignal.aborted) {
+        throw error;
+      }
+
+      await reportError(
+        error,
+        `Error generating content via API with model ${modelToUse}.`,
+        {
+          requestContents: contents,
+          requestConfig: configToUse,
+        },
+        'generateContent-api',
+      );
+      const message =
+        error instanceof Error ? error.message : 'Unknown API error.';
+      throw new Error(
+        `Failed to generate content with model ${modelToUse}: ${message}`,
+      );
     }
   }
 }

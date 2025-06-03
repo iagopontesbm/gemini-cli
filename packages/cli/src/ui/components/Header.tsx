@@ -5,28 +5,24 @@
  */
 
 import React from 'react';
-import { Box, Text } from 'ink';
+import { Box } from 'ink';
 import Gradient from 'ink-gradient';
+import BigText from 'ink-big-text';
 import { Colors } from '../colors.js';
 
-const asciiArtLogo = `
- ██████╗ ███████╗███╗   ███╗██╗███╗   ██╗██╗
-██╔════╝ ██╔════╝████╗ ████║██║████╗  ██║██║
-██║  ███╗█████╗  ██╔████╔██║██║██╔██╗ ██║██║
-██║   ██║██╔══╝  ██║╚██╔╝██║██║██║╚██╗██║██║
-╚██████╔╝███████╗██║ ╚═╝ ██║██║██║ ╚████║██║
- ╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝
-`;
+interface HeaderProps {
+  title?: string;
+}
 
-export const Header: React.FC = () => (
+export const Header: React.FC<HeaderProps> = ({ title = 'GEMINI' }) => (
   <>
-    <Box marginBottom={1} alignItems="flex-start">
+    <Box alignItems="flex-start">
       {Colors.GradientColors ? (
         <Gradient colors={Colors.GradientColors}>
-          <Text>{asciiArtLogo}</Text>
+          <BigText text={title} letterSpacing={0} space={false} />
         </Gradient>
       ) : (
-        <Text>{asciiArtLogo}</Text>
+        <BigText text={title} letterSpacing={0} space={false} />
       )}
     </Box>
   </>

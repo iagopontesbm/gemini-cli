@@ -8,12 +8,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import {
-  useToolScheduler,
-  formatLlmContentForFunctionResponse,
+  useReactToolScheduler,
   mapToDisplay,
-  ToolCall,
-  Status as ToolCallStatusType, // Renamed to avoid conflict
-} from './useToolScheduler.js';
+} from './useReactToolScheduler.js';
 import {
   Part,
   PartListUnion,
@@ -29,6 +26,10 @@ import {
   ToolCallConfirmationDetails,
   ToolConfirmationOutcome,
   ToolCallResponseInfo,
+  formatLlmContentForFunctionResponse, // Import from core
+  ToolCall, // Import from core
+  Status as ToolCallStatusType,
+  ApprovalMode, // Import from core
 } from '@gemini-code/core';
 import {
   HistoryItemWithoutId,
@@ -52,6 +53,7 @@ const mockToolRegistry = {
 
 const mockConfig = {
   getToolRegistry: vi.fn(() => mockToolRegistry as unknown as ToolRegistry),
+  getApprovalMode: vi.fn(() => ApprovalMode.DEFAULT),
 };
 
 const mockTool: Tool = {
@@ -205,7 +207,110 @@ describe('formatLlmContentForFunctionResponse', () => {
   });
 });
 
-describe('useToolScheduler', () => {
+describe('useReactToolScheduler in YOLO Mode', () => {
+  let onComplete: Mock;
+  let setPendingHistoryItem: Mock;
+
+  beforeEach(() => {
+    onComplete = vi.fn();
+    setPendingHistoryItem = vi.fn();
+    mockToolRegistry.getTool.mockClear();
+    (mockToolRequiresConfirmation.execute as Mock).mockClear();
+    (mockToolRequiresConfirmation.shouldConfirmExecute as Mock).mockClear();
+
+    // IMPORTANT: Enable YOLO mode for this test suite
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.YOLO);
+
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
+    // IMPORTANT: Disable YOLO mode after this test suite
+    (mockConfig.getApprovalMode as Mock).mockReturnValue(ApprovalMode.DEFAULT);
+  });
+
+  const renderSchedulerInYoloMode = () =>
+    renderHook(() =>
+      useReactToolScheduler(
+        onComplete,
+        mockConfig as unknown as Config,
+        setPendingHistoryItem,
+      ),
+    );
+
+  it('should skip confirmation and execute tool directly when yoloMode is true', async () => {
+    mockToolRegistry.getTool.mockReturnValue(mockToolRequiresConfirmation);
+    const expectedOutput = 'YOLO Confirmed output';
+    (mockToolRequiresConfirmation.execute as Mock).mockResolvedValue({
+      llmContent: expectedOutput,
+      returnDisplay: 'YOLO Formatted tool output',
+    } as ToolResult);
+
+    const { result } = renderSchedulerInYoloMode();
+    const schedule = result.current[1];
+    const request: ToolCallRequestInfo = {
+      callId: 'yoloCall',
+      name: 'mockToolRequiresConfirmation',
+      args: { data: 'any data' },
+    };
+
+    act(() => {
+      schedule(request);
+    });
+
+    await act(async () => {
+      await vi.runAllTimersAsync(); // Process validation
+    });
+    await act(async () => {
+      await vi.runAllTimersAsync(); // Process scheduling
+    });
+    await act(async () => {
+      await vi.runAllTimersAsync(); // Process execution
+    });
+
+    // Check that shouldConfirmExecute was NOT called
+    expect(
+      mockToolRequiresConfirmation.shouldConfirmExecute,
+    ).not.toHaveBeenCalled();
+
+    // Check that execute WAS called
+    expect(mockToolRequiresConfirmation.execute).toHaveBeenCalledWith(
+      request.args,
+      expect.any(AbortSignal),
+      undefined,
+    );
+
+    // Check that onComplete was called with success
+    expect(onComplete).toHaveBeenCalledWith([
+      expect.objectContaining({
+        status: 'success',
+        request,
+        response: expect.objectContaining({
+          resultDisplay: 'YOLO Formatted tool output',
+          responseParts: expect.arrayContaining([
+            expect.objectContaining({
+              functionResponse: expect.objectContaining({
+                response: { output: expectedOutput },
+              }),
+            }),
+          ]),
+        }),
+      }),
+    ]);
+
+    // Ensure no confirmation UI was triggered (setPendingHistoryItem should not have been called with confirmation details)
+    const setPendingHistoryItemCalls = setPendingHistoryItem.mock.calls;
+    const confirmationCall = setPendingHistoryItemCalls.find((call) => {
+      const item = typeof call[0] === 'function' ? call[0]({}) : call[0];
+      return item?.tools?.[0]?.confirmationDetails;
+    });
+    expect(confirmationCall).toBeUndefined();
+  });
+});
+
+describe('useReactToolScheduler', () => {
   // TODO(ntaylormullen): The following tests are skipped due to difficulties in
   // reliably testing the asynchronous state updates and interactions with timers.
   // These tests involve complex sequences of events, including confirmations,
@@ -276,7 +381,7 @@ describe('useToolScheduler', () => {
 
   const renderScheduler = () =>
     renderHook(() =>
-      useToolScheduler(
+      useReactToolScheduler(
         onComplete,
         mockConfig as unknown as Config,
         setPendingHistoryItem,
@@ -367,7 +472,7 @@ describe('useToolScheduler', () => {
         request,
         response: expect.objectContaining({
           error: expect.objectContaining({
-            message: 'tool nonExistentTool does not exist',
+            message: 'Tool "nonExistentTool" not found in registry.',
           }),
         }),
       }),
@@ -1050,7 +1155,7 @@ describe('mapToDisplay', () => {
       },
       expectedStatus: ToolCallStatus.Error,
       expectedResultDisplay: 'Execution failed display',
-      expectedName: baseTool.name,
+      expectedName: baseTool.displayName, // Changed from baseTool.name
       expectedDescription: '',
     },
     {

@@ -9,22 +9,34 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { GeminiClient } from '@gemini-code/core';
 import { readPackageUp } from 'read-package-up';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
-import { loadSettings } from './config/settings.js';
+import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
+import { runNonInteractive } from './nonInteractiveCli.js';
+import {
+  ApprovalMode,
+  Config,
+  EditTool,
+  GlobTool,
+  GrepTool,
+  LSTool,
+  MemoryTool,
+  ReadFileTool,
+  ReadManyFilesTool,
+  ShellTool,
+  WebFetchTool,
+  WebSearchTool,
+  WriteFileTool,
+} from '@gemini-code/core';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function main() {
-  const settings = loadSettings(process.cwd());
-  const config = await loadCliConfig(settings.merged);
-
   // warn about deprecated environment variables
   if (process.env.GEMINI_CODE_MODEL) {
     console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
@@ -40,7 +52,18 @@ async function main() {
     console.warn(
       'GEMINI_CODE_SANDBOX_IMAGE is deprecated. Use GEMINI_SANDBOX_IMAGE_NAME instead.',
     );
-    process.env.GEMINI_SANDBOX_IMAGE = process.env.GEMINI_CODE_SANDBOX_IMAGE;
+    process.env.GEMINI_SANDBOX_IMAGE_NAME =
+      process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
+  }
+
+  const settings = loadSettings(process.cwd());
+  const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
+    await loadCliConfig(settings.merged);
+
+  if (modelWasSwitched && originalModelBeforeSwitch) {
+    console.log(
+      `[INFO] Your configured model (${originalModelBeforeSwitch}) was temporarily unavailable. Switched to ${finalModel} for this session.`,
+    );
   }
 
   if (settings.merged.theme) {
@@ -92,26 +115,15 @@ async function main() {
     process.exit(1);
   }
 
-  // If not a TTY and we have initial input, process it directly
-  const geminiClient = new GeminiClient(config);
-  const chat = await geminiClient.startChat();
-  try {
-    for await (const event of geminiClient.sendMessageStream(
-      chat,
-      [{ text: input }],
-      new AbortController().signal,
-    )) {
-      if (event.type === 'content') {
-        process.stdout.write(event.value);
-      }
-      // We might need to handle other event types later, but for now, just content.
-    }
-    process.stdout.write('\n'); // Add a newline at the end
-    process.exit(0);
-  } catch (error) {
-    console.error('Error processing piped input:', error);
-    process.exit(1);
-  }
+  // Non-interactive mode handled by runNonInteractive
+  const nonInteractiveConfigResult = await loadNonInteractiveConfig(
+    config,
+    settings,
+  );
+
+  const nonInteractiveConfig = nonInteractiveConfigResult;
+  await runNonInteractive(nonInteractiveConfig, input);
+  process.exit(0);
 }
 
 // --- Global Unhandled Rejection Handler ---
@@ -139,3 +151,41 @@ main().catch((error) => {
   }
   process.exit(1);
 });
+async function loadNonInteractiveConfig(
+  config: Config,
+  settings: LoadedSettings,
+) {
+  if (config.getApprovalMode() === ApprovalMode.YOLO) {
+    // Since everything is being allowed we can use normal yolo behavior.
+    return config;
+  }
+
+  // Everything is not allowed, ensure that only read-only tools are configured.
+
+  let existingCoreTools = config.getCoreTools();
+  existingCoreTools = existingCoreTools || [
+    ReadFileTool.Name,
+    LSTool.Name,
+    GrepTool.Name,
+    GlobTool.Name,
+    EditTool.Name,
+    WriteFileTool.Name,
+    WebFetchTool.Name,
+    WebSearchTool.Name,
+    ReadManyFilesTool.Name,
+    ShellTool.Name,
+    MemoryTool.Name,
+  ];
+  const interactiveTools = [ShellTool.Name, EditTool.Name, WriteFileTool.Name];
+  const nonInteractiveTools = existingCoreTools.filter(
+    (tool) => !interactiveTools.includes(tool),
+  );
+  const nonInteractiveSettings = {
+    ...settings.merged,
+    coreTools: nonInteractiveTools,
+  };
+  const nonInteractiveConfigResult = await loadCliConfig(
+    nonInteractiveSettings,
+  );
+  return nonInteractiveConfigResult.config;
+}
