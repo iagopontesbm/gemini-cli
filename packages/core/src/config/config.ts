@@ -114,8 +114,10 @@ export class Config {
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
-    this.fileFilteringRespectGitIgnore = params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringAllowBuildArtifacts = params.fileFilteringAllowBuildArtifacts ?? false;
+    this.fileFilteringRespectGitIgnore =
+      params.fileFilteringRespectGitIgnore ?? true;
+    this.fileFilteringAllowBuildArtifacts =
+      params.fileFilteringAllowBuildArtifacts ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
