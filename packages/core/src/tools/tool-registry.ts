@@ -56,10 +56,10 @@ Signal: Signal number or \`(none)\` if no signal was received.
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (data) => {
-      stdout += data.toString();
+      stdout += data?.toString();
     });
     child.stderr.on('data', (data) => {
-      stderr += data.toString();
+      stderr += data?.toString();
     });
     let error: Error | null = null;
     child.on('error', (err: Error) => {
@@ -161,7 +161,11 @@ export class ToolRegistry {
       }
     }
     // discover tools using MCP servers, if configured
-    await discoverMcpTools(this.config);
+    await discoverMcpTools(
+      this.config.getMcpServers() ?? {},
+      this.config.getMcpServerCommand(),
+      this,
+    );
   }
 
   /**
