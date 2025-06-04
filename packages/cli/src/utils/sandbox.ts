@@ -16,6 +16,8 @@ import {
   SETTINGS_DIRECTORY_NAME,
 } from '../config/settings.js';
 
+const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'gemini-cli-sandbox';
+
 /**
  * Determines whether the sandbox container should be run with the current user's UID and GID.
  * This is often necessary on Linux systems (especially Debian/Ubuntu based) when using
@@ -79,7 +81,7 @@ async function getSandboxImageName(): Promise<string> {
   return (
     process.env.GEMINI_SANDBOX_IMAGE ??
     packageJsonConfig?.sandboxImageUri ??
-    'gemini-cli-sandbox'
+    LOCAL_DEV_SANDBOX_IMAGE_NAME
   );
 }
 
@@ -267,19 +269,19 @@ export async function start_sandbox(sandbox: string) {
 
   console.error(`hopping into sandbox (command: ${sandbox}) ...`);
 
-  // determine full path for gemini-code to distinguish linked vs installed setting
+  // determine full path for gemini-cli to distinguish linked vs installed setting
   const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
 
   const image = await getSandboxImageName();
   const workdir = process.cwd();
 
-  // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-code repo
-  // note this can only be done with binary linked from gemini-code repo
+  // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-cli repo
+  // note this can only be done with binary linked from gemini-cli repo
   if (process.env.BUILD_SANDBOX) {
-    if (!gcPath.includes('gemini-code/packages/')) {
+    if (!gcPath.includes('gemini-cli/packages/')) {
       console.error(
         'ERROR: cannot BUILD_SANDBOX using installed gemini binary; ' +
-          'run `npm link ./packages/cli` under gemini-code repo to switch to linked binary.',
+          'run `npm link ./packages/cli` under gemini-cli repo to switch to linked binary.',
       );
       process.exit(1);
     } else {
@@ -298,24 +300,34 @@ export async function start_sandbox(sandbox: string) {
       spawnSync(`cd ${gcRoot} && scripts/build_sandbox.sh ${buildArgs}`, {
         stdio: 'inherit',
         shell: true,
+        env: {
+          ...process.env,
+          GEMINI_SANDBOX: sandbox, // in case sandbox is enabled via flags (see config.ts under cli package)
+        },
       });
     }
   }
 
   // stop if image is missing
   if (!(await ensureSandboxImageIsPresent(sandbox, image))) {
-    const remedy = gcPath.includes('gemini-code/packages/')
-      ? 'Try running `BUILD_SANDBOX=1 gemini` or `scripts/build_sandbox.sh` under the gemini-code repo to build it locally, or check the image name and your network connection.'
-      : 'Please check the image name, your network connection, or notify gemini-cli-dev@google.com if the issue persists.';
+    const remedy =
+      image === LOCAL_DEV_SANDBOX_IMAGE_NAME
+        ? 'Try running `npm run build:all` or `npm run build:sandbox` under the gemini-cli repo to build it locally, or check the image name and your network connection.'
+        : 'Please check the image name, your network connection, or notify gemini-cli-dev@google.com if the issue persists.';
     console.error(
       `ERROR: Sandbox image '${image}' is missing or could not be pulled. ${remedy}`,
     );
     process.exit(1);
   }
 
-  // use interactive tty mode and auto-remove container on exit
+  // use interactive mode and auto-remove container on exit
   // run init binary inside container to forward signals & reap zombies
-  const args = ['run', '-it', '--rm', '--init', '--workdir', workdir];
+  const args = ['run', '-i', '--rm', '--init', '--workdir', workdir];
+
+  // add TTY only if stdin is TTY as well, i.e. for piped input don't init TTY in container
+  if (process.stdin.isTTY) {
+    args.push('-t');
+  }
 
   // mount current directory as working directory in sandbox (set via --workdir)
   args.push('--volume', `${process.cwd()}:${workdir}`);
@@ -571,6 +583,11 @@ async function ensureSandboxImageIsPresent(
   }
 
   console.info(`Sandbox image ${image} not found locally.`);
+  if (image === LOCAL_DEV_SANDBOX_IMAGE_NAME) {
+    // user needs to build the image themself
+    return false;
+  }
+
   if (await pullImage(sandbox, image)) {
     // After attempting to pull, check again to be certain
     if (await imageExists(sandbox, image)) {

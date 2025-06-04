@@ -114,7 +114,7 @@ Expectation for required parameters:
     );
     this.config = config;
     this.rootDirectory = path.resolve(this.config.getTargetDir());
-    this.client = new GeminiClient(this.config);
+    this.client = config.getGeminiClient();
   }
 
   /**
@@ -364,16 +364,21 @@ Expectation for required parameters:
   }
 
   getDescription(params: EditToolParams): string {
+    if (!params.file_path || !params.old_string || !params.new_string) {
+      return `Model did not provide valid parameters for edit tool`;
+    }
     const relativePath = makeRelative(params.file_path, this.rootDirectory);
     if (params.old_string === '') {
       return `Create ${shortenPath(relativePath)}`;
     }
+
     const oldStringSnippet =
       params.old_string.split('\n')[0].substring(0, 30) +
       (params.old_string.length > 30 ? '...' : '');
     const newStringSnippet =
       params.new_string.split('\n')[0].substring(0, 30) +
       (params.new_string.length > 30 ? '...' : '');
+
     return `${shortenPath(relativePath)}: ${oldStringSnippet} => ${newStringSnippet}`;
   }
 

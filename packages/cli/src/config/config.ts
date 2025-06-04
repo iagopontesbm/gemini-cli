@@ -34,8 +34,11 @@ const logger = {
   error: (...args: any[]) => console.error('[ERROR]', ...args),
 };
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
-export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash-preview-04-17';
+export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-04-17';
+
+// export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
+// export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
 
 interface CliArgs {
   model: string | undefined;
@@ -94,12 +97,7 @@ async function parseArguments(): Promise<CliArgs> {
     .alias('h', 'help')
     .strict().argv;
 
-  const finalArgv: CliArgs = {
-    ...argv,
-    sandbox: argv.sandbox,
-  };
-
-  return finalArgv;
+  return argv;
 }
 
 // This function is now a thin wrapper around the server's implementation.
@@ -216,6 +214,10 @@ export async function loadCliConfig(
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
+    // Git-aware file filtering settings
+    fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+    fileFilteringAllowBuildArtifacts:
+      settings.fileFiltering?.allowBuildArtifacts,
   };
 
   const config = createServerConfig(configParams);

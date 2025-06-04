@@ -77,7 +77,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
       },
     );
 
-    this.client = new GeminiClient(this.config);
+    this.client = this.config.getGeminiClient();
   }
 
   private isWithinRoot(pathToCheck: string): boolean {
@@ -129,6 +129,9 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
   }
 
   getDescription(params: WriteFileToolParams): string {
+    if (!params.file_path || !params.content) {
+      return `Model did not provide valid parameters for write file tool`;
+    }
     const relativePath = makeRelative(
       params.file_path,
       this.config.getTargetDir(),

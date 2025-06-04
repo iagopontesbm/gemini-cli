@@ -16,7 +16,7 @@ import {
 } from '@google/genai';
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
-import { Turn, ServerGeminiStreamEvent } from './turn.js';
+import { Turn, ServerGeminiStreamEvent, GeminiEventType } from './turn.js';
 import { Config } from '../config/config.js';
 import { getCoreSystemPrompt } from './prompts.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
@@ -25,8 +25,11 @@ import { checkNextSpeaker } from '../utils/nextSpeakerChecker.js';
 import { reportError } from '../utils/errorReporting.js';
 import { GeminiChat } from './geminiChat.js';
 import { retryWithBackoff } from '../utils/retry.js';
+import { getErrorMessage } from '../utils/errors.js';
+import { tokenLimit } from './tokenLimits.js';
 
 export class GeminiClient {
+  private chat: Promise<GeminiChat>;
   private client: GoogleGenAI;
   private model: string;
   private generateContentConfig: GenerateContentConfig = {
@@ -50,6 +53,11 @@ export class GeminiClient {
       },
     });
     this.model = config.getModel();
+    this.chat = this.startChat();
+  }
+
+  getChat(): Promise<GeminiChat> {
+    return this.chat;
   }
 
   private async getEnvironment(): Promise<Part[]> {
@@ -114,12 +122,12 @@ export class GeminiClient {
     return initialParts;
   }
 
-  async startChat(): Promise<GeminiChat> {
+  private async startChat(extraHistory?: Content[]): Promise<GeminiChat> {
     const envParts = await this.getEnvironment();
     const toolRegistry = await this.config.getToolRegistry();
     const toolDeclarations = toolRegistry.getFunctionDeclarations();
     const tools: Tool[] = [{ functionDeclarations: toolDeclarations }];
-    const history: Content[] = [
+    const initialHistory: Content[] = [
       {
         role: 'user',
         parts: envParts,
@@ -129,6 +137,7 @@ export class GeminiClient {
         parts: [{ text: 'Got it. Thanks for the context!' }],
       },
     ];
+    const history = initialHistory.concat(extraHistory ?? []);
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -151,13 +160,11 @@ export class GeminiClient {
         history,
         'startChat',
       );
-      const message = error instanceof Error ? error.message : 'Unknown error.';
-      throw new Error(`Failed to initialize chat: ${message}`);
+      throw new Error(`Failed to initialize chat: ${getErrorMessage(error)}`);
     }
   }
 
   async *sendMessageStream(
-    chat: GeminiChat,
     request: PartListUnion,
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
@@ -166,6 +173,11 @@ export class GeminiClient {
       return;
     }
 
+    const compressed = await this.tryCompressChat();
+    if (compressed) {
+      yield { type: GeminiEventType.ChatCompressed };
+    }
+    const chat = await this.chat;
     const turn = new Turn(chat);
     const resultStream = turn.run(request, signal);
     for await (const event of resultStream) {
@@ -175,7 +187,7 @@ export class GeminiClient {
       const nextSpeakerCheck = await checkNextSpeaker(chat, this, signal);
       if (nextSpeakerCheck?.next_speaker === 'model') {
         const nextRequest = [{ text: 'Please continue.' }];
-        yield* this.sendMessageStream(chat, nextRequest, signal, turns - 1);
+        yield* this.sendMessageStream(nextRequest, signal, turns - 1);
       }
     }
   }
@@ -314,5 +326,56 @@ export class GeminiClient {
         `Failed to generate content with model ${modelToUse}: ${message}`,
       );
     }
+  }
+
+  private async tryCompressChat(): Promise<boolean> {
+    const chat = await this.chat;
+    const history = chat.getHistory(true); // Get curated history
+
+    // Count tokens using the models module from the GoogleGenAI client instance
+    const { totalTokens } = await this.client.models.countTokens({
+      model: this.model,
+      contents: history,
+    });
+
+    if (totalTokens === undefined) {
+      // If token count is undefined, we can't determine if we need to compress.
+      console.warn(
+        `Could not determine token count for model ${this.model}. Skipping compression check.`,
+      );
+      return false;
+    }
+    const tokenCount = totalTokens; // Now guaranteed to be a number
+
+    const limit = tokenLimit(this.model);
+    if (!limit) {
+      // If no limit is defined for the model, we can't compress.
+      console.warn(
+        `No token limit defined for model ${this.model}. Skipping compression check.`,
+      );
+      return false;
+    }
+
+    if (tokenCount < 0.95 * limit) {
+      return false;
+    }
+    const summarizationRequestMessage = {
+      text: 'Summarize our conversation up to this point. The summary should be a concise yet comprehensive overview of all key topics, questions, answers, and important details discussed. This summary will replace the current chat history to conserve tokens, so it must capture everything essential to understand the context and continue our conversation effectively as if no information was lost.',
+    };
+    const response = await chat.sendMessage({
+      message: summarizationRequestMessage,
+    });
+    this.chat = this.startChat([
+      {
+        role: 'user',
+        parts: [summarizationRequestMessage],
+      },
+      {
+        role: 'model',
+        parts: [{ text: response.text }],
+      },
+    ]);
+
+    return true;
   }
 }
