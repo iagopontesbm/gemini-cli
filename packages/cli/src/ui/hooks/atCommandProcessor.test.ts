@@ -568,7 +568,7 @@ ${fileContent}`,
       // If the mock is simpler, it might use queryPath if stat(queryPath) succeeds.
       // The most important part is that *some* version of the path that leads to the content is used.
       // Let's assume it uses the path from the query if stat confirms it exists (even if different case on disk)
-      { paths: [queryPath] },
+      { paths: [queryPath], respectGitIgnore: true },
       abortController.signal,
     );
     expect(mockAddItem).toHaveBeenCalledWith(
