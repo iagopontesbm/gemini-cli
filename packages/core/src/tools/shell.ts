@@ -35,10 +35,10 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
 
   constructor(private readonly config: Config) {
     const toolDisplayName = 'Shell';
-    
+
     let toolDescription: string;
-    let toolParameterSchema: any;
-    
+    let toolParameterSchema: object;
+
     try {
       const descriptionUrl = new URL('shell.md', import.meta.url);
       toolDescription = fs.readFileSync(descriptionUrl, 'utf-8');
@@ -52,12 +52,12 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
         properties: {
           command: { type: 'string', description: 'Command to execute' },
           description: { type: 'string', description: 'Command description' },
-          directory: { type: 'string', description: 'Working directory' }
+          directory: { type: 'string', description: 'Working directory' },
         },
-        required: ['command']
+        required: ['command'],
       };
     }
-    
+
     super(
       ShellTool.Name,
       toolDisplayName,
