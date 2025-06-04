@@ -1,6 +1,6 @@
 # Gemini CLI Architecture Overview
 
-This document provides a high-level overview of the Gemini CLI\'s architecture. Understanding the main components and their interactions can be helpful for both users and developers.
+This document provides a high-level overview of the Gemini CLI's architecture. Understanding the main components and their interactions can be helpful for both users and developers.
 
 ## Core Components
 
@@ -37,7 +37,7 @@ A typical interaction with the Gemini CLI follows this general flow:
 
 1.  **User Input:** The user types a prompt or command into the CLI (`packages/cli`).
 2.  **Request to Core:** The CLI package sends the user's input to the Core package (`packages/core`).
-3.  **Core Processes Request:** The `packages/core` package:
+3.  **Core Processes Request:** The Core package:
     - Constructs an appropriate prompt for the Gemini API, possibly including conversation history and available tool definitions.
     - Sends the prompt to the Gemini API.
 4.  **Gemini API Response:** The Gemini API processes the prompt and returns a response. This response might be a direct answer or a request to use one of the available tools.
@@ -55,15 +55,15 @@ A typical interaction with the Gemini CLI follows this general flow:
 
 ```mermaid
 graph TD
-    User[User via Terminal] -- Input --> CLI["packages/cli"]
-    CLI -- Request --> Core["packages/core"]
-    Core -- Prompt/Tool Info --> GeminiAPI[Gemini API]
-    GeminiAPI -- Response/Tool Call --> Core
-    Core -- Tool Details --> CLI
-    CLI -- User Confirms --> Core
-    Core -- Execute Tool --> Tools[Tools e.g., read_file, shell]
-    Tools -- Tool Result --> Core
-    Core -- Final Response --> CLI
+    User[User via Terminal] -- Input --> CLI[packages/cli]
+    CLI -- Request --> Core[packages/core]
+    Core -- Prompt/ToolInfo --> GeminiAPI[Gemini API]
+    GeminiAPI -- Response/ToolCall --> Core
+    Core -- ToolDetails --> CLI
+    CLI -- UserConfirms --> Core
+    Core -- ExecuteTool --> Tools[Tools e.g., read_file, shell]
+    Tools -- ToolResult --> Core
+    Core -- FinalResponse --> CLI
     CLI -- Output --> User
 
     classDef userStyle fill:#FFFFFF,stroke:#333333,stroke-width:2px
