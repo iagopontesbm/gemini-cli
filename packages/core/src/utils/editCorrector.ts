@@ -102,7 +102,11 @@ export async function ensureCorrectEdit(
     // If user expects multiple replacements, return as-is
     if (occurrences === expectedReplacements) {
       const result: CorrectedEditResult = {
-        params: { ...originalParams },
+        params: {
+          file_path: originalParams.file_path,
+          old_string: originalParams.old_string!,
+          new_string: originalParams.new_string!,
+        },
         occurrences,
       };
       editCorrectionCache.set(cacheKey, result);
@@ -112,7 +116,11 @@ export async function ensureCorrectEdit(
     // If user expects 1 but found multiple, try to correct (existing behavior)
     if (expectedReplacements === 1) {
       const result: CorrectedEditResult = {
-        params: { ...originalParams },
+        params: {
+          file_path: originalParams.file_path,
+          old_string: originalParams.old_string!,
+          new_string: originalParams.new_string!,
+        },
         occurrences,
       };
       editCorrectionCache.set(cacheKey, result);

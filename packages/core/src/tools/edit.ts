@@ -22,6 +22,7 @@ import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
+import { ReadFileTool } from './read-file.js';
 
 /**
  * Parameters for the Edit tool
@@ -104,7 +105,7 @@ export class EditTool extends BaseTool<EditToolParams, EditResult> {
     super(
       EditTool.Name,
       'EditFile',
-      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when \`expected_replacements\` is specified. This tool also supports batch editing with multiple edits in a single operation. Requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool} tool to examine the file's current content before attempting a text replacement.
+      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when \`expected_replacements\` is specified. This tool also supports batch editing with multiple edits in a single operation. Requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool.Name} tool to examine the file's current content before attempting a text replacement.
 
 Expectation for required parameters:
 1. \`file_path\` MUST be an absolute path; otherwise an error will be thrown.
@@ -297,6 +298,7 @@ Expectation for required parameters:
     // Read current file content or determine if this is a new file
     let currentContent: string | null = null;
     let fileExists = false;
+    let isNewFile = false;
 
     try {
       currentContent = fs.readFileSync(params.file_path, 'utf8');

@@ -622,7 +622,7 @@ describe('EditTool', () => {
         mode: 'create',
       };
 
-      const error = tool.validateParams(validParams);
+      const error = tool.validateToolParams(validParams);
       expect(error).toBeNull();
 
       const invalidParams: EditToolParams = {
