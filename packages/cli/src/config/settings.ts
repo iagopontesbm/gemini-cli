@@ -37,6 +37,7 @@ export interface Settings {
   contextFileName?: string;
   title?: string;
   accessibility?: AccessibilitySettings;
+  telemetry?: boolean;
 
   // Git-aware file filtering settings
   fileFiltering?: {

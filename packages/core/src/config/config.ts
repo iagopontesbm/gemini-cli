@@ -71,6 +71,7 @@ export interface ConfigParameters {
   showMemoryUsage?: boolean;
   contextFileName?: string;
   accessibility?: AccessibilitySettings;
+  telemetry?: boolean;
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
 }
@@ -96,6 +97,7 @@ export class Config {
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
+  private readonly telemetry: boolean;
   private readonly geminiClient: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
@@ -121,6 +123,7 @@ export class Config {
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
+    this.telemetry = params.telemetry ?? false;
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringAllowBuildArtifacts =
@@ -223,6 +226,10 @@ export class Config {
 
   getAccessibility(): AccessibilitySettings {
     return this.accessibility;
+  }
+
+  getTelemetry(): boolean {
+    return this.telemetry;
   }
 
   getGeminiClient(): GeminiClient {
