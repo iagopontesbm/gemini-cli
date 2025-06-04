@@ -169,7 +169,7 @@ describe('Server Config (config.ts)', () => {
       telemetry: true,
     };
     const config = new Config(paramsWithTelemetry);
-    expect(config.getTelemetry()).toBe(true);
+    expect(config.getTelemetryEnabled()).toBe(true);
   });
 
   it('Config constructor should set telemetry to false when provided as false', () => {
@@ -178,14 +178,14 @@ describe('Server Config (config.ts)', () => {
       telemetry: false,
     };
     const config = new Config(paramsWithTelemetry);
-    expect(config.getTelemetry()).toBe(false);
+    expect(config.getTelemetryEnabled()).toBe(false);
   });
 
   it('Config constructor should default telemetry to default value if not provided', () => {
     const paramsWithoutTelemetry: ConfigParameters = { ...baseParams };
     delete paramsWithoutTelemetry.telemetry;
     const config = new Config(paramsWithoutTelemetry);
-    expect(config.getTelemetry()).toBe(TELEMETRY);
+    expect(config.getTelemetryEnabled()).toBe(TELEMETRY);
   });
 
   it('createServerConfig should pass telemetry to Config constructor when true', () => {
@@ -194,7 +194,7 @@ describe('Server Config (config.ts)', () => {
       telemetry: true,
     };
     const config = createServerConfig(paramsWithTelemetry);
-    expect(config.getTelemetry()).toBe(true);
+    expect(config.getTelemetryEnabled()).toBe(true);
   });
 
   it('createServerConfig should pass telemetry to Config constructor when false', () => {
@@ -203,14 +203,14 @@ describe('Server Config (config.ts)', () => {
       telemetry: false,
     };
     const config = createServerConfig(paramsWithTelemetry);
-    expect(config.getTelemetry()).toBe(false);
+    expect(config.getTelemetryEnabled()).toBe(false);
   });
 
   it('createServerConfig should default telemetry (to false via Config constructor) if omitted', () => {
     const paramsWithoutTelemetry: ConfigParameters = { ...baseParams };
     delete paramsWithoutTelemetry.telemetry;
     const config = createServerConfig(paramsWithoutTelemetry);
-    expect(config.getTelemetry()).toBe(TELEMETRY);
+    expect(config.getTelemetryEnabled()).toBe(TELEMETRY);
   });
 
   it('should have a getFileService method that returns FileDiscoveryService', async () => {

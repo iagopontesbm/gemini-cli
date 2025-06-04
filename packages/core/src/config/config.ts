@@ -24,6 +24,7 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { initializeTelemetry } from '../telemetry/telemetry.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -72,6 +73,7 @@ export interface ConfigParameters {
   contextFileName?: string;
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
+  telemetryLogUserPromptsEnabled?: boolean;
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
 }
@@ -98,6 +100,8 @@ export class Config {
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetry: boolean;
+  private readonly telemetryLogUserPromptsEnabled: boolean;
+  private readonly telemetryOtlpEndpoint: string;
   private readonly geminiClient: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
@@ -124,6 +128,10 @@ export class Config {
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
     this.telemetry = params.telemetry ?? false;
+    this.telemetryLogUserPromptsEnabled =
+      params.telemetryLogUserPromptsEnabled ?? true;
+    this.telemetryOtlpEndpoint =
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4317';
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringAllowBuildArtifacts =
@@ -135,6 +143,10 @@ export class Config {
 
     this.toolRegistry = createToolRegistry(this);
     this.geminiClient = new GeminiClient(this);
+
+    if (this.telemetry) {
+      initializeTelemetry(this);
+    }
   }
 
   getApiKey(): string {
@@ -228,8 +240,16 @@ export class Config {
     return this.accessibility;
   }
 
-  getTelemetry(): boolean {
+  getTelemetryEnabled(): boolean {
     return this.telemetry;
+  }
+
+  getTelemetryLogUserPromptsEnabled(): boolean {
+    return this.telemetryLogUserPromptsEnabled;
+  }
+
+  getTelemetryOtlpEndpoint(): string {
+    return this.telemetryOtlpEndpoint;
   }
 
   getGeminiClient(): GeminiClient {
