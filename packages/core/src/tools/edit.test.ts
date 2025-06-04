@@ -496,7 +496,7 @@ describe('EditTool', () => {
       expect(result.editsAttempted).toBe(1);
       expect(result.editsFailed).toBe(1);
       expect(result.failedEdits).toHaveLength(1);
-      expect(result.failedEdits![0].error).toMatch(/Multiple occurrences/);
+      expect(result.failedEdits![0].error).toMatch(/Expected 1 occurrences but found 2/);
     });
 
     it('should successfully replace multiple occurrences when expected_replacements specified', async () => {
@@ -515,7 +515,7 @@ describe('EditTool', () => {
 
       (tool as any).shouldAlwaysEdit = false; // Reset for other tests
 
-      expect(result.llmContent).toMatch(/Successfully modified file/);
+      expect(result.llmContent).toMatch(/Successfully applied 1\/1 edits/);
       expect(fs.readFileSync(filePath, 'utf8')).toBe(
         'new text new text new text',
       );
@@ -535,10 +535,10 @@ describe('EditTool', () => {
       };
       const result = await tool.execute(params, new AbortController().signal);
       expect(result.llmContent).toMatch(
-        /Expected 3 occurrences but found 2 for old_string in file/,
+        /Failed to apply any edits.*Expected 3 occurrences but found 2/,
       );
       expect(result.returnDisplay).toMatch(
-        /Failed to edit, expected 3 occurrence\(s\) but found 2/,
+        /No edits applied/,
       );
     });
 
@@ -651,10 +651,7 @@ describe('EditTool', () => {
       };
 
       const result = await tool.execute(params, new AbortController().signal);
-      expect(result.llmContent).toMatch(/No edits were applied/);
-      expect(result.llmContent).toMatch(
-        /File creation requires exactly one edit with old_string: "". Multiple edits are not allowed for file creation/,
-      );
+      expect(result.llmContent).toMatch(/Error executing edits: File does not exist/);
 
       // File should still not exist
       expect(fs.existsSync(filePath)).toBe(false);
@@ -689,11 +686,9 @@ describe('EditTool', () => {
       };
 
       const result = await tool.execute(params, new AbortController().signal);
-      expect(result.llmContent).toMatch(/Successfully modified file/);
-      // Only 2 edits succeed - this is correct deterministic behavior
-      expect(result.llmContent).toMatch(/2 of 3 edits applied/);
+      expect(result.llmContent).toMatch(/Successfully applied 2\/3 edits/);
       expect(result.llmContent).toMatch(
-        /Failed edits.*Old string found multiple times/,
+        /Failed edits.*Expected 1 occurrences but found 2/,
       );
 
       // Verify what edits were actually applied (based on position-based processing)
@@ -732,8 +727,7 @@ function makeRequest() {
       };
 
       const result = await tool.execute(params, new AbortController().signal);
-      expect(result.llmContent).toMatch(/Successfully modified file/);
-      expect(result.llmContent).toMatch(/3 of 3 edits applied/);
+      expect(result.llmContent).toMatch(/Successfully applied 3\/3 edits/);
 
       // All edits should succeed because they don't conflict
       const finalContent = fs.readFileSync(filePath, 'utf8');
