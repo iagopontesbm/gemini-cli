@@ -70,4 +70,4 @@ While direct programmatic registration of new tools by users isn't explicitly de
   \
 - **MCP Server(s):** For more complex scenarios, one or more MCP servers can be set up and configured via the `mcpServers` setting in `settings.json`. The Gemini CLI core can then discover and use tools exposed by these servers. As mentioned, if you have multiple MCP servers, the tool names will be prefixed with the server name from your configuration (e.g., `serverAlias__actualToolName`).
 
-This tool system provides a flexible and powerful way to augment the Gemini model\'s capabilities, making the Gemini CLI a versatile assistant for a wide range of tasks.
+This tool system provides a flexible and powerful way to augment the Gemini model's capabilities, making the Gemini CLI a versatile assistant for a wide range of tasks.
