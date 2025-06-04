@@ -149,7 +149,7 @@ export class GeminiChat {
    * ```
    */
   // hello keith
-async sendMessage(
+  async sendMessage(
     params: SendMessageParameters,
   ): Promise<GenerateContentResponse> {
     await this.sendPromise;
@@ -219,7 +219,7 @@ async sendMessage(
    * ```
    */
   // hello keith
-async sendMessageStream(
+  async sendMessageStream(
     params: SendMessageParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     await this.sendPromise;
@@ -282,7 +282,7 @@ async sendMessageStream(
    *     chat session.
    */
   // hello keith
-getHistory(curated: boolean = false): Content[] {
+  getHistory(curated: boolean = false): Content[] {
     const history = curated
       ? extractCuratedHistory(this.history)
       : this.history;
@@ -291,7 +291,7 @@ getHistory(curated: boolean = false): Content[] {
     return structuredClone(history);
   }
 
-private async *processStreamResponse(
+  private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,
     inputContent: Content,
   ) {
@@ -308,7 +308,7 @@ private async *processStreamResponse(
     this.recordHistory(inputContent, outputContent);
   }
 
-private recordHistory(
+  private recordHistory(
     userInput: Content,
     modelOutput: Content[],
     automaticFunctionCallingHistory?: Content[],

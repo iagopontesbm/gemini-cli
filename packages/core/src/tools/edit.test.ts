@@ -575,7 +575,9 @@ describe('EditTool', () => {
       expect(result.editsFailed).toBe(0);
 
       const writtenContent = fs.readFileSync(filePath, 'utf8');
-      expect(writtenContent).toBe('This is the initial content of the file.\nSecond line here.');
+      expect(writtenContent).toBe(
+        'This is the initial content of the file.\nSecond line here.',
+      );
     });
 
     it('should overwrite file using content parameter', async () => {
@@ -639,19 +641,21 @@ describe('EditTool', () => {
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }
-      
+
       const params: EditToolParams = {
         file_path: filePath,
         edits: [
           { old_string: '', new_string: 'new content' },
-          { old_string: 'some text', new_string: 'replacement' }
+          { old_string: 'some text', new_string: 'replacement' },
         ],
       };
 
       const result = await tool.execute(params, new AbortController().signal);
       expect(result.llmContent).toMatch(/No edits were applied/);
-      expect(result.llmContent).toMatch(/File creation requires exactly one edit with old_string: "". Multiple edits are not allowed for file creation/);
-      
+      expect(result.llmContent).toMatch(
+        /File creation requires exactly one edit with old_string: "". Multiple edits are not allowed for file creation/,
+      );
+
       // File should still not exist
       expect(fs.existsSync(filePath)).toBe(false);
     });
@@ -665,16 +669,22 @@ describe('EditTool', () => {
 }`;
 
       fs.writeFileSync(filePath, originalContent);
-      
+
       const params: EditToolParams = {
         file_path: filePath,
         edits: [
           // This edit will succeed - userData appears exactly once
-          { old_string: "userData", new_string: "userInfo" },
+          { old_string: 'userData', new_string: 'userInfo' },
           // This edit will fail - after first edit, this exact string no longer exists
-          { old_string: "const userName = userData.name;", new_string: "const displayName = userInfo.name;" },
+          {
+            old_string: 'const userName = userData.name;',
+            new_string: 'const displayName = userInfo.name;',
+          },
           // These demonstrate that dependent edits fail when context changes
-          { old_string: "console.log('Processing user:', userName);", new_string: "console.log('Processing user:', displayName);" }
+          {
+            old_string: "console.log('Processing user:', userName);",
+            new_string: "console.log('Processing user:', displayName);",
+          },
         ],
       };
 
@@ -682,8 +692,10 @@ describe('EditTool', () => {
       expect(result.llmContent).toMatch(/Successfully modified file/);
       // Only 2 edits succeed - this is correct deterministic behavior
       expect(result.llmContent).toMatch(/2 of 3 edits applied/);
-      expect(result.llmContent).toMatch(/Failed edits.*Old string found multiple times/);
-      
+      expect(result.llmContent).toMatch(
+        /Failed edits.*Old string found multiple times/,
+      );
+
       // Verify what edits were actually applied (based on position-based processing)
       const finalContent = fs.readFileSync(filePath, 'utf8');
       // Check that the content changed in some way (deterministic behavior test)
@@ -705,21 +717,24 @@ function makeRequest() {
 }`;
 
       fs.writeFileSync(filePath, originalContent);
-      
+
       const params: EditToolParams = {
         file_path: filePath,
         edits: [
           // These edits don't interfere with each other
-          { old_string: "apiUrl: 'https://api.old.com'", new_string: "apiUrl: 'https://api.new.com'" },
-          { old_string: "timeout: 5000", new_string: "timeout: 10000" },
-          { old_string: "retries: 3", new_string: "retries: 5" }
+          {
+            old_string: "apiUrl: 'https://api.old.com'",
+            new_string: "apiUrl: 'https://api.new.com'",
+          },
+          { old_string: 'timeout: 5000', new_string: 'timeout: 10000' },
+          { old_string: 'retries: 3', new_string: 'retries: 5' },
         ],
       };
 
       const result = await tool.execute(params, new AbortController().signal);
       expect(result.llmContent).toMatch(/Successfully modified file/);
       expect(result.llmContent).toMatch(/3 of 3 edits applied/);
-      
+
       // All edits should succeed because they don't conflict
       const finalContent = fs.readFileSync(filePath, 'utf8');
       const expectedContent = `const config = {
@@ -731,7 +746,7 @@ function makeRequest() {
 function makeRequest() {
   return fetch(config.apiUrl);
 }`;
-      
+
       expect(finalContent).toBe(expectedContent);
     });
   });

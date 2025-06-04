@@ -21,7 +21,6 @@ vi.mock('../tools/shell', () => ({
   ShellTool: { Name: 'execute_bash_command' },
 }));
 
-
 describe('Core System Prompt (prompts.ts)', () => {
   // Store original env vars that we modify
   let originalSandboxEnv: string | undefined;
