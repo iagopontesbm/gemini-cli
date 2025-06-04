@@ -11,6 +11,7 @@ import os from 'os';
 import pathMod from 'path';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import stringWidth from 'string-width';
+import { unescapePath } from '@gemini-code/core';
 
 export type Direction =
   | 'left'
@@ -85,6 +86,7 @@ interface UseTextBufferProps {
   stdin?: NodeJS.ReadStream | null; // For external editor
   setRawMode?: (mode: boolean) => void; // For external editor
   onChange?: (text: string) => void; // Callback for when text changes
+  isValidPath: (path: string) => boolean;
 }
 
 interface UndoHistoryEntry {
@@ -392,6 +394,7 @@ export function useTextBuffer({
   stdin,
   setRawMode,
   onChange,
+  isValidPath,
 }: UseTextBufferProps): TextBuffer {
   const [lines, setLines] = useState<string[]>(() => {
     const l = initialText.split('\n');
@@ -561,6 +564,20 @@ export function useTextBuffer({
       }
       dbg('insert', { ch, beforeCursor: [cursorRow, cursorCol] });
       pushUndo();
+
+      if (ch.length > 2) {
+        // Possible drag and drop of a file path.
+        let potentialPath = ch;
+        if (ch.startsWith("'") && ch.endsWith("'")) {
+          potentialPath = ch.slice(1, -1);
+        }
+
+        // Be conservative and only add an @ if the path is valid.
+        if (isValidPath(unescapePath(potentialPath).trim())) {
+          ch = `@${potentialPath}`;
+        }
+      }
+
       setLines((prevLines) => {
         const newLines = [...prevLines];
         const lineContent = currentLine(cursorRow);
@@ -573,7 +590,15 @@ export function useTextBuffer({
       setCursorCol((prev) => prev + cpLen(ch)); // Use cpLen for character length
       setPreferredCol(null);
     },
-    [pushUndo, cursorRow, cursorCol, currentLine, insertStr, setPreferredCol],
+    [
+      pushUndo,
+      cursorRow,
+      cursorCol,
+      currentLine,
+      insertStr,
+      setPreferredCol,
+      isValidPath,
+    ],
   );
 
   const newline = useCallback((): void => {
