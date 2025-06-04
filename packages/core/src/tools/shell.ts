@@ -37,7 +37,7 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
     const toolDisplayName = 'Shell';
 
     let toolDescription: string;
-    let toolParameterSchema: object;
+    let toolParameterSchema: Record<string, unknown>;
 
     try {
       const descriptionUrl = new URL('shell.md', import.meta.url);
