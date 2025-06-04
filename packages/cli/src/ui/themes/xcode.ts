@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { lightTheme, Theme } from './theme.js';
+import { lightTheme, Theme, type ColorsTheme } from './theme.js';
+
+const xcodeColors: ColorsTheme = {
+  type: 'light',
+  Background: '#fff',
+  Foreground: 'black',
+  LightBlue: '#0E0EFF', // From hljs-regexp, hljs-link
+  AccentBlue: '#1c00cf', // From hljs-title, hljs-symbol, hljs-number
+  AccentPurple: '#aa0d91', // From hljs-tag, hljs-keyword, etc.
+  AccentCyan: '#3F6E74', // From hljs-variable (a dark teal)
+  AccentGreen: '#007400', // From hljs-comment
+  AccentYellow: '#836C28', // From hljs-attr (a brownish yellow)
+  AccentRed: '#c41a16', // From hljs-code, hljs-string
+  SubtleComment: '#007400', // From hljs-comment
+  Gray: '#c0c0c0', // From xml .hljs-meta
+  GradientColors: lightTheme.GradientColors, // Fallback
+};
 
 export const XCode: Theme = new Theme(
   'XCode',
@@ -130,5 +146,5 @@ export const XCode: Theme = new Theme(
       fontStyle: 'italic',
     },
   },
-  lightTheme,
+  xcodeColors,
 );

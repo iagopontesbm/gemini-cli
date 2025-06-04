@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { lightTheme, Theme } from './theme.js';
+import { lightTheme, Theme, type ColorsTheme } from './theme.js';
+
+const googleCodeColors: ColorsTheme = {
+  type: 'light',
+  Background: 'white',
+  Foreground: 'black',
+  LightBlue: '#066', // From hljs-literal, hljs-symbol, hljs-number, hljs-link, hljs-meta
+  AccentBlue: '#008', // From hljs-keyword, hljs-selector-tag, hljs-name
+  AccentPurple: '#606', // From hljs-title, hljs-doctag, hljs-type, hljs-attr
+  AccentCyan: '#066', // Re-using LightBlue as a cyan placeholder
+  AccentGreen: '#080', // From hljs-string, hljs-selector-attr, hljs-regexp
+  AccentYellow: '#660', // From hljs-variable, hljs-template-variable
+  AccentRed: '#800', // From hljs-comment, hljs-quote
+  SubtleComment: '#5f6368', // From hljs-comment
+  Gray: lightTheme.Gray, // Fallback
+  GradientColors: lightTheme.GradientColors, // Fallback
+};
 
 export const GoogleCode: Theme = new Theme(
   'Google Code',
@@ -122,5 +138,5 @@ export const GoogleCode: Theme = new Theme(
       fontStyle: 'italic',
     },
   },
-  lightTheme,
+  googleCodeColors,
 );

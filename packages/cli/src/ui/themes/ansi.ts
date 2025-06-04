@@ -4,11 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { darkTheme, Theme } from './theme.js';
+import { darkTheme, Theme, type ColorsTheme } from './theme.js';
+
+const ansiColors: ColorsTheme = {
+  type: 'dark', // Or 'ansi' if we want to treat it differently, but its colors are dark-bg based
+  Background: 'black',
+  Foreground: 'white',
+  LightBlue: 'bluebright', // From hljs-attr
+  AccentBlue: 'blue', // From hljs-keyword
+  AccentPurple: 'magenta', // From hljs-variable
+  AccentCyan: 'cyan', // From hljs-built_in
+  AccentGreen: 'green', // From hljs-number
+  AccentYellow: 'yellow', // From hljs-string, hljs-section etc.
+  AccentRed: 'red', // From hljs-regexp
+  SubtleComment: 'green', // From hljs-comment (though green is also number, it's the closest)
+  Gray: 'gray',
+  GradientColors: darkTheme.GradientColors, // Fallback
+};
 
 export const ANSI: Theme = new Theme(
   'ANSI',
-  'dark',
+  'dark', // Consistent with its color palette base
   {
     hljs: {
       display: 'block',
@@ -135,5 +151,5 @@ export const ANSI: Theme = new Theme(
       color: 'yellow', // Mapped from #D7BA7D
     },
   },
-  darkTheme,
+  ansiColors,
 );

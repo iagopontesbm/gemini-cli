@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { darkTheme, Theme } from './theme.js';
+import { darkTheme, Theme, type ColorsTheme } from './theme.js';
+
+const ayuDarkColors: ColorsTheme = {
+  type: 'dark',
+  Background: '#0b0e14',
+  Foreground: '#bfbdb6',
+  LightBlue: '#59C2FF', // From hljs-name
+  AccentBlue: '#39BAE6', // From hljs-link, hljs-type
+  AccentPurple: '#D2A6FF', // From hljs-literal
+  AccentCyan: '#95E6CB', // From hljs-symbol, hljs-quote
+  AccentGreen: '#AAD94C', // From hljs-string
+  AccentYellow: '#FFB454', // From hljs-title, hljs-attribute, hljs-bullet
+  AccentRed: '#F26D78', // From hljs-deletion
+  SubtleComment: '#ACB6BF8C', // From hljs-comment
+  Gray: '#ACB6BF8C', // Using comment color as gray
+  GradientColors: darkTheme.GradientColors, // Fallback
+};
 
 export const AyuDark: Theme = new Theme(
   'Ayu',
@@ -89,5 +105,5 @@ export const AyuDark: Theme = new Theme(
       fontStyle: 'italic',
     },
   },
-  darkTheme,
+  ayuDarkColors,
 );

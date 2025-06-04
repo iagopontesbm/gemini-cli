@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { lightTheme, Theme } from './theme.js';
+import { lightTheme, Theme, type ColorsTheme } from './theme.js';
+
+const githubLightColors: ColorsTheme = {
+  type: 'light',
+  Background: '#f8f8f8',
+  Foreground: '#24292E',
+  LightBlue: '#0086b3', // From hljs-built_in
+  AccentBlue: '#458', // From hljs-type (a darker blue)
+  AccentPurple: '#900', // From hljs-title, hljs-section (more of a dark red/maroon)
+  AccentCyan: '#009926', // From hljs-regexp, hljs-link (a green, but used as cyan placeholder)
+  AccentGreen: '#008080', // From hljs-number, hljs-literal (teal/dark green)
+  AccentYellow: '#990073', // From hljs-symbol (magenta, used as yellow placeholder)
+  AccentRed: '#d14', // From hljs-string
+  SubtleComment: '#998', // From hljs-comment
+  Gray: '#999', // From hljs-meta
+  GradientColors: lightTheme.GradientColors, // Fallback
+};
 
 export const GitHubLight: Theme = new Theme(
   'GitHub Light',
@@ -125,5 +141,5 @@ export const GitHubLight: Theme = new Theme(
       fontWeight: 'bold',
     },
   },
-  lightTheme,
+  githubLightColors,
 );

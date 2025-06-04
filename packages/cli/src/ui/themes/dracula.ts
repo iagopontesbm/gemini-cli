@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { darkTheme, Theme } from './theme.js';
+import { Theme, type ColorsTheme } from './theme.js';
+
+const draculaColors: ColorsTheme = {
+  type: 'dark',
+  Background: '#282a36',
+  Foreground: '#f8f8f2',
+  LightBlue: '#8be9fd', // From hljs-keyword, etc.
+  AccentBlue: '#8be9fd', // From hljs-keyword, etc.
+  AccentPurple: '#ff79c6', // From hljs-function .hljs-keyword
+  AccentCyan: '#8be9fd', // Re-using LightBlue as primary cyan
+  AccentGreen: '#50fa7b', // A common Dracula green, not directly in syntax but fits
+  AccentYellow: '#f1fa8c', // From hljs-string, hljs-title, etc.
+  AccentRed: '#ff5555', // A common Dracula red, not directly in syntax but fits
+  SubtleComment: '#6272a4', // From hljs-comment
+  Gray: '#6272a4', // Using comment color as gray
+  GradientColors: ['#ff79c6', '#bd93f9', '#8be9fd'], // Dracula-themed gradient
+};
 
 export const Dracula: Theme = new Theme(
   'Dracula',
@@ -100,5 +116,5 @@ export const Dracula: Theme = new Theme(
       fontStyle: 'italic',
     },
   },
-  darkTheme,
+  draculaColors,
 );

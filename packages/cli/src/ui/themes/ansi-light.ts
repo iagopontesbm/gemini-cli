@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { lightTheme, Theme } from './theme.js';
+import { lightTheme, Theme, type ColorsTheme } from './theme.js';
+
+const ansiLightColors: ColorsTheme = {
+  type: 'light',
+  Background: 'white',
+  Foreground: 'black',
+  LightBlue: 'blue', // From hljs-keyword, etc.
+  AccentBlue: 'blue', // From hljs-keyword, etc.
+  AccentPurple: 'purple', // From hljs-variable
+  AccentCyan: 'cyan', // From hljs-built_in
+  AccentGreen: 'green', // From hljs-number
+  AccentYellow: 'orange', // From hljs-section (closest to yellow)
+  AccentRed: 'red', // From hljs-string
+  SubtleComment: 'gray', // From hljs-comment
+  Gray: 'gray',
+  GradientColors: lightTheme.GradientColors,
+};
 
 export const ANSILight: Theme = new Theme(
   'ANSI Light',
@@ -126,5 +142,5 @@ export const ANSILight: Theme = new Theme(
       color: 'orange',
     },
   },
-  lightTheme,
+  ansiLightColors,
 );

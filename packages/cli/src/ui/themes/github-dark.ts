@@ -4,7 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { darkTheme, Theme } from './theme.js';
+import { darkTheme, Theme, type ColorsTheme } from './theme.js';
+
+const githubDarkColors: ColorsTheme = {
+  type: 'dark',
+  Background: '#24292e',
+  Foreground: '#d1d5da',
+  LightBlue: '#79B8FF', // From hljs-number, hljs-literal, hljs-built_in, hljs-meta
+  AccentBlue: '#79B8FF', // Consistent with LightBlue as it's a prominent blue
+  AccentPurple: '#B392F0', // From hljs-title, hljs-section, hljs-selector-id
+  AccentCyan: '#9ECBFF', // From hljs-string, hljs-doctag
+  AccentGreen: '#85E89D', // From hljs-type, hljs-class .hljs-title, hljs-tag, hljs-name
+  AccentYellow: '#FFAB70', // From hljs-variable, hljs-template-variable, hljs-tag .hljs-attr
+  AccentRed: '#F97583', // From hljs-keyword, hljs-selector-tag
+  SubtleComment: '#6A737D', // From hljs-comment
+  Gray: '#6A737D', // Using comment color as gray
+  GradientColors: darkTheme.GradientColors, // Fallback
+};
 
 export const GitHubDark: Theme = new Theme(
   'GitHub',
@@ -93,7 +109,7 @@ export const GitHubDark: Theme = new Theme(
       color: '#DBEDFF',
     },
     'hljs-symbol': {
-      color: '#990073',
+      color: '#990073', // This is a dark pink/magenta, might need adjustment if too dark for AccentPurple
     },
     'hljs-bullet': {
       color: '#990073',
@@ -123,5 +139,5 @@ export const GitHubDark: Theme = new Theme(
       fontWeight: 'bold',
     },
   },
-  darkTheme,
+  githubDarkColors,
 );
