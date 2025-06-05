@@ -29,20 +29,19 @@ let actualFs: typeof import('node:fs');
 
 describe('loadGeminiIgnorePatterns', () => {
   let tempDir: string;
-  let consoleLogSpy: Mock<(...args: any[]) => void>; 
-  let consoleWarnSpy: Mock<(...args: any[]) => void>;
+  let consoleLogSpy: Mock<(message?: unknown, ...optionalParams: unknown[]) => void>; 
+  let consoleWarnSpy: Mock<(message?: unknown, ...optionalParams: unknown[]) => void>;
 
   beforeAll(async () => {
     actualFs = await vi.importActual<typeof import('node:fs')>('node:fs');
     const mockedFsModule = await import('node:fs');
-    // Cast to unknown first to satisfy TypeScript when assigning the vi.fn() instance
     mockedFsReadFileSync = mockedFsModule.readFileSync as unknown as ReadFileSyncMockType;
   });
 
   beforeEach(() => {
     tempDir = actualFs.mkdtempSync(path.join(os.tmpdir(), 'gemini-ignore-test-'));
-    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {}) as Mock<(...args: any[]) => void>;
-    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}) as Mock<(...args: any[]) => void>;
+    consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {}) as Mock<(message?: unknown, ...optionalParams: unknown[]) => void>;
+    consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {}) as Mock<(message?: unknown, ...optionalParams: unknown[]) => void>;
     mockedFsReadFileSync.mockReset(); 
   });
 
