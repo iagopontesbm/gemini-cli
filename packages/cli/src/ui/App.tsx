@@ -337,7 +337,7 @@ export const App = ({
           key={staticKey}
           items={[
             <Box flexDirection="column" key="header">
-              <Header title={process.env.GEMINI_CLI_TITLE}/>
+              <Header title={process.env.GEMINI_CLI_TITLE} />
               <Tips config={config} />
             </Box>,
             ...history.map((h) => (

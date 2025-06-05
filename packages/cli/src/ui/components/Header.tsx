@@ -23,7 +23,6 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ title = asciiArtLogo }) => (
-
   <>
     <Box marginBottom={1} alignItems="flex-start">
       {Colors.GradientColors ? (
