@@ -47,8 +47,10 @@ vi.mock('tree-sitter-java', () => ({ default: mockJavaGrammar }));
 vi.mock('tree-sitter-go', () => ({ default: mockGoGrammar }));
 vi.mock('tree-sitter-c-sharp', () => ({ default: mockCSharpGrammar }));
 vi.mock('tree-sitter-typescript', () => ({
-  typescript: mockTypeScriptGrammar,
-  tsx: mockTSXGrammar,
+  default: {
+    typescript: mockTypeScriptGrammar,
+    tsx: mockTSXGrammar,
+  },
 }));
 
 describe('CodeParserTool', () => {
