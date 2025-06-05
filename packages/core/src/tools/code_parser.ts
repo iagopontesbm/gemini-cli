@@ -9,6 +9,7 @@ import Python from 'tree-sitter-python';
 import Java from 'tree-sitter-java';
 import Go from 'tree-sitter-go';
 import CSharp from 'tree-sitter-c-sharp';
+import { typescript, tsx } from 'tree-sitter-typescript';
 import fs from 'fs/promises';
 import path from 'path';
 import { BaseTool, ToolResult, ToolCallConfirmationDetails } from './tools.js';
@@ -55,7 +56,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
           languages: {
             type: 'array',
             description:
-              'Optional: specific languages to parse (e.g., ["python", "java", "go", "csharp"]). Defaults to supported languages.',
+              'Optional: specific languages to parse (e.g., ["python", "java", "go", "csharp", "typescript", "tsx", "javascript"]). Defaults to supported languages.',
             items: {
               type: 'string',
             },
@@ -92,7 +93,12 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return Go;
       case 'csharp':
         return CSharp;
-      // TODO: Add more languages here as needed and ensure they are added to package.json
+      case 'typescript':
+        return typescript;
+      case 'tsx':
+        return tsx;
+      case 'javascript': // Use TypeScript parser for JS as it handles modern JS well
+        return typescript;
       default:
         console.warn(
           `Language '${language}' is not supported by the CodeParserTool.`,
@@ -199,6 +205,18 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return 'go';
       case '.cs':
         return 'csharp';
+      case '.ts':
+        return 'typescript';
+      case '.tsx':
+        return 'tsx';
+      case '.js':
+        return 'javascript';
+      case '.jsx': // Treat jsx as tsx for parsing
+        return 'tsx';
+      case '.mjs':
+        return 'javascript';
+      case '.cjs':
+        return 'javascript';
       default:
         return undefined;
     }
@@ -233,7 +251,15 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
       );
     }
 
-    const defaultLanguages = ['python', 'java', 'go', 'csharp'];
+    const defaultLanguages = [
+      'python',
+      'java',
+      'go',
+      'csharp',
+      'typescript',
+      'tsx',
+      'javascript',
+    ];
     const languagesToParse = (
       params.languages && params.languages.length > 0
         ? params.languages

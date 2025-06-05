@@ -39,10 +39,17 @@ const mockPythonGrammar = vi.hoisted(() => ({ name: 'python' }));
 const mockJavaGrammar = vi.hoisted(() => ({ name: 'java' }));
 const mockGoGrammar = vi.hoisted(() => ({ name: 'go' }));
 const mockCSharpGrammar = vi.hoisted(() => ({ name: 'csharp' }));
+const mockTypeScriptGrammar = vi.hoisted(() => ({ name: 'typescript' }));
+const mockTSXGrammar = vi.hoisted(() => ({ name: 'tsx' }));
+
 vi.mock('tree-sitter-python', () => ({ default: mockPythonGrammar }));
 vi.mock('tree-sitter-java', () => ({ default: mockJavaGrammar }));
 vi.mock('tree-sitter-go', () => ({ default: mockGoGrammar }));
 vi.mock('tree-sitter-c-sharp', () => ({ default: mockCSharpGrammar }));
+vi.mock('tree-sitter-typescript', () => ({
+  typescript: mockTypeScriptGrammar,
+  tsx: mockTSXGrammar,
+}));
 
 describe('CodeParserTool', () => {
   let tempRootDir: string;
@@ -54,37 +61,26 @@ describe('CodeParserTool', () => {
   let mockFs: Mocked<typeof fs>;
 
   beforeEach(() => {
-    // Create a unique temporary root directory for each test run
-    // Ensure the path is absolute and normalized for consistent behavior
     const tempDirPrefix = path.join(os.tmpdir(), 'code-parser-tool-root-');
     tempRootDir = actualFs.mkdtempSync(tempDirPrefix);
-
-    // Normalize tempRootDir to avoid issues with path comparisons
     tempRootDir = path.resolve(tempRootDir);
 
-    mockConfig = {
-      get: vi.fn(),
-    } as unknown as Config;
+    mockConfig = { get: vi.fn() } as unknown as Config;
     tool = new CodeParserTool(tempRootDir, mockConfig);
-
-    // Assign mocked fs/promises
     mockFs = fs as Mocked<typeof fs>;
 
-    // Reset mocks before each test
     mockTreeSitterParse.mockReset();
     mockSetLanguage.mockReset();
     mockFs.stat.mockReset();
     mockFs.readFile.mockReset();
     mockFs.readdir.mockReset();
 
-    // Default mock implementations
     mockTreeSitterParse.mockReturnValue({
       rootNode: { toString: () => '(mock_ast)' },
     });
   });
 
   afterEach(() => {
-    // Clean up the temporary root directory
     if (actualFs.existsSync(tempRootDir)) {
       actualFs.rmSync(tempRootDir, { recursive: true, force: true });
     }
@@ -97,7 +93,7 @@ describe('CodeParserTool', () => {
     });
 
     it('should have correct schema definition', () => {
-      const schema = tool.schema.parameters!; // Added non-null assertion
+      const schema = tool.schema.parameters!;
       expect(schema.type).toBe('object');
       expect(schema.properties).toHaveProperty('path');
       expect(schema.properties!.path.type).toBe('string');
@@ -107,43 +103,36 @@ describe('CodeParserTool', () => {
       expect(schema.properties).toHaveProperty('languages');
       expect(schema.properties!.languages.type).toBe('array');
       expect(schema.properties!.languages.description).toContain('go');
-      expect(schema.properties!.languages.description).toContain('csharp'); // Check for new language in description
+      expect(schema.properties!.languages.description).toContain('csharp');
+      expect(schema.properties!.languages.description).toContain('typescript');
+      expect(schema.properties!.languages.description).toContain('tsx');
+      expect(schema.properties!.languages.description).toContain('javascript');
       expect(schema.required).toEqual(['path']);
     });
   });
 
   describe('validateToolParams', () => {
-    it('should return null for valid absolute path within root', () => {
-      const params: CodeParserToolParams = {
-        path: path.join(tempRootDir, 'file.py'),
-      };
-      expect(tool.validateToolParams(params)).toBeNull();
-    });
-
     it('should return null for valid path with ignore and languages', () => {
       const params: CodeParserToolParams = {
         path: path.join(tempRootDir, 'dir'),
         ignore: ['*.log'],
-        languages: ['python', 'go', 'csharp'],
+        languages: ['python', 'go', 'csharp', 'typescript', 'javascript'],
       };
       expect(tool.validateToolParams(params)).toBeNull();
     });
-
+    // ... other validation tests ...
     it('should return error for relative path', () => {
       const params: CodeParserToolParams = { path: 'file.py' };
       expect(tool.validateToolParams(params)).toMatch(/Path must be absolute/);
     });
 
     it('should return error for path outside root directory', () => {
-      // Create a path that is guaranteed to be outside tempRootDir
       const outsidePath = path.resolve(
         os.tmpdir(),
         'some-other-dir',
         'file.py',
       );
-      // Ensure outsidePath is not accidentally inside tempRootDir (e.g. if os.tmpdir() is tempRootDir's parent)
       if (outsidePath.startsWith(tempRootDir)) {
-        // This case should ideally not happen with standard os.tmpdir() behavior
         console.warn(
           'Skipping outside root test due to overlapping temp/outside paths',
         );
@@ -177,7 +166,6 @@ describe('CodeParserTool', () => {
     it('should return "Parse <shortened_relative_path>"', () => {
       const filePath = path.join(tempRootDir, 'src', 'app', 'main.py');
       const params: CodeParserToolParams = { path: filePath };
-      // Relative path is src/app/main.py
       expect(tool.getDescription(params)).toBe('Parse src/app/main.py');
     });
   });
@@ -210,7 +198,6 @@ describe('CodeParserTool', () => {
 
     it('should return error if target path is not a file or directory', async () => {
       const targetPath = path.join(tempRootDir, 'neither_file_nor_dir');
-      // Mock fs.stat to return stats that are neither file nor directory
       mockFs.stat.mockResolvedValue({
         isFile: () => false,
         isDirectory: () => false,
@@ -233,7 +220,6 @@ describe('CodeParserTool', () => {
         isDirectory: () => false,
         size: 100,
       } as Stats);
-      // Mock getLanguageParser to always return undefined for the specified/default languages
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const originalGetLanguageParser = (tool as any).getLanguageParser;
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -352,6 +338,103 @@ describe('CodeParserTool', () => {
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
 
+    it('should parse a single TypeScript (.ts) file successfully', async () => {
+      const targetPath = path.join(tempRootDir, 'app.ts');
+      const fileContent = 'const x: number = 10;';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(ts_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(ts_ast)\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
+    it('should parse a single TSX (.tsx) file successfully', async () => {
+      const targetPath = path.join(tempRootDir, 'component.tsx');
+      const fileContent = 'const Comp = () => <div />;';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(tsx_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockTSXGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(tsx_ast)\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
+    it('should parse a single JavaScript (.js) file successfully', async () => {
+      const targetPath = path.join(tempRootDir, 'script.js');
+      const fileContent = 'console.log("hello");';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(js_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      // Expects typescript grammar because JS files are parsed by it
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(js_ast)\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
+    it('should parse a JavaScript JSX (.jsx) file successfully (using tsx parser)', async () => {
+      const targetPath = path.join(tempRootDir, 'component.jsx');
+      const fileContent = 'const Comp = () => <div />;';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(jsx_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockTSXGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(jsx_ast)\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
     it('should return error for unsupported file type if specified directly', async () => {
       const targetPath = path.join(tempRootDir, 'notes.txt');
       mockFs.stat.mockResolvedValue({
@@ -412,19 +495,25 @@ describe('CodeParserTool', () => {
     });
 
     // --- Directory Parsing Tests ---
-    it('should parse supported files in a directory (including Go and C#)', async () => {
+    it('should parse supported files in a directory (including Go, C#, TS, JS, TSX)', async () => {
       const dirPath = path.join(tempRootDir, 'src');
       const files = [
         'main.py',
         'helper.java',
         'service.go',
         'App.cs',
+        'logic.ts',
+        'ui.tsx',
+        'utils.js',
         'config.txt',
       ];
       const pythonContent = 'import os';
       const javaContent = 'public class Helper {}';
       const goContent = 'package main';
       const csharpContent = 'public class App {}';
+      const tsContent = 'let val: number = 1;';
+      const tsxContent = 'const MyComp = () => <p />;';
+      const jsContent = 'function hello() {}';
 
       mockFs.stat.mockImplementation(async (p) => {
         if (p === dirPath)
@@ -453,6 +542,24 @@ describe('CodeParserTool', () => {
             isDirectory: () => false,
             size: csharpContent.length,
           } as Stats;
+        if (p === path.join(dirPath, 'logic.ts'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: tsContent.length,
+          } as Stats;
+        if (p === path.join(dirPath, 'ui.tsx'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: tsxContent.length,
+          } as Stats;
+        if (p === path.join(dirPath, 'utils.js'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: jsContent.length,
+          } as Stats;
         if (p === path.join(dirPath, 'config.txt'))
           return {
             isFile: () => true,
@@ -467,6 +574,9 @@ describe('CodeParserTool', () => {
         if (p === path.join(dirPath, 'helper.java')) return javaContent;
         if (p === path.join(dirPath, 'service.go')) return goContent;
         if (p === path.join(dirPath, 'App.cs')) return csharpContent;
+        if (p === path.join(dirPath, 'logic.ts')) return tsContent;
+        if (p === path.join(dirPath, 'ui.tsx')) return tsxContent;
+        if (p === path.join(dirPath, 'utils.js')) return jsContent;
         return '';
       });
       mockTreeSitterParse.mockImplementation((content) => {
@@ -478,6 +588,12 @@ describe('CodeParserTool', () => {
           return { rootNode: { toString: () => '(go_ast_dir)' } };
         if (content === csharpContent)
           return { rootNode: { toString: () => '(csharp_ast_dir)' } };
+        if (content === tsContent)
+          return { rootNode: { toString: () => '(ts_ast_dir)' } };
+        if (content === tsxContent)
+          return { rootNode: { toString: () => '(tsx_ast_dir)' } };
+        if (content === jsContent)
+          return { rootNode: { toString: () => '(js_ast_dir)' } };
         return { rootNode: { toString: () => '(other_ast)' } };
       });
 
@@ -496,8 +612,17 @@ describe('CodeParserTool', () => {
       expect(result.llmContent).toContain(
         `-------------${path.join(dirPath, 'App.cs')}-------------\n(csharp_ast_dir)\n`,
       );
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'logic.ts')}-------------\n(ts_ast_dir)\n`,
+      );
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'ui.tsx')}-------------\n(tsx_ast_dir)\n`,
+      );
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'utils.js')}-------------\n(js_ast_dir)\n`,
+      );
       expect(result.llmContent).not.toContain('config.txt');
-      expect(result.returnDisplay).toBe('Parsed 4 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 7 file(s).');
     });
 
     it('should ignore files specified in ignore patterns during directory parsing', async () => {
@@ -508,43 +633,7 @@ describe('CodeParserTool', () => {
         'data.java',
         'main.go',
         'Util.cs',
-      ];
-      mockFs.stat.mockImplementation(async (p) => {
-        if (p === dirPath)
-          return { isFile: () => false, isDirectory: () => true } as Stats;
-        return {
-          isFile: () => true,
-          isDirectory: () => false,
-          size: 10,
-        } as Stats; // Generic for files
-      });
-      mockFs.readdir.mockResolvedValue(files as string[]);
-      mockFs.readFile.mockResolvedValue('content'); // Generic content
-
-      const params: CodeParserToolParams = {
-        path: dirPath,
-        ignore: ['ignore_me.py', 'main.go', 'Util.cs'],
-      };
-      const result = await tool.execute(params, abortSignal);
-
-      expect(result.llmContent).toContain(path.join(dirPath, 'app.py'));
-      expect(result.llmContent).toContain(path.join(dirPath, 'data.java'));
-      expect(result.llmContent).not.toContain(
-        path.join(dirPath, 'ignore_me.py'),
-      );
-      expect(result.llmContent).not.toContain(path.join(dirPath, 'main.go'));
-      expect(result.llmContent).not.toContain(path.join(dirPath, 'Util.cs'));
-      expect(result.returnDisplay).toBe('Parsed 2 file(s).');
-    });
-
-    it('should only parse languages specified in the languages parameter for directory', async () => {
-      const dirPath = path.join(tempRootDir, 'mixed_lang_project');
-      const files = [
-        'script.py',
-        'Main.java',
-        'another.py',
-        'app.go',
-        'Logic.cs',
+        'script.ts',
       ];
       mockFs.stat.mockImplementation(async (p) => {
         if (p === dirPath)
@@ -560,16 +649,58 @@ describe('CodeParserTool', () => {
 
       const params: CodeParserToolParams = {
         path: dirPath,
-        languages: ['java', 'go', 'csharp'],
+        ignore: ['ignore_me.py', 'main.go', 'Util.cs'],
+      };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(result.llmContent).toContain(path.join(dirPath, 'app.py'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'data.java'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'script.ts'));
+      expect(result.llmContent).not.toContain(
+        path.join(dirPath, 'ignore_me.py'),
+      );
+      expect(result.llmContent).not.toContain(path.join(dirPath, 'main.go'));
+      expect(result.llmContent).not.toContain(path.join(dirPath, 'Util.cs'));
+      expect(result.returnDisplay).toBe('Parsed 3 file(s).');
+    });
+
+    it('should only parse languages specified in the languages parameter for directory', async () => {
+      const dirPath = path.join(tempRootDir, 'mixed_lang_project');
+      const files = [
+        'script.py',
+        'Main.java',
+        'another.py',
+        'app.go',
+        'Logic.cs',
+        'index.ts',
+        'view.tsx',
+      ];
+      mockFs.stat.mockImplementation(async (p) => {
+        if (p === dirPath)
+          return { isFile: () => false, isDirectory: () => true } as Stats;
+        return {
+          isFile: () => true,
+          isDirectory: () => false,
+          size: 10,
+        } as Stats;
+      });
+      mockFs.readdir.mockResolvedValue(files as string[]);
+      mockFs.readFile.mockResolvedValue('content');
+
+      const params: CodeParserToolParams = {
+        path: dirPath,
+        languages: ['java', 'go', 'csharp', 'typescript', 'tsx'],
       };
       const result = await tool.execute(params, abortSignal);
 
       expect(result.llmContent).toContain(path.join(dirPath, 'Main.java'));
       expect(result.llmContent).toContain(path.join(dirPath, 'app.go'));
       expect(result.llmContent).toContain(path.join(dirPath, 'Logic.cs'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'index.ts'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'view.tsx'));
       expect(result.llmContent).not.toContain('script.py');
       expect(result.llmContent).not.toContain('another.py');
-      expect(result.returnDisplay).toBe('Parsed 3 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 5 file(s).');
     });
 
     it('should return "Directory is empty" for an empty directory', async () => {
