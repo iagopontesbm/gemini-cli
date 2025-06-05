@@ -15,7 +15,6 @@ import {
  * Interface abstracting the core functionalities for generating content and counting tokens.
  */
 export interface ContentGenerator {
-
   generateContent(
     request: GenerateContentParameters,
   ): Promise<GenerateContentResponse>;

@@ -119,7 +119,6 @@ describe('GeminiChat', () => {
       // @ts-expect-error Accessing private method for testing purposes
       chat.recordHistory(userInput, newModelOutput); // userInput here is for the *next* turn, but history is already primed
 
-
       // Reset and set up a more realistic scenario for merging with existing history
       chat = new GeminiChat(mockModelsModule, model, config, []);
       const firstUserInput: Content = {
