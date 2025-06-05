@@ -81,7 +81,6 @@ build_image() {
         # use empty --authfile to skip unnecessary auth refresh overhead
         $CMD build --authfile=<(echo '{}') "$@" >$BUILD_STDOUT
     elif [[ "$CMD" == "docker" ]]; then
-        # use config directory to skip unnecessary auth refresh overhead
         $CMD --config=".docker" buildx build "$@" >$BUILD_STDOUT
     else
         $CMD build "$@" >$BUILD_STDOUT
