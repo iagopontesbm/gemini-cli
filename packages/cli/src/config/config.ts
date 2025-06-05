@@ -215,7 +215,7 @@ export async function loadCliConfig(
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
-    geminiIgnorePatterns: geminiIgnorePatterns,
+    geminiIgnorePatterns,
   };
 
   const config = createServerConfig(configParams);

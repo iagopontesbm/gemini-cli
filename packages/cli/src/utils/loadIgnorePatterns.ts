@@ -31,14 +31,21 @@ export function loadGeminiIgnorePatterns(
     if (patterns.length > 0) {
       console.log(`[INFO] Loaded ${patterns.length} patterns from .geminiignore`);
     }
-  } catch (error: any) {
-    if (error.code === 'ENOENT') {
-      // .geminiignore not found, which is fine.
-      console.log('[INFO] No .geminiignore file found. Proceeding without custom ignore patterns.');
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
+      if (error.code === 'ENOENT') {
+        // .geminiignore not found, which is fine.
+        console.log('[INFO] No .geminiignore file found. Proceeding without custom ignore patterns.');
+      } else {
+        // Other error reading the file (e.g., permissions)
+        console.warn(
+          `[WARN] Could not read .geminiignore file at ${ignoreFilePath}: ${error.message}`,
+        );
+      }
     } else {
-      // Other error reading the file (e.g., permissions)
+      // For other types of errors, or if code is not available
       console.warn(
-        `[WARN] Could not read .geminiignore file at ${ignoreFilePath}: ${error.message}`,
+        `[WARN] An unexpected error occurred while trying to read ${ignoreFilePath}: ${String(error)}`,
       );
     }
   }

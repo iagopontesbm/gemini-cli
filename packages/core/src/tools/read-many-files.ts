@@ -230,18 +230,22 @@ Use this tool when the user's query implies needing the content of several files
     const allPatterns = [...params.paths, ...(params.include || [])];
     const pathDesc = `using patterns: \`${allPatterns.join('`, `')}\` (within target directory: \`${this.targetDir}\`)`;
 
-    let effectiveExcludes =
-      params.useDefaultExcludes !== false ? [...DEFAULT_EXCLUDES] : [];
-    if (params.exclude && params.exclude.length > 0) {
-      effectiveExcludes = [...effectiveExcludes, ...params.exclude];
-    }
-    if (this.geminiIgnorePatterns.length > 0 && params.useDefaultExcludes !== false) {
-      effectiveExcludes = [...effectiveExcludes, ...this.geminiIgnorePatterns];
-    }
+    // Determine the final list of exclusion patterns exactly as in execute method
+    const paramExcludes = params.exclude || [];
+    const paramUseDefaultExcludes = params.useDefaultExcludes !== false;
 
-    let excludeDesc = `Excluding: ${effectiveExcludes.length > 0 ? `patterns like \`${effectiveExcludes.slice(0, 2).join('`, `')}${effectiveExcludes.length > 2 ? '...`' : '`'}` : 'none explicitly (beyond default non-text file avoidance).'}`;
-    if (this.geminiIgnorePatterns.length > 0 && params.useDefaultExcludes !== false) {
-      excludeDesc += ` (includes ${this.geminiIgnorePatterns.length} from .geminiignore)`;
+    const finalExclusionPatternsForDescription: string[] = paramUseDefaultExcludes
+      ? [...DEFAULT_EXCLUDES, ...paramExcludes, ...this.geminiIgnorePatterns]
+      : [...paramExcludes, ...this.geminiIgnorePatterns];
+
+    let excludeDesc = `Excluding: ${finalExclusionPatternsForDescription.length > 0 ? `patterns like \`${finalExclusionPatternsForDescription.slice(0, 2).join('`, `')}${finalExclusionPatternsForDescription.length > 2 ? '...`' : '`'}` : 'none specified'}`;
+
+    // Add a note if .geminiignore patterns contributed to the final list of exclusions
+    if (this.geminiIgnorePatterns.length > 0) {
+      const geminiPatternsInEffect = this.geminiIgnorePatterns.filter(p => finalExclusionPatternsForDescription.includes(p)).length;
+      if (geminiPatternsInEffect > 0) {
+        excludeDesc += ` (includes ${geminiPatternsInEffect} from .geminiignore)`;
+      }
     }
 
     return `Will attempt to read and concatenate files ${pathDesc}. ${excludeDesc}. File encoding: ${DEFAULT_ENCODING}. Separator: "${DEFAULT_OUTPUT_SEPARATOR_FORMAT.replace('{filePath}', 'path/to/file.ext')}".`;

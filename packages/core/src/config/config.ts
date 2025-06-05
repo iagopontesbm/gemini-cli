@@ -213,7 +213,7 @@ export class Config {
     return this.geminiClient;
   }
 
-  public getGeminiIgnorePatterns(): string[] {
+  getGeminiIgnorePatterns(): string[] {
     return this._geminiIgnorePatterns;
   }
 }
