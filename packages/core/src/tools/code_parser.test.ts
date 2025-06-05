@@ -4,10 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { vi, describe, it, expect, beforeEach, afterEach, Mocked } from 'vitest';
+import {
+  vi,
+  describe,
+  it,
+  expect,
+  beforeEach,
+  afterEach,
+  Mocked,
+} from 'vitest';
 import { CodeParserTool, CodeParserToolParams } from './code_parser.js';
 import { Config } from '../config/config.js';
 import fs from 'fs/promises';
+import { Stats } from 'fs'; // Added Stats import
 import path from 'path';
 import os from 'os';
 import actualFs from 'fs'; // For actual fs operations in setup
@@ -19,20 +28,19 @@ vi.mock('fs/promises');
 const mockTreeSitterParse = vi.fn();
 const mockSetLanguage = vi.fn();
 
-vi.mock('tree-sitter', () => {
-  return {
-    default: vi.fn().mockImplementation(() => ({
-      setLanguage: mockSetLanguage,
-      parse: mockTreeSitterParse,
-    })),
-  };
-});
+vi.mock('tree-sitter', () => ({
+  default: vi.fn().mockImplementation(() => ({
+    setLanguage: mockSetLanguage,
+    parse: mockTreeSitterParse,
+  })),
+}));
 
 const mockPythonGrammar = vi.hoisted(() => ({ name: 'python' }));
 const mockJavaGrammar = vi.hoisted(() => ({ name: 'java' }));
+const mockGoGrammar = vi.hoisted(() => ({ name: 'go' }));
 vi.mock('tree-sitter-python', () => ({ default: mockPythonGrammar }));
 vi.mock('tree-sitter-java', () => ({ default: mockJavaGrammar }));
-
+vi.mock('tree-sitter-go', () => ({ default: mockGoGrammar }));
 
 describe('CodeParserTool', () => {
   let tempRootDir: string;
@@ -48,7 +56,7 @@ describe('CodeParserTool', () => {
     // Ensure the path is absolute and normalized for consistent behavior
     const tempDirPrefix = path.join(os.tmpdir(), 'code-parser-tool-root-');
     tempRootDir = actualFs.mkdtempSync(tempDirPrefix);
-    
+
     // Normalize tempRootDir to avoid issues with path comparisons
     tempRootDir = path.resolve(tempRootDir);
 
@@ -68,7 +76,9 @@ describe('CodeParserTool', () => {
     mockFs.readdir.mockReset();
 
     // Default mock implementations
-    mockTreeSitterParse.mockReturnValue({ rootNode: { toString: () => '(mock_ast)' } });
+    mockTreeSitterParse.mockReturnValue({
+      rootNode: { toString: () => '(mock_ast)' },
+    });
   });
 
   afterEach(() => {
@@ -85,22 +95,25 @@ describe('CodeParserTool', () => {
     });
 
     it('should have correct schema definition', () => {
-      const schema = tool.schema.parameters;
+      const schema = tool.schema.parameters!; // Added non-null assertion
       expect(schema.type).toBe('object');
       expect(schema.properties).toHaveProperty('path');
-      expect(schema.properties.path.type).toBe('string');
-      expect(schema.properties.path.description).toContain('absolute path');
+      expect(schema.properties!.path.type).toBe('string');
+      expect(schema.properties!.path.description).toContain('absolute path');
       expect(schema.properties).toHaveProperty('ignore');
-      expect(schema.properties.ignore.type).toBe('array');
+      expect(schema.properties!.ignore.type).toBe('array');
       expect(schema.properties).toHaveProperty('languages');
-      expect(schema.properties.languages.type).toBe('array');
+      expect(schema.properties!.languages.type).toBe('array');
+      expect(schema.properties!.languages.description).toContain('go'); // Check for new language in description
       expect(schema.required).toEqual(['path']);
     });
   });
 
   describe('validateToolParams', () => {
     it('should return null for valid absolute path within root', () => {
-      const params: CodeParserToolParams = { path: path.join(tempRootDir, 'file.py') };
+      const params: CodeParserToolParams = {
+        path: path.join(tempRootDir, 'file.py'),
+      };
       expect(tool.validateToolParams(params)).toBeNull();
     });
 
@@ -108,7 +121,7 @@ describe('CodeParserTool', () => {
       const params: CodeParserToolParams = {
         path: path.join(tempRootDir, 'dir'),
         ignore: ['*.log'],
-        languages: ['python'],
+        languages: ['python', 'go'],
       };
       expect(tool.validateToolParams(params)).toBeNull();
     });
@@ -120,28 +133,40 @@ describe('CodeParserTool', () => {
 
     it('should return error for path outside root directory', () => {
       // Create a path that is guaranteed to be outside tempRootDir
-      const outsidePath = path.resolve(os.tmpdir(), 'some-other-dir', 'file.py');
+      const outsidePath = path.resolve(
+        os.tmpdir(),
+        'some-other-dir',
+        'file.py',
+      );
       // Ensure outsidePath is not accidentally inside tempRootDir (e.g. if os.tmpdir() is tempRootDir's parent)
       if (outsidePath.startsWith(tempRootDir)) {
-         // This case should ideally not happen with standard os.tmpdir() behavior
-         console.warn("Skipping outside root test due to overlapping temp/outside paths");
-         return;
+        // This case should ideally not happen with standard os.tmpdir() behavior
+        console.warn(
+          'Skipping outside root test due to overlapping temp/outside paths',
+        );
+        return;
       }
       const params: CodeParserToolParams = { path: outsidePath };
-      expect(tool.validateToolParams(params)).toMatch(/Path must be within the root directory/);
+      expect(tool.validateToolParams(params)).toMatch(
+        /Path must be within the root directory/,
+      );
     });
-    
+
     it('should return error if languages is not an array of strings', () => {
-      const params = { 
-        path: path.join(tempRootDir, 'file.py'), 
-        languages: [123] 
+      const params = {
+        path: path.join(tempRootDir, 'file.py'),
+        languages: [123],
       } as unknown as CodeParserToolParams;
-      expect(tool.validateToolParams(params)).toBe('Languages parameter must be an array of strings.');
+      expect(tool.validateToolParams(params)).toBe(
+        'Languages parameter must be an array of strings.',
+      );
     });
 
     it('should return error for schema validation failure (e.g., missing path)', () => {
       const params = { ignore: [] } as unknown as CodeParserToolParams;
-      expect(tool.validateToolParams(params)).toBe('Parameters failed schema validation.');
+      expect(tool.validateToolParams(params)).toBe(
+        'Parameters failed schema validation.',
+      );
     });
   });
 
@@ -159,45 +184,70 @@ describe('CodeParserTool', () => {
     it('should return validation error if params are invalid', async () => {
       const params: CodeParserToolParams = { path: 'relative/path.txt' };
       const result = await tool.execute(params, abortSignal);
-      expect(result.llmContent).toMatch(/Error: Invalid parameters provided. Reason: Path must be absolute/);
+      expect(result.llmContent).toMatch(
+        /Error: Invalid parameters provided. Reason: Path must be absolute/,
+      );
       expect(result.returnDisplay).toBe('Error: Failed to execute tool.');
     });
 
     it('should return error if target path does not exist', async () => {
       const targetPath = path.join(tempRootDir, 'nonexistent.py');
-      mockFs.stat.mockRejectedValue({ code: 'ENOENT' } as NodeJS.ErrnoException);
+      mockFs.stat.mockRejectedValue({
+        code: 'ENOENT',
+      } as NodeJS.ErrnoException);
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
-      expect(result.llmContent).toMatch(/Error: Path not found or inaccessible/);
-      expect(result.returnDisplay).toMatch(/Error: Path not found or inaccessible/);
+      expect(result.llmContent).toMatch(
+        /Error: Path not found or inaccessible/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Error: Path not found or inaccessible/,
+      );
     });
-    
+
     it('should return error if target path is not a file or directory', async () => {
       const targetPath = path.join(tempRootDir, 'neither_file_nor_dir');
       // Mock fs.stat to return stats that are neither file nor directory
-      mockFs.stat.mockResolvedValue({ 
-        isFile: () => false, 
+      mockFs.stat.mockResolvedValue({
+        isFile: () => false,
         isDirectory: () => false,
-        size: 0
-      } as fs.Stats);
+        size: 0,
+      } as Stats);
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
-      expect(result.llmContent).toMatch(/Error: Path is not a file or directory/);
-      expect(result.returnDisplay).toMatch(/Error: Path is not a file or directory/);
+      expect(result.llmContent).toMatch(
+        /Error: Path is not a file or directory/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Error: Path is not a file or directory/,
+      );
     });
 
     it('should return error if no supported languages are specified or available', async () => {
       const targetPath = path.join(tempRootDir, 'file.py');
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: 100 } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: 100,
+      } as Stats);
       // Mock getLanguageParser to always return undefined for the specified/default languages
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const originalGetLanguageParser = (tool as any).getLanguageParser;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (tool as any).getLanguageParser = vi.fn().mockReturnValue(undefined);
 
-      const params: CodeParserToolParams = { path: targetPath, languages: ['fantasy-lang'] };
+      const params: CodeParserToolParams = {
+        path: targetPath,
+        languages: ['fantasy-lang'],
+      };
       const result = await tool.execute(params, abortSignal);
-      expect(result.llmContent).toMatch(/Error: No supported languages specified for parsing/);
-      expect(result.returnDisplay).toMatch(/Error: No supported languages to parse/);
-      
+      expect(result.llmContent).toMatch(
+        /Error: No supported languages specified for parsing/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Error: No supported languages to parse/,
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (tool as any).getLanguageParser = originalGetLanguageParser; // Restore
     });
 
@@ -205,153 +255,273 @@ describe('CodeParserTool', () => {
     it('should parse a single Python file successfully', async () => {
       const targetPath = path.join(tempRootDir, 'test.py');
       const fileContent = 'print("hello")';
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: fileContent.length } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
       mockFs.readFile.mockResolvedValue(fileContent);
-      mockTreeSitterParse.mockReturnValue({ rootNode: { toString: () => '(python_ast)' } });
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(python_ast)' },
+      });
 
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
 
       expect(mockSetLanguage).toHaveBeenCalledWith(mockPythonGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
-      expect(result.llmContent).toBe(`Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(python_ast)\n`);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(python_ast)\n`,
+      );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
 
     it('should parse a single Java file successfully', async () => {
       const targetPath = path.join(tempRootDir, 'Test.java');
       const fileContent = 'class Test {}';
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: fileContent.length } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
       mockFs.readFile.mockResolvedValue(fileContent);
-      mockTreeSitterParse.mockReturnValue({ rootNode: { toString: () => '(java_ast)' } });
-      
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(java_ast)' },
+      });
+
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
 
       expect(mockSetLanguage).toHaveBeenCalledWith(mockJavaGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
-      expect(result.llmContent).toBe(`Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(java_ast)\n`);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(java_ast)\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
+    it('should parse a single Go file successfully', async () => {
+      const targetPath = path.join(tempRootDir, 'main.go');
+      const fileContent = 'package main\nfunc main(){}';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(go_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockGoGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(go_ast)\n`,
+      );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
 
     it('should return error for unsupported file type if specified directly', async () => {
       const targetPath = path.join(tempRootDir, 'notes.txt');
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: 10 } as fs.Stats);
-      
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: 10,
+      } as Stats);
+
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
-      
-      expect(result.llmContent).toMatch(/Error: File .* is not of a supported language type/);
-      expect(result.returnDisplay).toMatch(/Error: Unsupported file type or language/);
+
+      expect(result.llmContent).toMatch(
+        /Error: File .* is not of a supported language type/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Error: Unsupported file type or language/,
+      );
     });
-    
+
     it('should skip file if it exceeds maxFileSize', async () => {
       const targetPath = path.join(tempRootDir, 'large.py');
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: (1024 * 1024) + 1 } as fs.Stats); // 1MB + 1 byte
-      
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: 1024 * 1024 + 1,
+      } as Stats); // 1MB + 1 byte
+
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
-      
+
       expect(mockFs.readFile).not.toHaveBeenCalled();
-      expect(result.llmContent).toMatch(/Error: Could not parse file .*large.py/);
+      expect(result.llmContent).toMatch(
+        /Error: Could not parse file .*large.py/,
+      );
       expect(result.returnDisplay).toBe('Error: Failed to parse file.');
     });
 
     it('should return error if parsing a supported file fails internally', async () => {
       const targetPath = path.join(tempRootDir, 'broken.py');
       const fileContent = 'print("hello")';
-      mockFs.stat.mockResolvedValue({ isFile: () => true, isDirectory: () => false, size: fileContent.length } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
       mockFs.readFile.mockResolvedValue(fileContent);
-      mockTreeSitterParse.mockImplementation(() => { throw new Error('TreeSitterCrashed'); });
+      mockTreeSitterParse.mockImplementation(() => {
+        throw new Error('TreeSitterCrashed');
+      });
 
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
 
-      expect(result.llmContent).toMatch(/Error: Could not parse file .*broken.py/);
+      expect(result.llmContent).toMatch(
+        /Error: Could not parse file .*broken.py/,
+      );
       expect(result.returnDisplay).toMatch(/Error: Failed to parse file./);
     });
 
     // --- Directory Parsing Tests ---
-    it('should parse supported files in a directory', async () => {
+    it('should parse supported files in a directory (including Go)', async () => {
       const dirPath = path.join(tempRootDir, 'src');
-      const files = ['main.py', 'helper.java', 'config.txt'];
+      const files = ['main.py', 'helper.java', 'service.go', 'config.txt'];
       const pythonContent = 'import os';
       const javaContent = 'public class Helper {}';
+      const goContent = 'package main';
 
       mockFs.stat.mockImplementation(async (p) => {
-        if (p === dirPath) return { isFile: () => false, isDirectory: () => true } as fs.Stats;
-        if (p === path.join(dirPath, 'main.py')) return { isFile: () => true, isDirectory: () => false, size: pythonContent.length } as fs.Stats;
-        if (p === path.join(dirPath, 'helper.java')) return { isFile: () => true, isDirectory: () => false, size: javaContent.length } as fs.Stats;
-        if (p === path.join(dirPath, 'config.txt')) return { isFile: () => true, isDirectory: () => false, size: 10 } as fs.Stats;
+        if (p === dirPath)
+          return { isFile: () => false, isDirectory: () => true } as Stats;
+        if (p === path.join(dirPath, 'main.py'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: pythonContent.length,
+          } as Stats;
+        if (p === path.join(dirPath, 'helper.java'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: javaContent.length,
+          } as Stats;
+        if (p === path.join(dirPath, 'service.go'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: goContent.length,
+          } as Stats;
+        if (p === path.join(dirPath, 'config.txt'))
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: 10,
+          } as Stats;
         throw { code: 'ENOENT' };
       });
-      mockFs.readdir.mockResolvedValue(files as any); // Type assertion for simplicity
+      mockFs.readdir.mockResolvedValue(files as string[]);
       mockFs.readFile.mockImplementation(async (p) => {
         if (p === path.join(dirPath, 'main.py')) return pythonContent;
         if (p === path.join(dirPath, 'helper.java')) return javaContent;
+        if (p === path.join(dirPath, 'service.go')) return goContent;
         return '';
       });
       mockTreeSitterParse.mockImplementation((content) => {
-        if (content === pythonContent) return { rootNode: { toString: () => '(py_ast_dir)' } };
-        if (content === javaContent) return { rootNode: { toString: () => '(java_ast_dir)' } };
+        if (content === pythonContent)
+          return { rootNode: { toString: () => '(py_ast_dir)' } };
+        if (content === javaContent)
+          return { rootNode: { toString: () => '(java_ast_dir)' } };
+        if (content === goContent)
+          return { rootNode: { toString: () => '(go_ast_dir)' } };
         return { rootNode: { toString: () => '(other_ast)' } };
       });
 
       const params: CodeParserToolParams = { path: dirPath };
       const result = await tool.execute(params, abortSignal);
-      
-      expect(result.llmContent).toContain(`-------------${path.join(dirPath, 'main.py')}-------------\n(py_ast_dir)\n`);
-      expect(result.llmContent).toContain(`-------------${path.join(dirPath, 'helper.java')}-------------\n(java_ast_dir)\n`);
+
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'main.py')}-------------\n(py_ast_dir)\n`,
+      );
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'helper.java')}-------------\n(java_ast_dir)\n`,
+      );
+      expect(result.llmContent).toContain(
+        `-------------${path.join(dirPath, 'service.go')}-------------\n(go_ast_dir)\n`,
+      );
       expect(result.llmContent).not.toContain('config.txt');
-      expect(result.returnDisplay).toBe('Parsed 2 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 3 file(s).');
     });
 
     it('should ignore files specified in ignore patterns during directory parsing', async () => {
       const dirPath = path.join(tempRootDir, 'project');
-      const files = ['app.py', 'ignore_me.py', 'data.java'];
+      const files = ['app.py', 'ignore_me.py', 'data.java', 'main.go'];
       mockFs.stat.mockImplementation(async (p) => {
-        if (p === dirPath) return { isFile: () => false, isDirectory: () => true } as fs.Stats;
-        return { isFile: () => true, isDirectory: () => false, size: 10 } as fs.Stats; // Generic for files
+        if (p === dirPath)
+          return { isFile: () => false, isDirectory: () => true } as Stats;
+        return {
+          isFile: () => true,
+          isDirectory: () => false,
+          size: 10,
+        } as Stats; // Generic for files
       });
-      mockFs.readdir.mockResolvedValue(files as any);
+      mockFs.readdir.mockResolvedValue(files as string[]);
       mockFs.readFile.mockResolvedValue('content'); // Generic content
 
-      const params: CodeParserToolParams = { path: dirPath, ignore: ['ignore_me.py'] };
+      const params: CodeParserToolParams = {
+        path: dirPath,
+        ignore: ['ignore_me.py', 'main.go'],
+      };
       const result = await tool.execute(params, abortSignal);
 
       expect(result.llmContent).toContain(path.join(dirPath, 'app.py'));
       expect(result.llmContent).toContain(path.join(dirPath, 'data.java'));
-      expect(result.llmContent).not.toContain(path.join(dirPath, 'ignore_me.py'));
+      expect(result.llmContent).not.toContain(
+        path.join(dirPath, 'ignore_me.py'),
+      );
+      expect(result.llmContent).not.toContain(path.join(dirPath, 'main.go'));
       expect(result.returnDisplay).toBe('Parsed 2 file(s).');
     });
 
     it('should only parse languages specified in the languages parameter for directory', async () => {
       const dirPath = path.join(tempRootDir, 'mixed_lang_project');
-      const files = ['script.py', 'Main.java', 'another.py'];
-       mockFs.stat.mockImplementation(async (p) => {
-        if (p === dirPath) return { isFile: () => false, isDirectory: () => true } as fs.Stats;
-        return { isFile: () => true, isDirectory: () => false, size: 10 } as fs.Stats;
+      const files = ['script.py', 'Main.java', 'another.py', 'app.go'];
+      mockFs.stat.mockImplementation(async (p) => {
+        if (p === dirPath)
+          return { isFile: () => false, isDirectory: () => true } as Stats;
+        return {
+          isFile: () => true,
+          isDirectory: () => false,
+          size: 10,
+        } as Stats;
       });
-      mockFs.readdir.mockResolvedValue(files as any);
+      mockFs.readdir.mockResolvedValue(files as string[]);
       mockFs.readFile.mockResolvedValue('content');
 
-      const params: CodeParserToolParams = { path: dirPath, languages: ['java'] };
+      const params: CodeParserToolParams = {
+        path: dirPath,
+        languages: ['java', 'go'],
+      };
       const result = await tool.execute(params, abortSignal);
 
       expect(result.llmContent).toContain(path.join(dirPath, 'Main.java'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'app.go'));
       expect(result.llmContent).not.toContain('script.py');
       expect(result.llmContent).not.toContain('another.py');
-      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 2 file(s).');
     });
 
     it('should return "Directory is empty" for an empty directory', async () => {
       const dirPath = path.join(tempRootDir, 'empty_dir');
-      mockFs.stat.mockResolvedValue({ isFile: () => false, isDirectory: () => true } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => false,
+        isDirectory: () => true,
+      } as Stats);
       mockFs.readdir.mockResolvedValue([]);
-      
+
       const params: CodeParserToolParams = { path: dirPath };
       const result = await tool.execute(params, abortSignal);
-      
+
       expect(result.llmContent).toBe(`Directory ${dirPath} is empty.`);
       expect(result.returnDisplay).toBe('Directory is empty.');
     });
@@ -360,10 +530,15 @@ describe('CodeParserTool', () => {
       const dirPath = path.join(tempRootDir, 'non_code_dir');
       const files = ['readme.md', 'ignored.log'];
       mockFs.stat.mockImplementation(async (p) => {
-        if (p === dirPath) return { isFile: () => false, isDirectory: () => true } as fs.Stats;
-        return { isFile: () => true, isDirectory: () => false, size: 10 } as fs.Stats;
+        if (p === dirPath)
+          return { isFile: () => false, isDirectory: () => true } as Stats;
+        return {
+          isFile: () => true,
+          isDirectory: () => false,
+          size: 10,
+        } as Stats;
       });
-      mockFs.readdir.mockResolvedValue(files as any);
+      mockFs.readdir.mockResolvedValue(files as string[]);
 
       const params: CodeParserToolParams = { path: dirPath, ignore: ['*.log'] };
       const result = await tool.execute(params, abortSignal);
@@ -371,17 +546,24 @@ describe('CodeParserTool', () => {
       expect(result.llmContent).toMatch(/No files were parsed/);
       expect(result.returnDisplay).toBe('No files parsed.');
     });
-    
+
     it('should handle error if fs.readdir fails', async () => {
       const dirPath = path.join(tempRootDir, 'unreadable_dir');
-      mockFs.stat.mockResolvedValue({ isFile: () => false, isDirectory: () => true } as fs.Stats);
+      mockFs.stat.mockResolvedValue({
+        isFile: () => false,
+        isDirectory: () => true,
+      } as Stats);
       mockFs.readdir.mockRejectedValue(new Error('Permission denied'));
 
       const params: CodeParserToolParams = { path: dirPath };
       const result = await tool.execute(params, abortSignal);
 
-      expect(result.llmContent).toMatch(/Error listing or processing directory/);
-      expect(result.returnDisplay).toMatch(/Error: Failed to process directory./);
+      expect(result.llmContent).toMatch(
+        /Error listing or processing directory/,
+      );
+      expect(result.returnDisplay).toMatch(
+        /Error: Failed to process directory./,
+      );
     });
   });
 
