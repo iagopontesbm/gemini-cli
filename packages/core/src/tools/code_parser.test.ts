@@ -180,8 +180,9 @@ describe('CodeParserTool', () => {
   });
 
   describe('shouldIgnore', () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const callShouldIgnore = (fileName: string, ignorePatterns?: string[]) => (tool as any).shouldIgnore(fileName, ignorePatterns);
+    const callShouldIgnore = (fileName: string, ignorePatterns?: string[]) =>
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (tool as any).shouldIgnore(fileName, ignorePatterns);
 
     it('should return false if no ignore patterns are provided', () => {
       expect(callShouldIgnore('file.py', [])).toBe(false);
@@ -201,7 +202,7 @@ describe('CodeParserTool', () => {
     });
 
     it('should handle dir/* glob patterns', () => {
-      // Note: minimatch by default doesn't treat / specially. 
+      // Note: minimatch by default doesn't treat / specially.
       // For 'temp/*', a fileName 'temp/file.txt' would match.
       // Since shouldIgnore currently receives only basenames, this test reflects that.
       expect(callShouldIgnore('file.txt', ['temp/*'])).toBe(false); // 'file.txt' is not 'temp/anything'
@@ -217,7 +218,7 @@ describe('CodeParserTool', () => {
       expect(callShouldIgnore('sub/file.tmp', ['**/*.tmp'])).toBe(true); // if fileName can be a path
       expect(callShouldIgnore('sub/deep/file.tmp', ['**/*.tmp'])).toBe(true); // if fileName can be a path
     });
-    
+
     it('should handle patterns like a/**/b.txt', () => {
       expect(callShouldIgnore('a/b.txt', ['a/**/b.txt'])).toBe(true); // if fileName can be a path
       expect(callShouldIgnore('a/x/y/b.txt', ['a/**/b.txt'])).toBe(true); // if fileName can be a path
@@ -320,7 +321,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockPythonGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(python_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(python_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -344,7 +345,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockJavaGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(java_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(java_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -368,7 +369,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockGoGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(go_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(go_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -393,7 +394,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockCSharpGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(csharp_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(csharp_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -417,7 +418,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(ts_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(ts_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -441,7 +442,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockTSXGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(tsx_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(tsx_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -465,7 +466,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar); // Uses TypeScript grammar for JS
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(js_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(js_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
@@ -489,7 +490,7 @@ describe('CodeParserTool', () => {
       expect(mockSetLanguage).toHaveBeenCalledWith(mockTSXGrammar);
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
-        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(jsx_ast)\n`,
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(jsx_ast)\n\n`,
       );
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
