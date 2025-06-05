@@ -17,7 +17,6 @@ import {
 } from '../utils/fileUtils.js';
 import { PartListUnion } from '@google/genai';
 import { Config } from '../config/config.js';
-import { Config } from '../config/config.js';
 
 /**
  * Parameters for the ReadManyFilesTool.
