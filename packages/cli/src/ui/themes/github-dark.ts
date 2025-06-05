@@ -10,16 +10,16 @@ const githubDarkColors: ColorsTheme = {
   type: 'dark',
   Background: '#24292e',
   Foreground: '#d1d5da',
-  LightBlue: '#79B8FF', // From hljs-number, hljs-literal, hljs-built_in, hljs-meta
-  AccentBlue: '#79B8FF', // Consistent with LightBlue as it's a prominent blue
-  AccentPurple: '#B392F0', // From hljs-title, hljs-section, hljs-selector-id
-  AccentCyan: '#9ECBFF', // From hljs-string, hljs-doctag
-  AccentGreen: '#85E89D', // From hljs-type, hljs-class .hljs-title, hljs-tag, hljs-name
-  AccentYellow: '#FFAB70', // From hljs-variable, hljs-template-variable, hljs-tag .hljs-attr
-  AccentRed: '#F97583', // From hljs-keyword, hljs-selector-tag
-  SubtleComment: '#6A737D', // From hljs-comment
-  Gray: '#6A737D', // Using comment color as gray
-  GradientColors: darkTheme.GradientColors, // Fallback
+  LightBlue: '#79B8FF',
+  AccentBlue: '#79B8FF',
+  AccentPurple: '#B392F0',
+  AccentCyan: '#9ECBFF',
+  AccentGreen: '#85E89D',
+  AccentYellow: '#FFAB70',
+  AccentRed: '#F97583',
+  SubtleComment: '#6A737D',
+  Gray: '#6A737D',
+  GradientColors: darkTheme.GradientColors,
 };
 
 export const GitHubDark: Theme = new Theme(

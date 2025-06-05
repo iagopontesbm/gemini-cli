@@ -10,16 +10,16 @@ const ayuLightColors: ColorsTheme = {
   type: 'light',
   Background: '#f8f9fa',
   Foreground: '#5c6166',
-  LightBlue: '#55b4d4', // From hljs-variable.language, hljs-type, hljs-link
-  AccentBlue: '#399ee6', // From hljs-title, hljs-class .hljs-title, hljs-name
-  AccentPurple: '#a37acc', // From hljs-number
-  AccentCyan: '#4cbf99', // From hljs-quote, hljs-constant, hljs-literal, hljs-regexp
-  AccentGreen: '#86b300', // From hljs-string, hljs-section
-  AccentYellow: '#f2ae49', // From hljs-attribute, hljs-builtin-name, hljs-bullet
-  AccentRed: '#f07171', // From hljs-symbol, hljs-built_in
-  SubtleComment: '#787b80', // From hljs-comment
-  Gray: '#787b80', // Using comment color as gray
-  GradientColors: lightTheme.GradientColors, // Fallback
+  LightBlue: '#55b4d4',
+  AccentBlue: '#399ee6',
+  AccentPurple: '#a37acc',
+  AccentCyan: '#4cbf99',
+  AccentGreen: '#86b300',
+  AccentYellow: '#f2ae49',
+  AccentRed: '#f07171',
+  SubtleComment: '#787b80',
+  Gray: '#787b80',
+  GradientColors: lightTheme.GradientColors,
 };
 
 export const AyuLight: Theme = new Theme(

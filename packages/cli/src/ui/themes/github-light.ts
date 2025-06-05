@@ -10,16 +10,16 @@ const githubLightColors: ColorsTheme = {
   type: 'light',
   Background: '#f8f8f8',
   Foreground: '#24292E',
-  LightBlue: '#0086b3', // From hljs-built_in
-  AccentBlue: '#458', // From hljs-type (a darker blue)
-  AccentPurple: '#900', // From hljs-title, hljs-section (more of a dark red/maroon)
-  AccentCyan: '#009926', // From hljs-regexp, hljs-link (a green, but used as cyan placeholder)
-  AccentGreen: '#008080', // From hljs-number, hljs-literal (teal/dark green)
-  AccentYellow: '#990073', // From hljs-symbol (magenta, used as yellow placeholder)
-  AccentRed: '#d14', // From hljs-string
-  SubtleComment: '#998', // From hljs-comment
-  Gray: '#999', // From hljs-meta
-  GradientColors: lightTheme.GradientColors, // Fallback
+  LightBlue: '#0086b3',
+  AccentBlue: '#458',
+  AccentPurple: '#900',
+  AccentCyan: '#009926',
+  AccentGreen: '#008080',
+  AccentYellow: '#990073',
+  AccentRed: '#d14',
+  SubtleComment: '#998',
+  Gray: '#999',
+  GradientColors: lightTheme.GradientColors,
 };
 
 export const GitHubLight: Theme = new Theme(

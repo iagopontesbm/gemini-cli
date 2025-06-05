@@ -10,14 +10,14 @@ const ansiLightColors: ColorsTheme = {
   type: 'light',
   Background: 'white',
   Foreground: 'black',
-  LightBlue: 'blue', // From hljs-keyword, etc.
-  AccentBlue: 'blue', // From hljs-keyword, etc.
-  AccentPurple: 'purple', // From hljs-variable
-  AccentCyan: 'cyan', // From hljs-built_in
-  AccentGreen: 'green', // From hljs-number
-  AccentYellow: 'orange', // From hljs-section (closest to yellow)
-  AccentRed: 'red', // From hljs-string
-  SubtleComment: 'gray', // From hljs-comment
+  LightBlue: 'blue',
+  AccentBlue: 'blue',
+  AccentPurple: 'purple',
+  AccentCyan: 'cyan',
+  AccentGreen: 'green',
+  AccentYellow: 'orange',
+  AccentRed: 'red',
+  SubtleComment: 'gray',
   Gray: 'gray',
   GradientColors: lightTheme.GradientColors,
 };

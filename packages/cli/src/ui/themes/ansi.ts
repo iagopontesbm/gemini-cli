@@ -11,13 +11,13 @@ const ansiColors: ColorsTheme = {
   Background: 'black',
   Foreground: 'white',
   LightBlue: 'bluebright', // From hljs-attr
-  AccentBlue: 'blue', // From hljs-keyword
+  AccentBlue: '#0000FF', // From hljs-keyword
   AccentPurple: 'magenta', // From hljs-variable
   AccentCyan: 'cyan', // From hljs-built_in
   AccentGreen: 'green', // From hljs-number
   AccentYellow: 'yellow', // From hljs-string, hljs-section etc.
   AccentRed: 'red', // From hljs-regexp
-  SubtleComment: 'green', // From hljs-comment (though green is also number, it's the closest)
+  SubtleComment: 'gray', // From hljs-comment (though green is also number, it's the closest)
   Gray: 'gray',
   GradientColors: darkTheme.GradientColors, // Fallback
 };
