@@ -98,7 +98,8 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     if (this.geminiIgnorePatterns.length > 0) {
       const relativePath = makeRelative(params.path, this.rootDirectory);
       if (micromatch.isMatch(relativePath, this.geminiIgnorePatterns)) {
-        return `File path '${shortenPath(relativePath)}' is ignored by a .geminiignore pattern.`;
+        const matchingPatterns = this.geminiIgnorePatterns.filter(p => micromatch.isMatch(relativePath, p));
+        return `File path '${shortenPath(relativePath)}' is ignored by the following .geminiignore pattern(s):\n\n${matchingPatterns.join('\n')}`;
       }
     }
 
