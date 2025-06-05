@@ -28,7 +28,10 @@
     "fast-glob": "^3.3.3",
     "minimatch": "^10.0.0",
     "shell-quote": "^1.8.2",
-    "strip-ansi": "^7.1.0"
+    "strip-ansi": "^7.1.0",
+    "tree-sitter": "^0.21.0",
+    "tree-sitter-java": "^0.21.0",
+    "tree-sitter-python": "^0.21.0"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",
