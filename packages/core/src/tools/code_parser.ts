@@ -276,8 +276,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
             if (fileLang && supportedLanguagesToParse.includes(fileLang)) {
               const ast = await this.parseFile(filePath, fileLang, maxFileSize);
               if (ast) {
-                parsedCodeOutput += `-------------${filePath}-------------\\n`;
-                parsedCodeOutput += ast + '\\n';
+                parsedCodeOutput += `-------------${filePath}-------------\n`; // Fixed newline
+                parsedCodeOutput += ast + '\n'; // Fixed newline
                 filesProcessedCount++;
               }
             }
@@ -294,10 +294,12 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
       if (fileLang && supportedLanguagesToParse.includes(fileLang)) {
         const ast = await this.parseFile(targetPath, fileLang, maxFileSize);
         if (ast) {
-          parsedCodeOutput += `-------------${targetPath}-------------\\n`;
-          parsedCodeOutput += ast + '\\n';
+          parsedCodeOutput += `-------------${targetPath}-------------\n`; // Fixed newline
+          parsedCodeOutput += ast + '\n'; // Fixed newline
           filesProcessedCount++;
         } else {
+          // Re-added else block: If ast is null (e.g. oversized or internal parse error),
+          // return a specific error for this single file case.
           return this.errorResult(
             `Error: Could not parse file ${targetPath}. Language '${fileLang}' is supported but parsing failed. Check logs.`,
             'Failed to parse file.',
