@@ -358,9 +358,7 @@ const RenderCodeBlockInternal: React.FC<RenderCodeBlockProps> = ({
         // Not enough space to even show the message meaningfully
         return (
           <Box padding={CODE_BLOCK_PADDING}>
-            <Text color={Colors.Gray}>
-              ... code is being written ...
-            </Text>
+            <Text color={Colors.Gray}>... code is being written ...</Text>
           </Box>
         );
       }
