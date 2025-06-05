@@ -179,6 +179,57 @@ describe('CodeParserTool', () => {
     });
   });
 
+  describe('shouldIgnore', () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const callShouldIgnore = (fileName: string, ignorePatterns?: string[]) => (tool as any).shouldIgnore(fileName, ignorePatterns);
+
+    it('should return false if no ignore patterns are provided', () => {
+      expect(callShouldIgnore('file.py', [])).toBe(false);
+      expect(callShouldIgnore('file.py', undefined)).toBe(false);
+    });
+
+    it('should ignore exact file names', () => {
+      expect(callShouldIgnore('file.py', ['file.py'])).toBe(true);
+      expect(callShouldIgnore('another.js', ['file.py'])).toBe(false);
+    });
+
+    it('should handle *.ext glob patterns', () => {
+      expect(callShouldIgnore('file.log', ['*.log'])).toBe(true);
+      expect(callShouldIgnore('file.txt', ['*.log'])).toBe(false);
+      expect(callShouldIgnore('image.jpeg', ['*.jpg', '*.png'])).toBe(false);
+      expect(callShouldIgnore('image.png', ['*.jpg', '*.png'])).toBe(true);
+    });
+
+    it('should handle dir/* glob patterns', () => {
+      // Note: minimatch by default doesn't treat / specially. 
+      // For 'temp/*', a fileName 'temp/file.txt' would match.
+      // Since shouldIgnore currently receives only basenames, this test reflects that.
+      expect(callShouldIgnore('file.txt', ['temp/*'])).toBe(false); // 'file.txt' is not 'temp/anything'
+      // If shouldIgnore were to receive 'temp/file.txt', then it would be true.
+      // To test this behavior properly, we'd need to pass relative paths to shouldIgnore.
+      // For now, testing simple name matching against such patterns:
+      expect(callShouldIgnore('temp', ['temp/*'])).toBe(false); // minimatch sees 'temp' != 'temp/anything'
+    });
+
+    it('should handle more complex glob patterns like **/*.tmp', () => {
+      expect(callShouldIgnore('file.tmp', ['**/*.tmp'])).toBe(true);
+      expect(callShouldIgnore('another.file', ['**/*.tmp'])).toBe(false);
+      expect(callShouldIgnore('sub/file.tmp', ['**/*.tmp'])).toBe(true); // if fileName can be a path
+      expect(callShouldIgnore('sub/deep/file.tmp', ['**/*.tmp'])).toBe(true); // if fileName can be a path
+    });
+    
+    it('should handle patterns like a/**/b.txt', () => {
+      expect(callShouldIgnore('a/b.txt', ['a/**/b.txt'])).toBe(true); // if fileName can be a path
+      expect(callShouldIgnore('a/x/y/b.txt', ['a/**/b.txt'])).toBe(true); // if fileName can be a path
+      expect(callShouldIgnore('c/a/x/y/b.txt', ['a/**/b.txt'])).toBe(false);
+    });
+
+    it('should not ignore non-matching files', () => {
+      expect(callShouldIgnore('main.py', ['*.java', 'docs/*'])).toBe(false);
+      expect(callShouldIgnore('src/app.js', ['lib/*', 'tests/*'])).toBe(false);
+    });
+  });
+
   describe('execute', () => {
     // --- Error Handling Tests ---
     it('should return validation error if params are invalid', async () => {

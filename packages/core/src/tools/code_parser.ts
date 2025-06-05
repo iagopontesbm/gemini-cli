@@ -12,6 +12,7 @@ import CSharp from 'tree-sitter-c-sharp';
 import TreeSitterTypeScript from 'tree-sitter-typescript';
 import fs from 'fs/promises';
 import path from 'path';
+import { minimatch } from 'minimatch';
 import { BaseTool, ToolResult, ToolCallConfirmationDetails } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js'; // Removed isWithinRoot
@@ -180,18 +181,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
 
   private shouldIgnore(fileName: string, ignorePatterns?: string[]): boolean {
     if (!ignorePatterns || ignorePatterns.length === 0) return false;
-    // Basic exact match for now.
-    // TODO: Implement proper glob matching for ignore patterns (e.g., using minimatch)
-    return ignorePatterns.some((pattern) => {
-      if (pattern.startsWith('*') && fileName.endsWith(pattern.substring(1)))
-        return true;
-      if (
-        pattern.endsWith('*') &&
-        fileName.startsWith(pattern.substring(0, pattern.length - 1))
-      )
-        return true;
-      return fileName === pattern;
-    });
+    // Uses minimatch for proper glob pattern matching.
+    return ignorePatterns.some((pattern) => minimatch(fileName, pattern));
   }
 
   private getFileLanguage(filePath: string): string | undefined {
@@ -374,7 +365,6 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
 }
 
 // TODOs for future enhancement:
-// - Implement proper glob matching for \`ignore\` patterns (e.g., using minimatch or fast-glob).
 // - The Go tool's specific AST string formatting (\`node.Tree\`) needs to be matched if \`tree.rootNode.toString()\` is not sufficient.
 // - Add more languages (ensure grammars are added to package.json and handled in \`getLanguageParser\` and \`getFileLanguage\`).
 // - Make \`maxFileSize\` and default languages configurable via \`this.config\` or tool-specific configuration.
