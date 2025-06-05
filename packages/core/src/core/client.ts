@@ -197,6 +197,74 @@ export class GeminiClient {
     }
   }
 
+  private _logApiRequest(model: string, inputTokenCount: number): void {
+    logApiRequest({
+      model,
+      prompt_token_count: inputTokenCount,
+      duration_ms: 0, // Duration is not known at request time
+    });
+  }
+
+  private _logApiResponse(
+    model: string,
+    durationMs: number,
+    attempt: number,
+    response: GenerateContentResponse,
+  ): void {
+    const promptFeedback = response.promptFeedback;
+    const finishReason = response.candidates?.[0]?.finishReason;
+    let responseError;
+    if (promptFeedback?.blockReason) {
+      responseError = `Blocked: ${promptFeedback.blockReason}${promptFeedback.blockReasonMessage ? ' - ' + promptFeedback.blockReasonMessage : ''}`;
+    } else if (
+      finishReason &&
+      !['STOP', 'MAX_TOKENS', 'UNSPECIFIED'].includes(finishReason)
+    ) {
+      responseError = `Finished with reason: ${finishReason}`;
+    }
+
+    logApiResponse({
+      model,
+      duration_ms: durationMs,
+      attempt,
+      status_code: undefined,
+      error: responseError,
+    });
+  }
+
+  private _logApiError(
+    model: string,
+    error: unknown,
+    durationMs: number,
+    attempt: number,
+    isAbort: boolean = false,
+  ): void {
+    let statusCode: number | string | undefined;
+    let errorMessage = getErrorMessage(error);
+
+    if (isAbort) {
+      errorMessage = 'Request aborted by user';
+      statusCode = 'ABORTED'; // Custom S
+    } else if (typeof error === 'object' && error !== null) {
+      if ('status' in error) {
+        statusCode = (error as { status: number | string }).status;
+      } else if ('code' in error) {
+        statusCode = (error as { code: number | string }).code;
+      } else if ('httpStatusCode' in error) {
+        statusCode = (error as { httpStatusCode: number | string })
+          .httpStatusCode;
+      }
+    }
+
+    logApiError({
+      model,
+      error: errorMessage,
+      status_code: statusCode,
+      duration_ms: durationMs,
+      attempt,
+    });
+  }
+
   async generateJson(
     contents: Content[],
     schema: SchemaUnion,
@@ -229,11 +297,7 @@ export class GeminiClient {
         inputTokenCount = 0;
       }
 
-      logApiRequest({
-        model,
-        prompt_token_count: inputTokenCount,
-        duration_ms: 0,
-      });
+      this._logApiRequest(model, inputTokenCount);
 
       const apiCall = () =>
         this.client.models.generateContent({
@@ -248,6 +312,7 @@ export class GeminiClient {
         });
 
       const result = await retryWithBackoff(apiCall);
+      const durationMs = Date.now() - startTime;
 
       const text = getResponseText(result);
       if (!text) {
@@ -260,30 +325,12 @@ export class GeminiClient {
           contents,
           'generateJson-empty-response',
         );
+        this._logApiError(model, error, durationMs, attempt);
         throw error;
       }
       try {
         const parsedJson = JSON.parse(text);
-        const durationMs = Date.now() - startTime;
-        const promptFeedback = result.promptFeedback;
-        const finishReason = result.candidates?.[0]?.finishReason;
-        let responseError;
-        if (promptFeedback?.blockReason) {
-          responseError = `Blocked: ${promptFeedback.blockReason}${promptFeedback.blockReasonMessage ? ' - ' + promptFeedback.blockReasonMessage : ''}`;
-        } else if (
-          finishReason &&
-          !['STOP', 'MAX_TOKENS', 'UNSPECIFIED'].includes(finishReason)
-        ) {
-          responseError = `Finished with reason: ${finishReason}`;
-        }
-
-        logApiResponse({
-          model,
-          duration_ms: durationMs,
-          attempt,
-          status_code: undefined,
-          error: responseError,
-        });
+        this._logApiResponse(model, durationMs, attempt, result);
         return parsedJson;
       } catch (parseError) {
         await reportError(
@@ -295,13 +342,15 @@ export class GeminiClient {
           },
           'generateJson-parse',
         );
+        this._logApiError(model, parseError, durationMs, attempt);
         throw new Error(
-          `Failed to parse API response as JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+          `Failed to parse API response as JSON: ${getErrorMessage(parseError)}`,
         );
       }
     } catch (error) {
+      const durationMs = Date.now() - startTime;
       if (abortSignal.aborted) {
-        // Regular cancellation error, fail normally
+        this._logApiError(model, error, durationMs, attempt, true);
         throw error;
       }
 
@@ -312,27 +361,7 @@ export class GeminiClient {
       ) {
         throw error;
       }
-
-      const durationMs = Date.now() - startTime;
-      let statusCode: number | string | undefined;
-      if (typeof error === 'object' && error !== null) {
-        if ('status' in error) {
-          statusCode = (error as { status: number | string }).status;
-        } else if ('code' in error) {
-          statusCode = (error as { code: number | string }).code;
-        } else if ('httpStatusCode' in error) {
-          statusCode = (error as { httpStatusCode: number | string })
-            .httpStatusCode;
-        }
-      }
-
-      logApiError({
-        model,
-        error: getErrorMessage(error),
-        status_code: statusCode,
-        duration_ms: durationMs,
-        attempt,
-      });
+      this._logApiError(model, error, durationMs, attempt);
 
       await reportError(
         error,
@@ -340,9 +369,9 @@ export class GeminiClient {
         contents,
         'generateJson-api',
       );
-      const message =
-        error instanceof Error ? error.message : 'Unknown API error.';
-      throw new Error(`Failed to generate JSON content: ${message}`);
+      throw new Error(
+        `Failed to generate JSON content: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -383,11 +412,7 @@ export class GeminiClient {
         inputTokenCount = 0;
       }
 
-      logApiRequest({
-        model: modelToUse,
-        prompt_token_count: inputTokenCount,
-        duration_ms: 0,
-      });
+      this._logApiRequest(modelToUse, inputTokenCount);
 
       const apiCall = () =>
         this.client.models.generateContent({
@@ -397,60 +422,17 @@ export class GeminiClient {
         });
 
       const result = await retryWithBackoff(apiCall);
-
       const durationMs = Date.now() - startTime;
-      const promptFeedback = result.promptFeedback;
-      const finishReason = result.candidates?.[0]?.finishReason;
-      let responseError;
-      if (promptFeedback?.blockReason) {
-        responseError = `Blocked: ${promptFeedback.blockReason}${promptFeedback.blockReasonMessage ? ' - ' + promptFeedback.blockReasonMessage : ''}`;
-      } else if (
-        finishReason &&
-        !['STOP', 'MAX_TOKENS', 'UNSPECIFIED'].includes(finishReason)
-      ) {
-        responseError = `Finished with reason: ${finishReason}`;
-      }
-
-      logApiResponse({
-        model: modelToUse,
-        duration_ms: durationMs,
-        attempt,
-        status_code: undefined,
-        error: responseError,
-      });
+      this._logApiResponse(modelToUse, durationMs, attempt, result);
       return result;
     } catch (error: unknown) {
       const durationMs = Date.now() - startTime;
       if (abortSignal.aborted) {
-        logApiError({
-          model: modelToUse,
-          error: 'Request aborted by user',
-          status_code: 'ABORTED', // Custom Status
-          duration_ms: durationMs,
-          attempt,
-        });
+        this._logApiError(modelToUse, error, durationMs, attempt, true);
         throw error;
       }
 
-      let statusCode: number | string | undefined;
-      if (typeof error === 'object' && error !== null) {
-        if ('status' in error) {
-          statusCode = (error as { status: number | string }).status;
-        } else if ('code' in error) {
-          statusCode = (error as { code: number | string }).code;
-        } else if ('httpStatusCode' in error) {
-          statusCode = (error as { httpStatusCode: number | string })
-            .httpStatusCode;
-        }
-      }
-
-      logApiError({
-        model: modelToUse,
-        error: getErrorMessage(error),
-        status_code: statusCode,
-        duration_ms: durationMs,
-        attempt,
-      });
+      this._logApiError(modelToUse, error, durationMs, attempt);
 
       await reportError(
         error,
@@ -461,10 +443,8 @@ export class GeminiClient {
         },
         'generateContent-api',
       );
-      const message =
-        error instanceof Error ? error.message : 'Unknown API error.';
       throw new Error(
-        `Failed to generate content with model ${modelToUse}: ${message}`,
+        `Failed to generate content with model ${modelToUse}: ${getErrorMessage(error)}`,
       );
     }
   }
