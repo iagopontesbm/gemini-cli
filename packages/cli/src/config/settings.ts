@@ -21,6 +21,10 @@ export enum SettingScope {
   Workspace = 'Workspace',
 }
 
+export interface AccessibilitySettings {
+  disableLoadingPhrases?: boolean;
+}
+
 export interface Settings {
   theme?: string;
   sandbox?: boolean | string;
@@ -31,7 +35,14 @@ export interface Settings {
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
   contextFileName?: string;
-  title?: string;
+  accessibility?: AccessibilitySettings;
+
+  // Git-aware file filtering settings
+  fileFiltering?: {
+    respectGitIgnore?: boolean;
+    allowBuildArtifacts?: boolean;
+  };
+
   // Add other settings here.
 }
 

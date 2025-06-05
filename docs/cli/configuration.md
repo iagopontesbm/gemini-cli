@@ -42,10 +42,26 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
 
+- **`fileFiltering`** (object, optional):
+
+  - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
+  - **Properties:**
+    - **`respectGitIgnore`** (boolean, default: `true`): Whether to respect .gitignore patterns when discovering files. When enabled, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
+    - **`customIgnorePatterns`** (array of strings, default: `[]`): Additional patterns to ignore beyond git-ignored files. Useful for excluding specific directories or file types.
+    - **`allowBuildArtifacts`** (boolean, default: `false`): Whether to include build artifacts and generated files in file discovery operations.
+  - **Example:**
+    ```json
+    "fileFiltering": {
+      "respectGitIgnore": true,
+      "customIgnorePatterns": ["temp/", "*.log"],
+      "allowBuildArtifacts": false
+    }
+    ```
+
 - **`coreTools`** (array of strings, optional):
   - **Description:** Allows you to specify a list of core tool names that should be made available to the model. This can be used to restrict or customize the set of built-in tools.
   - **Example:** `"coreTools": ["ReadFileTool", "GlobTool", "SearchText"]`.
-  - **Behavior:** If this setting is provided, only the listed tools will be available for the model to use. If omitted, all default core tools are available. See [Built-in Tools](../server/tools-api.md#built-in-tools) for a list of core tools. You can also specify the alternative internal tool names used by the model, e.g. `read_file`, and you can get a full listing for that by simply asking the model "what tools do you have?".
+  - **Behavior:** If this setting is provided, only the listed tools will be available for the model to use. If omitted, all default core tools are available. See [Built-in Tools](../core/tools-api.md#built-in-tools) for a list of core tools. You can also specify the alternative internal tool names used by the model, e.g. `read_file`, and you can get a full listing for that by simply asking the model "what tools do you have?".
 - **`autoAccept`** (boolean, optional):
 
   - **Description:** Controls whether the CLI automatically accepts and executes tool calls that are considered safe (e.g., read-only operations) without explicit user confirmation.
@@ -61,6 +77,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - See the [Theming section in README.md](../../README.md#theming) for available theme names.
 - **`sandbox`** (boolean or string):
   - Controls whether and how to use sandboxing for tool execution.
+  - If a `.gemini/sandbox.Dockerfile` exists in your project, it will be used to build a custom sandbox image based on `gemini-cli-sandbox`.
   - `true`: Enable default sandbox (see [README](../../README.md) for behavior).
   - `false`: Disable sandboxing (WARNING: this is inherently unsafe).
   - `"docker"` or `"podman"`: Explicitly choose container-based sandboxing command.
@@ -259,6 +276,31 @@ This example demonstrates how you can provide general project context, specific 
   - See the [Commands documentation](./commands.md#memory) for full details on the `/memory` command and its sub-commands (`show` and `refresh`).
 
 By understanding and utilizing these configuration layers and the hierarchical nature of context files, you can effectively manage the AI's memory and tailor the Gemini CLI's responses to your specific needs and projects.
+
+## Sandboxing
+
+The Gemini CLI can execute potentially unsafe operations (like shell commands and file modifications) within a sandboxed environment to protect your system.
+
+Sandboxing is disabled by default, but you can enable it in a few ways:
+
+- Using `--sandbox` or `-s` flag.
+- Setting `GEMINI_SANDBOX` environment variable.
+- Sandbox is enabled in `--yolo` mode by default.
+
+By default, it uses a pre-built `gemini-cli-sandbox` Docker image.
+
+For project-specific sandboxing needs, you can create a custom Dockerfile at `.gemini/sandbox.Dockerfile` in your project's root directory. This Dockerfile should be based on the base sandbox image:
+
+```dockerfile
+FROM gemini-cli-sandbox
+
+# Add your custom dependencies or configurations here
+# For example:
+# RUN apt-get update && apt-get install -y some-package
+# COPY ./my-config /app/my-config
+```
+
+When `.gemini/sandbox.Dockerfile` exists, the CLI will automatically build and use a custom image for your project.
 
 ## Theming
 

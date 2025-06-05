@@ -64,6 +64,9 @@ async function main() {
   const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
     await loadCliConfig(settings.merged, geminiIgnorePatterns);
 
+  // Initialize centralized FileDiscoveryService
+  await config.getFileService();
+
   if (modelWasSwitched && originalModelBeforeSwitch) {
     console.log(
       `[INFO] Your configured model (${originalModelBeforeSwitch}) was temporarily unavailable. Switched to ${finalModel} for this session.`,

@@ -73,7 +73,9 @@ async function shouldUseCurrentUserInSandbox(): Promise<boolean> {
   return false; // Default to false if no other condition is met
 }
 
-async function getSandboxImageName(): Promise<string> {
+async function getSandboxImageName(
+  isCustomProjectSandbox: boolean,
+): Promise<string> {
   const packageJsonResult = await readPackageUp();
   const packageJsonConfig = packageJsonResult?.packageJson.config as
     | { sandboxImageUri?: string }
@@ -81,7 +83,9 @@ async function getSandboxImageName(): Promise<string> {
   return (
     process.env.GEMINI_SANDBOX_IMAGE ??
     packageJsonConfig?.sandboxImageUri ??
-    LOCAL_DEV_SANDBOX_IMAGE_NAME
+    (isCustomProjectSandbox
+      ? LOCAL_DEV_SANDBOX_IMAGE_NAME + '-' + path.basename(path.resolve())
+      : LOCAL_DEV_SANDBOX_IMAGE_NAME)
   );
 }
 
@@ -272,15 +276,23 @@ export async function start_sandbox(sandbox: string) {
   // determine full path for gemini-cli to distinguish linked vs installed setting
   const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
 
-  const image = await getSandboxImageName();
+  const projectSandboxDockerfile = path.join(
+    SETTINGS_DIRECTORY_NAME,
+    'sandbox.Dockerfile',
+  );
+  const isCustomProjectSandbox = fs.existsSync(projectSandboxDockerfile);
+
+  const image = await getSandboxImageName(isCustomProjectSandbox);
   const workdir = process.cwd();
 
-  // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-cli repo
+  // if BUILD_SANDBOX is set or project-specific sandbox.Dockerfile provided,
+  // then call scripts/build_sandbox.sh under gemini-cli repo
+  //
   // note this can only be done with binary linked from gemini-cli repo
-  if (process.env.BUILD_SANDBOX) {
+  if (process.env.BUILD_SANDBOX || isCustomProjectSandbox) {
     if (!gcPath.includes('gemini-cli/packages/')) {
       console.error(
-        'ERROR: cannot BUILD_SANDBOX using installed gemini binary; ' +
+        'ERROR: cannot build sandbox using installed gemini binary; ' +
           'run `npm link ./packages/cli` under gemini-cli repo to switch to linked binary.',
       );
       process.exit(1);
@@ -293,9 +305,9 @@ export async function start_sandbox(sandbox: string) {
         SETTINGS_DIRECTORY_NAME,
         'sandbox.Dockerfile',
       );
-      if (fs.existsSync(projectSandboxDockerfile)) {
+      if (isCustomProjectSandbox) {
         console.error(`using ${projectSandboxDockerfile} for sandbox`);
-        buildArgs += `-f ${path.resolve(projectSandboxDockerfile)}`;
+        buildArgs += `-s -f ${path.resolve(projectSandboxDockerfile)} -i ${image}`;
       }
       spawnSync(`cd ${gcRoot} && scripts/build_sandbox.sh ${buildArgs}`, {
         stdio: 'inherit',
@@ -320,9 +332,14 @@ export async function start_sandbox(sandbox: string) {
     process.exit(1);
   }
 
-  // use interactive tty mode and auto-remove container on exit
+  // use interactive mode and auto-remove container on exit
   // run init binary inside container to forward signals & reap zombies
-  const args = ['run', '-it', '--rm', '--init', '--workdir', workdir];
+  const args = ['run', '-i', '--rm', '--init', '--workdir', workdir];
+
+  // add TTY only if stdin is TTY as well, i.e. for piped input don't init TTY in container
+  if (process.stdin.isTTY) {
+    args.push('-t');
+  }
 
   // mount current directory as working directory in sandbox (set via --workdir)
   args.push('--volume', `${process.cwd()}:${workdir}`);
@@ -531,28 +548,28 @@ async function pullImage(sandbox: string, image: string): Promise<boolean> {
     const pullProcess = spawn(sandbox, args, { stdio: 'pipe' });
 
     let stderrData = '';
-    if (pullProcess.stdout) {
-      pullProcess.stdout.on('data', (data) => {
-        console.info(data.toString().trim()); // Show pull progress
-      });
-    }
-    if (pullProcess.stderr) {
-      pullProcess.stderr.on('data', (data) => {
-        stderrData += data.toString();
-        console.error(data.toString().trim()); // Show pull errors/info from the command itself
-      });
-    }
 
-    pullProcess.on('error', (err) => {
+    const onStdoutData = (data: Buffer) => {
+      console.info(data.toString().trim()); // Show pull progress
+    };
+
+    const onStderrData = (data: Buffer) => {
+      stderrData += data.toString();
+      console.error(data.toString().trim()); // Show pull errors/info from the command itself
+    };
+
+    const onError = (err: Error) => {
       console.warn(
         `Failed to start '${sandbox} pull ${image}' command: ${err.message}`,
       );
+      cleanup();
       resolve(false);
-    });
+    };
 
-    pullProcess.on('close', (code) => {
+    const onClose = (code: number | null) => {
       if (code === 0) {
         console.info(`Successfully pulled image ${image}.`);
+        cleanup();
         resolve(true);
       } else {
         console.warn(
@@ -561,9 +578,33 @@ async function pullImage(sandbox: string, image: string): Promise<boolean> {
         if (stderrData.trim()) {
           // Details already printed by the stderr listener above
         }
+        cleanup();
         resolve(false);
       }
-    });
+    };
+
+    const cleanup = () => {
+      if (pullProcess.stdout) {
+        pullProcess.stdout.removeListener('data', onStdoutData);
+      }
+      if (pullProcess.stderr) {
+        pullProcess.stderr.removeListener('data', onStderrData);
+      }
+      pullProcess.removeListener('error', onError);
+      pullProcess.removeListener('close', onClose);
+      if (pullProcess.connected) {
+        pullProcess.disconnect();
+      }
+    };
+
+    if (pullProcess.stdout) {
+      pullProcess.stdout.on('data', onStdoutData);
+    }
+    if (pullProcess.stderr) {
+      pullProcess.stderr.on('data', onStderrData);
+    }
+    pullProcess.on('error', onError);
+    pullProcess.on('close', onClose);
   });
 }
 

@@ -23,11 +23,16 @@ import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
   AUTO_EDIT = 'autoEdit',
   YOLO = 'yolo',
+}
+
+export interface AccessibilitySettings {
+  disableLoadingPhrases?: boolean;
 }
 
 export class MCPServerConfig {
@@ -66,6 +71,9 @@ export interface ConfigParameters {
   showMemoryUsage?: boolean;
   contextFileName?: string;
   geminiIgnorePatterns?: string[];
+  accessibility?: AccessibilitySettings;
+  fileFilteringRespectGitIgnore?: boolean;
+  fileFilteringAllowBuildArtifacts?: boolean;
 }
 
 export class Config {
@@ -88,8 +96,12 @@ export class Config {
   private approvalMode: ApprovalMode;
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
+  private readonly accessibility: AccessibilitySettings;
   private readonly geminiClient: GeminiClient;
   private readonly geminiIgnorePatterns: string[] = [];
+  private readonly fileFilteringRespectGitIgnore: boolean;
+  private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -110,6 +122,11 @@ export class Config {
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
     this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
+    this.accessibility = params.accessibility ?? {};
+    this.fileFilteringRespectGitIgnore =
+      params.fileFilteringRespectGitIgnore ?? true;
+    this.fileFilteringAllowBuildArtifacts =
+      params.fileFilteringAllowBuildArtifacts ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -209,12 +226,35 @@ export class Config {
     return this.showMemoryUsage;
   }
 
+  getAccessibility(): AccessibilitySettings {
+    return this.accessibility;
+  }
+
   getGeminiClient(): GeminiClient {
     return this.geminiClient;
   }
 
   getGeminiIgnorePatterns(): string[] {
     return this.geminiIgnorePatterns;
+  }
+
+  getFileFilteringRespectGitIgnore(): boolean {
+    return this.fileFilteringRespectGitIgnore;
+  }
+
+  getFileFilteringAllowBuildArtifacts(): boolean {
+    return this.fileFilteringAllowBuildArtifacts;
+  }
+
+  async getFileService(): Promise<FileDiscoveryService> {
+    if (!this.fileDiscoveryService) {
+      this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
+      await this.fileDiscoveryService.initialize({
+        respectGitIgnore: this.fileFilteringRespectGitIgnore,
+        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
+      });
+    }
+    return this.fileDiscoveryService;
   }
 }
 
@@ -279,10 +319,10 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
     }
   };
 
-  registerCoreTool(LSTool, targetDir);
+  registerCoreTool(LSTool, targetDir, config);
   registerCoreTool(ReadFileTool, targetDir, config);
   registerCoreTool(GrepTool, targetDir);
-  registerCoreTool(GlobTool, targetDir);
+  registerCoreTool(GlobTool, targetDir, config);
   registerCoreTool(EditTool, config);
   registerCoreTool(WriteFileTool, config);
   registerCoreTool(WebFetchTool, config);
