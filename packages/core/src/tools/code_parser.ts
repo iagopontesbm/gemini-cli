@@ -396,11 +396,3 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
     return null;
   }
 }
-
-// TODOs for future enhancement:
-// - The Go tool's specific AST string formatting (\`node.Tree\`) needs to be matched if \`tree.rootNode.toString()\` is not sufficient.
-// - Add more languages (ensure grammars are added to package.json and handled in \`getLanguageParser\` and \`getFileLanguage\`).
-// - Make \`maxFileSize\` and default languages configurable via \`this.config\` or tool-specific configuration.
-// - Consider Go's \`ProcessingOptions\` like \`IncludeHidden\` (fs.readdir with \`withFileTypes\` can help detect hidden files if needed).
-// - Explore if a more complex "Manager" pattern like in the Go code is necessary for advanced features (caching, parallelism with Worker Threads).
-// - Refine error handling and logging for better diagnostics.
