@@ -41,6 +41,7 @@ const mockGoGrammar = vi.hoisted(() => ({ name: 'go' }));
 const mockCSharpGrammar = vi.hoisted(() => ({ name: 'csharp' }));
 const mockTypeScriptGrammar = vi.hoisted(() => ({ name: 'typescript' }));
 const mockTSXGrammar = vi.hoisted(() => ({ name: 'tsx' }));
+const mockRustGrammar = vi.hoisted(() => ({ name: 'rust' })); // Added for Rust
 
 vi.mock('tree-sitter-python', () => ({ default: mockPythonGrammar }));
 vi.mock('tree-sitter-java', () => ({ default: mockJavaGrammar }));
@@ -52,6 +53,7 @@ vi.mock('tree-sitter-typescript', () => ({
     tsx: mockTSXGrammar,
   },
 }));
+vi.mock('tree-sitter-rust', () => ({ default: mockRustGrammar })); // Added for Rust
 
 describe('CodeParserTool', () => {
   let tempRootDir: string;
@@ -109,6 +111,7 @@ describe('CodeParserTool', () => {
       expect(schema.properties!.languages.description).toContain('typescript');
       expect(schema.properties!.languages.description).toContain('tsx');
       expect(schema.properties!.languages.description).toContain('javascript');
+      expect(schema.properties!.languages.description).toContain('rust'); // Added for Rust
       expect(schema.required).toEqual(['path']);
     });
   });
@@ -471,6 +474,30 @@ describe('CodeParserTool', () => {
       expect(result.returnDisplay).toBe('Parsed 1 file(s).');
     });
 
+    it('should parse a single Rust (.rs) file successfully', async () => {
+      const targetPath = path.join(tempRootDir, 'main.rs');
+      const fileContent = 'fn main() { println!("Hello, Rust!"); }';
+      mockFs.stat.mockResolvedValue({
+        isFile: () => true,
+        isDirectory: () => false,
+        size: fileContent.length,
+      } as Stats);
+      mockFs.readFile.mockResolvedValue(fileContent);
+      mockTreeSitterParse.mockReturnValue({
+        rootNode: { toString: () => '(rust_ast)' },
+      });
+
+      const params: CodeParserToolParams = { path: targetPath };
+      const result = await tool.execute(params, abortSignal);
+
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockRustGrammar);
+      expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
+      expect(result.llmContent).toBe(
+        `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(rust_ast)\n\n`,
+      );
+      expect(result.returnDisplay).toBe('Parsed 1 file(s).');
+    });
+
     it('should parse a JavaScript JSX (.jsx) file successfully (using tsx parser)', async () => {
       const targetPath = path.join(tempRootDir, 'component.jsx');
       const fileContent = 'const Comp = () => <div />;';
@@ -565,6 +592,7 @@ describe('CodeParserTool', () => {
         'logic.ts',
         'ui.tsx',
         'utils.js',
+        'main.rs', // Added Rust file
         'config.txt',
       ];
       const pythonContent = 'import os';
@@ -574,6 +602,7 @@ describe('CodeParserTool', () => {
       const tsContent = 'let val: number = 1;';
       const tsxContent = 'const MyComp = () => <p />;';
       const jsContent = 'function hello() {}';
+      const rustContent = 'fn start() {}'; // Added Rust content
 
       mockFs.stat.mockImplementation(async (p) => {
         if (p === dirPath)
@@ -620,6 +649,13 @@ describe('CodeParserTool', () => {
             isDirectory: () => false,
             size: jsContent.length,
           } as Stats;
+        if (p === path.join(dirPath, 'main.rs'))
+          // Added for Rust
+          return {
+            isFile: () => true,
+            isDirectory: () => false,
+            size: rustContent.length,
+          } as Stats;
         if (p === path.join(dirPath, 'config.txt'))
           return {
             isFile: () => true,
@@ -647,6 +683,7 @@ describe('CodeParserTool', () => {
         if (p === path.join(dirPath, 'logic.ts')) return tsContent;
         if (p === path.join(dirPath, 'ui.tsx')) return tsxContent;
         if (p === path.join(dirPath, 'utils.js')) return jsContent;
+        if (p === path.join(dirPath, 'main.rs')) return rustContent; // Added for Rust
         return '';
       });
       mockTreeSitterParse.mockImplementation((content) => {
@@ -664,6 +701,9 @@ describe('CodeParserTool', () => {
           return { rootNode: { toString: () => '(tsx_ast_dir)' } };
         if (content === jsContent)
           return { rootNode: { toString: () => '(js_ast_dir)' } };
+        if (content === rustContent)
+          // Added for Rust
+          return { rootNode: { toString: () => '(rust_ast_dir)' } };
         return { rootNode: { toString: () => '(other_ast)' } };
       });
 
@@ -691,8 +731,12 @@ describe('CodeParserTool', () => {
       expect(result.llmContent).toContain(
         `-------------${path.join(dirPath, 'utils.js')}-------------\n(js_ast_dir)\n`,
       );
+      expect(result.llmContent).toContain(
+        // Added for Rust
+        `-------------${path.join(dirPath, 'main.rs')}-------------\n(rust_ast_dir)\n`,
+      );
       expect(result.llmContent).not.toContain('config.txt');
-      expect(result.returnDisplay).toBe('Parsed 7 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 8 file(s).'); // Updated count
     });
 
     it('should ignore files specified in ignore patterns during directory parsing', async () => {
@@ -755,6 +799,7 @@ describe('CodeParserTool', () => {
         'index.ts',
         'view.tsx',
         'helper.js',
+        'main.rs', // Added Rust file
       ];
       mockFs.stat.mockImplementation(async (p) => {
         if (p === dirPath)
@@ -780,7 +825,15 @@ describe('CodeParserTool', () => {
 
       const params: CodeParserToolParams = {
         path: dirPath,
-        languages: ['java', 'go', 'csharp', 'typescript', 'tsx', 'javascript'],
+        languages: [
+          'java',
+          'go',
+          'csharp',
+          'typescript',
+          'tsx',
+          'javascript',
+          'rust',
+        ], // Added rust
       };
       const result = await tool.execute(params, abortSignal);
 
@@ -790,9 +843,10 @@ describe('CodeParserTool', () => {
       expect(result.llmContent).toContain(path.join(dirPath, 'index.ts'));
       expect(result.llmContent).toContain(path.join(dirPath, 'view.tsx'));
       expect(result.llmContent).toContain(path.join(dirPath, 'helper.js'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'main.rs')); // Added for Rust
       expect(result.llmContent).not.toContain('script.py');
       expect(result.llmContent).not.toContain('another.py');
-      expect(result.returnDisplay).toBe('Parsed 6 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 7 file(s).'); // Updated count
     });
 
     it('should return "Directory is empty" for an empty directory', async () => {

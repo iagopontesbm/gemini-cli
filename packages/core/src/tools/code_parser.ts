@@ -10,6 +10,7 @@ import Java from 'tree-sitter-java';
 import Go from 'tree-sitter-go';
 import CSharp from 'tree-sitter-c-sharp';
 import TreeSitterTypeScript from 'tree-sitter-typescript';
+import Rust from 'tree-sitter-rust'; // Added
 import fs from 'fs/promises';
 import path from 'path';
 import { minimatch } from 'minimatch';
@@ -57,7 +58,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
           languages: {
             type: 'array',
             description:
-              'Optional: specific languages to parse (e.g., ["python", "java", "go", "csharp", "typescript", "tsx", "javascript"]). Defaults to supported languages.',
+              'Optional: specific languages to parse (e.g., ["python", "java", "go", "csharp", "typescript", "tsx", "javascript", "rust"]). Defaults to supported languages.',
             items: {
               type: 'string',
             },
@@ -100,6 +101,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return TreeSitterTypeScript.tsx;
       case 'javascript': // Use TypeScript parser for JS as it handles modern JS well
         return TreeSitterTypeScript.typescript;
+      case 'rust': // Added
+        return Rust; // Added
       default:
         console.warn(
           `Language '${language}' is not supported by the CodeParserTool.`,
@@ -241,6 +244,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return 'javascript';
       case '.cjs':
         return 'javascript';
+      case '.rs': // Added
+        return 'rust'; // Added
       default:
         return undefined;
     }
@@ -283,6 +288,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
       'typescript',
       'tsx',
       'javascript',
+      'rust', // Added
     ];
     const languagesToParse = (
       params.languages && params.languages.length > 0
