@@ -7,17 +7,17 @@
 import { darkTheme, Theme, type ColorsTheme } from './theme.js';
 
 const ansiColors: ColorsTheme = {
-  type: 'dark', // Or 'ansi' if we want to treat it differently, but its colors are dark-bg based
+  type: 'dark',
   Background: 'black',
   Foreground: 'white',
-  LightBlue: 'bluebright', // From hljs-attr
-  AccentBlue: '#0000FF', // From hljs-keyword
-  AccentPurple: 'magenta', // From hljs-variable
-  AccentCyan: 'cyan', // From hljs-built_in
-  AccentGreen: 'green', // From hljs-number
-  AccentYellow: 'yellow', // From hljs-string, hljs-section etc.
-  AccentRed: 'red', // From hljs-regexp
-  SubtleComment: 'gray', // From hljs-comment (though green is also number, it's the closest)
+  LightBlue: 'bluebright',
+  AccentBlue: '#0000FF',
+  AccentPurple: 'magenta',
+  AccentCyan: 'cyan',
+  AccentGreen: 'green',
+  AccentYellow: 'yellow',
+  AccentRed: 'red',
+  SubtleComment: 'gray',
   Gray: 'gray',
   GradientColors: darkTheme.GradientColors, // Fallback
 };

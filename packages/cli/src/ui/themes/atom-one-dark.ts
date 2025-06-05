@@ -10,16 +10,16 @@ const atomOneDarkColors: ColorsTheme = {
   type: 'dark',
   Background: '#282c34',
   Foreground: '#abb2bf',
-  LightBlue: '#61aeee', // For lighter blue elements, like symbols/links
-  AccentBlue: '#61aeee', // From hljs-symbol, hljs-link, hljs-title
-  AccentPurple: '#c678dd', // From hljs-keyword, hljs-doctag
-  AccentCyan: '#56b6c2', // From hljs-literal
-  AccentGreen: '#98c379', // From hljs-string, hljs-regexp
-  AccentYellow: '#e6c07b', // From hljs-built_in, hljs-class .hljs-title
-  AccentRed: '#e06c75', // From hljs-section, hljs-name
-  SubtleComment: '#5c6370', // From hljs-comment
-  Gray: '#5c6370', // Using comment color as gray
-  GradientColors: darkTheme.GradientColors, // Fallback
+  LightBlue: '#61aeee',
+  AccentBlue: '#61aeee',
+  AccentPurple: '#c678dd',
+  AccentCyan: '#56b6c2',
+  AccentGreen: '#98c379',
+  AccentYellow: '#e6c07b',
+  AccentRed: '#e06c75',
+  SubtleComment: '#5c6370',
+  Gray: '#5c6370',
+  GradientColors: darkTheme.GradientColors,
 };
 
 export const AtomOneDark: Theme = new Theme(
