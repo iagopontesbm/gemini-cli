@@ -8,6 +8,7 @@ import Parser from 'tree-sitter';
 import Python from 'tree-sitter-python';
 import Java from 'tree-sitter-java';
 import Go from 'tree-sitter-go';
+import CSharp from 'tree-sitter-c-sharp';
 import fs from 'fs/promises';
 import path from 'path';
 import { BaseTool, ToolResult, ToolCallConfirmationDetails } from './tools.js';
@@ -54,7 +55,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
           languages: {
             type: 'array',
             description:
-              'Optional: specific languages to parse (e.g., ["python", "java", "go"]). Defaults to supported languages.',
+              'Optional: specific languages to parse (e.g., ["python", "java", "go", "csharp"]). Defaults to supported languages.',
             items: {
               type: 'string',
             },
@@ -89,6 +90,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return Java;
       case 'go':
         return Go;
+      case 'csharp':
+        return CSharp;
       // TODO: Add more languages here as needed and ensure they are added to package.json
       default:
         console.warn(
@@ -194,6 +197,8 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         return 'java';
       case '.go':
         return 'go';
+      case '.cs':
+        return 'csharp';
       default:
         return undefined;
     }
@@ -228,7 +233,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
       );
     }
 
-    const defaultLanguages = ['python', 'java', 'go'];
+    const defaultLanguages = ['python', 'java', 'go', 'csharp'];
     const languagesToParse = (
       params.languages && params.languages.length > 0
         ? params.languages
