@@ -16,7 +16,7 @@ import {
 import { CodeParserTool, CodeParserToolParams } from './code_parser.js';
 import { Config } from '../config/config.js';
 import fs from 'fs/promises';
-import { Stats } from 'fs'; // Added Stats import
+import { Stats, PathLike } from 'fs'; // Added Stats import
 import path from 'path';
 import os from 'os';
 import actualFs from 'fs'; // For actual fs operations in setup
@@ -574,7 +574,15 @@ describe('CodeParserTool', () => {
           } as Stats;
         throw { code: 'ENOENT' };
       });
-      mockFs.readdir.mockResolvedValue(files as string[]);
+      mockFs.readdir.mockImplementation(
+        vi.fn(async (p: PathLike): Promise<string[]> => {
+          const dirPath = path.join(tempRootDir, 'src'); // Path for this specific test
+          if (p === dirPath) {
+            return files; // files is in scope for this test
+          }
+          throw new Error(`fs.readdir mock: Unhandled path ${p} in test 'should parse supported files in a directory'`);
+        }) as unknown as typeof fs.readdir
+      );
       mockFs.readFile.mockImplementation(async (p) => {
         if (p === path.join(dirPath, 'main.py')) return pythonContent;
         if (p === path.join(dirPath, 'helper.java')) return javaContent;
@@ -650,7 +658,14 @@ describe('CodeParserTool', () => {
           size: 10,
         } as Stats;
       });
-      mockFs.readdir.mockResolvedValue(files as string[]);
+      mockFs.readdir.mockImplementation(
+        vi.fn(async (p: PathLike): Promise<string[]> => {
+          if (p === dirPath) { // dirPath is defined in this test's scope
+            return files; // files is defined in this test's scope
+          }
+          throw new Error(`fs.readdir mock: Unhandled path ${p} in test 'should ignore files specified in ignore patterns'`);
+        }) as unknown as typeof fs.readdir
+      );
       mockFs.readFile.mockResolvedValue('content');
 
       const params: CodeParserToolParams = {
@@ -691,7 +706,15 @@ describe('CodeParserTool', () => {
           size: 10,
         } as Stats;
       });
-      mockFs.readdir.mockResolvedValue(files as string[]);
+      mockFs.readdir.mockImplementation(
+        vi.fn(async (p: PathLike): Promise<string[]> => {
+          // dirPath and files are in scope for this specific test
+          if (p === dirPath) {
+            return files;
+          }
+          throw new Error(`fs.readdir mock: Unhandled path ${p} in test 'should only parse languages specified'`);
+        }) as unknown as typeof fs.readdir
+      );
       mockFs.readFile.mockResolvedValue('content');
 
       const params: CodeParserToolParams = {
@@ -738,7 +761,15 @@ describe('CodeParserTool', () => {
           size: 10,
         } as Stats;
       });
-      mockFs.readdir.mockResolvedValue(files as string[]);
+      mockFs.readdir.mockImplementation(
+        vi.fn(async (p: PathLike): Promise<string[]> => {
+          // dirPath and files are in scope for this specific test
+          if (p === dirPath) {
+            return files;
+          }
+          throw new Error(`fs.readdir mock: Unhandled path ${p} in test 'should return "No files parsed"'`);
+        }) as unknown as typeof fs.readdir
+      );
 
       const params: CodeParserToolParams = { path: dirPath, ignore: ['*.log'] };
       const result = await tool.execute(params, abortSignal);

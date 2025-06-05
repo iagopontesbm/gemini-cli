@@ -9,7 +9,7 @@ import Python from 'tree-sitter-python';
 import Java from 'tree-sitter-java';
 import Go from 'tree-sitter-go';
 import CSharp from 'tree-sitter-c-sharp';
-import { typescript, tsx } from 'tree-sitter-typescript';
+import TreeSitterTypeScript from 'tree-sitter-typescript';
 import fs from 'fs/promises';
 import path from 'path';
 import { BaseTool, ToolResult, ToolCallConfirmationDetails } from './tools.js';
@@ -94,11 +94,11 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
       case 'csharp':
         return CSharp;
       case 'typescript':
-        return typescript;
+        return TreeSitterTypeScript.typescript;
       case 'tsx':
-        return tsx;
+        return TreeSitterTypeScript.tsx;
       case 'javascript': // Use TypeScript parser for JS as it handles modern JS well
-        return typescript;
+        return TreeSitterTypeScript.typescript;
       default:
         console.warn(
           `Language '${language}' is not supported by the CodeParserTool.`,
