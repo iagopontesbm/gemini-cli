@@ -50,6 +50,11 @@ export class MCPServerConfig {
   ) {}
 }
 
+export type TraceEventHandler = (event: {
+  type: string;
+  data: unknown;
+}) => void;
+
 export interface ConfigParameters {
   apiKey: string;
   model: string;
@@ -73,6 +78,7 @@ export interface ConfigParameters {
   accessibility?: AccessibilitySettings;
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
+  onTrace?: TraceEventHandler;
 }
 
 export class Config {
@@ -99,6 +105,7 @@ export class Config {
   private readonly geminiClient: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private readonly onTrace: TraceEventHandler | undefined;
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
@@ -125,6 +132,7 @@ export class Config {
       params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringAllowBuildArtifacts =
       params.fileFilteringAllowBuildArtifacts ?? false;
+    this.onTrace = params.onTrace;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -227,6 +235,10 @@ export class Config {
 
   getGeminiClient(): GeminiClient {
     return this.geminiClient;
+  }
+
+  getTraceHandler(): TraceEventHandler | undefined {
+    return this.onTrace;
   }
 
   getFileFilteringRespectGitIgnore(): boolean {

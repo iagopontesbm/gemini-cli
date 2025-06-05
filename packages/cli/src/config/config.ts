@@ -16,6 +16,7 @@ import {
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
+  TraceEventHandler,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
 import { readPackageUp } from 'read-package-up';
@@ -45,6 +46,7 @@ interface CliArgs {
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
+  trace: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -89,6 +91,11 @@ async function parseArguments(): Promise<CliArgs> {
         'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
+    .option('trace', {
+      type: 'boolean',
+      description: 'Enable tracing of API calls to a file.',
+      default: false,
+    })
     .version() // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
@@ -119,10 +126,12 @@ export interface LoadCliConfigResult {
   modelWasSwitched: boolean;
   originalModelBeforeSwitch?: string;
   finalModel: string;
+  trace: boolean;
 }
 
 export async function loadCliConfig(
   settings: Settings,
+  onTrace?: TraceEventHandler,
 ): Promise<LoadCliConfigResult> {
   loadEnvironment();
 
@@ -216,6 +225,7 @@ export async function loadCliConfig(
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
+    onTrace,
   };
 
   const config = createServerConfig(configParams);
@@ -224,6 +234,7 @@ export async function loadCliConfig(
     modelWasSwitched: modelSwitched,
     originalModelBeforeSwitch: originalModel,
     finalModel: modelToUse,
+    trace: argv.trace || false,
   };
 }
 

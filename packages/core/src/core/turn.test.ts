@@ -262,6 +262,46 @@ describe('Turn', () => {
     });
   });
 
+  describe('Tracing', () => {
+    it('should call onTrace for request and response chunks', async () => {
+      const mockOnTrace = vi.fn();
+      turn = new Turn(mockChatInstance as unknown as GeminiChat, mockOnTrace);
+
+      const mockResponseStream = (async function* () {
+        yield {
+          candidates: [{ content: { parts: [{ text: 'A' }] } }],
+        } as unknown as GenerateContentResponse;
+        yield {
+          candidates: [{ content: { parts: [{ text: 'B' }] } }],
+        } as unknown as GenerateContentResponse;
+      })();
+      mockSendMessageStream.mockResolvedValue(mockResponseStream);
+
+      const reqParts: Part[] = [{ text: 'Go' }];
+      for await (const _ of turn.run(reqParts, new AbortController().signal)) {
+        // Consume the stream
+      }
+
+      expect(mockOnTrace).toHaveBeenCalledTimes(3);
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-stream-request',
+        data: { req: reqParts },
+      });
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-stream-response-chunk',
+        data: {
+          resp: { candidates: [{ content: { parts: [{ text: 'A' }] } }] },
+        },
+      });
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-stream-response-chunk',
+        data: {
+          resp: { candidates: [{ content: { parts: [{ text: 'B' }] } }] },
+        },
+      });
+    });
+  });
+
   describe('getDebugResponses', () => {
     it('should return collected debug responses', async () => {
       const resp1 = {

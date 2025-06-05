@@ -17,7 +17,7 @@ import {
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
 import { Turn, ServerGeminiStreamEvent, GeminiEventType } from './turn.js';
-import { Config } from '../config/config.js';
+import { Config, TraceEventHandler } from '../config/config.js';
 import { getCoreSystemPrompt } from './prompts.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
@@ -37,11 +37,13 @@ export class GeminiClient {
     topP: 1,
   };
   private readonly MAX_TURNS = 100;
+  private readonly onTrace: TraceEventHandler | undefined;
 
   constructor(private config: Config) {
     const userAgent = config.getUserAgent();
     const apiKeyFromConfig = config.getApiKey();
     const vertexaiFlag = config.getVertexAI();
+    this.onTrace = config.getTraceHandler();
 
     this.client = new GoogleGenAI({
       apiKey: apiKeyFromConfig === '' ? undefined : apiKeyFromConfig,
@@ -58,6 +60,13 @@ export class GeminiClient {
 
   getChat(): Promise<GeminiChat> {
     return this.chat;
+  }
+
+  private trace(type: string, data: object) {
+    if (!this.onTrace) {
+      return;
+    }
+    this.onTrace({ type, data });
   }
 
   private async getEnvironment(): Promise<Part[]> {
@@ -178,7 +187,7 @@ export class GeminiClient {
       yield { type: GeminiEventType.ChatCompressed };
     }
     const chat = await this.chat;
-    const turn = new Turn(chat);
+    const turn = new Turn(chat, this.onTrace);
     const resultStream = turn.run(request, signal);
     for await (const event of resultStream) {
       yield event;
@@ -199,6 +208,8 @@ export class GeminiClient {
     model: string = 'gemini-2.0-flash',
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
+    this.trace('gemini-api-request', { contents, model, config });
+    let result: GenerateContentResponse | undefined;
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -220,7 +231,7 @@ export class GeminiClient {
           contents,
         });
 
-      const result = await retryWithBackoff(apiCall);
+      result = await retryWithBackoff(apiCall);
 
       const text = getResponseText(result);
       if (!text) {
@@ -273,6 +284,8 @@ export class GeminiClient {
       const message =
         error instanceof Error ? error.message : 'Unknown API error.';
       throw new Error(`Failed to generate JSON content: ${message}`);
+    } finally {
+      this.trace('gemini-api-response', { result });
     }
   }
 
@@ -281,12 +294,14 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
+    this.trace('gemini-api-request', { contents, generationConfig });
     const modelToUse = this.model;
     const configToUse: GenerateContentConfig = {
       ...this.generateContentConfig,
       ...generationConfig,
     };
 
+    let result: GenerateContentResponse | undefined;
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -304,7 +319,7 @@ export class GeminiClient {
           contents,
         });
 
-      const result = await retryWithBackoff(apiCall);
+      result = await retryWithBackoff(apiCall);
       return result;
     } catch (error) {
       if (abortSignal.aborted) {
@@ -325,6 +340,8 @@ export class GeminiClient {
       throw new Error(
         `Failed to generate content with model ${modelToUse}: ${message}`,
       );
+    } finally {
+      this.trace('gemini-api-response', { result });
     }
   }
 

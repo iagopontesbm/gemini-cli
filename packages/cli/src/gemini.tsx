@@ -11,6 +11,8 @@ import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { readPackageUp } from 'read-package-up';
 import { fileURLToPath } from 'node:url';
+import * as path from 'node:path';
+import * as fs from 'node:fs';
 import { dirname } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
@@ -28,6 +30,7 @@ import {
   ReadFileTool,
   ReadManyFilesTool,
   ShellTool,
+  TraceEventHandler,
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
@@ -57,8 +60,39 @@ async function main() {
   }
 
   const settings = loadSettings(process.cwd());
-  const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
-    await loadCliConfig(settings.merged);
+
+  let traceStream: fs.WriteStream | undefined;
+  let traceFile: string | undefined;
+
+  const onTrace: TraceEventHandler = (event) => {
+    if (!traceStream) {
+      const traceDir = path.join(process.cwd(), '.gemini-tracer');
+      if (!fs.existsSync(traceDir)) {
+        fs.mkdirSync(traceDir, { recursive: true });
+      }
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      traceFile = path.join(traceDir, `log-${timestamp}.jsonl`);
+      traceStream = fs.createWriteStream(traceFile, { flags: 'a' });
+
+      process.on('exit', () => {
+        console.log(`Trace log saved to ${traceFile}`);
+      });
+    }
+    traceStream.write(JSON.stringify(event) + '\n');
+  };
+
+  const {
+    config,
+    modelWasSwitched,
+    originalModelBeforeSwitch,
+    finalModel,
+    trace,
+  } = await loadCliConfig(settings.merged, onTrace);
+
+  if (trace && !traceStream) {
+    // This is to ensure the trace file is created even if no API calls are made.
+    onTrace({ type: 'start-trace', data: {} });
+  }
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();

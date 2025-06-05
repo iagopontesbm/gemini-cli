@@ -7,6 +7,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 import { Chat, GenerateContentResponse } from '@google/genai';
+import { GeminiClient } from './client.js';
+import { Config } from '../config/config.js';
+import { retryWithBackoff } from '../utils/retry.js';
 
 // --- Mocks ---
 const mockChatCreateFn = vi.fn();
@@ -43,9 +46,22 @@ vi.mock('../utils/generateContentResponseUtilities', () => ({
     undefined,
 }));
 
+vi.mock('../utils/retry.js', () => ({
+  retryWithBackoff: vi.fn(),
+}));
+
 describe('Gemini Client (client.ts)', () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    vi.mocked(retryWithBackoff).mockResolvedValue({
+      candidates: [
+        {
+          content: {
+            parts: [{ text: '{"key": "value"}' }],
+          },
+        },
+      ],
+    } as unknown as GenerateContentResponse);
     mockChatCreateFn.mockResolvedValue({} as Chat);
     mockGenerateContentFn.mockResolvedValue({
       candidates: [
@@ -60,6 +76,74 @@ describe('Gemini Client (client.ts)', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe('Tracing', () => {
+    it('should call onTrace with request and response for generateContent', async () => {
+      const mockOnTrace = vi.fn();
+      const mockConfig = {
+        getTraceHandler: () => mockOnTrace,
+        getApiKey: () => 'test-api-key',
+        getUserAgent: () => 'test-user-agent',
+        getModel: () => 'test-model',
+        getVertexAI: () => false,
+        getUserMemory: () => '',
+        getFullContext: () => false,
+        getToolRegistry: () =>
+          Promise.resolve({ getFunctionDeclarations: () => [] }),
+      } as unknown as Config;
+
+      const client = new GeminiClient(mockConfig);
+      const contents = [{ role: 'user', parts: [{ text: 'test' }] }];
+      const generationConfig = {};
+
+      await client.generateContent(
+        contents,
+        generationConfig,
+        new AbortController().signal,
+      );
+
+      expect(mockOnTrace).toHaveBeenCalledTimes(2);
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-request',
+        data: { contents, generationConfig },
+      });
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-response',
+        data: { result: expect.any(Object) },
+      });
+    });
+
+    it('should call onTrace with request and response for generateJson', async () => {
+      const mockOnTrace = vi.fn();
+      const mockConfig = {
+        getTraceHandler: () => mockOnTrace,
+        getApiKey: () => 'test-api-key',
+        getUserAgent: () => 'test-user-agent',
+        getModel: () => 'test-model',
+        getVertexAI: () => false,
+        getUserMemory: () => '',
+        getFullContext: () => false,
+        getToolRegistry: () =>
+          Promise.resolve({ getFunctionDeclarations: () => [] }),
+      } as unknown as Config;
+
+      const client = new GeminiClient(mockConfig);
+      const contents = [{ role: 'user', parts: [{ text: 'test' }] }];
+      const schema = { type: 'string' };
+
+      await client.generateJson(contents, schema, new AbortController().signal);
+
+      expect(mockOnTrace).toHaveBeenCalledTimes(2);
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-request',
+        data: { contents, model: expect.any(String), config: {} },
+      });
+      expect(mockOnTrace).toHaveBeenCalledWith({
+        type: 'gemini-api-response',
+        data: { result: expect.any(Object) },
+      });
+    });
   });
 
   // NOTE: The following tests for startChat were removed due to persistent issues with

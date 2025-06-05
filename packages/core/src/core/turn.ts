@@ -19,6 +19,7 @@ import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { reportError } from '../utils/errorReporting.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { GeminiChat } from './geminiChat.js';
+import { TraceEventHandler } from '../config/config.js';
 
 // Define a structure for tools passed to the server
 export interface ServerTool {
@@ -119,15 +120,27 @@ export class Turn {
   }>;
   private debugResponses: GenerateContentResponse[];
 
-  constructor(private readonly chat: GeminiChat) {
+  constructor(
+    private readonly chat: GeminiChat,
+    private readonly onTrace?: TraceEventHandler,
+  ) {
     this.pendingToolCalls = [];
     this.debugResponses = [];
   }
+
+  private trace(type: string, data: object) {
+    if (!this.onTrace) {
+      return;
+    }
+    this.onTrace({ type, data });
+  }
+
   // The run method yields simpler events suitable for server logic
   async *run(
     req: PartListUnion,
     signal: AbortSignal,
   ): AsyncGenerator<ServerGeminiStreamEvent> {
+    this.trace('gemini-api-stream-request', { req });
     try {
       const responseStream = await this.chat.sendMessageStream({
         message: req,
@@ -137,6 +150,7 @@ export class Turn {
       });
 
       for await (const resp of responseStream) {
+        this.trace('gemini-api-stream-response-chunk', { resp });
         if (signal?.aborted) {
           yield { type: GeminiEventType.UserCancelled };
           // Do not add resp to debugResponses if aborted before processing
