@@ -39,7 +39,10 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
   static readonly Name: string = 'read_file';
   private readonly geminiIgnorePatterns: string[];
 
-  constructor(private rootDirectory: string, config: Config) {
+  constructor(
+    private rootDirectory: string,
+    config: Config,
+  ) {
     super(
       ReadFileTool.Name,
       'ReadFile',
@@ -99,7 +102,9 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       const relativePath = makeRelative(params.path, this.rootDirectory);
       if (micromatch.isMatch(relativePath, this.geminiIgnorePatterns)) {
         // Get patterns that matched to show in the error message
-        const matchingPatterns = this.geminiIgnorePatterns.filter(p => micromatch.isMatch(relativePath, p));
+        const matchingPatterns = this.geminiIgnorePatterns.filter((p) =>
+          micromatch.isMatch(relativePath, p),
+        );
         return `File path '${shortenPath(relativePath)}' is ignored by the following .geminiignore pattern(s):\n\n${matchingPatterns.join('\n')}`;
       }
     }

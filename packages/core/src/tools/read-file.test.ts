@@ -35,7 +35,7 @@ describe('ReadFileTool', () => {
       path.join(os.tmpdir(), 'read-file-tool-root-'),
     );
     const mockConfigInstance = {
-      getGeminiIgnorePatterns: () => ['**/foo.bar', 'foo.baz', 'foo.*']
+      getGeminiIgnorePatterns: () => ['**/foo.bar', 'foo.baz', 'foo.*'],
     } as Config;
     tool = new ReadFileTool(tempRootDir, mockConfigInstance);
     mockProcessSingleFileContent.mockReset();
@@ -230,7 +230,9 @@ describe('ReadFileTool', () => {
     });
 
     it('should return error if path is ignored by a .geminiignore pattern', async () => {
-      const params: ReadFileToolParams = { path: path.join(tempRootDir, 'foo.bar') };
+      const params: ReadFileToolParams = {
+        path: path.join(tempRootDir, 'foo.bar'),
+      };
       const result = await tool.execute(params, abortSignal);
       expect(result.returnDisplay).toContain('foo.bar');
       expect(result.returnDisplay).toContain('foo.*');

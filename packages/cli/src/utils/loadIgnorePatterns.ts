@@ -24,9 +24,7 @@ const GEMINI_IGNORE_FILE_NAME = '.geminiignore';
  * @returns An array of glob patterns extracted from the .geminiignore file. Returns an empty array
  *          if the file does not exist or contains no valid patterns.
  */
-export function loadGeminiIgnorePatterns(
-  workspaceRoot: string,
-): string[] {
+export function loadGeminiIgnorePatterns(workspaceRoot: string): string[] {
   const ignoreFilePath = path.join(workspaceRoot, GEMINI_IGNORE_FILE_NAME);
   const patterns: string[] = [];
 
@@ -41,13 +39,21 @@ export function loadGeminiIgnorePatterns(
       }
     }
     if (patterns.length > 0) {
-      console.log(`[INFO] Loaded ${patterns.length} patterns from .geminiignore`);
+      console.log(
+        `[INFO] Loaded ${patterns.length} patterns from .geminiignore`,
+      );
     }
   } catch (error: unknown) {
-    if (error instanceof Error && 'code' in error && typeof error.code === 'string') {
+    if (
+      error instanceof Error &&
+      'code' in error &&
+      typeof error.code === 'string'
+    ) {
       if (error.code === 'ENOENT') {
         // .geminiignore not found, which is fine.
-        console.log('[INFO] No .geminiignore file found. Proceeding without custom ignore patterns.');
+        console.log(
+          '[INFO] No .geminiignore file found. Proceeding without custom ignore patterns.',
+        );
       } else {
         // Other error reading the file (e.g., permissions)
         console.warn(
@@ -62,4 +68,4 @@ export function loadGeminiIgnorePatterns(
     }
   }
   return patterns;
-} 
+}

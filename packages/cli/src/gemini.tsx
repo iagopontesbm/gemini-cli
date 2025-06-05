@@ -190,7 +190,7 @@ async function loadNonInteractiveConfig(
   };
   const nonInteractiveConfigResult = await loadCliConfig(
     nonInteractiveSettings,
-    config.getGeminiIgnorePatterns()
+    config.getGeminiIgnorePatterns(),
   );
   return nonInteractiveConfigResult.config;
 }
