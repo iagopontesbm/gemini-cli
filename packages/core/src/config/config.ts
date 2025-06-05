@@ -311,18 +311,18 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
     }
   };
 
-  registerCoreTool(CodeParserTool, targetDir, config); // Added CodeParserTool
-  registerCoreTool(EditTool, config);
-  registerCoreTool(GlobTool, targetDir, config);
-  registerCoreTool(GrepTool, targetDir);
   registerCoreTool(LSTool, targetDir, config);
-  registerCoreTool(MemoryTool);
   registerCoreTool(ReadFileTool, targetDir);
+  registerCoreTool(GrepTool, targetDir);
+  registerCoreTool(GlobTool, targetDir, config);
+  registerCoreTool(EditTool, config);
+  registerCoreTool(WriteFileTool, config);
+  registerCoreTool(WebFetchTool, config);
   registerCoreTool(ReadManyFilesTool, targetDir, config);
   registerCoreTool(ShellTool, config);
-  registerCoreTool(WebFetchTool, config);
+  registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);
-  registerCoreTool(WriteFileTool, config);
+  registerCoreTool(CodeParserTool, targetDir, config); // Added CodeParserTool
   return (async () => {
     await registry.discoverTools();
     return registry;
