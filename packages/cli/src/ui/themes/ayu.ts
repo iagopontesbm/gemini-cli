@@ -17,8 +17,8 @@ const ayuDarkColors: ColorsTheme = {
   AccentGreen: '#AAD94C',
   AccentYellow: '#FFB454',
   AccentRed: '#F26D78',
-  SubtleComment: '#ACB6BF8C',
-  Gray: '#ACB6BF8C',
+  SubtleComment: '#646A71',
+  Gray: '##3D4149',
   GradientColors: darkTheme.GradientColors,
 };
 

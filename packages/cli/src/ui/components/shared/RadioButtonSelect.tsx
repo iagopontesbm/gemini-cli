@@ -111,7 +111,7 @@ export function RadioButtonSelect<T>({
       return (
         <Text color={textColor}>
           {itemWithThemeProps.themeNameDisplay}{' '}
-          <Text color={Colors.SubtleComment}>
+          <Text color={Colors.Gray}>
             {itemWithThemeProps.themeTypeDisplay}
           </Text>
         </Text>

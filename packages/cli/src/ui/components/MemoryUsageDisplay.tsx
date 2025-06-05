@@ -13,7 +13,7 @@ import { formatMemoryUsage } from '../utils/formatters.js';
 export const MemoryUsageDisplay: React.FC = () => {
   const [memoryUsage, setMemoryUsage] = useState<string>('');
   const [memoryUsageColor, setMemoryUsageColor] = useState<string>(
-    Colors.SubtleComment,
+    Colors.Gray,
   );
 
   useEffect(() => {
@@ -23,7 +23,7 @@ export const MemoryUsageDisplay: React.FC = () => {
       setMemoryUsageColor(
         usage >= 2 * 1024 * 1024 * 1024
           ? Colors.AccentRed
-          : Colors.SubtleComment,
+          : Colors.Gray,
       );
     };
     const intervalId = setInterval(updateMemory, 2000);
@@ -33,7 +33,7 @@ export const MemoryUsageDisplay: React.FC = () => {
 
   return (
     <Box>
-      <Text color={Colors.SubtleComment}>| </Text>
+      <Text color={Colors.Gray}>| </Text>
       <Text color={memoryUsageColor}>{memoryUsage}</Text>
     </Box>
   );
