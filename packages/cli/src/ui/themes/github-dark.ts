@@ -17,7 +17,7 @@ const githubDarkColors: ColorsTheme = {
   AccentGreen: '#85E89D',
   AccentYellow: '#FFAB70',
   AccentRed: '#F97583',
-  SubtleComment: '#6A737D',
+  Comment: '#6A737D',
   Gray: '#6A737D',
   GradientColors: darkTheme.GradientColors,
 };
@@ -34,11 +34,11 @@ export const GitHubDark: Theme = new Theme(
       background: githubDarkColors.Background,
     },
     'hljs-comment': {
-      color: githubDarkColors.SubtleComment,
+      color: githubDarkColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-quote': {
-      color: githubDarkColors.SubtleComment,
+      color: githubDarkColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-keyword': {

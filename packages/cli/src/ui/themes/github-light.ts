@@ -17,7 +17,7 @@ const githubLightColors: ColorsTheme = {
   AccentGreen: '#008080',
   AccentYellow: '#990073',
   AccentRed: '#d14',
-  SubtleComment: '#998',
+  Comment: '#998',
   Gray: '#999',
   GradientColors: lightTheme.GradientColors,
 };
@@ -34,11 +34,11 @@ export const GitHubLight: Theme = new Theme(
       background: githubLightColors.Background,
     },
     'hljs-comment': {
-      color: githubLightColors.SubtleComment,
+      color: githubLightColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-quote': {
-      color: githubLightColors.SubtleComment,
+      color: githubLightColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-keyword': {

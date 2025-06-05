@@ -17,7 +17,7 @@ const atomOneDarkColors: ColorsTheme = {
   AccentGreen: '#98c379',
   AccentYellow: '#e6c07b',
   AccentRed: '#e06c75',
-  SubtleComment: '#5c6370',
+  Comment: '#5c6370',
   Gray: '#5c6370',
   GradientColors: darkTheme.GradientColors,
 };
@@ -34,11 +34,11 @@ export const AtomOneDark: Theme = new Theme(
       background: atomOneDarkColors.Background,
     },
     'hljs-comment': {
-      color: atomOneDarkColors.SubtleComment,
+      color: atomOneDarkColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-quote': {
-      color: atomOneDarkColors.SubtleComment,
+      color: atomOneDarkColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-doctag': {

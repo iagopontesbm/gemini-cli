@@ -17,7 +17,7 @@ const ansiColors: ColorsTheme = {
   AccentGreen: 'green',
   AccentYellow: 'yellow',
   AccentRed: 'red',
-  SubtleComment: 'gray',
+  Comment: 'gray',
   Gray: 'gray',
   GradientColors: darkTheme.GradientColors, // Fallback
 };

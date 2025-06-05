@@ -73,15 +73,15 @@ export const DefaultDark: Theme = new Theme(
       color: darkTheme.Foreground,
     },
     'hljs-comment': {
-      color: darkTheme.SubtleComment,
+      color: darkTheme.Comment,
       fontStyle: 'italic',
     },
     'hljs-quote': {
-      color: darkTheme.SubtleComment,
+      color: darkTheme.Comment,
       fontStyle: 'italic',
     },
     'hljs-doctag': {
-      color: darkTheme.SubtleComment,
+      color: darkTheme.Comment,
     },
     'hljs-meta': {
       color: darkTheme.Gray,

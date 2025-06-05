@@ -18,10 +18,10 @@ export const DefaultLight: Theme = new Theme(
       color: lightTheme.Foreground,
     },
     'hljs-comment': {
-      color: lightTheme.SubtleComment,
+      color: lightTheme.Comment,
     },
     'hljs-quote': {
-      color: lightTheme.SubtleComment,
+      color: lightTheme.Comment,
     },
     'hljs-variable': {
       color: lightTheme.Foreground,

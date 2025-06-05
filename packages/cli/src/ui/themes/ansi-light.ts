@@ -17,7 +17,7 @@ const ansiLightColors: ColorsTheme = {
   AccentGreen: 'green',
   AccentYellow: 'orange',
   AccentRed: 'red',
-  SubtleComment: 'gray',
+  Comment: 'gray',
   Gray: 'gray',
   GradientColors: lightTheme.GradientColors,
 };

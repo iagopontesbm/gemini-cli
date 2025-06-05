@@ -17,7 +17,7 @@ const ayuLightColors: ColorsTheme = {
   AccentGreen: '#86b300',
   AccentYellow: '#f2ae49',
   AccentRed: '#f07171',
-  SubtleComment: '#ABADB1',
+  Comment: '#ABADB1',
   Gray: '#CCCFD3',
   GradientColors: lightTheme.GradientColors,
 };
@@ -34,7 +34,7 @@ export const AyuLight: Theme = new Theme(
       color: ayuLightColors.Foreground,
     },
     'hljs-comment': {
-      color: ayuLightColors.SubtleComment,
+      color: ayuLightColors.Comment,
       fontStyle: 'italic',
     },
     'hljs-quote': {

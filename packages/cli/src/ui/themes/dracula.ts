@@ -17,7 +17,7 @@ const draculaColors: ColorsTheme = {
   AccentGreen: '#50fa7b',
   AccentYellow: '#f1fa8c',
   AccentRed: '#ff5555',
-  SubtleComment: '#6272a4',
+  Comment: '#6272a4',
   Gray: '#6272a4',
   GradientColors: darkTheme.GradientColors,
 };
@@ -95,16 +95,16 @@ export const Dracula: Theme = new Theme(
       color: draculaColors.AccentYellow,
     },
     'hljs-comment': {
-      color: draculaColors.SubtleComment,
+      color: draculaColors.Comment,
     },
     'hljs-quote': {
-      color: draculaColors.SubtleComment,
+      color: draculaColors.Comment,
     },
     'hljs-deletion': {
       color: draculaColors.AccentRed,
     },
     'hljs-meta': {
-      color: draculaColors.SubtleComment,
+      color: draculaColors.Comment,
     },
     'hljs-doctag': {
       fontWeight: 'bold',

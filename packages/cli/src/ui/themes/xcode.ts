@@ -17,7 +17,7 @@ const xcodeColors: ColorsTheme = {
   AccentGreen: '#007400',
   AccentYellow: '#836C28',
   AccentRed: '#c41a16',
-  SubtleComment: '#007400',
+  Comment: '#007400',
   Gray: '#c0c0c0',
   GradientColors: darkTheme.GradientColors,
 };
@@ -37,10 +37,10 @@ export const XCode: Theme = new Theme(
       color: xcodeColors.Gray,
     },
     'hljs-comment': {
-      color: xcodeColors.SubtleComment,
+      color: xcodeColors.Comment,
     },
     'hljs-quote': {
-      color: xcodeColors.SubtleComment,
+      color: xcodeColors.Comment,
     },
     'hljs-tag': {
       color: xcodeColors.AccentPurple,
