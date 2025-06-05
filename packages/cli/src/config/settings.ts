@@ -35,6 +35,7 @@ export interface Settings {
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
   contextFileName?: string;
+  title?: string;
   accessibility?: AccessibilitySettings;
 
   // Git-aware file filtering settings
