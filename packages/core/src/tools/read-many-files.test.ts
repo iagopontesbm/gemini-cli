@@ -12,6 +12,7 @@ import { ReadManyFilesTool } from './read-many-files.js';
 import path from 'path';
 import fs from 'fs'; // Actual fs for setup
 import os from 'os';
+import { Config } from '../config/config.js';
 
 describe('ReadManyFilesTool', () => {
   let tool: ReadManyFilesTool;
@@ -26,7 +27,11 @@ describe('ReadManyFilesTool', () => {
     tempDirOutsideRoot = fs.mkdtempSync(
       path.join(os.tmpdir(), 'read-many-files-external-'),
     );
-    tool = new ReadManyFilesTool(tempRootDir);
+    const mockConfigInstance = {
+      getGeminiIgnorePatterns: () => ['**/foo.bar', 'foo.baz', 'foo.*']
+    } as Config;
+
+    tool = new ReadManyFilesTool(tempRootDir, mockConfigInstance);
 
     mockReadFileFn = mockControl.mockReadFile;
     mockReadFileFn.mockReset();
@@ -352,6 +357,17 @@ describe('ReadManyFilesTool', () => {
           },
         },
       ]);
+    });
+
+    it('should return error if path is ignored by a .geminiignore pattern', async () => {
+      createFile('foo.bar', '');
+      createFile('qux/foo.baz', '');
+      createFile('foo.quux', '');
+      const params = { paths: ['foo.bar', 'qux/foo.baz', 'foo.quux'] };
+      const result = await tool.execute(params, new AbortController().signal);
+      expect(result.returnDisplay).not.toContain('foo.bar');
+      expect(result.returnDisplay).toContain('qux/foo.baz');
+      expect(result.returnDisplay).not.toContain('foo.quux');
     });
   });
 });
