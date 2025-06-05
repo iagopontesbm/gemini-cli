@@ -116,11 +116,18 @@ describe('CodeParserTool', () => {
       const params: CodeParserToolParams = {
         path: path.join(tempRootDir, 'dir'),
         ignore: ['*.log'],
-        languages: ['python', 'go', 'csharp', 'typescript', 'javascript'],
+        languages: [
+          'python',
+          'go',
+          'csharp',
+          'typescript',
+          'tsx',
+          'javascript',
+        ],
       };
       expect(tool.validateToolParams(params)).toBeNull();
     });
-    // ... other validation tests ...
+
     it('should return error for relative path', () => {
       const params: CodeParserToolParams = { path: 'file.py' };
       expect(tool.validateToolParams(params)).toMatch(/Path must be absolute/);
@@ -402,8 +409,7 @@ describe('CodeParserTool', () => {
       const params: CodeParserToolParams = { path: targetPath };
       const result = await tool.execute(params, abortSignal);
 
-      // Expects typescript grammar because JS files are parsed by it
-      expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar);
+      expect(mockSetLanguage).toHaveBeenCalledWith(mockTypeScriptGrammar); // Uses TypeScript grammar for JS
       expect(mockTreeSitterParse).toHaveBeenCalledWith(fileContent);
       expect(result.llmContent).toBe(
         `Parsed code from ${targetPath}:\n-------------${targetPath}-------------\n(js_ast)\n`,
@@ -674,6 +680,7 @@ describe('CodeParserTool', () => {
         'Logic.cs',
         'index.ts',
         'view.tsx',
+        'helper.js',
       ];
       mockFs.stat.mockImplementation(async (p) => {
         if (p === dirPath)
@@ -689,7 +696,7 @@ describe('CodeParserTool', () => {
 
       const params: CodeParserToolParams = {
         path: dirPath,
-        languages: ['java', 'go', 'csharp', 'typescript', 'tsx'],
+        languages: ['java', 'go', 'csharp', 'typescript', 'tsx', 'javascript'],
       };
       const result = await tool.execute(params, abortSignal);
 
@@ -698,9 +705,10 @@ describe('CodeParserTool', () => {
       expect(result.llmContent).toContain(path.join(dirPath, 'Logic.cs'));
       expect(result.llmContent).toContain(path.join(dirPath, 'index.ts'));
       expect(result.llmContent).toContain(path.join(dirPath, 'view.tsx'));
+      expect(result.llmContent).toContain(path.join(dirPath, 'helper.js'));
       expect(result.llmContent).not.toContain('script.py');
       expect(result.llmContent).not.toContain('another.py');
-      expect(result.returnDisplay).toBe('Parsed 5 file(s).');
+      expect(result.returnDisplay).toBe('Parsed 6 file(s).');
     });
 
     it('should return "Directory is empty" for an empty directory', async () => {
