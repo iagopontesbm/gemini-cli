@@ -64,6 +64,6 @@
     "yargs": "^17.7.2"
   },
   "dependencies": {
-    "tree-sitter-rust": "^0.24.0"
+    "tree-sitter-rust": "^0.21.0"
   }
 }
