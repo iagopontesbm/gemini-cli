@@ -39,11 +39,15 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 
 The CLI sends data using the OTLP/gRPC protocol.
 
-## How-To: Running an OTEL Collector
+Learn more about OTEL exporter standard configuration in [documentation][otel-config-docs].
+
+[otel-config-docs]: https://opentelemetry.io/docs/languages/sdk-configuration/otlp-exporter/
+
+## Running an OTEL Collector
 
 An OTEL Collector is a service that receives, processes, and exports telemetry data. Below are common setups.
 
-### Local Debugging
+### Local
 
 This setup prints all telemetry from the Gemini CLI to your terminal using a local Docker container.
 
@@ -101,7 +105,7 @@ docker run --rm --name otel-collector-local \
 docker stop otel-collector-local
 ```
 
-### Exporting to Google Cloud
+### Google Cloud
 
 This setup sends all telemetry to Google Cloud for robust, long-term analysis.
 
