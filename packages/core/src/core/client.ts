@@ -31,7 +31,7 @@ import {
   logApiRequest,
   logApiResponse,
   logApiError,
-} from '../telemetry/telemetry.js';
+} from '../telemetry/index.js';
 
 export class GeminiClient {
   private chat: Promise<GeminiChat>;
@@ -215,23 +215,23 @@ export class GeminiClient {
         ...config,
       };
 
-      let promptTokenCount = 0;
+      let inputTokenCount = 0;
       try {
         const { totalTokens } = await this.client.models.countTokens({
           model,
           contents,
         });
-        promptTokenCount = totalTokens || 0;
+        inputTokenCount = totalTokens || 0;
       } catch (_e) {
         console.warn(
-          `Failed to count tokens for model ${model}. Proceeding with promptTokenCount = 0. Error: ${getErrorMessage(_e)}`,
+          `Failed to count tokens for model ${model}. Proceeding with inputTokenCount = 0. Error: ${getErrorMessage(_e)}`,
         );
-        promptTokenCount = 0;
+        inputTokenCount = 0;
       }
 
       logApiRequest({
         model,
-        prompt_token_count: promptTokenCount,
+        prompt_token_count: inputTokenCount,
         duration_ms: 0,
       });
 
@@ -369,23 +369,23 @@ export class GeminiClient {
         systemInstruction,
       };
 
-      let promptTokenCount = 0;
+      let inputTokenCount = 0;
       try {
         const { totalTokens } = await this.client.models.countTokens({
           model: modelToUse,
           contents,
         });
-        promptTokenCount = totalTokens || 0;
+        inputTokenCount = totalTokens || 0;
       } catch (_e) {
         console.warn(
-          `Failed to count tokens for model ${modelToUse}. Proceeding with promptTokenCount = 0. Error: ${getErrorMessage(_e)}`,
+          `Failed to count tokens for model ${modelToUse}. Proceeding with inputTokenCount = 0. Error: ${getErrorMessage(_e)}`,
         );
-        promptTokenCount = 0;
+        inputTokenCount = 0;
       }
 
       logApiRequest({
         model: modelToUse,
-        prompt_token_count: promptTokenCount,
+        prompt_token_count: inputTokenCount,
         duration_ms: 0,
       });
 

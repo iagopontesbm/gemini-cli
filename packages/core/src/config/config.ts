@@ -24,7 +24,7 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
-import { initializeTelemetry } from '../telemetry/telemetry.js';
+import { initializeTelemetry } from '../telemetry/index.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',

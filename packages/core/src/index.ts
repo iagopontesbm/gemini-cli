@@ -46,4 +46,4 @@ export * from './tools/web-search.js';
 export * from './tools/read-many-files.js';
 
 // Export telemetry functions
-export * from './telemetry/telemetry.js';
+export * from './telemetry/index.js';
