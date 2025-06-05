@@ -247,7 +247,16 @@ Your core function is efficient and safe assistance. Balance extreme conciseness
 
   const memorySuffix =
     userMemory && userMemory.trim().length > 0
-      ? `\n\n---\n\n${userMemory.trim()}`
+      ? `\n\n---\n\n# Memory
+
+      - **User-Provided Context:** The user may provide you with information through a tool called a "memory". This information is intended to be a piece of context that you should use for the current conversation.
+      - **Not part of conversation history:** Memories should not be affected by conversation history unless this is explicitly mentioned as part of the memory text. Memories are simply pieces of additional context that you should be aware of and you should ignore them if they are not relevant to your goals as the Gemini CLI agent.
+      - **Can be modified:** The user can modify the memory at any time. When this happens, you will be provided with the new memory. You should then use the new memory for the rest of the conversation and avoid referring to old memories that may be a part of the conversation history.
+
+      ---
+
+      ## Memories
+      ${userMemory.trim()}`
       : '';
 
   return `${basePrompt}${memorySuffix}`;
