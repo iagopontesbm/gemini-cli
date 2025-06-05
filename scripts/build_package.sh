@@ -29,5 +29,11 @@ tsc --build
 # copy .{md,json} files
 node ../../scripts/copy_files.js
 
+# bundle cfonts if this is the CLI package and the script exists
+if [ -f "scripts/bundle-cfonts.js" ]; then
+    echo "Bundling cfonts font files..."
+    node scripts/bundle-cfonts.js
+fi
+
 # touch dist/.last_build
 touch dist/.last_build

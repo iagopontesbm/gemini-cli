@@ -23,7 +23,8 @@
     "prepack": "npm run build"
   },
   "files": [
-    "dist"
+    "dist",
+    "scripts/bundle-cfonts.js"
   ],
   "config": {
     "sandboxImageUri": "gemini-cli-sandbox"

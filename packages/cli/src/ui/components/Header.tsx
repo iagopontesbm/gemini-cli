@@ -4,19 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
 import { Colors } from '../colors.js';
+import { patchCfontsLoader } from './cfonts-loader.js';
 
-// Try to import ink-big-text, but have a fallback ready
-let BigText: React.ComponentType<{text: string; letterSpacing?: number; space?: boolean}> | undefined;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-require-imports, no-restricted-syntax
-  BigText = require('ink-big-text').default;
-} catch {
-  // Will use fallback
-}
+// Apply the cfonts loader patch
+patchCfontsLoader();
 
 interface HeaderProps {
   title?: string;
@@ -39,28 +34,38 @@ const getAsciiArt = (title: string): string => {
   return asciiArtMap[title.toUpperCase()] || title;
 };
 
-export const Header: React.FC<HeaderProps> = ({ title = 'GEMINI' }) => (
+export const Header: React.FC<HeaderProps> = ({ title = 'GEMINI' }) => {
+  const [BigText, setBigText] = useState<React.ComponentType<{text: string; letterSpacing?: number; space?: boolean}> | null>(null);
+
+  useEffect(() => {
+    // Dynamically import ink-big-text
+    import('ink-big-text')
+      .then(module => setBigText(() => module.default))
+      .catch(error => {
+        console.error('Failed to load ink-big-text:', error);
+        // BigText remains null, will use fallback
+      });
+  }, []);
+
+  const renderContent = () => {
+    if (BigText) {
+      return <BigText text={title} letterSpacing={0} space={false} />;
+    } else {
+      return <Text>{getAsciiArt(title)}</Text>;
+    }
+  };
+
+  return (
   <>
     <Box alignItems="flex-start" marginBottom={1}>
-      {BigText ? (
-        // Use ink-big-text if available
-        Colors.GradientColors ? (
-          <Gradient colors={Colors.GradientColors}>
-            <BigText text={title} letterSpacing={0} space={false} />
-          </Gradient>
-        ) : (
-          <BigText text={title} letterSpacing={0} space={false} />
-        )
+      {Colors.GradientColors ? (
+        <Gradient colors={Colors.GradientColors}>
+          {renderContent()}
+        </Gradient>
       ) : (
-        // Use ASCII art fallback
-        Colors.GradientColors ? (
-          <Gradient colors={Colors.GradientColors}>
-            <Text>{getAsciiArt(title)}</Text>
-          </Gradient>
-        ) : (
-          <Text>{getAsciiArt(title)}</Text>
-        )
+        renderContent()
       )}
     </Box>
   </>
-);
+  );
+};
