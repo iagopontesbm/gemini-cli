@@ -65,6 +65,7 @@ export interface ConfigParameters {
   vertexai?: boolean;
   showMemoryUsage?: boolean;
   contextFileName?: string;
+  geminiIgnorePatterns?: string[];
 }
 
 export class Config {
@@ -88,6 +89,7 @@ export class Config {
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly geminiClient: GeminiClient;
+  private readonly _geminiIgnorePatterns: string[] = [];
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -111,6 +113,9 @@ export class Config {
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
+    }
+    if (params.geminiIgnorePatterns) {
+      this._geminiIgnorePatterns = params.geminiIgnorePatterns;
     }
 
     this.toolRegistry = createToolRegistry(this);
@@ -207,6 +212,10 @@ export class Config {
   getGeminiClient(): GeminiClient {
     return this.geminiClient;
   }
+
+  public getGeminiIgnorePatterns(): string[] {
+    return this._geminiIgnorePatterns;
+  }
 }
 
 function findEnvFile(startDir: string): string | null {
@@ -271,13 +280,13 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   };
 
   registerCoreTool(LSTool, targetDir);
-  registerCoreTool(ReadFileTool, targetDir);
+  registerCoreTool(ReadFileTool, targetDir, config);
   registerCoreTool(GrepTool, targetDir);
   registerCoreTool(GlobTool, targetDir);
   registerCoreTool(EditTool, config);
   registerCoreTool(WriteFileTool, config);
   registerCoreTool(WebFetchTool, config);
-  registerCoreTool(ReadManyFilesTool, targetDir);
+  registerCoreTool(ReadManyFilesTool, targetDir, config);
   registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);
