@@ -121,7 +121,7 @@ export class ReadManyFilesTool extends BaseTool<
    * @param targetDir The absolute root directory within which this tool is allowed to operate.
    * All paths provided in `params` will be resolved relative to this directory.
    */
-  constructor(readonly targetDir: string, config?: Config) {
+  constructor(readonly targetDir: string, config: Config) {
     const parameterSchema: Record<string, unknown> = {
       type: 'object',
       properties: {
@@ -177,7 +177,7 @@ Use this tool when the user's query implies needing the content of several files
       parameterSchema,
     );
     this.targetDir = path.resolve(targetDir);
-    this.geminiIgnorePatterns = config?.getGeminiIgnorePatterns() || [];
+    this.geminiIgnorePatterns = config.getGeminiIgnorePatterns() || [];
   }
 
   validateParams(params: ReadManyFilesParams): string | null {

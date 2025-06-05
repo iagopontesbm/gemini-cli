@@ -89,7 +89,7 @@ export class Config {
   private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly geminiClient: GeminiClient;
-  private readonly _geminiIgnorePatterns: string[] = [];
+  private readonly geminiIgnorePatterns: string[] = [];
 
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
@@ -115,7 +115,7 @@ export class Config {
       setGeminiMdFilename(params.contextFileName);
     }
     if (params.geminiIgnorePatterns) {
-      this._geminiIgnorePatterns = params.geminiIgnorePatterns;
+      this.geminiIgnorePatterns = params.geminiIgnorePatterns;
     }
 
     this.toolRegistry = createToolRegistry(this);
@@ -214,7 +214,7 @@ export class Config {
   }
 
   getGeminiIgnorePatterns(): string[] {
-    return this._geminiIgnorePatterns;
+    return this.geminiIgnorePatterns;
   }
 }
 

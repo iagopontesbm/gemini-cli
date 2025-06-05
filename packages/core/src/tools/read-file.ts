@@ -39,7 +39,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
   static readonly Name: string = 'read_file';
   private readonly geminiIgnorePatterns: string[];
 
-  constructor(private rootDirectory: string, config?: Config) {
+  constructor(private rootDirectory: string, config: Config) {
     super(
       ReadFileTool.Name,
       'ReadFile',
@@ -67,7 +67,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       },
     );
     this.rootDirectory = path.resolve(rootDirectory);
-    this.geminiIgnorePatterns = config?.getGeminiIgnorePatterns() || [];
+    this.geminiIgnorePatterns = config.getGeminiIgnorePatterns() || [];
   }
 
   validateToolParams(params: ReadFileToolParams): string | null {

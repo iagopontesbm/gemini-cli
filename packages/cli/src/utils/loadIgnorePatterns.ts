@@ -7,15 +7,27 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
+const GEMINI_IGNORE_FILE_NAME = '.geminiignore';
+
 /**
  * Loads and parses a .geminiignore file from the given workspace root.
- * @param workspaceRoot The absolute path to the workspace root.
- * @returns A promise that resolves to an array of glob patterns.
+ * The .geminiignore file follows a format similar to .gitignore:
+ * - Each line specifies a glob pattern.
+ * - Lines are trimmed of leading and trailing whitespace.
+ * - Blank lines (after trimming) are ignored.
+ * - Lines starting with a pound sign (#) (after trimming) are treated as comments and ignored.
+ * - Patterns are case-sensitive and follow standard glob syntax.
+ * - If a # character appears elsewhere in a line (not at the start after trimming),
+ *   it is considered part of the glob pattern.
+ *
+ * @param workspaceRoot The absolute path to the workspace root where the .geminiignore file is expected.
+ * @returns An array of glob patterns extracted from the .geminiignore file. Returns an empty array
+ *          if the file does not exist or contains no valid patterns.
  */
 export function loadGeminiIgnorePatterns(
   workspaceRoot: string,
 ): string[] {
-  const ignoreFilePath = path.join(workspaceRoot, '.geminiignore');
+  const ignoreFilePath = path.join(workspaceRoot, GEMINI_IGNORE_FILE_NAME);
   const patterns: string[] = [];
 
   try {

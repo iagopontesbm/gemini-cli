@@ -126,7 +126,7 @@ export interface LoadCliConfigResult {
 
 export async function loadCliConfig(
   settings: Settings,
-  geminiIgnorePatterns?: string[]
+  geminiIgnorePatterns: string[]
 ): Promise<LoadCliConfigResult> {
   loadEnvironment();
 
