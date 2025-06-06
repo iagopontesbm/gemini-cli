@@ -46,6 +46,7 @@ interface CliArgs {
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
   telemetry: boolean | undefined;
+  checkpoint: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -93,6 +94,12 @@ async function parseArguments(): Promise<CliArgs> {
     .option('telemetry', {
       type: 'boolean',
       description: 'Enable telemetry?',
+    })
+    .option('checkpoint', {
+      alias: 'c',
+      type: 'boolean',
+      description: 'Enables checkpointing of file edits',
+      default: false,
     })
     .version() // This will enable the --version flag based on package.json
     .help()
@@ -227,6 +234,7 @@ export async function loadCliConfig(
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
+    checkpoint: argv.checkpoint,
   };
 
   const config = createServerConfig(configParams);
