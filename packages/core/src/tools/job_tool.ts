@@ -79,7 +79,7 @@ async function readJobs(): Promise<Job[]> {
         return JSON.parse(data) as Job[];
     } catch (error) {
         // If the file doesn't exist, return an empty array.
-        if (error.code === 'ENOENT') {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
             return [];
         }
         throw error;

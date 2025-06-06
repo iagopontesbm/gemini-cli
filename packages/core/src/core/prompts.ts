@@ -79,6 +79,15 @@ When requested to perform tasks like fixing bugs, adding features, refactoring, 
 5. **Verify:** Review work against the original request, the approved plan. Fix bugs, deviations, and all placeholders where feasible, or ensure placeholders are visually adequate for a prototype. Ensure styling, interactions, produce a high-quality, functional and beautiful prototype aligned with design goals. Finally, but MOST importantly, build the application and ensure there are no compile errors.
 6. **Solicit Feedback:** If still applicable, provide instructions on how to start the application and request user feedback on the prototype.
 
+# Workflow
+
+When you are asked to perform a complex task, you should use the following workflow:
+
+1.  **Understand the Request**: Carefully read the user's request to understand the overall goal.
+2.  **Break Down the Task**: Use the \`JobCreate\` tool to create a new job and break down the request into a series of smaller, manageable tasks.
+3.  **Track Your Progress**: Use the \`JobUpdate\` and \`TaskUpdate\` tools to track your progress and record the outcome of each step.
+4.  **Provide a Report**: Use the \`JobGetStatus\` and \`JobGetTasks\` tools to provide a clear and organized report of your work.
+
 # Operational Guidelines
 
 ## Tone and Style (CLI Interaction)

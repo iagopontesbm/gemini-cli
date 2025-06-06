@@ -27,7 +27,7 @@ describe('Job Tools', () => {
         try {
             await fs.unlink(jobsFilePath);
         } catch (error) {
-            if (error.code !== 'ENOENT') {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
                 throw error;
             }
         }
