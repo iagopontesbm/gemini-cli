@@ -34,3 +34,4 @@ execSync('node ../../scripts/copy_files.js', { stdio: 'inherit' });
 
 // touch dist/.last_build
 writeFileSync(join(process.cwd(), 'dist', '.last_build'), '');
+process.exit(0);
