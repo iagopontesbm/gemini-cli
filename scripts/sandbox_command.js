@@ -25,12 +25,11 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import dotenv from 'dotenv';
 
-const argv = yargs(hideBin(process.argv))
-  .option('q', {
-    alias: 'quiet',
-    type: 'boolean',
-    default: false,
-  }).argv;
+const argv = yargs(hideBin(process.argv)).option('q', {
+  alias: 'quiet',
+  type: 'boolean',
+  default: false,
+}).argv;
 
 let geminiSandbox = process.env.GEMINI_SANDBOX;
 
@@ -62,7 +61,9 @@ if (!geminiSandbox) {
 }
 
 if (process.env.GEMINI_CODE_SANDBOX) {
-  console.warn("WARNING: GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.");
+  console.warn(
+    'WARNING: GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.',
+  );
   geminiSandbox = process.env.GEMINI_CODE_SANDBOX;
 }
 
@@ -85,14 +86,18 @@ if (['1', 'true'].includes(geminiSandbox)) {
   } else if (commandExists('podman')) {
     command = 'podman';
   } else {
-    console.error("ERROR: install docker or podman or specify command in GEMINI_SANDBOX");
+    console.error(
+      'ERROR: install docker or podman or specify command in GEMINI_SANDBOX',
+    );
     process.exit(1);
   }
 } else if (geminiSandbox && !['0', 'false'].includes(geminiSandbox)) {
   if (commandExists(geminiSandbox)) {
     command = geminiSandbox;
   } else {
-    console.error(`ERROR: missing sandbox command '${geminiSandbox}' (from GEMINI_SANDBOX)`);
+    console.error(
+      `ERROR: missing sandbox command '${geminiSandbox}' (from GEMINI_SANDBOX)`,
+    );
     process.exit(1);
   }
 } else {

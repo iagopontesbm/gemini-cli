@@ -25,5 +25,8 @@ const root = join(import.meta.dirname, '..');
 
 // remove npm install/build artifacts
 rmSync(join(root, 'node_modules'), { recursive: true, force: true });
-rmSync(join(root, 'packages/cli/src/generated/'), { recursive: true, force: true });
+rmSync(join(root, 'packages/cli/src/generated/'), {
+  recursive: true,
+  force: true,
+});
 execSync('npm run clean --workspaces', { stdio: 'inherit', cwd: root });

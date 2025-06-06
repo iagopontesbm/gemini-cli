@@ -31,10 +31,14 @@ if (!existsSync(generatedDir)) {
 }
 
 try {
-  const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+  const gitHash = execSync('git rev-parse --short HEAD', {
+    encoding: 'utf-8',
+  }).trim();
   if (gitHash) {
     gitCommitInfo = gitHash;
-    const gitStatus = execSync('git status --porcelain', { encoding: 'utf-8' }).trim();
+    const gitStatus = execSync('git status --porcelain', {
+      encoding: 'utf-8',
+    }).trim();
     if (gitStatus) {
       gitCommitInfo = `${gitHash} (local modifications)`;
     }

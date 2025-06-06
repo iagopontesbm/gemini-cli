@@ -22,30 +22,36 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import os from 'os';
 
-
 try {
   execSync('node scripts/sandbox_command.js -q');
 } catch {
-  console.error("ERROR: sandboxing disabled. See README.md to enable sandboxing.");
+  console.error(
+    'ERROR: sandboxing disabled. See README.md to enable sandboxing.',
+  );
   process.exit(1);
 }
 
-const argv = yargs(hideBin(process.argv))
-  .option('i', {
-    alias: 'interactive',
-    type: 'boolean',
-    default: false,
-  }).argv;
+const argv = yargs(hideBin(process.argv)).option('i', {
+  alias: 'interactive',
+  type: 'boolean',
+  default: false,
+}).argv;
 
 if (argv.i && !process.stdin.isTTY) {
-  console.error("ERROR: interactive mode (-i) requested without a terminal attached");
+  console.error(
+    'ERROR: interactive mode (-i) requested without a terminal attached',
+  );
   process.exit(1);
 }
 
 const image = 'gemini-code-sandbox';
-const sandboxCommand = execSync('node scripts/sandbox_command.js').toString().trim();
+const sandboxCommand = execSync('node scripts/sandbox_command.js')
+  .toString()
+  .trim();
 
-const sandboxes = execSync(`${sandboxCommand} ps --filter "ancestor=${image}" --format "{{.Names}}"`)
+const sandboxes = execSync(
+  `${sandboxCommand} ps --filter "ancestor=${image}" --format "{{.Names}}"`,
+)
   .toString()
   .trim()
   .split('\n')
@@ -56,20 +62,26 @@ const firstArg = argv._[0];
 
 if (firstArg) {
   if (firstArg.startsWith(image) || /^\d+$/.test(firstArg)) {
-    sandboxName = firstArg.startsWith(image) ? firstArg : `${image}-${firstArg}`;
+    sandboxName = firstArg.startsWith(image)
+      ? firstArg
+      : `${image}-${firstArg}`;
     argv._.shift();
   }
 }
 
 if (!sandboxName) {
   if (sandboxes.length === 0) {
-    console.error("No sandboxes found. Are you running gemini-code with sandboxing enabled?");
+    console.error(
+      'No sandboxes found. Are you running gemini-code with sandboxing enabled?',
+    );
     process.exit(1);
   }
   if (sandboxes.length > 1) {
-    console.error("Multiple sandboxes found:");
-    sandboxes.forEach(s => console.error(`  ${s}`));
-    console.error("Sandbox name or index (0,1,...) must be specified as first argument");
+    console.error('Multiple sandboxes found:');
+    sandboxes.forEach((s) => console.error(`  ${s}`));
+    console.error(
+      'Sandbox name or index (0,1,...) must be specified as first argument',
+    );
     process.exit(1);
   }
   sandboxName = sandboxes[0];
@@ -77,8 +89,8 @@ if (!sandboxName) {
 
 if (!sandboxes.includes(sandboxName)) {
   console.error(`unknown sandbox ${sandboxName}`);
-  console.error("known sandboxes:");
-  sandboxes.forEach(s => console.error(`  ${s}`));
+  console.error('known sandboxes:');
+  sandboxes.forEach((s) => console.error(`  ${s}`));
   process.exit(1);
 }
 

@@ -43,14 +43,20 @@ const argv = yargs(hideBin(process.argv))
 
 let sandboxCommand;
 try {
-  sandboxCommand = execSync('node scripts/sandbox_command.js').toString().trim();
+  sandboxCommand = execSync('node scripts/sandbox_command.js')
+    .toString()
+    .trim();
 } catch {
-  console.warn('WARNING: container-based sandboxing is disabled (see README.md#sandboxing)');
+  console.warn(
+    'WARNING: container-based sandboxing is disabled (see README.md#sandboxing)',
+  );
   process.exit(0);
 }
 
 if (sandboxCommand === 'sandbox-exec') {
-  console.warn('WARNING: container-based sandboxing is disabled (see README.md#sandboxing)');
+  console.warn(
+    'WARNING: container-based sandboxing is disabled (see README.md#sandboxing)',
+  );
   process.exit(0);
 }
 
@@ -69,15 +75,35 @@ if (!argv.s) {
 console.log('packing @gemini-code/cli ...');
 const cliPackageDir = join('packages', 'cli');
 rmSync(join(cliPackageDir, 'dist', 'gemini-code-cli-*.tgz'), { force: true });
-execSync(`npm pack -w @gemini-code/cli --pack-destination ./packages/cli/dist`, { stdio: 'ignore' });
+execSync(
+  `npm pack -w @gemini-code/cli --pack-destination ./packages/cli/dist`,
+  { stdio: 'ignore' },
+);
 
 console.log('packing @gemini-code/core ...');
 const corePackageDir = join('packages', 'core');
 rmSync(join(corePackageDir, 'dist', 'gemini-code-core-*.tgz'), { force: true });
-execSync(`npm pack -w @gemini-code/core --pack-destination ./packages/core/dist`, { stdio: 'ignore' });
+execSync(
+  `npm pack -w @gemini-code/core --pack-destination ./packages/core/dist`,
+  { stdio: 'ignore' },
+);
 
-chmodSync(join(cliPackageDir, 'dist', `gemini-code-cli-${process.env.npm_package_version}.tgz`), 0o755);
-chmodSync(join(corePackageDir, 'dist', `gemini-code-core-${process.env.npm_package_version}.tgz`), 0o755);
+chmodSync(
+  join(
+    cliPackageDir,
+    'dist',
+    `gemini-code-cli-${process.env.npm_package_version}.tgz`,
+  ),
+  0o755,
+);
+chmodSync(
+  join(
+    corePackageDir,
+    'dist',
+    `gemini-code-core-${process.env.npm_package_version}.tgz`,
+  ),
+  0o755,
+);
 
 const buildStdout = process.env.VERBOSE ? 'inherit' : 'ignore';
 
@@ -87,8 +113,11 @@ function buildImage(imageName, dockerfile) {
     sandboxCommand === 'podman'
       ? `${sandboxCommand} build --authfile=<(echo '{}')`
       : `${sandboxCommand} --config=".docker" buildx build`;
-  
-  execSync(`${buildCommand} ${process.env.BUILD_SANDBOX_FLAGS || ''} -f "${dockerfile}" -t "${imageName}" .`, { stdio: buildStdout });
+
+  execSync(
+    `${buildCommand} ${process.env.BUILD_SANDBOX_FLAGS || ''} -f "${dockerfile}" -t "${imageName}" .`,
+    { stdio: buildStdout },
+  );
   console.log(`built ${imageName}`);
 }
 

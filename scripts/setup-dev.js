@@ -22,9 +22,12 @@ import { execSync } from 'child_process';
 try {
   execSync('command -v npm', { stdio: 'ignore' });
 } catch {
-  console.log("npm not found. Installing npm via nvm...");
+  console.log('npm not found. Installing npm via nvm...');
   try {
-    execSync('curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash', { stdio: 'inherit' });
+    execSync(
+      'curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash',
+      { stdio: 'inherit' },
+    );
     const nvmsh = `\\. "$HOME/.nvm/nvm.sh"`;
     execSync(`${nvmsh} && nvm install 22`, { stdio: 'inherit' });
     execSync(`${nvmsh} && node -v`, { stdio: 'inherit' });
@@ -36,4 +39,4 @@ try {
   }
 }
 
-console.log("Development environment setup complete.");
+console.log('Development environment setup complete.');

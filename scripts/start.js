@@ -23,14 +23,20 @@ import { join } from 'path';
 const root = join(import.meta.dirname, '..');
 
 // check build status, write warnings to file for app to display if needed
-execSync('node ./scripts/check-build-status.js', { stdio: 'inherit', cwd: root });
+execSync('node ./scripts/check-build-status.js', {
+  stdio: 'inherit',
+  cwd: root,
+});
 
 // if debugging is enabled and sandboxing is disabled, use --inspect-brk flag
 // note with sandboxing this flag is passed to the binary inside the sandbox
 // inside sandbox SANDBOX should be set and sandbox_command.js should fail
 const nodeArgs = [];
 try {
-  execSync('node scripts/sandbox_command.js -q', { stdio: 'inherit', cwd: root });
+  execSync('node scripts/sandbox_command.js -q', {
+    stdio: 'inherit',
+    cwd: root,
+  });
   if (process.env.DEBUG) {
     if (process.env.SANDBOX) {
       const port = process.env.DEBUG_PORT || '9229';
