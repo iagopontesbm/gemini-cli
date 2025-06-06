@@ -63,6 +63,11 @@ export async function main() {
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
+  try {
+    await config.getGitService();
+  } catch {
+    // For now swallow the error, later log it.
+  }
 
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {

@@ -25,6 +25,7 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { GitService } from '../services/gitService.js';
 import { initializeTelemetry } from '../telemetry/index.js';
 
 export enum ApprovalMode {
@@ -80,6 +81,7 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
   enableModifyWithExternalEditors?: boolean;
+  checkpoint?: boolean;
 }
 
 export class Config {
@@ -111,6 +113,8 @@ export class Config {
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly enableModifyWithExternalEditors: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
+  private gitService: GitService | undefined = undefined;
+  private readonly checkpoint: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -142,6 +146,7 @@ export class Config {
       params.fileFilteringAllowBuildArtifacts ?? false;
     this.enableModifyWithExternalEditors =
       params.enableModifyWithExternalEditors ?? false;
+    this.checkpoint = params.checkpoint ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -290,6 +295,17 @@ export class Config {
       });
     }
     return this.fileDiscoveryService;
+  }
+
+  async getGitService(): Promise<GitService> {
+    if (!this.checkpoint) {
+      return Promise.reject(new Error('Checkpointing is disabled'));
+    }
+    if (!this.gitService) {
+      this.gitService = new GitService(this.targetDir);
+      await this.gitService.initialize();
+    }
+    return this.gitService;
   }
 }
 
