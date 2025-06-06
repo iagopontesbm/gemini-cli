@@ -1,5 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
-// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +30,7 @@ try {
     execSync(`${nvmsh} && node -v`, { stdio: 'inherit' });
     execSync(`${nvmsh} && nvm current`, { stdio: 'inherit' });
     execSync(`${nvmsh} && npm -v`, { stdio: 'inherit' });
-  } catch (error) {
+  } catch {
     console.error('Failed to install nvm or node.');
     process.exit(1);
   }
