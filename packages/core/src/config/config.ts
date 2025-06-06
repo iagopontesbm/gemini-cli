@@ -359,12 +359,12 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(GrepTool, targetDir);
   registerCoreTool(GlobTool, targetDir, config);
   registerCoreTool(EditTool, config);
-  registerCoreTool(WriteFileTool, targetDir, config);
-  registerCoreTool(WebFetchTool);
+  registerCoreTool(WriteFileTool, config);
+  registerCoreTool(WebFetchTool, config);
   registerCoreTool(ReadManyFilesTool, targetDir, config);
-  registerCoreTool(ShellTool, targetDir, config);
+  registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
-  registerCoreTool(WebSearchTool);
+  registerCoreTool(WebSearchTool, config);
   registerCoreTool(JobCreateTool);
   registerCoreTool(JobUpdateTool);
   registerCoreTool(JobGetStatusTool);
