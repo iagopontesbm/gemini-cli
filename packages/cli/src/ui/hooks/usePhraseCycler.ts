@@ -127,6 +127,9 @@ export const WITTY_LOADING_PHRASES = [
   'Enhancing... Enhancing... Still loading.',
   "It's not a bug, it's a feature... of this loading screen.",
   'Have you tried turning it off and on again? (The loading screen, not me.)',
+  "I'm Feeling Lucky",
+  "Painting the serifs back on...",
+  "Navigating the slime mold..."
 ];
 
 export const PHRASE_CHANGE_INTERVAL_MS = 15000;
