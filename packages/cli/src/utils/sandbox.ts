@@ -150,60 +150,72 @@ function ports(): string[] {
 }
 
 function entrypoint(workdir: string): string[] {
-  // set up bash command to be run inside container
+  const isWindows = os.platform() === 'win32';
+
+  // set up shell command to be run inside container
   // start with setting up PATH and PYTHONPATH with optional suffixes from host
-  const bashCmds = [];
+  const shellCmds = [];
 
   // copy any paths in PATH that are under working directory in sandbox
   // note we can't just pass these as --env since that would override base PATH
-  // instead we construct a suffix and append as part of bashCmd below
+  // instead we construct a suffix and append as part of shellCmd below
   let pathSuffix = '';
   if (process.env.PATH) {
-    const paths = process.env.PATH.split(':');
+    const paths = process.env.PATH.split(isWindows ? ';' : ':');
     for (const path of paths) {
       if (path.startsWith(workdir)) {
-        pathSuffix += `:${path}`;
+        pathSuffix += isWindows ? `;${path}` : `:${path}`;
       }
     }
   }
   if (pathSuffix) {
-    bashCmds.push(`export PATH="$PATH${pathSuffix}";`); // suffix includes leading ':'
+    shellCmds.push(
+      isWindows
+        ? `set "PATH=%PATH%${pathSuffix}"`
+        : `export PATH="$PATH${pathSuffix}";`,
+    ); // suffix includes leading separator
   }
 
   // copy any paths in PYTHONPATH that are under working directory in sandbox
   // note we can't just pass these as --env since that would override base PYTHONPATH
-  // instead we construct a suffix and append as part of bashCmd below
+  // instead we construct a suffix and append as part of shellCmd below
   let pythonPathSuffix = '';
   if (process.env.PYTHONPATH) {
-    const paths = process.env.PYTHONPATH.split(':');
+    const paths = process.env.PYTHONPATH.split(isWindows ? ';' : ':');
     for (const path of paths) {
       if (path.startsWith(workdir)) {
-        pythonPathSuffix += `:${path}`;
+        pythonPathSuffix += isWindows ? `;${path}` : `:${path}`;
       }
     }
   }
   if (pythonPathSuffix) {
-    bashCmds.push(`export PYTHONPATH="$PYTHONPATH${pythonPathSuffix}";`); // suffix includes leading ':'
+    shellCmds.push(
+      isWindows
+        ? `set "PYTHONPATH=%PYTHONPATH%${pythonPathSuffix}"`
+        : `export PYTHONPATH="$PYTHONPATH${pythonPathSuffix}";`,
+    ); // suffix includes leading separator
   }
 
-  // source sandbox.bashrc if exists under project settings directory
-  const projectSandboxBashrc = path.join(
-    SETTINGS_DIRECTORY_NAME,
-    'sandbox.bashrc',
-  );
-  if (fs.existsSync(projectSandboxBashrc)) {
-    bashCmds.push(`source ${projectSandboxBashrc};`);
+  if (!isWindows) {
+    // source sandbox.bashrc if exists under project settings directory
+    const projectSandboxBashrc = path.join(
+      SETTINGS_DIRECTORY_NAME,
+      'sandbox.bashrc',
+    );
+    if (fs.existsSync(projectSandboxBashrc)) {
+      shellCmds.push(`source ${projectSandboxBashrc};`);
+    }
+
+    // also set up redirects (via socat) so servers can listen on localhost instead of 0.0.0.0
+    ports().forEach((p) =>
+      shellCmds.push(
+        `socat TCP4-LISTEN:${p},bind=$(hostname -i),fork,reuseaddr TCP4:127.0.0.1:${p} 2> /dev/null &`,
+      ),
+    );
   }
 
-  // also set up redirects (via socat) so servers can listen on localhost instead of 0.0.0.0
-  ports().forEach((p) =>
-    bashCmds.push(
-      `socat TCP4-LISTEN:${p},bind=$(hostname -i),fork,reuseaddr TCP4:127.0.0.1:${p} 2> /dev/null &`,
-    ),
-  );
-
-  // append remaining args (bash -c "gemini cli_args...")
-  // cli_args need to be quoted before being inserted into bash_cmd
+  // append remaining args (shell -c "gemini cli_args...")
+  // cli_args need to be quoted before being inserted into shell_cmd
   const cliArgs = process.argv.slice(2).map((arg) => quote([arg]));
   const cliCmd =
     process.env.NODE_ENV === 'development'
@@ -214,9 +226,11 @@ function entrypoint(workdir: string): string[] {
         ? `node --inspect-brk=0.0.0.0:${process.env.DEBUG_PORT || '9229'} $(which gemini)`
         : 'gemini';
 
-  const args = [...bashCmds, cliCmd, ...cliArgs];
+  const args = [...shellCmds, cliCmd, ...cliArgs];
 
-  return ['bash', '-c', args.join(' ')];
+  return isWindows
+    ? ['cmd.exe', '/c', args.join(' & ')]
+    : ['bash', '-c', args.join(' ')];
 }
 
 export async function start_sandbox(sandbox: string) {
@@ -259,7 +273,7 @@ export async function start_sandbox(sandbox: string) {
       `CACHE_DIR=${fs.realpathSync(execSync(`getconf DARWIN_USER_CACHE_DIR`).toString().trim())}`,
       '-f',
       profileFile,
-      'bash',
+      'sh',
       '-c',
       [
         `SANDBOX=sandbox-exec`,

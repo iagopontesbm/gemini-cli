@@ -20,6 +20,8 @@
 import { execSync, spawn } from 'child_process';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
+import os from 'os';
+
 
 try {
   execSync('node scripts/sandbox_command.js -q');
@@ -84,15 +86,15 @@ let cmd;
 let execArgs = [];
 
 if (argv._.length > 0) {
-  cmd = ['bash', '-l', '-c', argv._.join(' ')];
+  cmd = argv._.join(' ');
   if (argv.i) {
     execArgs.push('-it');
   }
 } else {
-  cmd = ['bash', '-l'];
+  cmd = os.platform() === 'win32' ? 'cmd.exe' : 'bash -l';
   execArgs.push('-it');
 }
 
-execArgs.push(sandboxName, ...cmd);
+execArgs.push(sandboxName, ...cmd.split(' '));
 
 spawn(sandboxCommand, ['exec', ...execArgs], { stdio: 'inherit' });
