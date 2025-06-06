@@ -68,34 +68,38 @@ if (process.env.GEMINI_CODE_SANDBOX) {
 
 geminiSandbox = (geminiSandbox || '').toLowerCase();
 
+const commandExists = (cmd) => {
+  const checkCommand = os.platform() === 'win32' ? 'where' : 'command -v';
+  try {
+    execSync(`${checkCommand} ${cmd}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 let command = '';
 if (['1', 'true'].includes(geminiSandbox)) {
-  try {
-    execSync('command -v docker', { stdio: 'ignore' });
+  if (commandExists('docker')) {
     command = 'docker';
-  } catch {
-    try {
-      execSync('command -v podman', { stdio: 'ignore' });
-      command = 'podman';
-    } catch {
-      console.error("ERROR: install docker or podman or specify command in GEMINI_SANDBOX");
-      process.exit(1);
-    }
+  } else if (commandExists('podman')) {
+    command = 'podman';
+  } else {
+    console.error("ERROR: install docker or podman or specify command in GEMINI_SANDBOX");
+    process.exit(1);
   }
 } else if (geminiSandbox && !['0', 'false'].includes(geminiSandbox)) {
-  try {
-    execSync(`command -v ${geminiSandbox}`, { stdio: 'ignore' });
+  if (commandExists(geminiSandbox)) {
     command = geminiSandbox;
-  } catch {
+  } else {
     console.error(`ERROR: missing sandbox command '${geminiSandbox}' (from GEMINI_SANDBOX)`);
     process.exit(1);
   }
 } else {
   if (os.platform() === 'darwin' && process.env.SEATBELT_PROFILE !== 'none') {
-    try {
-      execSync('command -v sandbox-exec', { stdio: 'ignore' });
+    if (commandExists('sandbox-exec')) {
       command = 'sandbox-exec';
-    } catch {
+    } else {
       process.exit(1);
     }
   } else {
