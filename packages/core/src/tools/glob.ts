@@ -232,10 +232,24 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         };
       }
 
+      const oneDay = 24 * 60 * 60 * 1000;
+      const now = new Date().getTime();
+
       filteredEntries.sort((a, b) => {
         const mtimeA = a.stats?.mtime?.getTime() ?? 0;
         const mtimeB = b.stats?.mtime?.getTime() ?? 0;
-        return mtimeB - mtimeA;
+        const aIsRecent = now - mtimeA < oneDay;
+        const bIsRecent = now - mtimeB < oneDay;
+
+        if (aIsRecent && bIsRecent) {
+          return mtimeB - mtimeA;
+        } else if (aIsRecent) {
+          return -1;
+        } else if (bIsRecent) {
+          return 1;
+        } else {
+          return a.path.localeCompare(b.path);
+        }
       });
 
       const sortedAbsolutePaths = filteredEntries.map((entry) => entry.path);
