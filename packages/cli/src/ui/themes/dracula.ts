@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { darkTheme, Theme, type ColorsTheme } from './theme.js';
+import { type ColorsTheme, Theme } from './theme.js';
 
 const draculaColors: ColorsTheme = {
   type: 'dark',
@@ -19,7 +19,8 @@ const draculaColors: ColorsTheme = {
   AccentRed: '#ff5555',
   Comment: '#6272a4',
   Gray: '#6272a4',
-  GradientColors: darkTheme.GradientColors,
+  // GradientColors: ['#f1fa8c', '#50fa7b'],
+  GradientColors: ['#ff79c6', '#8be9fd'],
 };
 
 export const Dracula: Theme = new Theme(
