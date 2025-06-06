@@ -13,6 +13,7 @@ All file system tools operate within a `rootDirectory` (usually the current work
 - **Parameters:**
   - `path` (string, required): The absolute path to the directory to list.
   - `ignore` (array of strings, optional): A list of glob patterns to exclude from the listing (e.g., `["*.log", ".git"]`).
+  - `respect_git_ignore` (boolean, optional): Whether to respect .gitignore patterns when listing files. Defaults to true.
 - **Behavior:**
   - Returns a list of file and directory names.
   - Indicates whether each entry is a directory.
@@ -39,7 +40,6 @@ All file system tools operate within a `rootDirectory` (usually the current work
   - For image/PDF files: An object containing `inlineData` with `mimeType` and base64 `data` (e.g., `{ inlineData: { mimeType: 'image/png', data: 'base64encodedstring' } }`).
   - For other binary files: A message like `Cannot display content of binary file: /path/to/data.bin`.
 - **Confirmation:** No.
-- **Confirmation:** No.
 
 ## 3. `write_file` (WriteFile)
 
@@ -53,6 +53,7 @@ All file system tools operate within a `rootDirectory` (usually the current work
 - **Behavior:**
   - Writes the provided `content` to the `file_path`.
   - Creates parent directories if they don't exist.
+  - **Self-correction:** Before writing, the tool may use the Gemini model to correct the provided content to ensure it is valid and well-formed.
 - **Output (`llmContent`):** A success message, e.g., `Successfully overwrote file: /path/to/your/file.txt` or `Successfully created and wrote to new file: /path/to/new/file.txt`.
 - **Confirmation:** Yes. Shows a diff of changes and asks for user approval before writing.
 
@@ -65,6 +66,8 @@ All file system tools operate within a `rootDirectory` (usually the current work
 - **Parameters:**
   - `pattern` (string, required): The glob pattern to match against (e.g., `"*.py"`, `"src/**/*.js"`).
   - `path` (string, optional): The absolute path to the directory to search within. If omitted, searches the tool's root directory.
+  - `case_sensitive` (boolean, optional): Whether the search should be case-sensitive. Defaults to false.
+  - `respect_git_ignore` (boolean, optional): Whether to respect .gitignore patterns when finding files. Defaults to true.
 - **Behavior:**
   - Searches for files matching the glob pattern within the specified directory.
   - Returns a list of absolute paths, sorted with the most recently modified files first.
@@ -99,16 +102,17 @@ All file system tools operate within a `rootDirectory` (usually the current work
   ```
 - **Confirmation:** No.
 
-## 6. `replace` (Edit)
+## 6. `replace` (EditTool)
 
 - **Tool Name:** `replace`
 - **Display Name:** Edit
 - **File:** `edit.ts`
-- **Description:** Replaces a single, unique occurrence of text within a file. This tool is designed for precise, targeted changes and requires significant context around the `old_string` to ensure it modifies the correct location. It can also be used to create new files if `old_string` is empty and the `file_path` does not exist.
+- **Description:** Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when `expected_replacements` is specified. This tool is designed for precise, targeted changes and requires significant context around the `old_string` to ensure it modifies the correct location. It can also be used to create new files if `old_string` is empty and the `file_path` does not exist.
 - **Parameters:**
   - `file_path` (string, required): The absolute path to the file to modify.
   - `old_string` (string, required): The exact literal text to replace. **CRITICAL:** This string must uniquely identify the single instance to change. It should include at least 3 lines of context _before_ and _after_ the target text, matching whitespace and indentation precisely. If `old_string` is empty, the tool attempts to create a new file at `file_path` with `new_string` as content.
   - `new_string` (string, required): The exact literal text to replace `old_string` with.
+  - `expected_replacements` (number, optional): The number of occurrences to replace. Defaults to 1.
 - **Behavior:**
   - If `old_string` is empty and `file_path` does not exist, creates a new file with `new_string` as content.
   - If `old_string` is provided, it reads the `file_path` and attempts to find exactly one occurrence of `old_string`.
