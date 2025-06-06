@@ -11,7 +11,7 @@ import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { readPackageUp } from 'read-package-up';
 import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { dirname, basename } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
@@ -38,6 +38,13 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function main() {
+  const projectName = basename(process.cwd());
+  process.stdout.write(`\x1b]2;✨ Gemini - ${projectName} \x07`);
+
+  process.on('exit', () => {
+    process.stdout.write(`\x1b]2;\x07`);
+  });
+
   // warn about deprecated environment variables
   if (process.env.GEMINI_CODE_MODEL) {
     console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
