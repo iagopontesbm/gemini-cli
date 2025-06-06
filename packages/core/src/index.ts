@@ -5,45 +5,142 @@
  */
 
 // Export config
-export * from './config/config.js';
+export {
+  AccessibilitySettings,
+  ApprovalMode,
+  Config,
+  ConfigParameters,
+  createToolRegistry,
+  loadEnvironment,
+  MCPServerConfig,
+  createServerConfig,
+} from './config/config.js';
 
 // Export Core Logic
-export * from './core/client.js';
-export * from './core/geminiChat.js';
-export * from './core/logger.js';
-export * from './core/prompts.js';
-export * from './core/turn.js';
-export * from './core/geminiRequest.js';
-export * from './core/coreToolScheduler.js';
-export * from './core/nonInteractiveToolExecutor.js';
-
-// Export utilities
-export * from './utils/paths.js';
-export * from './utils/schemaValidator.js';
-export * from './utils/errors.js';
-export * from './utils/getFolderStructure.js';
-export * from './utils/memoryDiscovery.js';
-export * from './utils/gitIgnoreParser.js';
+export { GeminiClient } from './core/client.js';
+export { GeminiChat } from './core/geminiChat.js';
+export { GeminiCodeRequest, partListUnionToString } from './core/geminiRequest.js';
+export {
+  AllToolCallsCompleteHandler,
+  CancelledToolCall,
+  CompletedToolCall,
+  ConfirmHandler,
+  convertToFunctionResponse,
+  CoreToolScheduler,
+  ErroredToolCall,
+  ExecutingToolCall,
+  OutputUpdateHandler,
+  ScheduledToolCall,
+  Status,
+  SuccessfulToolCall,
+  ToolCall,
+  ToolCallsUpdateHandler,
+  ValidatingToolCall,
+  WaitingToolCall,
+} from './core/coreToolScheduler.js';
+export { executeToolCall } from './core/nonInteractiveToolExecutor.js';
+export { Logger, LogEntry, MessageSenderType } from './core/logger.js';
+export { getCoreSystemPrompt } from './core/prompts.js';
+export {
+  ServerGeminiChatCompressedEvent,
+  ServerGeminiContentEvent,
+  ServerGeminiErrorEvent,
+  ServerGeminiStreamEvent,
+  ServerGeminiToolCallConfirmationEvent,
+  ServerGeminiToolCallRequestEvent,
+  ServerGeminiToolCallResponseEvent,
+  ServerGeminiUserCancelledEvent,
+  ServerTool,
+  ServerToolCallConfirmationDetails,
+  ToolCallRequestInfo,
+  ToolCallResponseInfo,
+  Turn,
+  GeminiErrorEventValue,
+  GeminiEventType,
+} from './core/turn.js';
 
 // Export services
-export * from './services/fileDiscoveryService.js';
+export {
+  FileDiscoveryOptions,
+  FileDiscoveryService,
+} from './services/fileDiscoveryService.js';
 
 // Export base tool definitions
-export * from './tools/tools.js';
-export * from './tools/tool-registry.js';
+export {
+  Tool,
+  BaseTool,
+  ToolResult,
+  ToolResultDisplay,
+  FileDiff,
+  ToolEditConfirmationDetails,
+  ToolExecuteConfirmationDetails,
+  ToolMcpConfirmationDetails,
+  ToolCallConfirmationDetails,
+  ToolConfirmationOutcome,
+} from './tools/tools.js';
+export { DiscoveredTool, ToolRegistry } from './tools/tool-registry.js';
 
 // Export specific tool logic
-export * from './tools/read-file.js';
-export * from './tools/ls.js';
-export * from './tools/grep.js';
-export * from './tools/glob.js';
-export * from './tools/edit.js';
-export * from './tools/write-file.js';
-export * from './tools/web-fetch.js';
-export * from './tools/memoryTool.js';
-export * from './tools/shell.js';
-export * from './tools/web-search.js';
-export * from './tools/read-many-files.js';
+export { EditTool, EditToolParams } from './tools/edit.js';
+export { GlobTool, GlobToolParams } from './tools/glob.js';
+export { GrepTool, GrepToolParams } from './tools/grep.js';
+export { LSTool, LSToolParams, FileEntry } from './tools/ls.js';
+export {
+  ReadManyFilesTool,
+  ReadManyFilesParams,
+} from './tools/read-many-files.js';
+export { ReadFileTool, ReadFileToolParams } from './tools/read-file.js';
+export {
+  DEFAULT_CONTEXT_FILENAME,
+  GEMINI_CONFIG_DIR,
+  getCurrentGeminiMdFilename,
+  MEMORY_SECTION_HEADER,
+  MemoryTool,
+  setGeminiMdFilename,
+} from './tools/memoryTool.js';
+export { ShellTool, ShellToolParams } from './tools/shell.js';
+export { WebFetchTool, WebFetchToolParams } from './tools/web-fetch.js';
+export {
+  WebSearchTool,
+  WebSearchToolParams,
+  WebSearchToolResult,
+} from './tools/web-search.js';
+export { WriteFileTool, WriteFileToolParams } from './tools/write-file.js';
 
 // Export telemetry functions
-export * from './telemetry/index.js';
+export {
+  ApiErrorEvent,
+  ApiRequestEvent,
+  ApiResponseEvent,
+  CliConfigEvent,
+  initializeTelemetry,
+  isTelemetrySdkInitialized,
+  logApiError,
+  logApiRequest,
+  logApiResponse,
+  logCliConfiguration,
+  logToolCall,
+  logUserPrompt,
+  SemanticAttributes,
+  sessionId,
+  shutdownTelemetry,
+  SpanStatusCode,
+  TelemetryEvent,
+  ToolCallEvent,
+  UserPromptEvent,
+  ValueType,
+} from './telemetry/index.js';
+
+// Export utilities
+export { getErrorMessage, isNodeError } from './utils/errors.js';
+export { getFolderStructure } from './utils/getFolderStructure.js';
+export { GitIgnoreParser, GitIgnoreFilter } from './utils/gitIgnoreParser.js';
+export { loadServerHierarchicalMemory } from './utils/memoryDiscovery.js';
+export {
+  escapePath,
+  makeRelative,
+  shortenPath,
+  tildeifyPath,
+  unescapePath,
+} from './utils/paths.js';
+export { SchemaValidator } from './utils/schemaValidator.js';
