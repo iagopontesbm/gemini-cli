@@ -18,6 +18,7 @@ export {
 
 // Export Core Logic
 export { GeminiClient } from './core/client.js';
+export { ChatSession, ChatEvent } from './core/chatSession.js';
 export { GeminiChat } from './core/geminiChat.js';
 export { GeminiCodeRequest, partListUnionToString } from './core/geminiRequest.js';
 export {

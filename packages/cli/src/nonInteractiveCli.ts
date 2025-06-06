@@ -4,117 +4,30 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  Config,
-  ToolCallRequestInfo,
-  executeToolCall,
-  ToolRegistry,
-} from '@gemini-code/core';
-import {
-  Content,
-  Part,
-  FunctionCall,
-  GenerateContentResponse,
-} from '@google/genai';
-
-function getResponseText(response: GenerateContentResponse): string | null {
-  if (response.candidates && response.candidates.length > 0) {
-    const candidate = response.candidates[0];
-    if (
-      candidate.content &&
-      candidate.content.parts &&
-      candidate.content.parts.length > 0
-    ) {
-      return candidate.content.parts
-        .filter((part) => part.text)
-        .map((part) => part.text)
-        .join('');
-    }
-  }
-  return null;
-}
+import { Config, ChatSession } from '@gemini-code/core';
 
 export async function runNonInteractive(
   config: Config,
   input: string,
 ): Promise<void> {
-  const geminiClient = config.getGeminiClient();
-  const toolRegistry: ToolRegistry = await config.getToolRegistry();
-
-  const chat = await geminiClient.getChat();
-  const abortController = new AbortController();
-  let currentMessages: Content[] = [{ role: 'user', parts: [{ text: input }] }];
+  const chatSession = new ChatSession(config);
 
   try {
-    while (true) {
-      const functionCalls: FunctionCall[] = [];
-
-      const responseStream = await chat.sendMessageStream({
-        message: currentMessages[0]?.parts || [], // Ensure parts are always provided
-        config: {
-          abortSignal: abortController.signal,
-          tools: [
-            { functionDeclarations: toolRegistry.getFunctionDeclarations() },
-          ],
-        },
-      });
-
-      for await (const resp of responseStream) {
-        if (abortController.signal.aborted) {
-          console.error('Operation cancelled.');
-          return;
-        }
-        const textPart = getResponseText(resp);
-        if (textPart) {
-          process.stdout.write(textPart);
-        }
-        if (resp.functionCalls) {
-          functionCalls.push(...resp.functionCalls);
-        }
-      }
-
-      if (functionCalls.length > 0) {
-        const toolResponseParts: Part[] = [];
-
-        for (const fc of functionCalls) {
-          const callId = fc.id ?? `${fc.name}-${Date.now()}`;
-          const requestInfo: ToolCallRequestInfo = {
-            callId,
-            name: fc.name as string,
-            args: (fc.args ?? {}) as Record<string, unknown>,
-          };
-
-          const toolResponse = await executeToolCall(
-            requestInfo,
-            toolRegistry,
-            abortController.signal,
-          );
-
-          if (toolResponse.error) {
-            console.error(
-              `Error executing tool ${fc.name}: ${toolResponse.resultDisplay || toolResponse.error.message}`,
-            );
-          }
-
-          if (toolResponse.responseParts) {
-            const parts = Array.isArray(toolResponse.responseParts)
-              ? toolResponse.responseParts
-              : [toolResponse.responseParts];
-            for (const part of parts) {
-              if (typeof part === 'string') {
-                toolResponseParts.push({ text: part });
-              } else if (part) {
-                toolResponseParts.push(part);
-              }
-            }
-          }
-        }
-        currentMessages = [{ role: 'user', parts: toolResponseParts }];
-      } else {
-        process.stdout.write('\n'); // Ensure a final newline
-        return;
+    for await (const event of chatSession.sendMessage(input)) {
+      switch (event.type) {
+        case 'text':
+          process.stdout.write(event.content);
+          break;
+        case 'tool_code':
+          // In non-interactive mode, we can just print the tool code.
+          console.log(`\nTool Call:\n${event.content}`);
+          break;
+        case 'tool_result':
+          console.log(`\nTool Result (${event.name}):\n${event.content}`);
+          break;
       }
     }
+    process.stdout.write('\n');
   } catch (error) {
     console.error('Error processing input:', error);
     process.exit(1);
