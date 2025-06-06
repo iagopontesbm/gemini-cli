@@ -1,0 +1,17 @@
+> node ../../scripts/build_package.js
+
+src/ui/components/AboutBox.tsx:10:33 - error TS2307: Cannot find module '../../generated/git-commit.js' or its corresponding type declarations.
+
+10 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+src/ui/hooks/slashCommandProcessor.ts:15:33 - error TS2307: Cannot find module '../../generated/git-commit.js' or its corresponding type declarations.
+
+15 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
+                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+Found 2 errors.
+
+node:internal/errors:984
+  const err = new Error(message);
