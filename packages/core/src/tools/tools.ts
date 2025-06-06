@@ -44,6 +44,12 @@ export interface Tool<
   canUpdateOutput: boolean;
 
   /**
+   * Whether the tool's execution should be hidden from the UI
+   * @default false
+   */
+  hideFromUI?: boolean;
+
+  /**
    * Validates the parameters for the tool
    * Should be called from both `shouldConfirmExecute` and `execute`
    * `shouldConfirmExecute` should return false immediately if invalid
@@ -98,6 +104,7 @@ export abstract class BaseTool<
    * @param isOutputMarkdown Whether the tool's output should be rendered as markdown
    * @param canUpdateOutput Whether the tool supports live (streaming) output
    * @param parameterSchema JSON Schema defining the parameters
+   * @param hideFromUI Whether to hide the tool's execution from the UI
    */
   constructor(
     readonly name: string,
@@ -106,6 +113,7 @@ export abstract class BaseTool<
     readonly parameterSchema: Record<string, unknown>,
     readonly isOutputMarkdown: boolean = true,
     readonly canUpdateOutput: boolean = false,
+    readonly hideFromUI: boolean = false,
   ) {}
 
   /**

@@ -193,6 +193,16 @@ export const useGeminiStream = (
             scheduleToolCalls([toolCallRequest]);
           }
           return { queryToSend: null, shouldProceed: false }; // Handled by scheduling the tool
+        } else if (
+          typeof slashCommandResult === 'object' &&
+          slashCommandResult.message
+        ) {
+          // Slash command wants to send a message to Gemini (e.g., /job run)
+          addItem(
+            { type: MessageType.USER, text: trimmedQuery },
+            userMessageTimestamp,
+          );
+          localQueryToSendToGemini = slashCommandResult.message;
         }
 
         if (shellModeActive && handleShellCommand(trimmedQuery, abortSignal)) {

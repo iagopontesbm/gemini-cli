@@ -33,7 +33,7 @@ interface Task {
 
 interface JobCreateParams {
     description: string;
-    tasks?: { content: string, priority?: 'high' | 'medium' | 'low' }[];
+    tasks?: Array<{ content: string, priority?: 'high' | 'medium' | 'low' }>;
 }
 
 interface JobUpdateParams {
@@ -133,7 +133,10 @@ export class JobCreateTool extends BaseTool<JobCreateParams, ToolResult> {
                     },
                 },
                 required: ['description'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -215,7 +218,10 @@ export class JobUpdateTool extends BaseTool<JobUpdateParams, ToolResult> {
                     },
                 },
                 required: ['job_id'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -271,7 +277,10 @@ export class JobGetStatusTool extends BaseTool<JobGetStatusParams, ToolResult> {
                     },
                 },
                 required: ['job_id'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -337,7 +346,10 @@ export class TaskCreateTool extends BaseTool<TaskCreateParams, ToolResult> {
                     },
                 },
                 required: ['job_id', 'content'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -398,7 +410,10 @@ export class JobGetTasksTool extends BaseTool<JobGetTasksParams, ToolResult> {
                     },
                 },
                 required: ['job_id'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -465,7 +480,10 @@ export class TaskUpdateTool extends BaseTool<TaskUpdateParams, ToolResult> {
                     },
                 },
                 required: ['task_id'],
-            }
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
         );
     }
 
@@ -502,6 +520,94 @@ export class TaskUpdateTool extends BaseTool<TaskUpdateParams, ToolResult> {
             return {
                 llmContent: JSON.stringify({ success: false, error: errorMessage }),
                 returnDisplay: `Error updating task: ${errorMessage}`,
+            };
+        }
+    }
+}
+
+interface JobListParams {
+    status?: 'in_progress' | 'completed' | 'paused' | 'failed';
+}
+
+export class JobListTool extends BaseTool<JobListParams, ToolResult> {
+    static readonly Name = 'JobList';
+
+    constructor() {
+        super(
+            JobListTool.Name,
+            'List Jobs',
+            'Lists all jobs, optionally filtered by status.',
+            {
+                type: 'object',
+                properties: {
+                    status: {
+                        type: 'string',
+                        enum: ['in_progress', 'completed', 'paused', 'failed'],
+                        description: 'Filter jobs by status.',
+                    },
+                },
+            },
+            true,  // isOutputMarkdown
+            false, // canUpdateOutput
+            true   // hideFromUI
+        );
+    }
+
+    async execute(params: JobListParams): Promise<ToolResult> {
+        try {
+            let jobs = await readJobs();
+            
+            // Purge old jobs first
+            jobs = await purgeOldJobs(jobs);
+            await writeJobs(jobs);
+            
+            // Filter by status if provided
+            if (params.status) {
+                jobs = jobs.filter(job => job.status === params.status);
+            }
+            
+            if (jobs.length === 0) {
+                const statusText = params.status ? ` with status "${params.status}"` : '';
+                return {
+                    llmContent: JSON.stringify({ jobs: [], count: 0 }),
+                    returnDisplay: `No jobs found${statusText}.`,
+                };
+            }
+            
+            // Sort jobs by creation date (newest first)
+            jobs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            
+            const jobSummaries = jobs.map(job => ({
+                id: job.id,
+                description: job.description,
+                status: job.status,
+                tasks: {
+                    total: job.tasks.length,
+                    completed: job.tasks.filter(t => t.status === 'completed').length,
+                    in_progress: job.tasks.filter(t => t.status === 'in_progress').length,
+                    pending: job.tasks.filter(t => t.status === 'pending').length,
+                    failed: job.tasks.filter(t => t.status === 'failed').length,
+                },
+                createdAt: job.createdAt,
+            }));
+            
+            const displayText = jobSummaries.map(job => 
+                `Job ID: ${job.id}\n` +
+                `Description: ${job.description}\n` +
+                `Status: ${job.status}\n` +
+                `Tasks: ${job.tasks.completed}/${job.tasks.total} completed\n` +
+                `Created: ${new Date(job.createdAt).toLocaleString()}\n`
+            ).join('\n---\n');
+            
+            return {
+                llmContent: JSON.stringify({ jobs: jobSummaries, count: jobSummaries.length }),
+                returnDisplay: displayText,
+            };
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            return {
+                llmContent: JSON.stringify({ success: false, error: errorMessage }),
+                returnDisplay: `Error listing jobs: ${errorMessage}`,
             };
         }
     }

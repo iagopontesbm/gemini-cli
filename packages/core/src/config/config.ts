@@ -27,6 +27,7 @@ import {
   TaskCreateTool,
   JobGetTasksTool,
   TaskUpdateTool,
+  JobListTool,
 } from '../tools/job_tool.js';
 import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
@@ -371,6 +372,7 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(TaskCreateTool);
   registerCoreTool(JobGetTasksTool);
   registerCoreTool(TaskUpdateTool);
+  registerCoreTool(JobListTool);
   return (async () => {
     await registry.discoverTools();
     return registry;

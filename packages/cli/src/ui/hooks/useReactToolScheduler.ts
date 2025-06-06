@@ -236,7 +236,18 @@ export function mapToDisplay(
 ): HistoryItemToolGroup {
   const toolCalls = Array.isArray(toolOrTools) ? toolOrTools : [toolOrTools];
 
-  const toolDisplays = toolCalls.map(
+  // Filter out tools that should be hidden from UI
+  const visibleToolCalls = toolCalls.filter((trackedCall) => {
+    const currentToolInstance =
+      'tool' in trackedCall && trackedCall.tool
+        ? (trackedCall as { tool: Tool }).tool
+        : undefined;
+    
+    // If tool has hideFromUI set to true, exclude it from display
+    return !currentToolInstance?.hideFromUI;
+  });
+
+  const toolDisplays = visibleToolCalls.map(
     (trackedCall): IndividualToolCallDisplay => {
       let displayName = trackedCall.request.name;
       let description = '';
@@ -330,6 +341,15 @@ export function mapToDisplay(
       }
     },
   );
+
+  // Only return a tool group if there are visible tools
+  if (toolDisplays.length === 0) {
+    // Return an empty tool group that won't be displayed
+    return {
+      type: 'tool_group',
+      tools: [],
+    };
+  }
 
   return {
     type: 'tool_group',

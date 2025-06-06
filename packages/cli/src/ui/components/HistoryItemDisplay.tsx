@@ -55,7 +55,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         modelVersion={item.modelVersion}
       />
     )}
-    {item.type === 'tool_group' && (
+    {item.type === 'tool_group' && item.tools.length > 0 && (
       <ToolGroupMessage
         toolCalls={item.tools}
         groupId={item.id}

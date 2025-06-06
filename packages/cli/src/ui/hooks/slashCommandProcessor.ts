@@ -184,6 +184,62 @@ export const useSlashCommandProcessor = (
         },
       },
       {
+        name: 'jobs',
+        altName: 'job',
+        description:
+          'Manage jobs. Usage: /jobs <list|show|run> [job-id for show/run]',
+        action: (mainCommand, subCommand, args) => {
+          switch (subCommand) {
+            case 'list':
+              return {
+                shouldScheduleTool: true,
+                toolName: 'JobList',
+                toolArgs: {},
+              };
+            case 'show':
+              if (!args || args.trim() === '') {
+                addMessage({
+                  type: MessageType.ERROR,
+                  content: 'Usage: /jobs show <job-id>',
+                  timestamp: new Date(),
+                });
+                return;
+              }
+              return {
+                shouldScheduleTool: true,
+                toolName: 'JobGetStatus',
+                toolArgs: { job_id: args.trim() },
+              };
+            case 'run':
+              if (!args || args.trim() === '') {
+                addMessage({
+                  type: MessageType.ERROR,
+                  content: 'Usage: /job run <job-id>',
+                  timestamp: new Date(),
+                });
+                return;
+              }
+              addMessage({
+                type: MessageType.INFO,
+                content: `Continuing job: ${args.trim()}`,
+                timestamp: new Date(),
+              });
+              // For run, we'll return a special message that prompts the model to continue the job
+              return {
+                shouldScheduleTool: false,
+                message: `Please continue working on job ${args.trim()}. First, get the job status and tasks, then continue with the incomplete tasks.`,
+              };
+            default:
+              addMessage({
+                type: MessageType.ERROR,
+                content: `Unknown /jobs command: ${subCommand}. Available: list, show, run`,
+                timestamp: new Date(),
+              });
+              return;
+          }
+        },
+      },
+      {
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
