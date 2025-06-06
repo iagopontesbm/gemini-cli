@@ -1,0 +1,114 @@
+{
+  "system_prompt_tokens": 20000,
+  "tool_definitions_tokens": 2500,
+  "patterns": [
+    {
+      "name": "File Search & Read",
+      "description": "User asks about code location/functionality",
+      "total_tokens": 27590,
+      "token_range": [
+        22072,
+        33108
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 75,
+        "agent_messages": 350,
+        "tool_calls": 390,
+        "tool_responses": 0,
+        "file_content": 4500
+      }
+    },
+    {
+      "name": "Simple Code Edit",
+      "description": "User requests specific change to a file",
+      "total_tokens": 24900,
+      "token_range": [
+        19920,
+        29880
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 100,
+        "agent_messages": 150,
+        "tool_calls": 150,
+        "tool_responses": 0,
+        "file_content": 2000
+      }
+    },
+    {
+      "name": "Multi-File Refactor",
+      "description": "User requests refactoring across codebase",
+      "total_tokens": 44660,
+      "token_range": [
+        35728,
+        53592
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 150,
+        "agent_messages": 800,
+        "tool_calls": 1710,
+        "tool_responses": 0,
+        "file_content": 19500
+      }
+    },
+    {
+      "name": "Bug Fix",
+      "description": "User reports issue, agent investigates and fixes",
+      "total_tokens": 39310,
+      "token_range": [
+        31448,
+        47172
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 200,
+        "agent_messages": 600,
+        "tool_calls": 1010,
+        "tool_responses": 0,
+        "file_content": 15000
+      }
+    },
+    {
+      "name": "Feature Implementation",
+      "description": "User requests new feature implementation",
+      "total_tokens": 47810,
+      "token_range": [
+        38248,
+        57372
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 300,
+        "agent_messages": 1500,
+        "tool_calls": 2510,
+        "tool_responses": 0,
+        "file_content": 21000
+      }
+    },
+    {
+      "name": "Code Analysis",
+      "description": "User asks for code explanation/analysis",
+      "total_tokens": 43060,
+      "token_range": [
+        34448,
+        51672
+      ],
+      "breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 100,
+        "agent_messages": 2000,
+        "tool_calls": 460,
+        "tool_responses": 0,
+        "file_content": 18000
+      }
+    }
+  ]
+}

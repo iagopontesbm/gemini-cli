@@ -1,0 +1,287 @@
+{
+  "metadata": {
+    "generated": "2025-06-05T15:19:23.003569",
+    "system_prompt_tokens": 20000,
+    "tool_definitions_tokens": 2500,
+    "tools": {
+      "Task": {
+        "tokens": 200,
+        "description": "Launch agent for complex searches"
+      },
+      "Bash": {
+        "tokens": 150,
+        "description": "Execute shell commands"
+      },
+      "Glob": {
+        "tokens": 80,
+        "description": "File pattern matching"
+      },
+      "Grep": {
+        "tokens": 80,
+        "description": "Content search with regex"
+      },
+      "LS": {
+        "tokens": 60,
+        "description": "List directory contents"
+      },
+      "Read": {
+        "tokens": 100,
+        "description": "Read file contents"
+      },
+      "Edit": {
+        "tokens": 120,
+        "description": "Edit file with string replacement"
+      },
+      "MultiEdit": {
+        "tokens": 150,
+        "description": "Multiple edits in one operation"
+      },
+      "Write": {
+        "tokens": 100,
+        "description": "Write complete file"
+      },
+      "NotebookRead": {
+        "tokens": 120,
+        "description": "Read Jupyter notebook"
+      },
+      "NotebookEdit": {
+        "tokens": 140,
+        "description": "Edit Jupyter notebook cell"
+      },
+      "WebFetch": {
+        "tokens": 100,
+        "description": "Fetch and analyze web content"
+      },
+      "TodoRead": {
+        "tokens": 60,
+        "description": "Read todo list"
+      },
+      "TodoWrite": {
+        "tokens": 80,
+        "description": "Update todo list"
+      },
+      "WebSearch": {
+        "tokens": 100,
+        "description": "Search the web"
+      }
+    }
+  },
+  "patterns": [
+    {
+      "name": "File Search & Explanation",
+      "description": "User asks where a specific function is defined and how it works",
+      "complexity": "Simple",
+      "total_tokens": 24705,
+      "token_breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 75,
+        "agent_messages": 400,
+        "tool_calls": 180,
+        "file_contents": 1500,
+        "tool_responses": 50,
+        "conversation_history": 0
+      },
+      "tool_usage": {
+        "Grep": 1,
+        "Read": 1
+      },
+      "file_operations": {
+        "files_read": 1,
+        "files_written": 0,
+        "files_edited": 0,
+        "searches_performed": 1
+      },
+      "ttft_estimates": {
+        "p50": 2635.2,
+        "p95": 4743.36,
+        "cached_p50": 1976.4,
+        "cached_p95": 3557.52
+      },
+      "cost_estimates": {
+        "per_request": 0.24705,
+        "per_1000_requests": 247.05,
+        "with_caching_discount": 0.0617625
+      },
+      "step_count": 6
+    },
+    {
+      "name": "Bug Investigation & Fix",
+      "description": "User reports an error, agent investigates and fixes the issue",
+      "complexity": "Medium",
+      "total_tokens": 28510,
+      "token_breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 150,
+        "agent_messages": 500,
+        "tool_calls": 610,
+        "file_contents": 4300,
+        "tool_responses": 450,
+        "conversation_history": 0
+      },
+      "tool_usage": {
+        "Grep": 1,
+        "Read": 3,
+        "Edit": 1,
+        "Bash": 1
+      },
+      "file_operations": {
+        "files_read": 3,
+        "files_written": 0,
+        "files_edited": 1,
+        "searches_performed": 1
+      },
+      "ttft_estimates": {
+        "p50": 3041.0666666666666,
+        "p95": 5474.0,
+        "cached_p50": 2280.8,
+        "cached_p95": 4105.44
+      },
+      "cost_estimates": {
+        "per_request": 0.2851,
+        "per_1000_requests": 285.1,
+        "with_caching_discount": 0.071275
+      },
+      "step_count": 15
+    },
+    {
+      "name": "New Feature Implementation",
+      "description": "Implement a new API endpoint with tests",
+      "complexity": "Complex",
+      "total_tokens": 35370,
+      "token_breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 200,
+        "agent_messages": 800,
+        "tool_calls": 1070,
+        "file_contents": 10200,
+        "tool_responses": 600,
+        "conversation_history": 0
+      },
+      "tool_usage": {
+        "TodoWrite": 2,
+        "Grep": 1,
+        "Read": 3,
+        "Write": 3,
+        "Edit": 1,
+        "Bash": 1
+      },
+      "file_operations": {
+        "files_read": 3,
+        "files_written": 3,
+        "files_edited": 1,
+        "searches_performed": 1
+      },
+      "ttft_estimates": {
+        "p50": 3772.8,
+        "p95": 6791.04,
+        "cached_p50": 2829.6,
+        "cached_p95": 5093.28
+      },
+      "cost_estimates": {
+        "per_request": 0.3537,
+        "per_1000_requests": 353.7,
+        "with_caching_discount": 0.088425
+      },
+      "step_count": 22
+    },
+    {
+      "name": "Codebase Refactoring",
+      "description": "Refactor authentication system to use new pattern",
+      "complexity": "Very Complex",
+      "total_tokens": 42090,
+      "token_breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 150,
+        "agent_messages": 1400,
+        "tool_calls": 2140,
+        "file_contents": 14400,
+        "tool_responses": 1500,
+        "conversation_history": 0
+      },
+      "tool_usage": {
+        "Task": 1,
+        "TodoWrite": 1,
+        "Read": 8,
+        "MultiEdit": 6,
+        "Bash": 2
+      },
+      "file_operations": {
+        "files_read": 8,
+        "files_written": 0,
+        "files_edited": 6,
+        "searches_performed": 1
+      },
+      "ttft_estimates": {
+        "p50": 4489.6,
+        "p95": 8081.28,
+        "cached_p50": 3367.2,
+        "cached_p95": 6060.96
+      },
+      "cost_estimates": {
+        "per_request": 0.4209,
+        "per_1000_requests": 420.9,
+        "with_caching_discount": 0.105225
+      },
+      "step_count": 38
+    },
+    {
+      "name": "Code Review & Analysis",
+      "description": "Comprehensive code review with suggestions",
+      "complexity": "Medium",
+      "total_tokens": 38340,
+      "token_breakdown": {
+        "system_prompt": 20000,
+        "tool_definitions": 2500,
+        "user_messages": 100,
+        "agent_messages": 2000,
+        "tool_calls": 740,
+        "file_contents": 12500,
+        "tool_responses": 500,
+        "conversation_history": 0
+      },
+      "tool_usage": {
+        "LS": 1,
+        "Grep": 1,
+        "Read": 5,
+        "Write": 1
+      },
+      "file_operations": {
+        "files_read": 5,
+        "files_written": 1,
+        "files_edited": 0,
+        "searches_performed": 1
+      },
+      "ttft_estimates": {
+        "p50": 4089.6,
+        "p95": 7361.28,
+        "cached_p50": 3067.2,
+        "cached_p95": 5520.96
+      },
+      "cost_estimates": {
+        "per_request": 0.3834,
+        "per_1000_requests": 383.4,
+        "with_caching_discount": 0.09585
+      },
+      "step_count": 18
+    }
+  ],
+  "summary": {
+    "token_range": {
+      "min": 24705,
+      "max": 42090,
+      "avg": 33803.0
+    },
+    "total_patterns": 5,
+    "most_used_tools": {
+      "Read": 20,
+      "MultiEdit": 6,
+      "Grep": 4,
+      "Bash": 4,
+      "Write": 4
+    }
+  }
+}
