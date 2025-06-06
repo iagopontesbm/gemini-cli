@@ -18,7 +18,7 @@
 // limitations under the License.
 
 import { copyFileSync, existsSync, mkdirSync } from 'fs';
-import { join } from 'path';
+import { join, basename } from 'path';
 import glob from 'glob';
 
 const root = join(import.meta.dirname, '..');
@@ -30,13 +30,19 @@ if (!existsSync(bundleDir)) {
 }
 
 // Copy specific shell files to the root of the bundle directory
-copyFileSync(join(root, 'packages/core/src/tools/shell.md'), join(bundleDir, 'shell.md'));
-copyFileSync(join(root, 'packages/core/src/tools/shell.json'), join(bundleDir, 'shell.json'));
+copyFileSync(
+  join(root, 'packages/core/src/tools/shell.md'),
+  join(bundleDir, 'shell.md')
+);
+copyFileSync(
+  join(root, 'packages/core/src/tools/shell.json'),
+  join(bundleDir, 'shell.json')
+);
 
 // Find and copy all .sb files from packages to the root of the bundle directory
 const sbFiles = glob.sync('packages/**/*.sb', { cwd: root });
 for (const file of sbFiles) {
-  copyFileSync(join(root, file), join(bundleDir, file.split('/').pop()));
+  copyFileSync(join(root, file), join(bundleDir, basename(file)));
 }
 
 console.log('Assets copied to bundle/');
