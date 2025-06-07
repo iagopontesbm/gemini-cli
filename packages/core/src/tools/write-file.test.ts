@@ -123,7 +123,11 @@ describe('WriteFileTool', () => {
           return Promise.reject(new Error('Aborted'));
         }
         return Promise.resolve({
-          params: { ...params, new_string: params.new_string ?? '' },
+          params: {
+            file_path: params.file_path,
+            old_string: params.old_string ?? '',
+            new_string: params.new_string ?? '',
+          },
           occurrences: 1,
         });
       },
