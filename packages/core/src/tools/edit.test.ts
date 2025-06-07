@@ -739,8 +739,9 @@ function makeRequest() {
       const originalContent = 'original content';
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'original',
-        new_string: 'modified',
+        edits: [
+          { old_string: originalContent, new_string: 'modified content' },
+        ],
       };
 
       fs.writeFileSync(filePath, originalContent, 'utf8');
@@ -759,8 +760,9 @@ function makeRequest() {
       expect(result).toBeDefined();
       expect(result!.updatedParams).toEqual({
         file_path: filePath,
-        old_string: originalContent,
-        new_string: 'modified content',
+        edits: [
+          { old_string: originalContent, new_string: 'modified content' },
+        ],
       });
       expect(result!.updatedDiff).toEqual(`Index: some_file.txt
 ===================================================================
@@ -781,8 +783,7 @@ function makeRequest() {
     it('should handle non-existent files and return updated params', async () => {
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: '',
-        new_string: 'new file content',
+        edits: [{ old_string: '', new_string: 'new file content' }],
       };
 
       const result = await tool.onModify(params, new AbortController().signal);
@@ -794,8 +795,7 @@ function makeRequest() {
       expect(result).toBeDefined();
       expect(result!.updatedParams).toEqual({
         file_path: filePath,
-        old_string: '',
-        new_string: 'new file content',
+        edits: [{ old_string: '', new_string: 'new file content' }],
       });
       expect(result!.updatedDiff).toContain('new file content');
 
@@ -807,8 +807,7 @@ function makeRequest() {
     it('should clean up previous temp files before creating new ones', async () => {
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
 
       fs.writeFileSync(filePath, 'some old content', 'utf8');

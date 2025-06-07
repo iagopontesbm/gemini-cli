@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import * as Diff from 'diff';
 import {
   BaseTool,
@@ -22,6 +23,7 @@ import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
+import { openDiff } from '../utils/editor.js';
 import { ReadFileTool } from './read-file.js';
 
 /**
@@ -556,10 +558,16 @@ Expectation for required parameters:
       if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
       newContent = '';
     }
-    const updatedParams = {
+
+    // Combine the edits into a single edit
+    const updatedParams: EditToolParams = {
       ...params,
-      old_string: oldContent,
-      new_string: newContent,
+      edits: [
+        {
+          old_string: oldContent,
+          new_string: newContent,
+        },
+      ],
     };
 
     const updatedDiff = Diff.createPatch(
@@ -581,7 +589,6 @@ Expectation for required parameters:
     const tempDir = os.tmpdir();
     const diffDir = path.join(tempDir, 'gemini-cli-edit-tool-diffs');
 
-    // Ensure the diff directory exists
     if (!fs.existsSync(diffDir)) {
       fs.mkdirSync(diffDir, { recursive: true });
     }
@@ -604,14 +611,19 @@ Expectation for required parameters:
       if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
       currentContent = '';
     }
-    const newContent = this._applyReplacement(
-      currentContent,
-      params.old_string,
-      params.new_string,
-      params.old_string === '' && currentContent === '',
-    );
+
+    let proposedContent = currentContent;
+    for (const edit of params.edits) {
+      proposedContent = this._applyReplacement(
+        proposedContent,
+        edit.old_string,
+        edit.new_string,
+        edit.old_string === '' && currentContent === '',
+      );
+    }
+
     fs.writeFileSync(tempOldPath, currentContent, 'utf8');
-    fs.writeFileSync(tempNewPath, newContent, 'utf8');
+    fs.writeFileSync(tempNewPath, proposedContent, 'utf8');
     return {
       oldPath: tempOldPath,
       newPath: tempNewPath,
