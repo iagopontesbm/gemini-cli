@@ -231,5 +231,6 @@ export enum ToolConfirmationOutcome {
   ProceedAlways = 'proceed_always',
   ProceedAlwaysServer = 'proceed_always_server',
   ProceedAlwaysTool = 'proceed_always_tool',
+  Modify = 'modify',
   Cancel = 'cancel',
 }

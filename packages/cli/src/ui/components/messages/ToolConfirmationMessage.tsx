@@ -63,6 +63,10 @@ export const ToolConfirmationMessage: React.FC<
         label: 'Yes, allow always',
         value: ToolConfirmationOutcome.ProceedAlways,
       },
+      {
+        label: 'Modify change',
+        value: ToolConfirmationOutcome.Modify,
+      },
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
   } else if (confirmationDetails.type === 'exec') {

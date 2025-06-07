@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import * as Diff from 'diff';
 import {
   BaseTool,
@@ -23,6 +24,7 @@ import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
+import { openDiff } from '../utils/editor.js';
 
 /**
  * Parameters for the Edit tool
@@ -66,6 +68,8 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
   private readonly config: Config;
   private readonly rootDirectory: string;
   private readonly client: GeminiClient;
+  private tempOldDiffPath?: string;
+  private tempNewDiffPath?: string;
 
   /**
    * Creates a new instance of the EditLogic
@@ -453,6 +457,103 @@ Expectation for required parameters:
         llmContent: `Error executing edit: ${errorMsg}`,
         returnDisplay: `Error writing file: ${errorMsg}`,
       };
+    }
+  }
+
+  /**
+   * Creates temp files for the current and proposed file contents and opens a diff tool.
+   */
+  async onModify(
+    params: EditToolParams,
+    _abortSignal: AbortSignal,
+  ): Promise<void> {
+    const { oldPath, newPath } = this.createTempFiles(params);
+    this.tempOldDiffPath = oldPath;
+    this.tempNewDiffPath = newPath;
+
+    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath);
+  }
+
+  /**
+   * If content has been modified, returns updated EditToolParams with modified diff.
+   */
+  async getUpdatedParamsIfModified(
+    params: EditToolParams,
+    _abortSignal: AbortSignal,
+  ): Promise<EditToolParams | undefined> {
+    if (!this.tempOldDiffPath || !this.tempNewDiffPath) return undefined;
+    let oldContent = '';
+    let newContent = '';
+    try {
+      oldContent = fs.readFileSync(this.tempOldDiffPath, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      oldContent = '';
+    }
+    try {
+      newContent = fs.readFileSync(this.tempNewDiffPath, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      newContent = '';
+    }
+    const updatedParams = {
+      ...params,
+      old_string: oldContent,
+      new_string: newContent,
+    };
+
+    this.deleteTempFiles();
+    return updatedParams;
+  }
+
+  private createTempFiles(params: EditToolParams): Record<string, string> {
+    this.deleteTempFiles();
+
+    const tempDir = os.tmpdir();
+    const fileName = path.basename(params.file_path);
+    const timestamp = Date.now();
+    const tempOldPath = path.join(
+      tempDir,
+      `gemini-cli-edit-${fileName}-old-${timestamp}`,
+    );
+    const tempNewPath = path.join(
+      tempDir,
+      `gemini-cli-edit-${fileName}-new-${timestamp}`,
+    );
+
+    let currentContent = '';
+    try {
+      currentContent = fs.readFileSync(params.file_path, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      currentContent = '';
+    }
+    const newContent = this._applyReplacement(
+      currentContent,
+      params.old_string,
+      params.new_string,
+      params.old_string === '' && currentContent === '',
+    );
+    fs.writeFileSync(tempOldPath, currentContent, 'utf8');
+    fs.writeFileSync(tempNewPath, newContent, 'utf8');
+    return {
+      oldPath: tempOldPath,
+      newPath: tempNewPath,
+    };
+  }
+
+  private deleteTempFiles(): void {
+    try {
+      if (this.tempOldDiffPath) {
+        fs.unlinkSync(this.tempOldDiffPath);
+        this.tempOldDiffPath = undefined;
+      }
+      if (this.tempNewDiffPath) {
+        fs.unlinkSync(this.tempNewDiffPath);
+        this.tempNewDiffPath = undefined;
+      }
+    } catch {
+      console.error(`Error deleting temp edit files.`);
     }
   }
 

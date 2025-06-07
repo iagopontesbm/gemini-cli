@@ -13,6 +13,8 @@ import {
   ToolResult,
   ToolRegistry,
   ApprovalMode,
+  EditTool,
+  EditToolParams,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
 import { getResponseTextFromParts } from '../utils/generateContentResponseUtilities.js';
@@ -316,6 +318,16 @@ export class CoreToolScheduler {
     this.checkAndNotifyCompletion();
   }
 
+  private setArgsInternal(targetCallId: string, args: unknown): void {
+    this.toolCalls = this.toolCalls.map((call) => {
+      if (call.request.callId !== targetCallId) return call;
+      return {
+        ...call,
+        request: { ...call.request, args: args as Record<string, unknown> },
+      };
+    });
+  }
+  
   private isRunning(): boolean {
     return this.toolCalls.some(
       (call) =>
@@ -415,6 +427,21 @@ export class CoreToolScheduler {
 
     if (toolCall && toolCall.status === 'awaiting_approval') {
       await originalOnConfirm(outcome);
+
+      // If the tool is an edit tool, check if the diff has been modified.
+      if (
+        toolCall.confirmationDetails.type === 'edit'
+      ) {
+        const waitingToolCall = toolCall as WaitingToolCall;
+        const editTool = waitingToolCall.tool as EditTool;
+        const updatedParams = await editTool.getUpdatedParamsIfModified(
+          waitingToolCall.request.args as unknown as EditToolParams,
+          this.abortController.signal,
+        );
+        if (updatedParams) {
+          this.setArgsInternal(callId, updatedParams);
+        }
+      }
     }
 
     if (outcome === ToolConfirmationOutcome.Cancel) {
@@ -422,6 +449,23 @@ export class CoreToolScheduler {
         callId,
         'cancelled',
         'User did not allow tool call',
+      );
+    } else if (outcome === ToolConfirmationOutcome.Modify) {
+      const waitingToolCall = toolCall as WaitingToolCall;
+      if (
+        waitingToolCall?.confirmationDetails?.type === 'edit'
+      ) {
+        const editTool = waitingToolCall.tool as EditTool;
+        editTool.onModify(
+          waitingToolCall.request.args as unknown as EditToolParams,
+          this.abortController.signal,
+        );
+      }
+
+      this.setStatusInternal(
+        callId,
+        'awaiting_approval',
+        waitingToolCall.confirmationDetails,
       );
     } else {
       this.setStatusInternal(callId, 'scheduled');
