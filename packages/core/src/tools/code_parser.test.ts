@@ -172,7 +172,6 @@ describe('CodeParserTool', () => {
     });
   });
 
-
   describe('execute', () => {
     // --- Error Handling Tests ---
     it('should return validation error if params are invalid', async () => {

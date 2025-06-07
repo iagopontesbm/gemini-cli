@@ -13,7 +13,6 @@ import TreeSitterTypeScript from 'tree-sitter-typescript';
 import Rust from 'tree-sitter-rust'; // Added
 import fs from 'fs/promises';
 import path from 'path';
-import { minimatch } from 'minimatch';
 import { BaseTool, ToolResult, ToolCallConfirmationDetails } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js'; // Removed isWithinRoot
