@@ -18,11 +18,8 @@ import {
   ApprovalMode,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
-import { readPackageUp } from 'read-package-up';
-import {
-  getEffectiveModel,
-  type EffectiveModelCheckResult,
-} from '../utils/modelCheck.js';
+import { getEffectiveModel } from '../utils/modelCheck.js';
+import { getCliVersion } from '../utils/version.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -34,7 +31,7 @@ const logger = {
   error: (...args: any[]) => console.error('[ERROR]', ...args),
 };
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-06-05';
 export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
 
 interface CliArgs {
@@ -45,6 +42,7 @@ interface CliArgs {
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
+  telemetry: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -89,6 +87,10 @@ async function parseArguments(): Promise<CliArgs> {
         'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
+    .option('telemetry', {
+      type: 'boolean',
+      description: 'Enable telemetry?',
+    })
     .version() // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
@@ -114,16 +116,10 @@ export async function loadHierarchicalGeminiMemory(
   return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
 }
 
-export interface LoadCliConfigResult {
-  config: Config;
-  modelWasSwitched: boolean;
-  originalModelBeforeSwitch?: string;
-  finalModel: string;
-}
-
 export async function loadCliConfig(
   settings: Settings,
-): Promise<LoadCliConfigResult> {
+  geminiIgnorePatterns: string[],
+): Promise<Config> {
   loadEnvironment();
 
   const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -169,26 +165,13 @@ export async function loadCliConfig(
     debugMode,
   );
 
-  const userAgent = await createUserAgent();
+  const userAgent = `GeminiCLI/${getCliVersion()}/(${process.platform}; ${process.arch})`;
   const apiKeyForServer = geminiApiKey || googleApiKey || '';
   const useVertexAI = hasGeminiApiKey ? false : undefined;
 
   let modelToUse = argv.model || DEFAULT_GEMINI_MODEL;
-  let modelSwitched = false;
-  let originalModel: string | undefined = undefined;
-
   if (apiKeyForServer) {
-    const checkResult: EffectiveModelCheckResult = await getEffectiveModel(
-      apiKeyForServer,
-      modelToUse,
-    );
-    if (checkResult.switched) {
-      modelSwitched = true;
-      originalModel = checkResult.originalModelIfSwitched;
-      modelToUse = checkResult.effectiveModel;
-    }
-  } else {
-    // logger.debug('API key not available during config load. Skipping model availability check.');
+    modelToUse = await getEffectiveModel(apiKeyForServer, modelToUse);
   }
 
   const configParams: ConfigParameters = {
@@ -211,32 +194,17 @@ export async function loadCliConfig(
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
+    geminiIgnorePatterns,
     accessibility: settings.accessibility,
+    telemetry:
+      argv.telemetry !== undefined
+        ? argv.telemetry
+        : (settings.telemetry ?? false),
     // Git-aware file filtering settings
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
   };
 
-  const config = createServerConfig(configParams);
-  return {
-    config,
-    modelWasSwitched: modelSwitched,
-    originalModelBeforeSwitch: originalModel,
-    finalModel: modelToUse,
-  };
-}
-
-async function createUserAgent(): Promise<string> {
-  try {
-    const packageJsonInfo = await readPackageUp({ cwd: import.meta.url });
-    const cliVersion = packageJsonInfo?.packageJson.version || 'unknown';
-    return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(
-      `Could not determine package version for User-Agent: ${message}`,
-    );
-    return `GeminiCLI/unknown Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  }
+  return createServerConfig(configParams);
 }

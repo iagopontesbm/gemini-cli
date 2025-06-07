@@ -30,7 +30,7 @@ import { spawn } from 'child_process';
 const OUTPUT_UPDATE_INTERVAL_MS = 1000;
 
 export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
-  static Name: string = 'execute_bash_command';
+  static readonly Name: string = 'execute_bash_command';
   private whitelist: Set<string> = new Set();
 
   constructor(private readonly config: Config) {
@@ -257,9 +257,11 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
     abortSignal.addEventListener('abort', abortHandler);
 
     // wait for the shell to exit
-    await new Promise((resolve) => shell.on('exit', resolve));
-
-    abortSignal.removeEventListener('abort', abortHandler);
+    try {
+      await new Promise((resolve) => shell.on('exit', resolve));
+    } finally {
+      abortSignal.removeEventListener('abort', abortHandler);
+    }
 
     // parse pids (pgrep output) from temporary file and remove it
     const backgroundPIDs: number[] = [];

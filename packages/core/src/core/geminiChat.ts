@@ -10,15 +10,14 @@
 import {
   GenerateContentResponse,
   Content,
-  Models,
   GenerateContentConfig,
   SendMessageParameters,
-  GoogleGenAI,
   createUserContent,
   Part,
 } from '@google/genai';
 import { retryWithBackoff } from '../utils/retry.js';
 import { isFunctionResponse } from '../utils/messageInspectors.js';
+import { ContentGenerator } from './contentGenerator.js';
 
 /**
  * Returns true if the response is valid, false otherwise.
@@ -55,6 +54,7 @@ function isValidContent(content: Content): boolean {
  * @throws Error if the history does not start with a user turn.
  * @throws Error if the history contains an invalid role.
  */
+// hello keith
 function validateHistory(history: Content[]) {
   // Empty history is valid.
   if (history.length === 0) {
@@ -120,8 +120,7 @@ export class GeminiChat {
   private sendPromise: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly apiClient: GoogleGenAI,
-    private readonly modelsModule: Models,
+    private readonly contentGenerator: ContentGenerator,
     private readonly model: string,
     private readonly config: GenerateContentConfig = {},
     private history: Content[] = [],
@@ -149,6 +148,7 @@ export class GeminiChat {
    * console.log(response.text);
    * ```
    */
+  // hello keith
   async sendMessage(
     params: SendMessageParameters,
   ): Promise<GenerateContentResponse> {
@@ -156,7 +156,7 @@ export class GeminiChat {
     const userContent = createUserContent(params.message);
 
     const apiCall = () =>
-      this.modelsModule.generateContent({
+      this.contentGenerator.generateContent({
         model: this.model,
         contents: this.getHistory(true).concat(userContent),
         config: { ...this.config, ...params.config },
@@ -218,6 +218,7 @@ export class GeminiChat {
    * }
    * ```
    */
+  // hello keith
   async sendMessageStream(
     params: SendMessageParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
@@ -225,7 +226,7 @@ export class GeminiChat {
     const userContent = createUserContent(params.message);
 
     const apiCall = () =>
-      this.modelsModule.generateContentStream({
+      this.contentGenerator.generateContentStream({
         model: this.model,
         contents: this.getHistory(true).concat(userContent),
         config: { ...this.config, ...params.config },
@@ -280,6 +281,7 @@ export class GeminiChat {
    * @return History contents alternating between user and model for the entire
    *     chat session.
    */
+  // hello keith
   getHistory(curated: boolean = false): Content[] {
     const history = curated
       ? extractCuratedHistory(this.history)

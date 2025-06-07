@@ -55,16 +55,10 @@ const CTRL_C_PROMPT_DURATION_MS = 1000;
 interface AppProps {
   config: Config;
   settings: LoadedSettings;
-  cliVersion: string;
   startupWarnings?: string[];
 }
 
-export const App = ({
-  config,
-  settings,
-  cliVersion,
-  startupWarnings = [],
-}: AppProps) => {
+export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
   const {
     consoleMessages,
@@ -136,7 +130,7 @@ export const App = ({
     openThemeDialog,
     handleThemeSelect,
     handleThemeHighlight,
-  } = useThemeCommand(settings, setThemeError);
+  } = useThemeCommand(settings, setThemeError, addItem);
 
   useEffect(() => {
     if (config) {
@@ -196,11 +190,11 @@ export const App = ({
     openThemeDialog,
     performMemoryRefresh,
     toggleCorgiMode,
-    cliVersion,
   );
 
   const { streamingState, submitQuery, initError, pendingHistoryItems } =
     useGeminiStream(
+      config.getGeminiClient(),
       addItem,
       setShowHelp,
       config,
@@ -337,7 +331,7 @@ export const App = ({
           key={staticKey}
           items={[
             <Box flexDirection="column" key="header">
-              <Header title={process.env.CLI_TITLE} />
+              <Header title={process.env.GEMINI_CLI_TITLE} />
               <Tips config={config} />
             </Box>,
             ...history.map((h) => (
@@ -500,7 +494,6 @@ export const App = ({
             debugMode={config.getDebugMode()}
             branchName={branchName}
             debugMessage={debugMessage}
-            cliVersion={cliVersion}
             corgiMode={corgiMode}
             errorCount={errorCount}
             showErrorDetails={showErrorDetails}

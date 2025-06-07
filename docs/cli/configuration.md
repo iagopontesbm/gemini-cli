@@ -23,6 +23,8 @@ The Gemini CLI uses `settings.json` files for persistent configuration. There ar
   - **Location:** `.gemini/settings.json` within your project's root directory.
   - **Scope:** Applies only when running Gemini CLI from that specific project. Project settings override User settings.
 
+**Note on Environment Variables in Settings:** String values within your `settings.json` files can reference environment variables using either `$VAR_NAME` or `${VAR_NAME}` syntax. These variables will be automatically resolved when the settings are loaded. For example, if you have an environment variable `MY_API_TOKEN`, you could use it in `settings.json` like this: `"apiKey": "$MY_API_TOKEN"`.
+
 ### The `.gemini` Directory in Your Project
 
 When you create a `.gemini/settings.json` file for project-specific settings, or when the system needs to store project-specific information, this `.gemini` directory is used.
@@ -68,7 +70,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Default:** `false` (users will be prompted for most tool calls).
   - **Behavior:**
     - If set to `true`, the CLI will bypass the confirmation prompt for tools deemed safe. An indicator may be shown in the UI when auto-accept is active.
-    - Potentially destructive or system-modifying tools (like `execute_bash_command` or `write_file`) will likely still require confirmation regardless of this setting.
+    - Potentially destructive or system-modifying tools (like `execute_bash_command` or `edit_file`) will likely still require confirmation regardless of this setting.
   - **Example:** `"autoAccept": true`
 
 - **`theme`** (string):
@@ -77,6 +79,7 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - See the [Theming section in README.md](../../README.md#theming) for available theme names.
 - **`sandbox`** (boolean or string):
   - Controls whether and how to use sandboxing for tool execution.
+  - If a `.gemini/sandbox.Dockerfile` exists in your project, it will be used to build a custom sandbox image.
   - `true`: Enable default sandbox (see [README](../../README.md) for behavior).
   - `false`: Disable sandboxing (WARNING: this is inherently unsafe).
   - `"docker"` or `"podman"`: Explicitly choose container-based sandboxing command.
@@ -144,7 +147,14 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
         "command": "node",
         "args": ["mcp_server.js"],
         "cwd": "./mcp_tools/node"
-      }
+      },
+      "myDockerServer": {
+        "command": "docker",
+        "args": ["run", "i", "--rm", "-e", "API_KEY", "ghcr.io/foo/bar"],
+        "env": {
+          "API_KEY": "$MY_API_TOKEN"
+        }
+      },
     }
     ```
   - **`mcpServerCommand`** (string, advanced, **deprecated**):
@@ -198,6 +208,10 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
+- **`NO_COLOR`**:
+  - Set to any value to disable all color output in the CLI.
+- **`CLI_TITLE`**:
+  - Set to a string to customize the title of the CLI.
 
 ## 3. Command-Line Arguments
 
@@ -275,6 +289,35 @@ This example demonstrates how you can provide general project context, specific 
   - See the [Commands documentation](./commands.md#memory) for full details on the `/memory` command and its sub-commands (`show` and `refresh`).
 
 By understanding and utilizing these configuration layers and the hierarchical nature of context files, you can effectively manage the AI's memory and tailor the Gemini CLI's responses to your specific needs and projects.
+
+## Sandboxing
+
+The Gemini CLI can execute potentially unsafe operations (like shell commands and file modifications) within a sandboxed environment to protect your system.
+
+Sandboxing is disabled by default, but you can enable it in a few ways:
+
+- Using `--sandbox` or `-s` flag.
+- Setting `GEMINI_SANDBOX` environment variable.
+- Sandbox is enabled in `--yolo` mode by default.
+
+By default, it uses a pre-built `gemini-cli-sandbox` Docker image.
+
+For project-specific sandboxing needs, you can create a custom Dockerfile at `.gemini/sandbox.Dockerfile` in your project's root directory. This Dockerfile can be based on the base sandbox image:
+
+```dockerfile
+FROM gemini-cli-sandbox
+
+# Add your custom dependencies or configurations here
+# For example:
+# RUN apt-get update && apt-get install -y some-package
+# COPY ./my-config /app/my-config
+```
+
+When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX` environment variable when running Gemini CLI to automatically build the custom sandbox image:
+
+```bash
+BUILD_SANDBOX=1 gemini -s
+```
 
 ## Theming
 

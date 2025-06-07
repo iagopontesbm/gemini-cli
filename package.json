@@ -45,7 +45,9 @@
     "LICENSE"
   ],
   "devDependencies": {
+    "@types/micromatch": "^4.0.9",
     "@types/mime-types": "^2.1.4",
+    "@types/minimatch": "^5.1.2",
     "@vitest/coverage-v8": "^3.1.1",
     "esbuild": "^0.25.4",
     "eslint": "^9.24.0",
