@@ -49,7 +49,7 @@ vi.mock('node:fs/promises', () => ({
 }));
 
 import { act, renderHook } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import open from 'open';
 import {
   useSlashCommandProcessor,
@@ -107,7 +107,7 @@ describe('useSlashCommandProcessor', () => {
     process.env = { ...globalThis.process.env };
   });
 
-  const getProcessor = () => {
+  const getProcessor = (showToolDescriptions: boolean = false) => {
     const { result } = renderHook(() =>
       useSlashCommandProcessor(
         mockConfig,
@@ -119,6 +119,7 @@ describe('useSlashCommandProcessor', () => {
         mockOpenThemeDialog,
         mockPerformMemoryRefresh,
         mockCorgiMode,
+        showToolDescriptions,
       ),
     );
     return result.current;
@@ -583,6 +584,59 @@ Add any other context about the problem here.
       expect(message).toContain('🔴 server3 (1 tools):');
       expect(message).toContain('server3_tool1');
 
+      // Should include Ctrl+T hint
+      expect(message).toContain('Ctrl+T to view descriptions');
+
+      expect(commandResult).toBe(true);
+    });
+
+    it('should display tool descriptions when showToolDescriptions is true', async () => {
+      // Mock MCP servers configuration
+      const mockMcpServers = {
+        server1: { command: 'cmd1' }
+      };
+      
+      // Setup getMCPServerStatus mock implementation
+      vi.mocked(getMCPServerStatus).mockImplementation((serverName) => {
+        if (serverName === 'server1') return MCPServerStatus.CONNECTED;
+        return MCPServerStatus.DISCONNECTED;
+      });
+      
+      // Mock tools from server with descriptions
+      const mockServerTools = [
+        { name: 'tool1', description: 'This is tool 1 description' },
+        { name: 'tool2', description: 'This is tool 2 description' }
+      ];
+      
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getToolsByServer: vi.fn().mockReturnValue(mockServerTools),
+        }),
+        getMcpServers: vi.fn().mockReturnValue(mockMcpServers),
+      } as unknown as Config;
+      
+      const { handleSlashCommand } = getProcessor(true);
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = handleSlashCommand('/mcp');
+      });
+      
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: expect.stringContaining('Configured MCP servers and tools:'),
+        }),
+        expect.any(Number),
+      );
+      
+      const message = mockAddItem.mock.calls[1][0].text;
+      // Check that tool descriptions are included
+      expect(message).toContain('tool1: This is tool 1 description');
+      expect(message).toContain('tool2: This is tool 2 description');
+      expect(message).toContain('Ctrl+T to hide tool descriptions');
+      
       expect(commandResult).toBe(true);
     });
 

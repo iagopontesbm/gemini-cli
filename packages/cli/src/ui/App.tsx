@@ -79,6 +79,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [corgiMode, setCorgiMode] = useState(false);
   const [shellModeActive, setShellModeActive] = useState(false);
   const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
+  const [showToolDescriptions, setShowToolDescriptions] = useState<boolean>(false);
   const [ctrlCPressedOnce, setCtrlCPressedOnce] = useState(false);
   const ctrlCTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -90,6 +91,10 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   useInput((input: string, key: InkKeyType) => {
     if (key.ctrl && input === 'o') {
       setShowErrorDetails((prev) => !prev);
+      refreshStatic();
+    } else if (key.ctrl && input === 't') {
+      // Toggle showing tool descriptions
+      setShowToolDescriptions((prev) => !prev);
       refreshStatic();
     } else if (key.ctrl && (input === 'c' || input === 'C')) {
       if (ctrlCPressedOnce) {
@@ -190,6 +195,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     openThemeDialog,
     performMemoryRefresh,
     toggleCorgiMode,
+    showToolDescriptions,
   );
 
   const { streamingState, submitQuery, initError, pendingHistoryItems } =
@@ -422,6 +428,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                         getCurrentGeminiMdFilename()
                       }
                       mcpServers={config.getMcpServers()}
+                      showToolDescriptions={showToolDescriptions}
                     />
                   )}
                 </Box>

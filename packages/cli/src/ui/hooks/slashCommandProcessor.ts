@@ -47,6 +47,7 @@ export const useSlashCommandProcessor = (
   openThemeDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
+  showToolDescriptions: boolean = false,
 ) => {
   const addMessage = useCallback(
     (message: Message) => {
@@ -187,13 +188,22 @@ export const useSlashCommandProcessor = (
             message += `${statusDot} ${serverName} (${serverTools.length} tools):\n`;
             if (serverTools.length > 0) {
               serverTools.forEach((tool) => {
-                message += `  - ${tool.name}\n`;
+                if (showToolDescriptions && tool.description) {
+                  message += `  - ${tool.name}: ${tool.description}\n`;
+                } else {
+                  message += `  - ${tool.name}\n`;
+                }
               });
             } else {
               message += '  No tools available\n';
             }
             message += '\n';
           }
+          
+          // Add the Ctrl+T hint for viewing/hiding descriptions
+          message += showToolDescriptions ? 
+            'Ctrl+T to hide tool descriptions' : 
+            'Ctrl+T to view tool descriptions';
 
           addMessage({
             type: MessageType.INFO,
@@ -369,6 +379,7 @@ Add any other context about the problem here.
       addMessage,
       toggleCorgiMode,
       config,
+      showToolDescriptions,
     ],
   );
 
