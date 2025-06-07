@@ -15,7 +15,7 @@ import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
 import { GeminiMessageContent } from './messages/GeminiMessageContent.js';
 import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
-import { Config } from '@gemini-code/core';
+import { Config } from '@gemini-cli/core';
 
 interface HistoryItemDisplayProps {
   item: HistoryItem;

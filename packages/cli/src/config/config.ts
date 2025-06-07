@@ -10,18 +10,13 @@ import process from 'node:process';
 import {
   Config,
   loadEnvironment,
-  createServerConfig,
   loadServerHierarchicalMemory,
-  ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import { Settings } from './settings.js';
-import {
-  getEffectiveModel,
-  type EffectiveModelCheckResult,
-} from '../utils/modelCheck.js';
+import { getEffectiveModel } from '../utils/modelCheck.js';
 import { getCliVersion } from '../utils/version.js';
 
 // Simple console logger for now - replace with actual logger if available
@@ -36,6 +31,7 @@ const logger = {
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-06-05';
 export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
+export const DEFAULT_GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
 
 interface CliArgs {
   model: string | undefined;
@@ -119,17 +115,10 @@ export async function loadHierarchicalGeminiMemory(
   return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
 }
 
-export interface LoadCliConfigResult {
-  config: Config;
-  modelWasSwitched: boolean;
-  originalModelBeforeSwitch?: string;
-  finalModel: string;
-}
-
 export async function loadCliConfig(
   settings: Settings,
   geminiIgnorePatterns: string[],
-): Promise<LoadCliConfigResult> {
+): Promise<Config> {
   loadEnvironment();
 
   const geminiApiKey = process.env.GEMINI_API_KEY;
@@ -175,31 +164,19 @@ export async function loadCliConfig(
     debugMode,
   );
 
-  const userAgent = await createUserAgent();
+  const userAgent = `GeminiCLI/${getCliVersion()}/(${process.platform}; ${process.arch})`;
   const apiKeyForServer = geminiApiKey || googleApiKey || '';
   const useVertexAI = hasGeminiApiKey ? false : undefined;
 
   let modelToUse = argv.model || DEFAULT_GEMINI_MODEL;
-  let modelSwitched = false;
-  let originalModel: string | undefined = undefined;
-
   if (apiKeyForServer) {
-    const checkResult: EffectiveModelCheckResult = await getEffectiveModel(
-      apiKeyForServer,
-      modelToUse,
-    );
-    if (checkResult.switched) {
-      modelSwitched = true;
-      originalModel = checkResult.originalModelIfSwitched;
-      modelToUse = checkResult.effectiveModel;
-    }
-  } else {
-    // logger.debug('API key not available during config load. Skipping model availability check.');
+    modelToUse = await getEffectiveModel(apiKeyForServer, modelToUse);
   }
 
-  const configParams: ConfigParameters = {
+  return new Config({
     apiKey: apiKeyForServer,
     model: modelToUse,
+    embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
     targetDir: process.cwd(),
     debugMode,
@@ -227,18 +204,5 @@ export async function loadCliConfig(
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
-  };
-
-  const config = createServerConfig(configParams);
-  return {
-    config,
-    modelWasSwitched: modelSwitched,
-    originalModelBeforeSwitch: originalModel,
-    finalModel: modelToUse,
-  };
-}
-
-async function createUserAgent(): Promise<string> {
-  const cliVersion = await getCliVersion();
-  return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
+  });
 }

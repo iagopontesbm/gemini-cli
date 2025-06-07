@@ -15,7 +15,7 @@ import {
   ToolMcpConfirmationDetails,
   checkHasEditor,
   Config,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import {
   RadioButtonSelect,
   RadioSelectItem,

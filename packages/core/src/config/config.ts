@@ -10,6 +10,7 @@ import * as path from 'node:path';
 import process from 'node:process';
 import * as os from 'node:os';
 import { ToolRegistry } from '../tools/tool-registry.js';
+import { CodeParserTool } from '../tools/code_parser.js'; // Added CodeParserTool
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
 import { GrepTool } from '../tools/grep.js';
@@ -54,6 +55,7 @@ export class MCPServerConfig {
 export interface ConfigParameters {
   apiKey: string;
   model: string;
+  embeddingModel: string;
   sandbox: boolean | string;
   targetDir: string;
   debugMode: boolean;
@@ -83,6 +85,7 @@ export class Config {
   private toolRegistry: Promise<ToolRegistry>;
   private readonly apiKey: string;
   private readonly model: string;
+  private readonly embeddingModel: string;
   private readonly sandbox: boolean | string;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
@@ -112,6 +115,7 @@ export class Config {
   constructor(params: ConfigParameters) {
     this.apiKey = params.apiKey;
     this.model = params.model;
+    this.embeddingModel = params.embeddingModel;
     this.sandbox = params.sandbox;
     this.targetDir = path.resolve(params.targetDir);
     this.debugMode = params.debugMode;
@@ -122,7 +126,7 @@ export class Config {
     this.toolCallCommand = params.toolCallCommand;
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
-    this.userAgent = params.userAgent;
+    this.userAgent = params.userAgent ?? 'GeminiCLI/unknown';
     this.userMemory = params.userMemory ?? '';
     this.geminiMdFileCount = params.geminiMdFileCount ?? 0;
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
@@ -160,6 +164,10 @@ export class Config {
 
   getModel(): string {
     return this.model;
+  }
+
+  getEmbeddingModel(): string {
+    return this.embeddingModel;
   }
 
   getSandbox(): boolean | string {
@@ -316,18 +324,9 @@ function findEnvFile(startDir: string): string | null {
 
 export function loadEnvironment(): void {
   const envFilePath = findEnvFile(process.cwd());
-  if (!envFilePath) {
-    return;
+  if (envFilePath) {
+    dotenv.config({ path: envFilePath });
   }
-  dotenv.config({ path: envFilePath });
-}
-
-export function createServerConfig(params: ConfigParameters): Config {
-  return new Config({
-    ...params,
-    targetDir: path.resolve(params.targetDir), // Ensure targetDir is resolved
-    userAgent: params.userAgent ?? 'GeminiCLI/unknown', // Default user agent
-  });
 }
 
 export function createToolRegistry(config: Config): Promise<ToolRegistry> {
@@ -356,6 +355,7 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);
+  registerCoreTool(CodeParserTool, targetDir, config); // Added CodeParserTool
   return (async () => {
     await registry.discoverTools();
     return registry;

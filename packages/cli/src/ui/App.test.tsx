@@ -13,7 +13,7 @@ import {
   ApprovalMode,
   ToolRegistry,
   AccessibilitySettings,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
 
@@ -38,6 +38,7 @@ interface MockServerConfig {
   vertexai?: boolean;
   showMemoryUsage?: boolean;
   accessibility?: AccessibilitySettings;
+  embeddingModel: string;
 
   getApiKey: Mock<() => string>;
   getModel: Mock<() => string>;
@@ -64,9 +65,9 @@ interface MockServerConfig {
   getAccessibility: Mock<() => AccessibilitySettings>;
 }
 
-// Mock @gemini-code/core and its Config class
-vi.mock('@gemini-code/core', async (importOriginal) => {
-  const actualCore = await importOriginal<typeof import('@gemini-code/core')>();
+// Mock @gemini-cli/core and its Config class
+vi.mock('@gemini-cli/core', async (importOriginal) => {
+  const actualCore = await importOriginal<typeof import('@gemini-cli/core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -92,6 +93,7 @@ vi.mock('@gemini-code/core', async (importOriginal) => {
         vertexai: opts.vertexai,
         showMemoryUsage: opts.showMemoryUsage ?? false,
         accessibility: opts.accessibility ?? {},
+        embeddingModel: opts.embeddingModel || 'test-embedding-model',
 
         getApiKey: vi.fn(() => opts.apiKey || 'test-key'),
         getModel: vi.fn(() => opts.model || 'test-model-in-mock-factory'),
@@ -178,7 +180,8 @@ describe('App UI', () => {
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
       apiKey: 'test-key',
-      model: 'test-model-in-options',
+      model: 'test-model',
+      embeddingModel: 'test-embedding-model',
       sandbox: false,
       targetDir: '/test/dir',
       debugMode: false,
@@ -217,7 +220,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -234,7 +236,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -255,7 +256,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -276,7 +276,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -297,7 +296,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -317,7 +315,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -338,7 +335,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -368,7 +364,6 @@ describe('App UI', () => {
         <App
           config={mockConfig as unknown as ServerConfig}
           settings={mockSettings}
-          cliVersion="1.0.0"
         />,
       );
       currentUnmount = unmount;
@@ -383,7 +378,6 @@ describe('App UI', () => {
         <App
           config={mockConfig as unknown as ServerConfig}
           settings={mockSettings}
-          cliVersion="1.0.0"
         />,
       );
       currentUnmount = unmount;

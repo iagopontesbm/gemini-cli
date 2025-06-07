@@ -9,7 +9,6 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { getCliVersion } from './utils/version.js';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
@@ -29,7 +28,7 @@ import {
   ShellTool,
   WebFetchTool,
   WebSearchTool,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 
 export async function main() {
   // warn about deprecated environment variables
@@ -67,17 +66,10 @@ export async function main() {
     process.exit(1);
   }
 
-  const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
-    await loadCliConfig(settings.merged, geminiIgnorePatterns);
+  const config = await loadCliConfig(settings.merged, geminiIgnorePatterns);
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
-
-  if (modelWasSwitched && originalModelBeforeSwitch) {
-    console.log(
-      `[INFO] Your configured model (${originalModelBeforeSwitch}) was temporarily unavailable. Switched to ${finalModel} for this session.`,
-    );
-  }
 
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {
@@ -101,14 +93,11 @@ export async function main() {
 
   // Render UI, passing necessary config values. Check that there is no command line question.
   if (process.stdin.isTTY && input?.length === 0) {
-    const cliVersion = await getCliVersion();
-
     render(
       <React.StrictMode>
         <App
           config={config}
           settings={settings}
-          cliVersion={cliVersion}
           startupWarnings={startupWarnings}
         />
       </React.StrictMode>,
@@ -180,9 +169,8 @@ async function loadNonInteractiveConfig(
     ...settings.merged,
     coreTools: nonInteractiveTools,
   };
-  const nonInteractiveConfigResult = await loadCliConfig(
+  return await loadCliConfig(
     nonInteractiveSettings,
     config.getGeminiIgnorePatterns(),
   );
-  return nonInteractiveConfigResult.config;
 }
