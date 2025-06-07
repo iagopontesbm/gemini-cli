@@ -47,14 +47,6 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
             description:
               'The absolute path to the directory or file to parse (must be absolute, not relative)',
           },
-          ignore: {
-            type: 'array',
-            description:
-              'List of glob patterns to ignore (applies if path is a directory)',
-            items: {
-              type: 'string',
-            },
-          },
           languages: {
             type: 'array',
             description:
@@ -215,12 +207,6 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
     return formattedTree;
   }
 
-  private shouldIgnore(fileName: string, ignorePatterns?: string[]): boolean {
-    if (!ignorePatterns || ignorePatterns.length === 0) return false;
-    // Uses minimatch for proper glob pattern matching.
-    return ignorePatterns.some((pattern) => minimatch(fileName, pattern));
-  }
-
   private getFileLanguage(filePath: string): string | undefined {
     const extension = path.extname(filePath).toLowerCase();
     switch (extension) {
@@ -325,9 +311,6 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
         }
 
         for (const file of files) {
-          if (this.shouldIgnore(file, params.ignore)) {
-            continue;
-          }
           const filePath = path.join(targetPath, file);
           let fileStats;
           try {
