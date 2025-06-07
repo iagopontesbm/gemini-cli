@@ -369,7 +369,7 @@ export class CoreToolScheduler {
       };
     });
   }
-  
+
   private isRunning(): boolean {
     return this.toolCalls.some(
       (call) =>
@@ -477,9 +477,7 @@ export class CoreToolScheduler {
       await originalOnConfirm(outcome);
 
       // If the tool is an edit tool, check if the diff has been modified.
-      if (
-        toolCall.confirmationDetails.type === 'edit'
-      ) {
+      if (toolCall.confirmationDetails.type === 'edit') {
         const waitingToolCall = toolCall as WaitingToolCall;
         const editTool = waitingToolCall.tool as EditTool;
         const updatedParams = await editTool.getUpdatedParamsIfModified(
@@ -500,9 +498,7 @@ export class CoreToolScheduler {
       );
     } else if (outcome === ToolConfirmationOutcome.Modify) {
       const waitingToolCall = toolCall as WaitingToolCall;
-      if (
-        waitingToolCall?.confirmationDetails?.type === 'edit'
-      ) {
+      if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
         editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,

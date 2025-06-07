@@ -514,12 +514,12 @@ Expectation for required parameters:
 
     const tempDir = os.tmpdir();
     const diffDir = path.join(tempDir, 'gemini-cli-edit-tool-diffs');
-    
+
     // Ensure the diff directory exists
     if (!fs.existsSync(diffDir)) {
       fs.mkdirSync(diffDir, { recursive: true });
     }
-    
+
     const fileName = path.basename(params.file_path);
     const timestamp = Date.now();
     const tempOldPath = path.join(
