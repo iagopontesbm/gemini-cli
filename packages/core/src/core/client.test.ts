@@ -6,29 +6,23 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
-import { Chat, GenerateContentResponse } from '@google/genai';
+import {
+  Chat,
+  EmbedContentResponse,
+  GenerateContentResponse,
+  GoogleGenAI,
+} from '@google/genai';
+import { GeminiClient } from './client.js';
+import { Config } from '../config/config.js';
 
 // --- Mocks ---
 const mockChatCreateFn = vi.fn();
 const mockGenerateContentFn = vi.fn();
+const mockEmbedContentFn = vi.fn();
 
-vi.mock('@google/genai', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@google/genai')>();
-  const MockedGoogleGenerativeAI = vi
-    .fn()
-    .mockImplementation((/*...args*/) => ({
-      chats: { create: mockChatCreateFn },
-      models: { generateContent: mockGenerateContentFn },
-    }));
-  return {
-    ...actual,
-    GoogleGenerativeAI: MockedGoogleGenerativeAI,
-    Chat: vi.fn(),
-    Type: actual.Type ?? { OBJECT: 'OBJECT', STRING: 'STRING' },
-  };
-});
+vi.mock('@google/genai');
 
-vi.mock('../config/config');
+vi.mock('../config/config.js');
 vi.mock('./prompts');
 vi.mock('../utils/getFolderStructure', () => ({
   getFolderStructure: vi.fn().mockResolvedValue('Mock Folder Structure'),
@@ -44,8 +38,24 @@ vi.mock('../utils/generateContentResponseUtilities', () => ({
 }));
 
 describe('Gemini Client (client.ts)', () => {
+  let client: GeminiClient;
   beforeEach(() => {
     vi.resetAllMocks();
+
+    // Set up the mock for GoogleGenAI constructor and its methods
+    const MockedGoogleGenAI = vi.mocked(GoogleGenAI);
+    MockedGoogleGenAI.mockImplementation(() => {
+      const mock = {
+        chats: { create: mockChatCreateFn },
+        models: {
+          generateContent: mockGenerateContentFn,
+          embedContent: mockEmbedContentFn,
+        },
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return mock as any;
+    });
+
     mockChatCreateFn.mockResolvedValue({} as Chat);
     mockGenerateContentFn.mockResolvedValue({
       candidates: [
@@ -56,6 +66,35 @@ describe('Gemini Client (client.ts)', () => {
         },
       ],
     } as unknown as GenerateContentResponse);
+
+    // Because the GeminiClient constructor kicks off an async process (startChat)
+    // that depends on a fully-formed Config object, we need to mock the
+    // entire implementation of Config for these tests.
+    const mockToolRegistry = {
+      getFunctionDeclarations: vi.fn().mockReturnValue([]),
+      getTool: vi.fn().mockReturnValue(null),
+    };
+    const MockedConfig = vi.mocked(Config, true);
+    MockedConfig.mockImplementation(() => {
+      const mock = {
+        getToolRegistry: vi.fn().mockResolvedValue(mockToolRegistry),
+        getModel: vi.fn().mockReturnValue('test-model'),
+        getEmbeddingModel: vi.fn().mockReturnValue('test-embedding-model'),
+        getApiKey: vi.fn().mockReturnValue('test-key'),
+        getVertexAI: vi.fn().mockReturnValue(false),
+        getUserAgent: vi.fn().mockReturnValue('test-agent'),
+        getUserMemory: vi.fn().mockReturnValue(''),
+        getFullContext: vi.fn().mockReturnValue(false),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return mock as any;
+    });
+
+    // We can instantiate the client here since Config is mocked
+    // and the constructor will use the mocked GoogleGenAI
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const mockConfig = new Config({} as any);
+    client = new GeminiClient(mockConfig);
   });
 
   afterEach(() => {
@@ -82,8 +121,74 @@ describe('Gemini Client (client.ts)', () => {
   // it('generateJson should call getCoreSystemPrompt with userMemory and pass to generateContent', async () => { ... });
   // it('generateJson should call getCoreSystemPrompt with empty string if userMemory is empty', async () => { ... });
 
-  // Add a placeholder test to keep the suite valid
-  it('should have a placeholder test', () => {
-    expect(true).toBe(true);
+  describe('generateEmbedding', () => {
+    const text = 'hello world';
+    const model = 'models/embedding-001';
+
+    it('should call embedContent with correct parameters and return embedding', async () => {
+      const mockEmbedding = [0.1, 0.2, 0.3];
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [{ values: mockEmbedding }],
+      };
+      mockEmbedContentFn.mockResolvedValue(mockResponse);
+
+      const result = await client.generateEmbedding(text, model);
+
+      expect(mockEmbedContentFn).toHaveBeenCalledTimes(1);
+      expect(mockEmbedContentFn).toHaveBeenCalledWith({
+        model,
+        contents: [text],
+      });
+      expect(result).toEqual(mockEmbedding);
+    });
+
+    it('should throw an error if API response has no embeddings array', async () => {
+      mockEmbedContentFn.mockResolvedValue({} as EmbedContentResponse); // No `embeddings` key
+
+      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+        'No embeddings found',
+      );
+    });
+
+    it('should throw an error if API response has an empty embeddings array', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [],
+      };
+      mockEmbedContentFn.mockResolvedValue(mockResponse);
+      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+        'No embeddings found',
+      );
+    });
+
+    it('should throw an error if embedding values are nullish', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [{ values: undefined }], // Can also be null
+      };
+      mockEmbedContentFn.mockResolvedValue(mockResponse);
+
+      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+        'No values found in embeddings',
+      );
+    });
+
+    it('should throw an error if embedding values is an empty array', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [{ values: [] }],
+      };
+      mockEmbedContentFn.mockResolvedValue(mockResponse);
+
+      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+        'No values found in embeddings',
+      );
+    });
+
+    it('should propagate errors from the API call', async () => {
+      const apiError = new Error('API Failure');
+      mockEmbedContentFn.mockRejectedValue(apiError);
+
+      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+        'API Failure',
+      );
+    });
   });
 });

@@ -5,6 +5,8 @@
  */
 
 import {
+  EmbedContentResponse,
+  EmbedContentParameters,
   GenerateContentConfig,
   GoogleGenAI,
   Part,
@@ -38,6 +40,7 @@ export class GeminiClient {
   private chat: Promise<GeminiChat>;
   private contentGenerator: ContentGenerator;
   private model: string;
+  private embeddingModel: string;
   private generateContentConfig: GenerateContentConfig = {
     temperature: 0,
     topP: 1,
@@ -60,6 +63,7 @@ export class GeminiClient {
     });
     this.contentGenerator = googleGenAI.models;
     this.model = config.getModel();
+    this.embeddingModel = config.getEmbeddingModel();
     this.chat = this.startChat();
   }
 
@@ -448,6 +452,29 @@ export class GeminiClient {
         `Failed to generate content with model ${modelToUse}: ${getErrorMessage(error)}`,
       );
     }
+  }
+
+  async generateEmbedding(
+    text: string,
+    model: string,
+  ): Promise<number[]> {
+    const embedModelParams: EmbedContentParameters = {
+      model,
+      contents: [text],
+    };
+    const embedContentResponse: EmbedContentResponse =
+      await this.contentGenerator.embedContent(embedModelParams);
+    if (
+      !embedContentResponse.embeddings ||
+      embedContentResponse.embeddings.length === 0
+    ) {
+      throw new Error('No embeddings found');
+    }
+    const values = embedContentResponse.embeddings[0].values;
+    if (!values || values.length === 0) {
+      throw new Error('No values found in embeddings');
+    }
+    return values;
   }
 
   private async tryCompressChat(): Promise<boolean> {
