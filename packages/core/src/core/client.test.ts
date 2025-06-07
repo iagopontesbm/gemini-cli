@@ -122,31 +122,43 @@ describe('Gemini Client (client.ts)', () => {
   // it('generateJson should call getCoreSystemPrompt with empty string if userMemory is empty', async () => { ... });
 
   describe('generateEmbedding', () => {
-    const text = 'hello world';
-    const model = 'models/embedding-001';
+    const texts = ['hello world', 'goodbye world'];
+    const testEmbeddingModel = 'test-embedding-model';
 
-    it('should call embedContent with correct parameters and return embedding', async () => {
-      const mockEmbedding = [0.1, 0.2, 0.3];
+    it('should call embedContent with correct parameters and return embeddings', async () => {
+      const mockEmbeddings = [
+        [0.1, 0.2, 0.3],
+        [0.4, 0.5, 0.6],
+      ];
       const mockResponse: EmbedContentResponse = {
-        embeddings: [{ values: mockEmbedding }],
+        embeddings: [
+          { values: mockEmbeddings[0] },
+          { values: mockEmbeddings[1] },
+        ],
       };
       mockEmbedContentFn.mockResolvedValue(mockResponse);
 
-      const result = await client.generateEmbedding(text, model);
+      const result = await client.generateEmbedding(texts);
 
       expect(mockEmbedContentFn).toHaveBeenCalledTimes(1);
       expect(mockEmbedContentFn).toHaveBeenCalledWith({
-        model,
-        contents: [text],
+        model: testEmbeddingModel,
+        contents: texts,
       });
-      expect(result).toEqual(mockEmbedding);
+      expect(result).toEqual(mockEmbeddings);
+    });
+
+    it('should return an empty array if an empty array is passed', async () => {
+      const result = await client.generateEmbedding([]);
+      expect(result).toEqual([]);
+      expect(mockEmbedContentFn).not.toHaveBeenCalled();
     });
 
     it('should throw an error if API response has no embeddings array', async () => {
       mockEmbedContentFn.mockResolvedValue({} as EmbedContentResponse); // No `embeddings` key
 
-      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
-        'No embeddings found',
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
+        'No embeddings found in API response.',
       );
     });
 
@@ -155,30 +167,41 @@ describe('Gemini Client (client.ts)', () => {
         embeddings: [],
       };
       mockEmbedContentFn.mockResolvedValue(mockResponse);
-      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
-        'No embeddings found',
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
+        'No embeddings found in API response.',
       );
     });
 
-    it('should throw an error if embedding values are nullish', async () => {
+    it('should throw an error if API returns a mismatched number of embeddings', async () => {
       const mockResponse: EmbedContentResponse = {
-        embeddings: [{ values: undefined }], // Can also be null
+        embeddings: [{ values: [1, 2, 3] }], // Only one for two texts
       };
       mockEmbedContentFn.mockResolvedValue(mockResponse);
 
-      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
-        'No values found in embeddings',
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
+        'API returned a mismatched number of embeddings. Expected 2, got 1.',
       );
     });
 
-    it('should throw an error if embedding values is an empty array', async () => {
+    it('should throw an error if any embedding has nullish values', async () => {
       const mockResponse: EmbedContentResponse = {
-        embeddings: [{ values: [] }],
+        embeddings: [{ values: [1, 2, 3] }, { values: undefined }], // Second one is bad
       };
       mockEmbedContentFn.mockResolvedValue(mockResponse);
 
-      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
-        'No values found in embeddings',
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
+        'API returned an empty embedding for input text at index 1: "goodbye world"',
+      );
+    });
+
+    it('should throw an error if any embedding has an empty values array', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [{ values: [] }, { values: [1, 2, 3] }], // First one is bad
+      };
+      mockEmbedContentFn.mockResolvedValue(mockResponse);
+
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
+        'API returned an empty embedding for input text at index 0: "hello world"',
       );
     });
 
@@ -186,7 +209,7 @@ describe('Gemini Client (client.ts)', () => {
       const apiError = new Error('API Failure');
       mockEmbedContentFn.mockRejectedValue(apiError);
 
-      await expect(client.generateEmbedding(text, model)).rejects.toThrow(
+      await expect(client.generateEmbedding(texts)).rejects.toThrow(
         'API Failure',
       );
     });
