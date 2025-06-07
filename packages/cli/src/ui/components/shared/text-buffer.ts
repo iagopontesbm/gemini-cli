@@ -565,15 +565,23 @@ export function useTextBuffer({
       dbg('insert', { ch, beforeCursor: [cursorRow, cursorCol] });
       pushUndo();
 
-      if (ch.length > 2) {
+      // Arbitrary threshold to avoid false positives on normal key presses
+      // while still detecting virtually all reasonable length file paths.
+      const minLengthToInferAsDragDrop = 3;
+      if (ch.length >= minLengthToInferAsDragDrop) {
         // Possible drag and drop of a file path.
         let potentialPath = ch;
-        if (ch.startsWith("'") && ch.endsWith("'")) {
+        if (
+          potentialPath.length > 2 &&
+          potentialPath.startsWith("'") &&
+          potentialPath.endsWith("'")
+        ) {
           potentialPath = ch.slice(1, -1);
         }
 
+        potentialPath = potentialPath.trim();
         // Be conservative and only add an @ if the path is valid.
-        if (isValidPath(unescapePath(potentialPath).trim())) {
+        if (isValidPath(unescapePath(potentialPath))) {
           ch = `@${potentialPath}`;
         }
       }
