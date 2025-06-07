@@ -454,10 +454,7 @@ export class GeminiClient {
     }
   }
 
-  async generateEmbedding(
-    text: string,
-    model: string,
-  ): Promise<number[]> {
+  async generateEmbedding(text: string, model: string): Promise<number[]> {
     const embedModelParams: EmbedContentParameters = {
       model,
       contents: [text],
