@@ -277,10 +277,9 @@ Expectation for required parameters:
         const correctedEdit = await ensureCorrectEdit(
           result.newContent,
           {
-            file_path: params.file_path,
+            ...params,
             old_string: edit.old_string,
             new_string: edit.new_string,
-            expected_replacements: params.expected_replacements,
           },
           this.client,
           abortSignal,

@@ -214,9 +214,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'find me', new_string: 'replace with \\"this\\"' },
-          ],
           old_string: 'find me',
           new_string: 'replace with \\"this\\"',
         };
@@ -238,7 +235,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [{ old_string: 'find me', new_string: 'replace with this' }],
           old_string: 'find me',
           new_string: 'replace with this',
         };
@@ -257,9 +253,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find\\me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'find\\me', new_string: 'replace with \\"this\\"' },
-          ],
           old_string: 'find\\me',
           new_string: 'replace with \\"this\\"',
         };
@@ -281,7 +274,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find\\me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [{ old_string: 'find\\me', new_string: 'replace with this' }],
           old_string: 'find\\me',
           new_string: 'replace with this',
         };
@@ -303,12 +295,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find "me".';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            {
-              old_string: 'find \\"me\\"',
-              new_string: 'replace with \\"this\\"',
-            },
-          ],
           old_string: 'find \\"me\\"',
           new_string: 'replace with \\"this\\"',
         };
@@ -328,9 +314,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find "me".';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'find \\"me\\"', new_string: 'replace with this' },
-          ],
           old_string: 'find \\"me\\"',
           new_string: 'replace with this',
         };
@@ -349,9 +332,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to find \\me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'find \\\\me', new_string: 'replace with foobar' },
-          ],
           old_string: 'find \\\\me',
           new_string: 'replace with foobar',
         };
@@ -376,12 +356,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to corrected find me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            {
-              old_string: 'find me',
-              new_string: 'replace with \\\\"this\\\\"',
-            },
-          ],
           old_string: 'find me',
           new_string: 'replace with \\\\"this\\\\"',
         };
@@ -402,12 +376,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to corrected find me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            {
-              old_string: 'find\\me',
-              new_string: 'replace with \\\\"this\\\\"',
-            },
-          ],
           old_string: 'find\\me',
           new_string: 'replace with \\\\"this\\\\"',
         };
@@ -430,9 +398,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to be corrected.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'fiiind me', new_string: 'replace with "this"' },
-          ],
           old_string: 'fiiind me',
           new_string: 'replace with "this"',
         };
@@ -453,12 +418,6 @@ describe('editCorrector', () => {
         const currentContent = 'This is a test string to corrected find me.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            {
-              old_string: 'find me',
-              new_string: 'replace with \\\\"this\\\\"',
-            },
-          ],
           old_string: 'find me',
           new_string: 'replace with \\\\"this\\\\"',
         };
@@ -483,9 +442,6 @@ describe('editCorrector', () => {
         const currentContent = 'This content has nothing to find.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            { old_string: 'nonexistent string', new_string: 'some new string' },
-          ],
           old_string: 'nonexistent string',
           new_string: 'some new string',
         };
@@ -505,7 +461,6 @@ describe('editCorrector', () => {
           'This content has find "me" and also find "me" again.';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [{ old_string: 'find "me"', new_string: 'some new string' }],
           old_string: 'find "me"',
           new_string: 'some new string',
         };
@@ -526,12 +481,6 @@ describe('editCorrector', () => {
         const currentContent = 'const x = "a\\nbc\\\\"def\\\\"';
         const originalParams = {
           file_path: '/test/file.txt',
-          edits: [
-            {
-              old_string: 'const x = \\\\"a\\\\nbc\\\\\\\\"def\\\\\\\\"',
-              new_string: 'const y = \\\\"new\\\\nval\\\\\\\\"content\\\\\\\\"',
-            },
-          ],
           old_string: 'const x = \\\\"a\\\\nbc\\\\\\\\"def\\\\\\\\"',
           new_string: 'const y = \\\\"new\\\\nval\\\\\\\\"content\\\\\\\\"',
         };
