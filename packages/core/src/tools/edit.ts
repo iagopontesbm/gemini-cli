@@ -465,25 +465,29 @@ Expectation for required parameters:
 
   /**
    * Creates temp files for the current and proposed file contents and opens a diff tool.
+   * When the diff tool is closed, the tool will check if the file has been modified and provide the updated params.
+   * @returns Updated params and diff if the file has been modified, undefined otherwise.
    */
   async onModify(
     params: EditToolParams,
     _abortSignal: AbortSignal,
-  ): Promise<void> {
+  ): Promise<
+    { updatedParams: EditToolParams; updatedDiff: string } | undefined
+  > {
     const { oldPath, newPath } = this.createTempFiles(params);
     this.tempOldDiffPath = oldPath;
     this.tempNewDiffPath = newPath;
 
     await openDiff(this.tempOldDiffPath, this.tempNewDiffPath);
+    return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }
 
-  /**
-   * If content has been modified, returns updated EditToolParams with modified diff.
-   */
-  async getUpdatedParamsIfModified(
+  private async getUpdatedParamsIfModified(
     params: EditToolParams,
     _abortSignal: AbortSignal,
-  ): Promise<EditToolParams | undefined> {
+  ): Promise<
+    { updatedParams: EditToolParams; updatedDiff: string } | undefined
+  > {
     if (!this.tempOldDiffPath || !this.tempNewDiffPath) return undefined;
     let oldContent = '';
     let newContent = '';
@@ -505,8 +509,17 @@ Expectation for required parameters:
       new_string: newContent,
     };
 
+    const updatedDiff = Diff.createPatch(
+      path.basename(params.file_path),
+      oldContent,
+      newContent,
+      'Current',
+      'Proposed',
+      DEFAULT_DIFF_OPTIONS,
+    );
+
     this.deleteTempFiles();
-    return updatedParams;
+    return { updatedParams, updatedDiff };
   }
 
   private createTempFiles(params: EditToolParams): Record<string, string> {
@@ -558,12 +571,16 @@ Expectation for required parameters:
         fs.unlinkSync(this.tempOldDiffPath);
         this.tempOldDiffPath = undefined;
       }
+    } catch {
+      console.error(`Error deleting temp diff file: `, this.tempOldDiffPath);
+    }
+    try {
       if (this.tempNewDiffPath) {
         fs.unlinkSync(this.tempNewDiffPath);
         this.tempNewDiffPath = undefined;
       }
     } catch {
-      console.error(`Error deleting temp edit files.`);
+      console.error(`Error deleting temp diff file: `, this.tempNewDiffPath);
     }
   }
 

@@ -475,19 +475,6 @@ export class CoreToolScheduler {
 
     if (toolCall && toolCall.status === 'awaiting_approval') {
       await originalOnConfirm(outcome);
-
-      // If the tool is an edit tool, check if the diff has been modified.
-      if (toolCall.confirmationDetails.type === 'edit') {
-        const waitingToolCall = toolCall as WaitingToolCall;
-        const editTool = waitingToolCall.tool as EditTool;
-        const updatedParams = await editTool.getUpdatedParamsIfModified(
-          waitingToolCall.request.args as unknown as EditToolParams,
-          this.abortController.signal,
-        );
-        if (updatedParams) {
-          this.setArgsInternal(callId, updatedParams);
-        }
-      }
     }
 
     if (outcome === ToolConfirmationOutcome.Cancel) {
@@ -500,17 +487,18 @@ export class CoreToolScheduler {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
-        editTool.onModify(
+        const modifyResults = await editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,
           this.abortController.signal,
         );
+        if (modifyResults) {
+          this.setArgsInternal(callId, modifyResults.updatedParams);
+          this.setStatusInternal(callId, 'awaiting_approval', {
+            ...waitingToolCall.confirmationDetails,
+            fileDiff: modifyResults.updatedDiff,
+          });
+        }
       }
-
-      this.setStatusInternal(
-        callId,
-        'awaiting_approval',
-        waitingToolCall.confirmationDetails,
-      );
     } else {
       this.setStatusInternal(callId, 'scheduled');
     }

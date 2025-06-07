@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { spawn, execSync } from 'child_process';
+import { execSync } from 'child_process';
 
 interface DiffCommand {
   command: string;
   args: string[];
-  isTerminalBased: boolean;
 }
 
 /**
@@ -39,11 +38,11 @@ export function getBestDiffCommand(
             name: 'vscode',
             command: 'code',
             args: (oldPath: string, newPath: string) => [
+              '--wait',
               '--diff',
               oldPath,
               newPath,
             ],
-            isTerminalBased: false,
           },
         ]
       : []),
@@ -52,7 +51,6 @@ export function getBestDiffCommand(
       name: 'vimdiff',
       command: 'vimdiff',
       args: (oldPath: string, newPath: string) => [oldPath, newPath],
-      isTerminalBased: true,
     },
   ];
 
@@ -61,7 +59,6 @@ export function getBestDiffCommand(
       return {
         command: tool.command,
         args: tool.args(oldPath, newPath),
-        isTerminalBased: tool.isTerminalBased,
       };
     }
   }
@@ -71,6 +68,8 @@ export function getBestDiffCommand(
 
 /**
  * Opens a diff tool to compare two files.
+ * Terminal-based editors by default blocks parent process until the editor exits.
+ * GUI-based editors requires args such as "--wait" to block parent process.
  */
 export async function openDiff(
   oldPath: string,
@@ -82,22 +81,13 @@ export async function openDiff(
     return;
   }
 
-  if (diffCommand.isTerminalBased) {
-    try {
-      const command = `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
-      // This blocks the CLI until the editor exits.
-      execSync(command, {
-        stdio: 'inherit',
-        encoding: 'utf8',
-      });
-    } catch (error) {
-      console.error(error);
-    }
-  } else {
-    const child = spawn(diffCommand.command, diffCommand.args, {
-      stdio: 'ignore',
-      detached: true,
+  try {
+    const command = `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
+    execSync(command, {
+      stdio: 'inherit',
+      encoding: 'utf8',
     });
-    child.unref();
+  } catch (error) {
+    console.error(error);
   }
 }
