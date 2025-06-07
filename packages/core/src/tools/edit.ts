@@ -34,38 +34,18 @@ export interface EditToolParams {
   file_path: string;
 
   /**
-   * Array of edits to apply (for batch operations)
+   * Array of edits to apply
    */
-  edits?: Array<{
+  edits: Array<{
     old_string: string;
     new_string: string;
   }>;
-
-  /**
-   * The text to replace (for single edit - backward compatibility)
-   */
-  old_string?: string;
-
-  /**
-   * The text to replace it with (for single edit - backward compatibility)
-   */
-  new_string?: string;
 
   /**
    * Number of replacements expected. Defaults to 1 if not specified.
    * Use when you want to replace multiple occurrences.
    */
   expected_replacements?: number;
-
-  /**
-   * Content for create or overwrite modes
-   */
-  content?: string;
-
-  /**
-   * Edit mode: 'edit' (default), 'create', or 'overwrite'
-   */
-  mode?: 'edit' | 'create' | 'overwrite';
 }
 
 interface EditResult extends ToolResult {
@@ -78,7 +58,6 @@ interface EditResult extends ToolResult {
     newString: string;
     error: string;
   }>;
-  mode: string;
 }
 
 interface FailedEdit {
@@ -142,35 +121,14 @@ Expectation for required parameters:
               required: ['old_string', 'new_string'],
             },
           },
-          old_string: {
-            description:
-              'The exact literal text to replace (for single edit - backward compatibility). CRITICAL: Must uniquely identify the single instance to change. Include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. For single replacements (default), include context. For multiple replacements, specify expected_replacements parameter. If this string is not the exact literal text (i.e. you escaped it), matches multiple locations, or does not match exactly, the tool will fail.',
-            type: 'string',
-          },
-          new_string: {
-            description:
-              'The exact literal text to replace old_string with (for single edit - backward compatibility). Provide the EXACT text. Ensure the resulting code is correct and idiomatic.',
-            type: 'string',
-          },
           expected_replacements: {
             type: 'number',
             description:
               'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
             minimum: 1,
           },
-          content: {
-            description:
-              'Content for create or overwrite modes. When mode is "create", this is the initial content for the new file. When mode is "overwrite", this replaces the entire file content.',
-            type: 'string',
-          },
-          mode: {
-            description:
-              'Edit mode: "edit" (modify existing file), "create" (create new file), or "overwrite" (replace entire file content). Default is "edit".',
-            type: 'string',
-            enum: ['edit', 'create', 'overwrite'],
-          },
         },
-        required: ['file_path'],
+        required: ['file_path', 'edits'],
         type: 'object',
       },
     );
@@ -220,36 +178,9 @@ Expectation for required parameters:
       return `File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`;
     }
 
-    const mode = params.mode || 'edit';
-
-    // Validate parameters based on mode
-    if (mode === 'create' || mode === 'overwrite') {
-      // For create/overwrite modes, we need either content parameter or edits array or old_string/new_string
-      const hasContent = params.content !== undefined;
-      const hasEditsArray = params.edits && params.edits.length > 0;
-      const hasSingleEdit =
-        params.old_string !== undefined && params.new_string !== undefined;
-
-      if (!hasContent && !hasEditsArray && !hasSingleEdit) {
-        return `For ${mode} mode, must provide either "content" parameter, "edits" array, or "old_string"/"new_string" pair.`;
-      }
-    } else {
-      // For edit mode, we need either edits array or old_string/new_string pair
-      const hasEditsArray = params.edits && params.edits.length > 0;
-      const hasSingleEdit =
-        params.old_string !== undefined && params.new_string !== undefined;
-
-      if (!hasEditsArray && !hasSingleEdit) {
-        return 'Must provide either "edits" array or "old_string"/"new_string" pair.';
-      }
-    }
-
-    // If using single edit mode, ensure both old_string and new_string are provided
-    if (params.old_string !== undefined && params.new_string === undefined) {
-      return 'When "old_string" is provided, "new_string" must also be provided.';
-    }
-    if (params.new_string !== undefined && params.old_string === undefined) {
-      return 'When "new_string" is provided, "old_string" must also be provided.';
+    // Validate that edits array is provided and not empty
+    if (!params.edits || params.edits.length === 0) {
+      return 'Must provide "edits" array with at least one edit.';
     }
 
     return null;
@@ -278,13 +209,11 @@ Expectation for required parameters:
   /**
    * Applies multiple edits to file content in sequence
    * @param params Edit parameters
-   * @param mode Edit mode (edit, create, overwrite)
    * @param abortSignal Abort signal for cancellation
    * @returns Result with detailed edit metrics
    */
   private async applyMultipleEdits(
     params: EditToolParams,
-    mode: string,
     abortSignal: AbortSignal,
   ): Promise<{
     newContent: string;
@@ -309,94 +238,23 @@ Expectation for required parameters:
       }
     }
 
-    // Handle mode validation
-    if (mode === 'edit' && !fileExists) {
-      throw new Error(`File does not exist: ${params.file_path}`);
-    }
-
-    // Set up initial content based on mode
-    if (mode === 'overwrite') {
-      currentContent = '';
-      isNewFile = !fileExists;
-    } else if (!fileExists) {
+    // If file doesn't exist and first edit has empty old_string, it's file creation
+    if (!fileExists && params.edits[0].old_string === '') {
       isNewFile = true;
       currentContent = '';
-    }
-
-    // Handle simple content replacement for create/overwrite modes
-    if (
-      (mode === 'create' || mode === 'overwrite') &&
-      params.content !== undefined
-    ) {
-      // For create mode, fail if file already exists
-      if (mode === 'create' && fileExists) {
-        return {
-          newContent: currentContent || '',
-          editsApplied: 0,
-          editsAttempted: 1,
-          editsFailed: 1,
-          failedEdits: [
-            {
-              index: 0,
-              oldString: '',
-              newString: params.content,
-              error: `File already exists: ${params.file_path}`,
-            },
-          ],
-          isNewFile: false,
-          originalContent: currentContent,
-        };
-      }
-
-      return {
-        newContent: params.content,
-        editsApplied: 1,
-        editsAttempted: 1,
-        editsFailed: 0,
-        failedEdits: [],
-        isNewFile,
-        originalContent: fileExists
-          ? fs.readFileSync(params.file_path, 'utf8')
-          : null,
-      };
-    }
-
-    // Normalize edits - convert single edit to array format
-    const edits = [];
-    if (params.edits && params.edits.length > 0) {
-      edits.push(...params.edits);
-    }
-    if (params.old_string !== undefined && params.new_string !== undefined) {
-      edits.push({
-        old_string: params.old_string,
-        new_string: params.new_string,
-      });
+    } else if (!fileExists) {
+      throw new Error(`File does not exist: ${params.file_path}`);
+    } else if (fileExists && params.edits[0].old_string === '') {
+      // Protect against accidentally creating a file that already exists
+      throw new Error(`File already exists: ${params.file_path}`);
     }
 
     const expectedReplacements = params.expected_replacements ?? 1;
 
-    // Additional mode validation for edits-based operations
-    if (mode === 'create' && fileExists && edits.length > 0) {
-      return {
-        newContent: currentContent || '',
-        editsApplied: 0,
-        editsAttempted: edits.length,
-        editsFailed: edits.length,
-        failedEdits: edits.map((edit, index) => ({
-          index,
-          oldString: edit.old_string,
-          newString: edit.new_string,
-          error: `File already exists: ${params.file_path}`,
-        })),
-        isNewFile: false,
-        originalContent: currentContent,
-      };
-    }
-
     const result = {
       newContent: currentContent || '',
       editsApplied: 0,
-      editsAttempted: edits.length,
+      editsAttempted: params.edits.length,
       editsFailed: 0,
       failedEdits: [] as FailedEdit[],
       isNewFile,
@@ -404,8 +262,8 @@ Expectation for required parameters:
     };
 
     // Apply each edit
-    for (let i = 0; i < edits.length; i++) {
-      const edit = edits[i];
+    for (let i = 0; i < params.edits.length; i++) {
+      const edit = params.edits[i];
 
       // Handle new file creation with empty old_string
       if (isNewFile && edit.old_string === '') {
@@ -470,18 +328,6 @@ Expectation for required parameters:
     return result;
   }
 
-  /**
-   * Handles different edit modes for file operations
-   * @param params Edit parameters
-   * @param newContent The new content to write
-   */
-  private async handleEditModes(
-    params: EditToolParams,
-    newContent: string,
-  ): Promise<void> {
-    this.ensureParentDirectoriesExist(params.file_path);
-    fs.writeFileSync(params.file_path, newContent, 'utf8');
-  }
 
   /**
    * Handles the confirmation prompt for the Edit tool in the CLI.
@@ -506,7 +352,6 @@ Expectation for required parameters:
       // Calculate what the edits would produce
       const editResult = await this.applyMultipleEdits(
         params,
-        params.mode || 'edit',
         abortSignal,
       );
 
@@ -539,8 +384,7 @@ Expectation for required parameters:
         DEFAULT_DIFF_OPTIONS,
       );
 
-      const editsCount =
-        (params.edits?.length || 0) + (params.old_string !== undefined ? 1 : 0);
+      const editsCount = params.edits.length;
       const title =
         editsCount > 1
           ? `Confirm ${editsCount} Edits: ${shortenPath(makeRelative(params.file_path, this.rootDirectory))}`
@@ -569,42 +413,26 @@ Expectation for required parameters:
       return `Model did not provide valid parameters for edit tool`;
     }
     const relativePath = makeRelative(params.file_path, this.rootDirectory);
-    const mode = params.mode || 'edit';
 
-    // Handle batch edits
-    if (params.edits && params.edits.length > 0) {
-      if (params.edits.length === 1) {
-        const edit = params.edits[0];
-        if (edit.old_string === '') {
-          return `Create ${shortenPath(relativePath)}`;
-        }
-        const oldSnippet =
-          edit.old_string.split('\n')[0].substring(0, 30) +
-          (edit.old_string.length > 30 ? '...' : '');
-        const newSnippet =
-          edit.new_string.split('\n')[0].substring(0, 30) +
-          (edit.new_string.length > 30 ? '...' : '');
-        return `${shortenPath(relativePath)}: ${oldSnippet} => ${newSnippet}`;
-      } else {
-        return `${mode} ${shortenPath(relativePath)} (${params.edits.length} edits)`;
-      }
+    if (!params.edits || params.edits.length === 0) {
+      return `Edit ${shortenPath(relativePath)}`;
     }
 
-    // Handle single edit (backward compatibility)
-    if (params.old_string !== undefined && params.new_string !== undefined) {
-      if (params.old_string === '') {
+    if (params.edits.length === 1) {
+      const edit = params.edits[0];
+      if (edit.old_string === '') {
         return `Create ${shortenPath(relativePath)}`;
       }
-      const oldStringSnippet =
-        params.old_string.split('\n')[0].substring(0, 30) +
-        (params.old_string.length > 30 ? '...' : '');
-      const newStringSnippet =
-        params.new_string.split('\n')[0].substring(0, 30) +
-        (params.new_string.length > 30 ? '...' : '');
-      return `${shortenPath(relativePath)}: ${oldStringSnippet} => ${newStringSnippet}`;
+      const oldSnippet =
+        edit.old_string.split('\n')[0].substring(0, 30) +
+        (edit.old_string.length > 30 ? '...' : '');
+      const newSnippet =
+        edit.new_string.split('\n')[0].substring(0, 30) +
+        (edit.new_string.length > 30 ? '...' : '');
+      return `${shortenPath(relativePath)}: ${oldSnippet} => ${newSnippet}`;
+    } else {
+      return `Edit ${shortenPath(relativePath)} (${params.edits.length} edits)`;
     }
-
-    return `${mode} ${shortenPath(relativePath)}`;
   }
 
   /**
@@ -624,19 +452,18 @@ Expectation for required parameters:
         editsApplied: 0,
         editsAttempted: 0,
         editsFailed: 1,
-        mode: params.mode || 'edit',
       };
     }
 
     try {
       const editResult = await this.applyMultipleEdits(
         params,
-        params.mode || 'edit',
         abortSignal,
       );
 
       // Apply the changes to the file
-      await this.handleEditModes(params, editResult.newContent);
+      this.ensureParentDirectoriesExist(params.file_path);
+      fs.writeFileSync(params.file_path, editResult.newContent, 'utf8');
 
       // Generate appropriate response messages
       let displayResult: ToolResultDisplay;
@@ -680,12 +507,10 @@ Expectation for required parameters:
         editsAttempted: editResult.editsAttempted,
         editsFailed: editResult.editsFailed,
         failedEdits: editResult.failedEdits,
-        mode: params.mode || 'edit',
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      const editsAttempted =
-        (params.edits?.length || 0) + (params.old_string !== undefined ? 1 : 0);
+      const editsAttempted = params.edits.length;
 
       return {
         llmContent: `Error executing edits: ${errorMsg}`,
@@ -693,7 +518,6 @@ Expectation for required parameters:
         editsApplied: 0,
         editsAttempted,
         editsFailed: editsAttempted,
-        mode: params.mode || 'edit',
       };
     }
   }

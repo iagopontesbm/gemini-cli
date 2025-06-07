@@ -57,10 +57,6 @@ You are an interactive CLI agent specializing in software engineering tasks. You
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -80,57 +76,17 @@ When making several related changes to the same file, use the 'edits' array:
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};\n"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{\n  "version": "2.0",\n  "settings": {}\n}\n"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {\n  return 'legacy';\n}",
-  "new_string": "function newFunction() {\n  return 'updated';\n}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app\n  const app = express();\n  app.use(middleware);\n  \n  // Start server\n  app.listen(3000);",
-  "new_string": "  // Initialize app\n  const app = express();\n  app.use(middleware);\n  app.use(newMiddleware);\n  \n  // Start server\n  app.listen(3000);"
+  "edits": [{
+    "old_string": "  // Initialize app\n  const app = express();\n  app.use(middleware);\n  \n  // Start server\n  app.listen(3000);",
+    "new_string": "  // Initialize app\n  const app = express();\n  app.use(middleware);\n  app.use(newMiddleware);\n  \n  // Start server\n  app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};\n"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{\n  'version': '2.0',\n  'settings': {}\n}\n"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {\n  return 'legacy';\n}",
-  "new_string": "function newFunction() {\n  return 'updated';\n}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation

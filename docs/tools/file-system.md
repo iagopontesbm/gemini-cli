@@ -89,19 +89,15 @@ All file system tools operate within a `rootDirectory` (usually the current work
 - **Tool Name:** `edit_file`
 - **Display Name:** EditFile
 - **File:** `edit.ts`
-- **Description:** Modifies files with precise text replacements or creates new files. Supports both single edits and batch operations. This tool is designed for precise, targeted changes and can work in different modes: edit existing files, create new files, or overwrite entire files.
+- **Description:** Modifies files with precise text replacements or creates new files. Supports batch operations for making multiple edits to the same file efficiently. This tool is designed for precise, targeted changes.
 - **Parameters:**
   - `file_path` (string, required): The absolute path to the file to modify.
-  - `edits` (array, optional): Array of edit operations for batch editing. Each edit contains `old_string` and `new_string`.
-  - `old_string` (string, optional): The exact literal text to replace (for single edit compatibility).
-  - `new_string` (string, optional): The exact literal text to replace `old_string` with (for single edit compatibility).
-  - `content` (string, optional): Content for create or overwrite modes. When mode is "create", this is the initial content for the new file. When mode is "overwrite", this replaces the entire file content.
-  - `mode` (string, optional): Edit mode - "edit" (default), "create", or "overwrite".
+  - `edits` (array, required): Array of edit operations. Each edit contains `old_string` and `new_string`.
+  - `expected_replacements` (number, optional): Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.
 - **Behavior:**
-  - **Edit mode** (default): Modifies existing files by replacing exact text matches. Requires either `edits` array or `old_string`/`new_string` pair.
-  - **Create mode**: Creates new files. Will fail if file already exists. Can use `content` parameter for simple file creation, or `edits`/`old_string`+`new_string` for more complex scenarios.
-  - **Overwrite mode**: Replaces entire file content or creates new file. Can use `content` parameter to specify the new content directly.
-  - **Batch editing**: When using the `edits` array, applies multiple changes in sequence.
+  - **Modifying existing files**: Replaces exact text matches. File must exist unless the first edit has an empty `old_string` (indicating file creation).
+  - **Creating new files**: Use an empty `old_string` in the first edit to create a new file with `new_string` as the content.
+  - **Batch editing**: Applies multiple changes in sequence to the same file.
   - **Enhanced Reliability**: Incorporates multi-stage edit correction to improve success rates when initial text matches aren't perfect.
   - **Context Requirements**: Each `old_string` must uniquely identify the target location with sufficient context (typically 3+ lines before and after).
 - **Output (`llmContent`):** Reports number of edits applied, attempted, and any failures with specific error details for troubleshooting.

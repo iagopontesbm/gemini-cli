@@ -188,8 +188,7 @@ describe('EditTool', () => {
     it('should return null for valid params', () => {
       const params: EditToolParams = {
         file_path: path.join(rootDir, 'test.txt'),
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       expect(tool.validateToolParams(params)).toBeNull();
     });
@@ -197,8 +196,7 @@ describe('EditTool', () => {
     it('should return error for relative path', () => {
       const params: EditToolParams = {
         file_path: 'test.txt',
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       expect(tool.validateToolParams(params)).toMatch(
         /File path must be absolute/,
@@ -208,8 +206,7 @@ describe('EditTool', () => {
     it('should return error for path outside root', () => {
       const params: EditToolParams = {
         file_path: path.join(tempDir, 'outside-root.txt'),
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       expect(tool.validateToolParams(params)).toMatch(
         /File path must be within the root directory/,
@@ -228,8 +225,7 @@ describe('EditTool', () => {
     it('should return false if params are invalid', async () => {
       const params: EditToolParams = {
         file_path: 'relative.txt',
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       expect(
         await tool.shouldConfirmExecute(params, new AbortController().signal),
@@ -240,8 +236,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'some old content here');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       // ensureCorrectEdit will be called by shouldConfirmExecute
       mockEnsureCorrectEdit.mockResolvedValueOnce({ params, occurrences: 1 });
@@ -262,8 +257,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'some content here');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'not_found',
-        new_string: 'new',
+        edits: [{ old_string: 'not_found', new_string: 'new' }],
       };
       mockEnsureCorrectEdit.mockResolvedValueOnce({
         params: {
@@ -288,8 +282,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'old old content here');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       mockEnsureCorrectEdit.mockResolvedValueOnce({
         params: {
@@ -313,9 +306,7 @@ describe('EditTool', () => {
       const newFilePath = path.join(rootDir, newFileName);
       const params: EditToolParams = {
         file_path: newFilePath,
-        old_string: '',
-        new_string: 'new file content',
-        mode: 'create',
+        edits: [{ old_string: '', new_string: 'new file content' }],
       };
       const confirmation = await tool.shouldConfirmExecute(
         params,
@@ -338,8 +329,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, originalContent);
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: nonMatchingOldString,
-        new_string: newString,
+        edits: [{ old_string: nonMatchingOldString, new_string: newString }],
       };
 
       // With deterministic approach, this should return false (no confirmation)
@@ -379,8 +369,7 @@ describe('EditTool', () => {
     it('should return error if params are invalid', async () => {
       const params: EditToolParams = {
         file_path: 'relative.txt',
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       const result = await tool.execute(params, new AbortController().signal);
       expect(result.llmContent).toMatch(/Error: Invalid parameters provided/);
@@ -393,8 +382,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, initialContent, 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
 
       // Mock ensureCorrectEdit to return the expected params and occurrences
@@ -426,9 +414,7 @@ describe('EditTool', () => {
       const fileContent = 'Content for the new file.';
       const params: EditToolParams = {
         file_path: newFilePath,
-        old_string: '',
-        new_string: fileContent,
-        mode: 'create',
+        edits: [{ old_string: '', new_string: fileContent }],
       };
 
       (mockConfig.getApprovalMode as Mock).mockReturnValueOnce(
@@ -448,8 +434,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'Some content.', 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'nonexistent',
-        new_string: 'replacement',
+        edits: [{ old_string: 'nonexistent', new_string: 'replacement' }],
       };
       // Mock ensureCorrectEdit to return 0 occurrences
       mockEnsureCorrectEdit.mockResolvedValueOnce({
@@ -475,8 +460,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, initialContent, 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
 
       // Mock ensureCorrectEdit to return multiple occurrences
@@ -503,8 +487,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'old text old text old text', 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
         expected_replacements: 3,
       };
 
@@ -529,8 +512,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, 'old text old text', 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
         expected_replacements: 3, // Expecting 3 but only 2 exist
       };
       const result = await tool.execute(params, new AbortController().signal);
@@ -547,9 +529,7 @@ describe('EditTool', () => {
       fs.writeFileSync(filePath, existingContent, 'utf8');
       const params: EditToolParams = {
         file_path: filePath,
-        old_string: '',
-        new_string: 'new content',
-        mode: 'create',
+        edits: [{ old_string: '', new_string: 'new content' }],
       };
 
       const result = await tool.execute(params, new AbortController().signal);
@@ -560,81 +540,6 @@ describe('EditTool', () => {
       expect(result.editsFailed).toBe(1);
     });
 
-    it('should create a new file using content parameter', async () => {
-      const params: EditToolParams = {
-        file_path: filePath,
-        content: 'This is the initial content of the file.\nSecond line here.',
-        mode: 'create',
-      };
-
-      const result = await tool.execute(params, new AbortController().signal);
-
-      expect(result.llmContent).toMatch(/Created new file/);
-      expect(result.editsApplied).toBe(1);
-      expect(result.editsAttempted).toBe(1);
-      expect(result.editsFailed).toBe(0);
-
-      const writtenContent = fs.readFileSync(filePath, 'utf8');
-      expect(writtenContent).toBe(
-        'This is the initial content of the file.\nSecond line here.',
-      );
-    });
-
-    it('should overwrite file using content parameter', async () => {
-      const existingContent = 'Old content that will be replaced.';
-      fs.writeFileSync(filePath, existingContent, 'utf8');
-
-      const params: EditToolParams = {
-        file_path: filePath,
-        content: 'New content that replaces everything.',
-        mode: 'overwrite',
-      };
-
-      const result = await tool.execute(params, new AbortController().signal);
-
-      expect(result.editsApplied).toBe(1);
-      expect(result.editsAttempted).toBe(1);
-      expect(result.editsFailed).toBe(0);
-
-      const writtenContent = fs.readFileSync(filePath, 'utf8');
-      expect(writtenContent).toBe('New content that replaces everything.');
-    });
-
-    it('should fail if create mode and file already exists with content parameter', async () => {
-      const existingContent = 'File already exists.';
-      fs.writeFileSync(filePath, existingContent, 'utf8');
-
-      const params: EditToolParams = {
-        file_path: filePath,
-        content: 'New content',
-        mode: 'create',
-      };
-
-      const result = await tool.execute(params, new AbortController().signal);
-
-      expect(result.llmContent).toMatch(/File already exists/);
-      expect(result.editsApplied).toBe(0);
-      expect(result.editsFailed).toBe(1);
-    });
-
-    it('should validate content parameter for create/overwrite modes', () => {
-      const validParams: EditToolParams = {
-        file_path: filePath,
-        content: 'Some content',
-        mode: 'create',
-      };
-
-      const error = tool.validateToolParams(validParams);
-      expect(error).toBeNull();
-
-      const invalidParams: EditToolParams = {
-        file_path: filePath,
-        mode: 'create',
-      };
-
-      const error2 = tool.validateToolParams(invalidParams);
-      expect(error2).toMatch(/must provide either "content" parameter/);
-    });
 
     it('should reject multiple edits with mixed file creation and editing on non-existent file', async () => {
       // Ensure file doesn't exist
@@ -651,10 +556,16 @@ describe('EditTool', () => {
       };
 
       const result = await tool.execute(params, new AbortController().signal);
-      expect(result.llmContent).toMatch(/Error executing edits: File does not exist/);
-
-      // File should still not exist
-      expect(fs.existsSync(filePath)).toBe(false);
+      
+      // File should be created with first edit, but second edit should fail
+      expect(result.llmContent).toMatch(/Created new file.*Failed edits/);
+      expect(result.editsApplied).toBe(1);
+      expect(result.editsFailed).toBe(1);
+      expect(result.failedEdits![0].error).toMatch(/String not found/);
+      
+      // File should now exist with content from first edit
+      expect(fs.existsSync(filePath)).toBe(true);
+      expect(fs.readFileSync(filePath, 'utf8')).toBe('new content');
     });
 
     it('should demonstrate deterministic position-based edit behavior', async () => {
@@ -746,16 +657,15 @@ function makeRequest() {
   });
 
   describe('getDescription', () => {
-    it('should return "No file changes to..." if old_string and new_string are the same', () => {
+    it('should return consistent format even if old_string and new_string are the same', () => {
       const testFileName = 'test.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        old_string: 'identical_string',
-        new_string: 'identical_string',
+        edits: [{ old_string: 'identical_string', new_string: 'identical_string' }],
       };
       // shortenPath will be called internally, resulting in just the file name
       expect(tool.getDescription(params)).toBe(
-        `No file changes to ${testFileName}`,
+        `${testFileName}: identical_string => identical_string`,
       );
     });
 
@@ -763,8 +673,7 @@ function makeRequest() {
       const testFileName = 'test.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        old_string: 'this is the old string value',
-        new_string: 'this is the new string value',
+        edits: [{ old_string: 'this is the old string value', new_string: 'this is the new string value' }],
       };
       // shortenPath will be called internally, resulting in just the file name
       // The snippets are truncated at 30 chars + '...'
@@ -777,8 +686,7 @@ function makeRequest() {
       const testFileName = 'short.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        old_string: 'old',
-        new_string: 'new',
+        edits: [{ old_string: 'old', new_string: 'new' }],
       };
       expect(tool.getDescription(params)).toBe(`${testFileName}: old => new`);
     });
@@ -787,10 +695,10 @@ function makeRequest() {
       const testFileName = 'long.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        old_string:
-          'this is a very long old string that will definitely be truncated',
-        new_string:
-          'this is a very long new string that will also be truncated',
+        edits: [{
+          old_string: 'this is a very long old string that will definitely be truncated',
+          new_string: 'this is a very long new string that will also be truncated'
+        }],
       };
       expect(tool.getDescription(params)).toBe(
         `${testFileName}: this is a very long old string... => this is a very long new string...`,

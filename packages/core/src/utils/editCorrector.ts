@@ -61,7 +61,7 @@ export interface CorrectedEditResult {
  */
 export async function ensureCorrectEdit(
   currentContent: string,
-  originalParams: EditToolParams,
+  originalParams: EditToolParams & { old_string: string; new_string: string },
   client: GeminiClient,
   abortSignal: AbortSignal,
 ): Promise<CorrectedEditResult> {

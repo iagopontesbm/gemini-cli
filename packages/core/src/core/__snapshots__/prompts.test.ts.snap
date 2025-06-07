@@ -21,10 +21,6 @@ exports[`Core System Prompt (prompts.ts) > should append userMemory with separat
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -52,86 +48,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -457,10 +395,6 @@ exports[`Core System Prompt (prompts.ts) > should include non-sandbox instructio
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -488,86 +422,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -888,10 +764,6 @@ exports[`Core System Prompt (prompts.ts) > should include sandbox-specific instr
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -919,86 +791,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -1319,10 +1133,6 @@ exports[`Core System Prompt (prompts.ts) > should include seatbelt-specific inst
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -1350,86 +1160,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -1750,10 +1502,6 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when no
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -1781,86 +1529,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -2181,10 +1871,6 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when us
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -2212,86 +1898,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
@@ -2612,10 +2240,6 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when us
 - **Context for Each Edit:** Even in batch operations, each edit still requires significant context (3+ lines before/after) to ensure unique identification.
 - **Partial Success Handling:** Batch edits may partially succeed. Review the 'editsApplied', 'editsFailed', and 'failedEdits' in results to understand what worked and retry failed edits with better context if needed.
 
-## Edit Modes
-- **'edit' (default):** For modifying existing files. File must exist.
-- **'create':** For creating new files. Will fail if file already exists.
-- **'overwrite':** For replacing entire file content. Creates file if it doesn't exist.
 
 ## Examples
 
@@ -2643,86 +2267,28 @@ const isValid = validateInput(input);"
   ]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  "version": "2.0",
-  "settings": {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### Context Requirements
 Always provide sufficient context (3+ lines before/after target) to ensure unique identification:
 {
   "file_path": "/absolute/path/to/app.js",
-  "old_string": "  // Initialize app
+  "edits": [{
+    "old_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   
   // Start server
   app.listen(3000);",
-  "new_string": "  // Initialize app
+    "new_string": "  // Initialize app
   const app = express();
   app.use(middleware);
   app.use(newMiddleware);
   
   // Start server
   app.listen(3000);"
+  }]
 }
 
-### Mode Selection Examples
-// Create new file
-{
-  "file_path": "/absolute/path/to/newFile.js",
-  "mode": "create",
-  "content": "export const newModule = {};
-"
-}
-
-// Replace entire file content
-{
-  "file_path": "/absolute/path/to/config.json",
-  "mode": "overwrite",
-  "content": "{
-  'version': '2.0',
-  'settings': {}
-}
-"
-}
-
-// Edit existing file (default mode)
-{
-  "file_path": "/absolute/path/to/existing.js",
-  "old_string": "function oldFunction() {
-  return 'legacy';
-}",
-  "new_string": "function newFunction() {
-  return 'updated';
-}"
-}
 
 ### API v2 Style Edit Examples
 // Single edit operation
