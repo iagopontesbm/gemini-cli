@@ -39,7 +39,7 @@ export class CodeParserTool extends BaseTool<CodeParserToolParams, ToolResult> {
     super(
       CodeParserTool.Name,
       'CodeParser',
-      'Parses the code in the specified directory path or a single file to generate AST representations.',
+      'Parses the code in the specified directory path or a single file to generate AST representations. This should be used to get a better understanding of the codebase when refactoring and building out new features.',
       {
         properties: {
           path: {
