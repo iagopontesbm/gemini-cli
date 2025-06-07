@@ -40,9 +40,16 @@ export class GeminiEmbed {
     };
     const embedContentResponse: EmbedContentResponse =
       await this.googleGenAI.models.embedContent(embedModelParams);
-    if (!embedContentResponse.embeddings) {
+    if (
+      !embedContentResponse.embeddings ||
+      embedContentResponse.embeddings.length === 0
+    ) {
       throw new Error('No embeddings found');
     }
-    return embedContentResponse.embeddings[0].values ?? [];
+    const values = embedContentResponse.embeddings[0].values;
+    if (!values || values.length === 0) {
+      throw new Error('No values found in embeddings');
+    }
+    return values;
   }
 }

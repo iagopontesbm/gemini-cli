@@ -109,16 +109,39 @@ describe('GeminiEmbed', () => {
       );
     });
 
-    it('should return an empty array if embedding values are nullish', async () => {
+    it('should throw an error if API response has an empty embeddings array', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [],
+      };
+      mockEmbedContent.mockResolvedValue(mockResponse);
+      const embedder = GeminiEmbed.getInstance();
+      await expect(embedder.generateEmbedding(text, model)).rejects.toThrow(
+        'No embeddings found',
+      );
+    });
+
+    it('should throw an error if embedding values are nullish', async () => {
       const mockResponse: EmbedContentResponse = {
         embeddings: [{ values: undefined }], // Can also be null
       };
       mockEmbedContent.mockResolvedValue(mockResponse);
 
       const embedder = GeminiEmbed.getInstance();
-      const result = await embedder.generateEmbedding(text, model);
+      await expect(embedder.generateEmbedding(text, model)).rejects.toThrow(
+        'No values found in embeddings',
+      );
+    });
 
-      expect(result).toEqual([]);
+    it('should throw an error if embedding values is an empty array', async () => {
+      const mockResponse: EmbedContentResponse = {
+        embeddings: [{ values: [] }],
+      };
+      mockEmbedContent.mockResolvedValue(mockResponse);
+
+      const embedder = GeminiEmbed.getInstance();
+      await expect(embedder.generateEmbedding(text, model)).rejects.toThrow(
+        'No values found in embeddings',
+      );
     });
 
     it('should propagate errors from the API call', async () => {
