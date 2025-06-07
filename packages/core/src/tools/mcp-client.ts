@@ -31,12 +31,6 @@ export enum MCPServerStatus {
 const mcpServerStatusesInternal: Map<string, MCPServerStatus> = new Map();
 
 /**
- * @deprecated Use getMCPServerStatus() and getAllMCPServerStatuses() instead
- * This is exported only for backward compatibility
- */
-export const mcpServerStatuses = mcpServerStatusesInternal;
-
-/**
  * Event listeners for MCP server status changes
  */
 type StatusChangeListener = (
