@@ -1,4 +1,14 @@
-import { EmbedContentParameters, EmbedContentResponse, GoogleGenAI } from "@google/genai";
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import {
+  EmbedContentParameters,
+  EmbedContentResponse,
+  GoogleGenAI,
+} from '@google/genai';
 
 export class GeminiEmbed {
   private static instance: GeminiEmbed;
@@ -17,7 +27,7 @@ export class GeminiEmbed {
   static getInstance(): GeminiEmbed {
     if (!GeminiEmbed.instance) {
       throw new Error(
-        'GeminiEmbed has not been initialized. Call initialize(apiKey) first.'
+        'GeminiEmbed has not been initialized. Call initialize(apiKey) first.',
       );
     }
     return GeminiEmbed.instance;
@@ -25,12 +35,13 @@ export class GeminiEmbed {
 
   async generateEmbedding(text: string, model: string): Promise<number[]> {
     const embedModelParams: EmbedContentParameters = {
-        model: model,
-        contents: [text],
-    }
-    const embedContentResponse: EmbedContentResponse = await this.googleGenAI.models.embedContent(embedModelParams);
+      model,
+      contents: [text],
+    };
+    const embedContentResponse: EmbedContentResponse =
+      await this.googleGenAI.models.embedContent(embedModelParams);
     if (!embedContentResponse.embeddings) {
-        throw new Error("No embeddings found");
+      throw new Error('No embeddings found');
     }
     return embedContentResponse.embeddings[0].values ?? [];
   }

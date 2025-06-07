@@ -17,6 +17,7 @@ describe('GeminiEmbed', () => {
   beforeEach(() => {
     // Reset singleton instance before each test
     // This is a common pattern for testing singletons
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (GeminiEmbed as any).instance = undefined;
 
     // Clear all mocks to ensure test isolation
@@ -24,24 +25,23 @@ describe('GeminiEmbed', () => {
 
     // Set up the mock for GoogleGenAI constructor and its methods
     // `vi.mocked` is a helper for TypeScript to get types right
-    vi.mocked(GoogleGenAI).mockImplementation(() => {
-      return {
+    vi.mocked(GoogleGenAI).mockImplementation(() => ({
         models: {
           embedContent: mockEmbedContent,
         },
-      } as any; // Cast to any to avoid type issues with the mock
-    });
+      } as unknown as GoogleGenAI)); // Cast to avoid type issues with the mock
   });
 
   afterEach(() => {
     // A good practice, although beforeEach already handles it.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (GeminiEmbed as any).instance = undefined;
   });
 
   describe('Singleton Pattern', () => {
     it('should throw an error when getInstance is called before initialization', () => {
       expect(() => GeminiEmbed.getInstance()).toThrow(
-        'GeminiEmbed has not been initialized. Call initialize(apiKey) first.'
+        'GeminiEmbed has not been initialized. Call initialize(apiKey) first.',
       );
     });
 
@@ -105,7 +105,7 @@ describe('GeminiEmbed', () => {
 
       const embedder = GeminiEmbed.getInstance();
       await expect(embedder.generateEmbedding(text, model)).rejects.toThrow(
-        'No embeddings found'
+        'No embeddings found',
       );
     });
 
@@ -128,8 +128,8 @@ describe('GeminiEmbed', () => {
       const embedder = GeminiEmbed.getInstance();
 
       await expect(embedder.generateEmbedding(text, model)).rejects.toThrow(
-        'API Failure'
+        'API Failure',
       );
     });
   });
-}); 
+});
