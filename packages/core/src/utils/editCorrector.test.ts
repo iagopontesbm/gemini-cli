@@ -497,7 +497,11 @@ describe('editCorrector', () => {
           abortSignal,
         );
         expect(mockGenerateJson).toHaveBeenCalledTimes(1);
-        expect(result.params).toEqual(originalParams);
+        expect(result.params).toEqual({
+          file_path: originalParams.file_path,
+          old_string: originalParams.old_string,
+          new_string: originalParams.new_string,
+        });
         expect(result.occurrences).toBe(0);
       });
       it('Test 4.2: unescapedOldStringAttempt results in >1 occurrences -> returns original params, count occurrences', async () => {
@@ -516,7 +520,11 @@ describe('editCorrector', () => {
           abortSignal,
         );
         expect(mockGenerateJson).toHaveBeenCalledTimes(0);
-        expect(result.params).toEqual(originalParams);
+        expect(result.params).toEqual({
+          file_path: originalParams.file_path,
+          old_string: originalParams.old_string,
+          new_string: originalParams.new_string,
+        });
         expect(result.occurrences).toBe(2);
       });
     });
