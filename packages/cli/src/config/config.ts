@@ -18,11 +18,11 @@ import {
   ApprovalMode,
 } from '@gemini-code/core';
 import { Settings } from './settings.js';
-import { readPackageUp } from 'read-package-up';
 import {
   getEffectiveModel,
   type EffectiveModelCheckResult,
 } from '../utils/modelCheck.js';
+import { getCliVersion } from '../utils/version.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -34,7 +34,7 @@ const logger = {
   error: (...args: any[]) => console.error('[ERROR]', ...args),
 };
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-05-06';
+export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-06-05';
 export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
 
 interface CliArgs {
@@ -45,6 +45,7 @@ interface CliArgs {
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
+  telemetry: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -89,6 +90,10 @@ async function parseArguments(): Promise<CliArgs> {
         'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
+    .option('telemetry', {
+      type: 'boolean',
+      description: 'Enable telemetry?',
+    })
     .version() // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
@@ -123,6 +128,7 @@ export interface LoadCliConfigResult {
 
 export async function loadCliConfig(
   settings: Settings,
+  geminiIgnorePatterns: string[],
 ): Promise<LoadCliConfigResult> {
   loadEnvironment();
 
@@ -211,7 +217,12 @@ export async function loadCliConfig(
     vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
+    geminiIgnorePatterns,
     accessibility: settings.accessibility,
+    telemetry:
+      argv.telemetry !== undefined
+        ? argv.telemetry
+        : (settings.telemetry ?? false),
     // Git-aware file filtering settings
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
@@ -228,15 +239,6 @@ export async function loadCliConfig(
 }
 
 async function createUserAgent(): Promise<string> {
-  try {
-    const packageJsonInfo = await readPackageUp({ cwd: import.meta.url });
-    const cliVersion = packageJsonInfo?.packageJson.version || 'unknown';
-    return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(
-      `Could not determine package version for User-Agent: ${message}`,
-    );
-    return `GeminiCLI/unknown Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  }
+  const cliVersion = await getCliVersion();
+  return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
 }

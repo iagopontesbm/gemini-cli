@@ -9,14 +9,13 @@ import { render } from 'ink';
 import { App } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { readPackageUp } from 'read-package-up';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { getCliVersion } from './utils/version.js';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
+import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
 import {
   ApprovalMode,
   Config,
@@ -33,10 +32,7 @@ import {
   WriteFileTool,
 } from '@gemini-code/core';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-async function main() {
+export async function main() {
   // warn about deprecated environment variables
   if (process.env.GEMINI_CODE_MODEL) {
     console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
@@ -56,9 +52,24 @@ async function main() {
       process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
   }
 
-  const settings = loadSettings(process.cwd());
+  const workspaceRoot = process.cwd();
+  const settings = loadSettings(workspaceRoot);
+  const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
+
+  if (settings.errors.length > 0) {
+    for (const error of settings.errors) {
+      let errorMessage = `Error in ${error.path}: ${error.message}`;
+      if (!process.env.NO_COLOR) {
+        errorMessage = `\x1b[31m${errorMessage}\x1b[0m`;
+      }
+      console.error(errorMessage);
+      console.error(`Please fix ${error.path} and try again.`);
+    }
+    process.exit(1);
+  }
+
   const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
-    await loadCliConfig(settings.merged);
+    await loadCliConfig(settings.merged, geminiIgnorePatterns);
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
@@ -91,9 +102,7 @@ async function main() {
 
   // Render UI, passing necessary config values. Check that there is no command line question.
   if (process.stdin.isTTY && input?.length === 0) {
-    const readUpResult = await readPackageUp({ cwd: __dirname });
-    const cliVersion =
-      process.env.CLI_VERSION || readUpResult?.packageJson.version || 'unknown';
+    const cliVersion = await getCliVersion();
 
     render(
       <React.StrictMode>
@@ -140,16 +149,6 @@ process.on('unhandledRejection', (reason, _promise) => {
   process.exit(1);
 });
 
-// --- Global Entry Point ---
-main().catch((error) => {
-  console.error('An unexpected critical error occurred:');
-  if (error instanceof Error) {
-    console.error(error.message);
-  } else {
-    console.error(String(error));
-  }
-  process.exit(1);
-});
 async function loadNonInteractiveConfig(
   config: Config,
   settings: LoadedSettings,
@@ -185,6 +184,7 @@ async function loadNonInteractiveConfig(
   };
   const nonInteractiveConfigResult = await loadCliConfig(
     nonInteractiveSettings,
+    config.getGeminiIgnorePatterns(),
   );
   return nonInteractiveConfigResult.config;
 }
