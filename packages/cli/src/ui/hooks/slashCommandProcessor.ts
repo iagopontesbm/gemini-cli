@@ -142,6 +142,21 @@ export const useSlashCommandProcessor = (
         name: 'mcp',
         description: 'list configured MCP servers and tools',
         action: async (_mainCommand, _subCommand, _args) => {
+          // Check if the _subCommand includes a specific flag to control description visibility
+          let useShowDescriptions = showToolDescriptions;
+          if (_subCommand === 'desc' || _subCommand === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (
+            _subCommand === 'nodesc' ||
+            _subCommand === 'nodescriptions'
+          ) {
+            useShowDescriptions = false;
+          } else if (_args === 'desc' || _args === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (_args === 'nodesc' || _args === 'nodescriptions') {
+            useShowDescriptions = false;
+          }
+
           const toolRegistry = await config?.getToolRegistry();
           if (!toolRegistry) {
             addMessage({
@@ -185,13 +200,67 @@ export const useSlashCommandProcessor = (
                 break;
             }
 
-            message += `${statusDot} ${serverName} (${serverTools.length} tools):\n`;
+            // Get server description if available
+            const server = mcpServers[serverName];
+
+            // Format server header with bold formatting
+            message += `${statusDot} \u001b[1m${serverName}\u001b[0m (${serverTools.length} tools)`;
+
+            // Add server description with proper handling of multi-line descriptions
+            if (useShowDescriptions && server?.description) {
+              const greenColor = '\u001b[32m';
+              const resetColor = '\u001b[0m';
+
+              const descLines = server.description.split('\n');
+              message += `: ${greenColor}${descLines[0]}${resetColor}`;
+              message += '\n';
+
+              // If there are multiple lines, add proper indentation for each line
+              if (descLines.length > 1) {
+                for (let i = 1; i < descLines.length; i++) {
+                  // Skip empty lines at the end
+                  if (i === descLines.length - 1 && descLines[i].trim() === '')
+                    continue;
+                  message += `    ${greenColor}${descLines[i]}${resetColor}\n`;
+                }
+              }
+            } else {
+              message += '\n';
+            }
+
+            // Reset formatting after server entry
+            message += '\u001b[0m';
+
             if (serverTools.length > 0) {
               serverTools.forEach((tool) => {
-                if (showToolDescriptions && tool.description) {
-                  message += `  - ${tool.name}: ${tool.description}\n`;
+                if (useShowDescriptions && tool.description) {
+                  // Format tool name in cyan using simple ANSI cyan color
+                  message += `  - \u001b[36m${tool.name}\u001b[0m: `;
+
+                  // Apply green color to the description text
+                  const greenColor = '\u001b[32m';
+                  const resetColor = '\u001b[0m';
+
+                  // Handle multi-line descriptions by properly indenting and preserving formatting
+                  const descLines = tool.description.split('\n');
+                  message += `${greenColor}${descLines[0]}${resetColor}\n`;
+
+                  // If there are multiple lines, add proper indentation for each line
+                  if (descLines.length > 1) {
+                    for (let i = 1; i < descLines.length; i++) {
+                      // Skip empty lines at the end
+                      if (
+                        i === descLines.length - 1 &&
+                        descLines[i].trim() === ''
+                      )
+                        continue;
+                      message += `      ${greenColor}${descLines[i]}${resetColor}\n`;
+                    }
+                  }
+                  // Reset is handled inline with each line now
                 } else {
-                  message += `  - ${tool.name}\n`;
+                  // Use cyan color for the tool name even when not showing descriptions
+                  message += `  - \u001b[36m${tool.name}\u001b[0m\n`;
                 }
               });
             } else {
@@ -199,11 +268,9 @@ export const useSlashCommandProcessor = (
             }
             message += '\n';
           }
-          
-          // Add the Ctrl+T hint for viewing/hiding descriptions
-          message += showToolDescriptions ? 
-            'Ctrl+T to hide tool descriptions' : 
-            'Ctrl+T to view tool descriptions';
+
+          // Make sure to reset any ANSI formatting at the end to prevent it from affecting the terminal
+          message += '\u001b[0m';
 
           addMessage({
             type: MessageType.INFO,
