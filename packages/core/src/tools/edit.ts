@@ -328,7 +328,6 @@ Expectation for required parameters:
     return result;
   }
 
-
   /**
    * Handles the confirmation prompt for the Edit tool in the CLI.
    * It needs to calculate the diff to show the user.
@@ -350,10 +349,7 @@ Expectation for required parameters:
 
     try {
       // Calculate what the edits would produce
-      const editResult = await this.applyMultipleEdits(
-        params,
-        abortSignal,
-      );
+      const editResult = await this.applyMultipleEdits(params, abortSignal);
 
       // Don't show confirmation if no edits would be applied
       if (editResult.editsApplied === 0 && !editResult.isNewFile) {
@@ -456,10 +452,7 @@ Expectation for required parameters:
     }
 
     try {
-      const editResult = await this.applyMultipleEdits(
-        params,
-        abortSignal,
-      );
+      const editResult = await this.applyMultipleEdits(params, abortSignal);
 
       // Apply the changes to the file
       this.ensureParentDirectoriesExist(params.file_path);

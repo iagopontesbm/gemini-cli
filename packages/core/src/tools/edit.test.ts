@@ -480,7 +480,9 @@ describe('EditTool', () => {
       expect(result.editsAttempted).toBe(1);
       expect(result.editsFailed).toBe(1);
       expect(result.failedEdits).toHaveLength(1);
-      expect(result.failedEdits![0].error).toMatch(/Expected 1 occurrences but found 2/);
+      expect(result.failedEdits![0].error).toMatch(
+        /Expected 1 occurrences but found 2/,
+      );
     });
 
     it('should successfully replace multiple occurrences when expected_replacements specified', async () => {
@@ -519,9 +521,7 @@ describe('EditTool', () => {
       expect(result.llmContent).toMatch(
         /Failed to apply any edits.*Expected 3 occurrences but found 2/,
       );
-      expect(result.returnDisplay).toMatch(
-        /No edits applied/,
-      );
+      expect(result.returnDisplay).toMatch(/No edits applied/);
     });
 
     it('should return error if trying to create a file that already exists (empty old_string)', async () => {
@@ -540,7 +540,6 @@ describe('EditTool', () => {
       expect(result.editsFailed).toBe(1);
     });
 
-
     it('should reject multiple edits with mixed file creation and editing on non-existent file', async () => {
       // Ensure file doesn't exist
       if (fs.existsSync(filePath)) {
@@ -556,13 +555,13 @@ describe('EditTool', () => {
       };
 
       const result = await tool.execute(params, new AbortController().signal);
-      
+
       // File should be created with first edit, but second edit should fail
       expect(result.llmContent).toMatch(/Created new file.*Failed edits/);
       expect(result.editsApplied).toBe(1);
       expect(result.editsFailed).toBe(1);
       expect(result.failedEdits![0].error).toMatch(/String not found/);
-      
+
       // File should now exist with content from first edit
       expect(fs.existsSync(filePath)).toBe(true);
       expect(fs.readFileSync(filePath, 'utf8')).toBe('new content');
@@ -661,7 +660,9 @@ function makeRequest() {
       const testFileName = 'test.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        edits: [{ old_string: 'identical_string', new_string: 'identical_string' }],
+        edits: [
+          { old_string: 'identical_string', new_string: 'identical_string' },
+        ],
       };
       // shortenPath will be called internally, resulting in just the file name
       expect(tool.getDescription(params)).toBe(
@@ -673,7 +674,12 @@ function makeRequest() {
       const testFileName = 'test.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        edits: [{ old_string: 'this is the old string value', new_string: 'this is the new string value' }],
+        edits: [
+          {
+            old_string: 'this is the old string value',
+            new_string: 'this is the new string value',
+          },
+        ],
       };
       // shortenPath will be called internally, resulting in just the file name
       // The snippets are truncated at 30 chars + '...'
@@ -695,10 +701,14 @@ function makeRequest() {
       const testFileName = 'long.txt';
       const params: EditToolParams = {
         file_path: path.join(rootDir, testFileName),
-        edits: [{
-          old_string: 'this is a very long old string that will definitely be truncated',
-          new_string: 'this is a very long new string that will also be truncated'
-        }],
+        edits: [
+          {
+            old_string:
+              'this is a very long old string that will definitely be truncated',
+            new_string:
+              'this is a very long new string that will also be truncated',
+          },
+        ],
       };
       expect(tool.getDescription(params)).toBe(
         `${testFileName}: this is a very long old string... => this is a very long new string...`,
