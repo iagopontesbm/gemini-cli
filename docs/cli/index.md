@@ -39,7 +39,13 @@ The Gemini CLI can be run in a non-interactive mode, which is useful for scripti
 To use the non-interactive mode, you can pipe a command to the CLI. For example:
 
 ```bash
-echo "What is the capital of France?" | gemini
+echo "What is fine tuning?" | gemini
 ```
 
-This will execute the command and print the output to the console.
+You can achieve the same result with the `--prompt` or `p` argument. For example:
+
+```bash
+gemini -p "What is fine tuning?"
+```
+
+In both cases this will execute the command and print the output to the console.

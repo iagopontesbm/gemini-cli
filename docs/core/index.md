@@ -2,6 +2,11 @@
 
 The Gemini CLI Core (`packages/core`) acts as the backend engine for the Gemini CLI, handling communication with the Gemini API, managing tools, and processing requests from the CLI client. For a general overview of the Gemini CLI, see the [main documentation page](../index.md).
 
+## Navigating this Section
+
+- **[Core Configuration](../cli/configuration.md):** Details on how to configure the core component, including environment variables and specific settings.
+- **[Core Tools API](./tools-api.md):** Information on how tools are defined, registered, and used by the core.
+
 ## Role of the Core
 
 The core package is a crucial part of the Gemini CLI ecosystem. While the CLI (`packages/cli`) provides the user interface, the core is responsible for:
@@ -44,18 +49,13 @@ The core plays a vital role in security:
 - **API Key Management:** It handles the `GEMINI_API_KEY` and ensures it is used securely when communicating with the Gemini API.
 - **Tool Execution:** When tools interact with the local system (e.g., `execute_bash_command`), the core (and its underlying tool implementations) must do so with appropriate caution, often involving sandboxing mechanisms to prevent unintended side effects.
 
-## Navigating this Section
-
-- **[Core Configuration](../cli/configuration.md):** Details on how to configure the core component, including environment variables and specific settings.
-- **[Core Tools API](./tools-api.md):** Information on how tools are defined, registered, and used by the core.
-
 ## Chat History Compression
 
 To ensure that long conversations don't exceed the token limits of the Gemini model, the CLI includes a chat history compression feature.
 
 When a conversation approaches the token limit for the configured model, the CLI will automatically compress the conversation history before sending it to the model. This compression is designed to be lossless in terms of the information conveyed, but it reduces the overall number of tokens used.
 
-When this happens, you will see a message in the CLI indicating that the chat history has been compressed. This allows you to continue your conversation without interruption.
+You can find the token limits for each model in the [Google AI documentation](https://ai.google.dev/gemini-api/docs/models).
 
 ## Model Fallback
 
@@ -67,8 +67,6 @@ If you are using the default "pro" model and the CLI detects that you are being 
 
 The file discovery service is responsible for finding files in the project that are relevant to the current context. It is used by the `@` command and other tools that need to access files.
 
-The file discovery service can be configured to respect `.gitignore` files, and to include or exclude build artifacts. You can configure the file discovery service in the `fileFiltering` section of your `settings.json` file.
-
 ## Memory Discovery Service
 
 The memory discovery service is responsible for finding and loading the `GEMINI.md` files that provide context to the model. It searches for these files in a hierarchical manner, starting from the current working directory and moving up to the project root and the user's home directory. It also searches in subdirectories.
@@ -76,9 +74,3 @@ The memory discovery service is responsible for finding and loading the `GEMINI.
 This allows you to have global, project-level, and component-level context files, which are all combined to provide the model with the most relevant information.
 
 You can use the `/memory show` command to see the combined content of all loaded `GEMINI.md` files, and the `/memory refresh` command to reload them.
-
-## Token Limits
-
-The Gemini models have token limits, which vary by model. The CLI is aware of these limits and will automatically compress the chat history to ensure that the conversation does not exceed the token limit.
-
-You can find the token limits for each model in the [Google AI documentation](https://ai.google.dev/gemini-api/docs/models).

@@ -212,18 +212,6 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Set to any value to disable all color output in the CLI.
 - **`CLI_TITLE`**:
   - Set to a string to customize the title of the CLI.
-- **`GEMINI_DISABLE_LOADING_PHRASES`**:
-  - Set to `true` to disable the witty loading phrases.
-- **`GEMINI_CONTEXT_FILENAME`**:
-  - Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`).
-  - Overrides the `contextFileName` setting in `settings.json`.
-- **`GEMINI_YOLO_MODE`**:
-  - Set to `true` to enable YOLO mode, which automatically accepts all tool executions.
-- **`GEMINI_NON_INTERACTIVE_MODE`**:
-  - Set to `true` to enable non-interactive mode.
-- **`GEMINI_IGNORE_FILE`**:
-  - Specifies the name of the file to use for ignoring files and directories.
-  - Defaults to `.geminiignore`.
 
 ## 3. Command-Line Arguments
 
