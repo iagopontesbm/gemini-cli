@@ -13,21 +13,21 @@ import * as path from 'path';
 const warningsFilePath = pathJoin(tmpdir(), 'gemini-code-cli-warnings.txt');
 
 interface Job {
-    id: string;
-    description: string;
-    status: 'in_progress' | 'completed' | 'paused' | 'failed';
-    tasks: Task[];
-    comments: string[];
-    createdAt: string;
+  id: string;
+  description: string;
+  status: 'in_progress' | 'completed' | 'paused' | 'failed';
+  tasks: Task[];
+  comments: string[];
+  createdAt: string;
 }
 
 interface Task {
-    id: string;
-    content: string;
-    status: 'pending' | 'in_progress' | 'completed' | 'failed';
-    priority: 'high' | 'medium' | 'low';
-    comments: string[];
-    createdAt: string;
+  id: string;
+  content: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'failed';
+  priority: 'high' | 'medium' | 'low';
+  comments: string[];
+  createdAt: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -37,19 +37,27 @@ async function _checkIncompleteJobs(): Promise<string[]> {
     const jobsFilePath = path.join(homedir(), '.gemini', 'jobs.json');
     const data = await fs.readFile(jobsFilePath, 'utf-8');
     const jobs = JSON.parse(data) as Job[];
-    
+
     // Filter incomplete jobs
-    const incompleteJobs = jobs.filter(job => job.status === 'in_progress' || job.status === 'paused');
-    
+    const incompleteJobs = jobs.filter(
+      (job) => job.status === 'in_progress' || job.status === 'paused',
+    );
+
     if (incompleteJobs.length > 0) {
-      warnings.push(`You have ${incompleteJobs.length} incomplete job${incompleteJobs.length > 1 ? 's' : ''}:`);
-      incompleteJobs.forEach(job => {
-        const incompleteTasks = job.tasks.filter(task => 
-          task.status === 'pending' || task.status === 'in_progress'
+      warnings.push(
+        `You have ${incompleteJobs.length} incomplete job${incompleteJobs.length > 1 ? 's' : ''}:`,
+      );
+      incompleteJobs.forEach((job) => {
+        const incompleteTasks = job.tasks.filter(
+          (task) => task.status === 'pending' || task.status === 'in_progress',
         ).length;
-        warnings.push(`  - Job "${job.description}" (${job.status}) with ${incompleteTasks} incomplete task${incompleteTasks !== 1 ? 's' : ''}`);
+        warnings.push(
+          `  - Job "${job.description}" (${job.status}) with ${incompleteTasks} incomplete task${incompleteTasks !== 1 ? 's' : ''}`,
+        );
       });
-      warnings.push('Ask me to show your jobs or check the status of a specific job.');
+      warnings.push(
+        'Ask me to show your jobs or check the status of a specific job.',
+      );
     }
   } catch (err: unknown) {
     // If file doesn't exist or there's an error reading it, silently ignore
@@ -64,7 +72,7 @@ async function _checkIncompleteJobs(): Promise<string[]> {
 
 export async function getStartupWarnings(): Promise<string[]> {
   const warnings: string[] = [];
-  
+
   // Check for system warnings file
   try {
     await fs.access(warningsFilePath); // Check if file exists
@@ -89,13 +97,15 @@ export async function getStartupWarnings(): Promise<string[]> {
       // File not found, no warnings to return.
     } else {
       // For other errors (permissions, etc.), return the error message.
-      warnings.push(`Error checking/reading warnings file: ${getErrorMessage(err)}`);
+      warnings.push(
+        `Error checking/reading warnings file: ${getErrorMessage(err)}`,
+      );
     }
   }
-  
+
   // Check for incomplete jobs - disabled as we now use /jobs command
   // const jobWarnings = await checkIncompleteJobs();
   // warnings.push(...jobWarnings);
-  
+
   return warnings;
 }

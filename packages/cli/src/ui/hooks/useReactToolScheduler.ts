@@ -242,7 +242,7 @@ export function mapToDisplay(
       'tool' in trackedCall && trackedCall.tool
         ? (trackedCall as { tool: Tool }).tool
         : undefined;
-    
+
     // If tool has hideFromUI set to true, exclude it from display
     return !currentToolInstance?.hideFromUI;
   });

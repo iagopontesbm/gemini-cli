@@ -6,10 +6,7 @@
       "name": "File Search & Read",
       "description": "User asks about code location/functionality",
       "total_tokens": 27590,
-      "token_range": [
-        22072,
-        33108
-      ],
+      "token_range": [22072, 33108],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,
@@ -24,10 +21,7 @@
       "name": "Simple Code Edit",
       "description": "User requests specific change to a file",
       "total_tokens": 24900,
-      "token_range": [
-        19920,
-        29880
-      ],
+      "token_range": [19920, 29880],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,
@@ -42,10 +36,7 @@
       "name": "Multi-File Refactor",
       "description": "User requests refactoring across codebase",
       "total_tokens": 44660,
-      "token_range": [
-        35728,
-        53592
-      ],
+      "token_range": [35728, 53592],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,
@@ -60,10 +51,7 @@
       "name": "Bug Fix",
       "description": "User reports issue, agent investigates and fixes",
       "total_tokens": 39310,
-      "token_range": [
-        31448,
-        47172
-      ],
+      "token_range": [31448, 47172],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,
@@ -78,10 +66,7 @@
       "name": "Feature Implementation",
       "description": "User requests new feature implementation",
       "total_tokens": 47810,
-      "token_range": [
-        38248,
-        57372
-      ],
+      "token_range": [38248, 57372],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,
@@ -96,10 +81,7 @@
       "name": "Code Analysis",
       "description": "User asks for code explanation/analysis",
       "total_tokens": 43060,
-      "token_range": [
-        34448,
-        51672
-      ],
+      "token_range": [34448, 51672],
       "breakdown": {
         "system_prompt": 20000,
         "tool_definitions": 2500,

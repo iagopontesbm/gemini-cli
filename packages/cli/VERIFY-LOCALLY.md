@@ -3,20 +3,25 @@
 ## Quick Verification Steps
 
 ### 1. Test Current Functionality (normal install)
+
 ```bash
 # Run directly from the built output
 node dist/index.js --help
 ```
+
 You should see the big text "GEMINI" header.
 
 ### 2. Verify Fonts are Bundled
+
 ```bash
 # Check that fonts are included in the build
 ls -la dist/cfonts-fonts/
 ```
+
 You should see 13 font JSON files.
 
 ### 3. Simulate npx Execution
+
 ```bash
 # Install globally from tarball
 npm install -g ./gemini-code-cli-0.1.0.tgz
@@ -32,15 +37,18 @@ npm uninstall -g @gemini-code/cli
 ```
 
 ### 4. Check Tarball Contents
+
 ```bash
 # Verify fonts are in the package
 tar -tzf gemini-code-cli-0.1.0.tgz | grep cfonts-fonts
 ```
+
 You should see all the font files listed.
 
 ## Testing Different Branches
 
 ### Compare the two fixes:
+
 ```bash
 # Test fallback-only fix
 git checkout fix-ink-big-text-bundling
@@ -48,7 +56,7 @@ npm run build
 node dist/index.js --help
 # Should show ASCII art
 
-# Test root cause fix  
+# Test root cause fix
 git checkout fix-ink-big-text-root-cause
 npm run build
 node dist/index.js --help
