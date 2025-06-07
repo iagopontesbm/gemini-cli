@@ -58,13 +58,16 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
     } catch (error: unknown) {
       // Don't log ENOENT errors as they're expected when .git doesn't exist
       // Also don't log errors in test environments, which often have mocked fs
-      const isENOENT = typeof error === 'object' && error !== null && 'code' in error && 
-                       (error as { code: string }).code === 'ENOENT';
-      
+      const isENOENT =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'ENOENT';
+
       // Only log unexpected errors in non-test environments
       // process.env.NODE_ENV === 'test' or VITEST are common test indicators
       const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
-      
+
       if (!isENOENT && !isTestEnv) {
         if (typeof error === 'object' && error !== null && 'code' in error) {
           const fsError = error as { code: string; message: string };

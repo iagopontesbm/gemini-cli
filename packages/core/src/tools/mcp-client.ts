@@ -22,7 +22,7 @@ export enum MCPServerStatus {
   /** Server is in the process of connecting */
   CONNECTING = 'connecting',
   /** Server is connected and ready to use */
-  CONNECTED = 'connected'
+  CONNECTED = 'connected',
 }
 
 /**
@@ -39,20 +39,27 @@ export const mcpServerStatuses = mcpServerStatusesInternal;
 /**
  * Event listeners for MCP server status changes
  */
-type StatusChangeListener = (serverName: string, status: MCPServerStatus) => void;
+type StatusChangeListener = (
+  serverName: string,
+  status: MCPServerStatus,
+) => void;
 const statusChangeListeners: StatusChangeListener[] = [];
 
 /**
  * Add a listener for MCP server status changes
  */
-export function addMCPStatusChangeListener(listener: StatusChangeListener): void {
+export function addMCPStatusChangeListener(
+  listener: StatusChangeListener,
+): void {
   statusChangeListeners.push(listener);
 }
 
 /**
  * Remove a listener for MCP server status changes
  */
-export function removeMCPStatusChangeListener(listener: StatusChangeListener): void {
+export function removeMCPStatusChangeListener(
+  listener: StatusChangeListener,
+): void {
   const index = statusChangeListeners.indexOf(listener);
   if (index !== -1) {
     statusChangeListeners.splice(index, 1);
@@ -62,7 +69,10 @@ export function removeMCPStatusChangeListener(listener: StatusChangeListener): v
 /**
  * Update the status of an MCP server
  */
-function updateMCPServerStatus(serverName: string, status: MCPServerStatus): void {
+function updateMCPServerStatus(
+  serverName: string,
+  status: MCPServerStatus,
+): void {
   mcpServerStatusesInternal.set(serverName, status);
   // Notify all listeners
   for (const listener of statusChangeListeners) {
@@ -74,7 +84,9 @@ function updateMCPServerStatus(serverName: string, status: MCPServerStatus): voi
  * Get the current status of an MCP server
  */
 export function getMCPServerStatus(serverName: string): MCPServerStatus {
-  return mcpServerStatusesInternal.get(serverName) || MCPServerStatus.DISCONNECTED;
+  return (
+    mcpServerStatusesInternal.get(serverName) || MCPServerStatus.DISCONNECTED
+  );
 }
 
 /**

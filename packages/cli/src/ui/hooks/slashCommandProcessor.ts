@@ -150,10 +150,10 @@ export const useSlashCommandProcessor = (
             });
             return;
           }
-          
+
           const mcpServers = config?.getMcpServers() || {};
           const serverNames = Object.keys(mcpServers);
-          
+
           if (serverNames.length === 0) {
             addMessage({
               type: MessageType.INFO,
@@ -162,13 +162,13 @@ export const useSlashCommandProcessor = (
             });
             return;
           }
-          
+
           let message = 'Configured MCP servers and tools:\n\n';
-          
+
           for (const serverName of serverNames) {
             const serverTools = toolRegistry.getToolsByServer(serverName);
             const status = getMCPServerStatus(serverName);
-            
+
             // Add status indicator
             let statusDot = '';
             switch (status) {
@@ -183,10 +183,10 @@ export const useSlashCommandProcessor = (
                 statusDot = '🔴'; // Red dot for disconnected
                 break;
             }
-            
+
             message += `${statusDot} ${serverName} (${serverTools.length} tools):\n`;
             if (serverTools.length > 0) {
-              serverTools.forEach(tool => {
+              serverTools.forEach((tool) => {
                 message += `  - ${tool.name}\n`;
               });
             } else {
@@ -194,7 +194,7 @@ export const useSlashCommandProcessor = (
             }
             message += '\n';
           }
-          
+
           addMessage({
             type: MessageType.INFO,
             content: message,
@@ -240,11 +240,11 @@ export const useSlashCommandProcessor = (
             });
             return;
           }
-          
+
           // Filter out MCP tools by checking if they have a serverName property
-          const geminiTools = tools.filter(tool => !('serverName' in tool));
-          const geminiToolList = geminiTools.map(tool => tool.name);
-          
+          const geminiTools = tools.filter((tool) => !('serverName' in tool));
+          const geminiToolList = geminiTools.map((tool) => tool.name);
+
           addMessage({
             type: MessageType.INFO,
             content: `Available Gemini CLI tools:\n\n${geminiToolList.join('\n')}`,
