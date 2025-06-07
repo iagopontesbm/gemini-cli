@@ -6,20 +6,14 @@
 
 import { execSync } from 'child_process';
 
+type EditorType = 'vscode' | 'vimdiff';
+
 interface DiffCommand {
   command: string;
   args: string[];
 }
 
-/**
- * Finds the best available diff tool on the system.
- * Currently supported: vimdiff, vscode.
- * Note that vscode might not work properly in sandbox mode.
- */
-export function getBestDiffCommand(
-  oldPath: string,
-  newPath: string,
-): DiffCommand | null {
+export function checkHasEditor(editor: 'vscode' | 'vimdiff'): boolean {
   const commandExists = (cmd: string): boolean => {
     try {
       execSync(`which ${cmd}`, { stdio: 'ignore' });
@@ -29,41 +23,48 @@ export function getBestDiffCommand(
     }
   };
 
-  const isSandbox = !!process.env.SANDBOX;
-  const diffTools = [
-    // GUI editors
-    ...(!isSandbox
-      ? [
-          {
-            name: 'vscode',
-            command: 'code',
-            args: (oldPath: string, newPath: string) => [
-              '--wait',
-              '--diff',
-              oldPath,
-              newPath,
-            ],
-          },
-        ]
-      : []),
-    // Terminal-based editors
-    {
-      name: 'vimdiff',
-      command: 'vimdiff',
-      args: (oldPath: string, newPath: string) => [oldPath, newPath],
-    },
-  ];
-
-  for (const tool of diffTools) {
-    if (commandExists(tool.command)) {
-      return {
-        command: tool.command,
-        args: tool.args(oldPath, newPath),
-      };
-    }
+  if (editor === 'vscode') {
+    return commandExists('code');
+  } else if (editor === 'vimdiff') {
+    return commandExists('vimdiff');
   }
+  return false;
+}
 
-  return null;
+/**
+ * Get the diff command for a specific editor.
+ */
+export function getDiffCommand(
+  oldPath: string,
+  newPath: string,
+  editor: EditorType,
+): DiffCommand | null {
+  switch (editor) {
+    case 'vscode':
+      return {
+        command: 'code',
+        args: ['--wait', '--diff', oldPath, newPath],
+      };
+    case 'vimdiff':
+      return {
+        command: 'vimdiff',
+        args: [
+          // skip viminfo file to avoid E138 errors
+          '-i',
+          'NONE',
+          // make the left window read-only and the right window editable
+          '-c',
+          'wincmd h | set readonly | wincmd l',
+          // Show helpful message in status line
+          '-c',
+          'set statusline=\\ :wqa(save+quit)\\ \\|\\ :qa!(quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          oldPath,
+          newPath,
+        ],
+      };
+    default:
+      return null;
+  }
 }
 
 /**
@@ -74,8 +75,9 @@ export function getBestDiffCommand(
 export async function openDiff(
   oldPath: string,
   newPath: string,
+  editor: EditorType,
 ): Promise<void> {
-  const diffCommand = getBestDiffCommand(oldPath, newPath);
+  const diffCommand = getDiffCommand(oldPath, newPath, editor);
   if (!diffCommand) {
     console.error('No diff tool available. Install vimdiff or vscode.');
     return;

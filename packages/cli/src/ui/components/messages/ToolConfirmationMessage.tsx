@@ -13,6 +13,8 @@ import {
   ToolConfirmationOutcome,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
+  checkHasEditor,
+  Config,
 } from '@gemini-code/core';
 import {
   RadioButtonSelect,
@@ -21,11 +23,12 @@ import {
 
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
+  config?: Config;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails }) => {
+> = ({ confirmationDetails, config }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
@@ -46,7 +49,13 @@ export const ToolConfirmationMessage: React.FC<
   if (confirmationDetails.type === 'edit') {
     // Body content is now the DiffRenderer, passing filename to it
     // The bordered box is removed from here and handled within DiffRenderer
-    bodyContent = (
+    bodyContent = confirmationDetails.isEditing ? (
+      <Box borderStyle="round" borderColor={Colors.Gray} padding={1}>
+        <Text dimColor>
+          Edit in progress - save and close editor to reflect changes
+        </Text>
+      </Box>
+    ) : (
       <DiffRenderer
         diffContent={confirmationDetails.fileDiff}
         filename={confirmationDetails.fileName}
@@ -63,12 +72,24 @@ export const ToolConfirmationMessage: React.FC<
         label: 'Yes, allow always',
         value: ToolConfirmationOutcome.ProceedAlways,
       },
-      {
-        label: 'Modify change',
-        value: ToolConfirmationOutcome.Modify,
-      },
-      { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
+
+    // Conditionally add editor modification options if editors are installed
+    if (checkHasEditor('vscode') && !config?.getSandbox()) {
+      options.push({
+        label: 'Modify with VS Code',
+        value: ToolConfirmationOutcome.ModifyVSCode,
+      });
+    }
+
+    if (checkHasEditor('vimdiff')) {
+      options.push({
+        label: 'Modify with vimdiff',
+        value: ToolConfirmationOutcome.ModifyVimdiff,
+      });
+    }
+
+    options.push({ label: 'No (esc)', value: ToolConfirmationOutcome.Cancel });
   } else if (confirmationDetails.type === 'exec') {
     const executionProps =
       confirmationDetails as ToolExecuteConfirmationDetails;

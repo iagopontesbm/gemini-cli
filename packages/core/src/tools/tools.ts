@@ -202,6 +202,7 @@ export interface ToolEditConfirmationDetails {
   onConfirm: (outcome: ToolConfirmationOutcome) => Promise<void>;
   fileName: string;
   fileDiff: string;
+  isEditing?: boolean;
 }
 
 export interface ToolExecuteConfirmationDetails {
@@ -231,6 +232,7 @@ export enum ToolConfirmationOutcome {
   ProceedAlways = 'proceed_always',
   ProceedAlwaysServer = 'proceed_always_server',
   ProceedAlwaysTool = 'proceed_always_tool',
-  Modify = 'modify',
+  ModifyVSCode = 'modify_vscode',
+  ModifyVimdiff = 'modify_vimdiff',
   Cancel = 'cancel',
 }

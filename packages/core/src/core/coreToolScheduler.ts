@@ -483,19 +483,30 @@ export class CoreToolScheduler {
         'cancelled',
         'User did not allow tool call',
       );
-    } else if (outcome === ToolConfirmationOutcome.Modify) {
+    } else if (
+      outcome === ToolConfirmationOutcome.ModifyVSCode ||
+      outcome === ToolConfirmationOutcome.ModifyVimdiff
+    ) {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
+        this.setStatusInternal(callId, 'awaiting_approval', {
+          ...waitingToolCall.confirmationDetails,
+          isEditing: true,
+        });
+
         const modifyResults = await editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,
           this.abortController.signal,
+          outcome,
         );
+
         if (modifyResults) {
           this.setArgsInternal(callId, modifyResults.updatedParams);
           this.setStatusInternal(callId, 'awaiting_approval', {
             ...waitingToolCall.confirmationDetails,
             fileDiff: modifyResults.updatedDiff,
+            isEditing: false,
           });
         }
       }

@@ -526,6 +526,7 @@ Expectation for required parameters:
   async onModify(
     params: EditToolParams,
     _abortSignal: AbortSignal,
+    outcome: ToolConfirmationOutcome,
   ): Promise<
     { updatedParams: EditToolParams; updatedDiff: string } | undefined
   > {
@@ -533,7 +534,11 @@ Expectation for required parameters:
     this.tempOldDiffPath = oldPath;
     this.tempNewDiffPath = newPath;
 
-    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath);
+    await openDiff(
+      this.tempOldDiffPath,
+      this.tempNewDiffPath,
+      outcome === ToolConfirmationOutcome.ModifyVSCode ? 'vscode' : 'vimdiff',
+    );
     return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }
 

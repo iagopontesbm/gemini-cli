@@ -347,6 +347,7 @@ export const App = ({
                 key={h.id}
                 item={h}
                 isPending={false}
+                config={config}
               />
             )),
           ]}
@@ -362,6 +363,7 @@ export const App = ({
               // HistoryItemDisplay. Refactor later. Use a fake id for now.
               item={{ ...item, id: 0 }}
               isPending={true}
+              config={config}
             />
           ))}
         </Box>

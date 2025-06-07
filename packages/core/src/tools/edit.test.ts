@@ -32,6 +32,7 @@ import fs from 'fs';
 import os from 'os';
 import { ApprovalMode, Config } from '../config/config.js';
 import { Content, Part, SchemaUnion } from '@google/genai';
+import { ToolConfirmationOutcome } from './tools.js';
 
 describe('EditTool', () => {
   let tool: EditTool;
@@ -746,7 +747,11 @@ function makeRequest() {
 
       fs.writeFileSync(filePath, originalContent, 'utf8');
 
-      const result = await tool.onModify(params, new AbortController().signal);
+      const result = await tool.onModify(
+        params,
+        new AbortController().signal,
+        ToolConfirmationOutcome.ModifyVSCode,
+      );
 
       expect(mockOpenDiff).toHaveBeenCalledTimes(1);
       const [oldPath, newPath] = mockOpenDiff.mock.calls[0];
@@ -786,7 +791,11 @@ function makeRequest() {
         edits: [{ old_string: '', new_string: 'new file content' }],
       };
 
-      const result = await tool.onModify(params, new AbortController().signal);
+      const result = await tool.onModify(
+        params,
+        new AbortController().signal,
+        ToolConfirmationOutcome.ModifyVSCode,
+      );
 
       expect(mockOpenDiff).toHaveBeenCalledTimes(1);
 
@@ -813,7 +822,11 @@ function makeRequest() {
       fs.writeFileSync(filePath, 'some old content', 'utf8');
 
       // Call onModify first time
-      const result1 = await tool.onModify(params, new AbortController().signal);
+      const result1 = await tool.onModify(
+        params,
+        new AbortController().signal,
+        ToolConfirmationOutcome.ModifyVSCode,
+      );
       const firstCall = mockOpenDiff.mock.calls[0];
       const firstOldPath = firstCall[0];
       const firstNewPath = firstCall[1];
@@ -825,7 +838,11 @@ function makeRequest() {
       // Ensure different timestamps so that the file names are different for testing.
       await new Promise((resolve) => setTimeout(resolve, 2));
 
-      const result2 = await tool.onModify(params, new AbortController().signal);
+      const result2 = await tool.onModify(
+        params,
+        new AbortController().signal,
+        ToolConfirmationOutcome.ModifyVSCode,
+      );
       const secondCall = mockOpenDiff.mock.calls[1];
       const secondOldPath = secondCall[0];
       const secondNewPath = secondCall[1];
