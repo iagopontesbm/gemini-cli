@@ -6,7 +6,7 @@
 
 import { execSync, spawn } from 'child_process';
 
-type EditorType = 'vscode' | 'vim';
+export type EditorType = 'vscode' | 'windsurf' | 'vim';
 
 interface DiffCommand {
   command: string;
@@ -25,6 +25,8 @@ function commandExists(cmd: string): boolean {
 export function checkHasEditor(editor: EditorType): boolean {
   if (editor === 'vscode') {
     return commandExists('code');
+  } else if (editor === 'windsurf') {
+    return commandExists('windsurf');
   } else if (editor === 'vim') {
     return commandExists('vim');
   }
@@ -43,6 +45,11 @@ export function getDiffCommand(
     case 'vscode':
       return {
         command: 'code',
+        args: ['--wait', '--diff', oldPath, newPath],
+      };
+    case 'windsurf':
+      return {
+        command: 'windsurf',
         args: ['--wait', '--diff', oldPath, newPath],
       };
     case 'vim':

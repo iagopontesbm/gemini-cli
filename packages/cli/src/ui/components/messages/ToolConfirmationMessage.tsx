@@ -98,6 +98,13 @@ export const ToolConfirmationMessage: React.FC<
       });
     }
 
+    if (checkHasEditor('windsurf') && notUsingSandbox && externalEditorsEnabled) {
+      options.push({
+        label: 'Modify with Windsurf',
+        value: ToolConfirmationOutcome.ModifyWindsurf,
+      });
+    }
+
     if (checkHasEditor('vim') && externalEditorsEnabled) {
       options.push({
         label: 'Modify with vim',

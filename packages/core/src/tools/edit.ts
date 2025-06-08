@@ -25,6 +25,7 @@ import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
 import { openDiff } from '../utils/editor.js';
 import { ReadFileTool } from './read-file.js';
+import { EditorType } from '../utils/editor.js';
 
 /**
  * Parameters for the Edit tool
@@ -518,6 +519,17 @@ Expectation for required parameters:
     }
   }
 
+  async getEditor(outcome: ToolConfirmationOutcome): Promise<EditorType> {
+    switch (outcome) {
+      case ToolConfirmationOutcome.ModifyVSCode:
+        return 'vscode';
+      case ToolConfirmationOutcome.ModifyWindsurf:
+        return 'windsurf';
+      default:
+        return 'vim';
+    }
+  }
+
   /**
    * Creates temp files for the current and proposed file contents and opens a diff tool.
    * When the diff tool is closed, the tool will check if the file has been modified and provide the updated params.
@@ -534,10 +546,12 @@ Expectation for required parameters:
     this.tempOldDiffPath = oldPath;
     this.tempNewDiffPath = newPath;
 
+    const editor = await this.getEditor(outcome);
+
     await openDiff(
       this.tempOldDiffPath,
       this.tempNewDiffPath,
-      outcome === ToolConfirmationOutcome.ModifyVSCode ? 'vscode' : 'vim',
+      editor,
     );
     return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }
