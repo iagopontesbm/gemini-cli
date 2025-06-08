@@ -36,7 +36,7 @@ esbuild.build({
   platform: 'node',
   format: 'esm',
   banner: {
-    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalToplevel.__filename);`,
+    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);`,
   },
   plugins: [nativeNodeModulesPlugin],
 }).catch(() => process.exit(1));
