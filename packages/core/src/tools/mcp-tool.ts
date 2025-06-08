@@ -43,7 +43,7 @@ This MCP tool named '${serverToolName}' was discovered from '${serverName}' MCP 
 
     super(
       name,
-      name,
+      `${serverToolName} (${serverName})`,
       description,
       parameterSchema,
       true, // isOutputMarkdown
