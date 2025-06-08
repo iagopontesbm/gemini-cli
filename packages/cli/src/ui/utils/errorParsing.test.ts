@@ -50,7 +50,7 @@ describe('parseAndFormatApiError', () => {
     });
 
     expect(parseAndFormatApiError(errorMessage)).toBe(
-      "API Error: Gemini 2.5 Pro Preview doesn't have a free quota tier. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. (Status: Too Many Requests)"
+      "API Error: Gemini 2.5 Pro Preview doesn't have a free quota tier. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. (Status: Too Many Requests)",
     );
   });
 });
