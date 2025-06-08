@@ -75,6 +75,14 @@ const commandExists = (cmd) => {
     execSync(`${checkCommand} ${cmd}`, { stdio: 'ignore' });
     return true;
   } catch {
+    if (os.platform() === 'win32') {
+      try {
+        execSync(`${checkCommand} ${cmd}.exe`, { stdio: 'ignore' });
+        return true;
+      } catch {
+        return false;
+      }
+    }
     return false;
   }
 };

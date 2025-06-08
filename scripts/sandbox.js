@@ -44,7 +44,7 @@ if (argv.i && !process.stdin.isTTY) {
   process.exit(1);
 }
 
-const image = 'gemini-code-sandbox';
+const image = 'gemini-cli-sandbox';
 const sandboxCommand = execSync('node scripts/sandbox_command.js')
   .toString()
   .trim();
@@ -72,7 +72,7 @@ if (firstArg) {
 if (!sandboxName) {
   if (sandboxes.length === 0) {
     console.error(
-      'No sandboxes found. Are you running gemini-code with sandboxing enabled?',
+      'No sandboxes found. Are you running gemini-cli with sandboxing enabled?',
     );
     process.exit(1);
   }
@@ -94,19 +94,33 @@ if (!sandboxes.includes(sandboxName)) {
   process.exit(1);
 }
 
-let cmd;
-let execArgs = [];
+const execArgs = [];
+let commandToRun = [];
 
+// Determine interactive flags.
+// If a command is provided, only be interactive if -i is passed.
+// If no command is provided, always be interactive.
 if (argv._.length > 0) {
-  cmd = argv._.join(' ');
   if (argv.i) {
     execArgs.push('-it');
   }
 } else {
-  cmd = os.platform() === 'win32' ? 'cmd.exe' : 'bash -l';
   execArgs.push('-it');
 }
 
-execArgs.push(sandboxName, ...cmd.split(' '));
+// Determine the command to run inside the container.
+if (argv._.length > 0) {
+  // Join all positional arguments into a single command string.
+  const userCommand = argv._.join(' ');
+  // The container is Linux, so we use bash -l -c to execute the command string.
+  // This is cross-platform because it's what the container runs, not the host.
+  commandToRun = ['bash', '-l', '-c', userCommand];
+} else {
+  // No command provided, so we start an interactive bash login shell.
+  commandToRun = ['bash', '-l'];
+}
 
-spawn(sandboxCommand, ['exec', ...execArgs], { stdio: 'inherit' });
+const spawnArgs = ['exec', ...execArgs, sandboxName, ...commandToRun];
+
+// Use spawn to avoid shell injection issues and handle arguments correctly.
+spawn(sandboxCommand, spawnArgs, { stdio: 'inherit' });
