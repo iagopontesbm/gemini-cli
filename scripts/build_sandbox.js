@@ -75,10 +75,9 @@ if (!argv.s) {
 console.log('packing @gemini-cli/cli ...');
 const cliPackageDir = join('packages', 'cli');
 rmSync(join(cliPackageDir, 'dist', 'gemini-cli-cli-*.tgz'), { force: true });
-execSync(
-  `npm pack -w @gemini-cli/cli --pack-destination ./packages/cli/dist`,
-  { stdio: 'ignore' },
-);
+execSync(`npm pack -w @gemini-cli/cli --pack-destination ./packages/cli/dist`, {
+  stdio: 'ignore',
+});
 
 console.log('packing @gemini-cli/core ...');
 const corePackageDir = join('packages', 'core');
@@ -93,19 +92,11 @@ const packageVersion = JSON.parse(
 ).version;
 
 chmodSync(
-  join(
-    cliPackageDir,
-    'dist',
-    `gemini-cli-cli-${packageVersion}.tgz`,
-  ),
+  join(cliPackageDir, 'dist', `gemini-cli-cli-${packageVersion}.tgz`),
   0o755,
 );
 chmodSync(
-  join(
-    corePackageDir,
-    'dist',
-    `gemini-cli-core-${packageVersion}.tgz`,
-  ),
+  join(corePackageDir, 'dist', `gemini-cli-core-${packageVersion}.tgz`),
   0o755,
 );
 
