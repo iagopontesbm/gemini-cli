@@ -47,15 +47,23 @@ export const ToolConfirmationMessage: React.FC<
   >();
 
   if (confirmationDetails.type === 'edit') {
+    if (confirmationDetails.isEditing) {
+      return (
+        <Box flexDirection="column" padding={0.5} minWidth="90%">
+          <Box flexGrow={1} flexShrink={1} overflow="hidden" marginBottom={1}>
+            <Box borderStyle="round" borderColor={Colors.Gray} padding={1}>
+              <Text>
+                Edit in progress - <Text color={Colors.AccentGreen}>Save and close editor to continue</Text>
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+      );
+    }
+
     // Body content is now the DiffRenderer, passing filename to it
     // The bordered box is removed from here and handled within DiffRenderer
-    bodyContent = confirmationDetails.isEditing ? (
-      <Box borderStyle="round" borderColor={Colors.Gray} padding={1}>
-        <Text dimColor>
-          Edit in progress - save and close editor to reflect changes
-        </Text>
-      </Box>
-    ) : (
+    bodyContent = (
       <DiffRenderer
         diffContent={confirmationDetails.fileDiff}
         filename={confirmationDetails.fileName}
