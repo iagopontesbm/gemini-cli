@@ -14,7 +14,6 @@ import {
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
   checkHasEditor,
-  Config,
 } from '@gemini-cli/core';
 import {
   RadioButtonSelect,
@@ -23,12 +22,11 @@ import {
 
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
-  config?: Config;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails, config }) => {
+> = ({ confirmationDetails }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
@@ -85,8 +83,9 @@ export const ToolConfirmationMessage: React.FC<
       },
     );
 
-    // Conditionally add editor modification options if editors are installed
-    if (checkHasEditor('vscode') && !config?.getSandbox()) {
+    // Conditionally add editor options if editors are installed
+    const notUsingSandbox = !process.env.SANDBOX;
+    if (checkHasEditor('vscode') && notUsingSandbox) {
       options.push({
         label: 'Modify with VS Code',
         value: ToolConfirmationOutcome.ModifyVSCode,
