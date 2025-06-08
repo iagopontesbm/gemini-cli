@@ -42,7 +42,8 @@
   "files": [
     "bundle/",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "node_modules/tree-sitter-*/build/Release/*.node"
   ],
   "devDependencies": {
     "@types/micromatch": "^4.0.9",
