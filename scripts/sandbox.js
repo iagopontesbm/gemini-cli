@@ -20,7 +20,6 @@
 import { execSync, spawn } from 'child_process';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import os from 'os';
 
 try {
   execSync('node scripts/sandbox_command.js -q');

@@ -66,7 +66,9 @@ describe('useLoadingIndicator', () => {
     });
     expect(result.current.elapsedTime).toBe(60);
 
-    rerender({ streamingState: StreamingState.WaitingForConfirmation });
+    act(() => {
+      rerender({ streamingState: StreamingState.WaitingForConfirmation });
+    });
 
     expect(result.current.currentLoadingPhrase).toBe(
       'Waiting for user confirmation...',
@@ -91,13 +93,17 @@ describe('useLoadingIndicator', () => {
     });
     expect(result.current.elapsedTime).toBe(5);
 
-    rerender({ streamingState: StreamingState.WaitingForConfirmation });
+    act(() => {
+      rerender({ streamingState: StreamingState.WaitingForConfirmation });
+    });
     expect(result.current.elapsedTime).toBe(5);
     expect(result.current.currentLoadingPhrase).toBe(
       'Waiting for user confirmation...',
     );
 
-    rerender({ streamingState: StreamingState.Responding });
+    act(() => {
+      rerender({ streamingState: StreamingState.Responding });
+    });
     expect(result.current.elapsedTime).toBe(0); // Should reset
     expect(WITTY_LOADING_PHRASES).toContain(
       result.current.currentLoadingPhrase,
@@ -120,7 +126,9 @@ describe('useLoadingIndicator', () => {
     });
     expect(result.current.elapsedTime).toBe(10);
 
-    rerender({ streamingState: StreamingState.Idle });
+    act(() => {
+      rerender({ streamingState: StreamingState.Idle });
+    });
 
     expect(result.current.elapsedTime).toBe(0);
     expect(result.current.currentLoadingPhrase).toBe(WITTY_LOADING_PHRASES[0]);
