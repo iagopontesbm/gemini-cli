@@ -98,6 +98,7 @@ npm run test
 This will run tests located in the `packages/core` and `packages/cli` directories. Ensure tests pass before submitting any changes.
 
 #### Important Note for Sandbox Users on macOS/Windows
+
 This project uses native dependencies (e.g., `tree-sitter`) that are compiled for a specific operating system.
 
 When you run the application in the development sandbox via `npm start`, these dependencies are automatically rebuilt for the container's Linux environment.
