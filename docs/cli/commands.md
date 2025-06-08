@@ -11,6 +11,19 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Description:** Displays help information about the Gemini CLI, including available commands and their usage.
   - **Action:** Opens a help dialog or section within the CLI.
 
+- **`/mcp`** (Toggle descriptions: **Ctrl+T**)
+
+  - **Description:** Lists configured Model Context Protocol (MCP) servers and their available tools.
+  - **Action:** Displays a formatted list of MCP servers with connection status indicators, server details, and available tools.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Shows detailed descriptions for MCP servers and tools.
+      - **Action:** Displays each tool's name with its full description, formatted for readability.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hides tool descriptions, showing only the tool names.
+      - **Action:** Displays a compact list with only tool names.
+  - **Keyboard Shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
+
 - **`/clear`** (Shortcut: **Ctrl+L**)
 
   - **Description:** Clears the entire terminal screen, including the visible session history and scrollback within the CLI.
@@ -32,14 +45,16 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
     - **`refresh`**:
       - **Description:** Reloads the hierarchical instructional context (memory) from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the AI's understanding based on the latest `GEMINI.md` content.
       - **Action:** The CLI re-scans for all relevant `GEMINI.md` files and rebuilds its instructional memory. The number of loaded files is typically indicated in the CLI footer.
-    - **`delete_all_added`**:
-      - **Description:** Removes all ad-hoc memory entries that were added during the current session via `/memory add`. This does not affect memory loaded from `GEMINI.md` files.
-      - **Action:** All user-added memory entries for the current session are cleared.
-  - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
+    - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
 - **`/quit`** (or **`/exit`**)
+
   - **Description:** Exits the Gemini CLI application.
   - **Action:** Terminates the CLI process.
+
+- **`/tools`**
+  - **Description:** Displays a list of all the tools that are currently available to the model.
+  - **Action:** Outputs a list of the available tools.
 
 ## At Commands (`@`)
 

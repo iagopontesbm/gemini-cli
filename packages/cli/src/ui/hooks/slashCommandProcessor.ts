@@ -9,11 +9,12 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config } from '@gemini-code/core';
+import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatMemoryUsage } from '../utils/formatters.js';
+import { getCliVersion } from '../../utils/version.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -46,7 +47,7 @@ export const useSlashCommandProcessor = (
   openThemeDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
-  cliVersion: string,
+  showToolDescriptions: boolean = false,
 ) => {
   const addMessage = useCallback(
     (message: Message) => {
@@ -114,7 +115,7 @@ export const useSlashCommandProcessor = (
       {
         name: 'help',
         altName: '?',
-        description: 'for help on gemini-code',
+        description: 'for help on gemini-cli',
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
@@ -138,9 +139,150 @@ export const useSlashCommandProcessor = (
         },
       },
       {
+        name: 'mcp',
+        description: 'list configured MCP servers and tools',
+        action: async (_mainCommand, _subCommand, _args) => {
+          // Check if the _subCommand includes a specific flag to control description visibility
+          let useShowDescriptions = showToolDescriptions;
+          if (_subCommand === 'desc' || _subCommand === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (
+            _subCommand === 'nodesc' ||
+            _subCommand === 'nodescriptions'
+          ) {
+            useShowDescriptions = false;
+          } else if (_args === 'desc' || _args === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (_args === 'nodesc' || _args === 'nodescriptions') {
+            useShowDescriptions = false;
+          }
+
+          const toolRegistry = await config?.getToolRegistry();
+          if (!toolRegistry) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Could not retrieve tool registry.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          const mcpServers = config?.getMcpServers() || {};
+          const serverNames = Object.keys(mcpServers);
+
+          if (serverNames.length === 0) {
+            addMessage({
+              type: MessageType.INFO,
+              content: 'No MCP servers configured.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          let message = 'Configured MCP servers and tools:\n\n';
+
+          for (const serverName of serverNames) {
+            const serverTools = toolRegistry.getToolsByServer(serverName);
+            const status = getMCPServerStatus(serverName);
+
+            // Add status indicator
+            let statusDot = '';
+            switch (status) {
+              case MCPServerStatus.CONNECTED:
+                statusDot = '🟢'; // Green dot for connected
+                break;
+              case MCPServerStatus.CONNECTING:
+                statusDot = '🟡'; // Yellow dot for connecting
+                break;
+              case MCPServerStatus.DISCONNECTED:
+              default:
+                statusDot = '🔴'; // Red dot for disconnected
+                break;
+            }
+
+            // Get server description if available
+            const server = mcpServers[serverName];
+
+            // Format server header with bold formatting
+            message += `${statusDot} \u001b[1m${serverName}\u001b[0m (${serverTools.length} tools)`;
+
+            // Add server description with proper handling of multi-line descriptions
+            if (useShowDescriptions && server?.description) {
+              const greenColor = '\u001b[32m';
+              const resetColor = '\u001b[0m';
+
+              const descLines = server.description.split('\n');
+              message += `: ${greenColor}${descLines[0]}${resetColor}`;
+              message += '\n';
+
+              // If there are multiple lines, add proper indentation for each line
+              if (descLines.length > 1) {
+                for (let i = 1; i < descLines.length; i++) {
+                  // Skip empty lines at the end
+                  if (i === descLines.length - 1 && descLines[i].trim() === '')
+                    continue;
+                  message += `    ${greenColor}${descLines[i]}${resetColor}\n`;
+                }
+              }
+            } else {
+              message += '\n';
+            }
+
+            // Reset formatting after server entry
+            message += '\u001b[0m';
+
+            if (serverTools.length > 0) {
+              serverTools.forEach((tool) => {
+                if (useShowDescriptions && tool.description) {
+                  // Format tool name in cyan using simple ANSI cyan color
+                  message += `  - \u001b[36m${tool.name}\u001b[0m: `;
+
+                  // Apply green color to the description text
+                  const greenColor = '\u001b[32m';
+                  const resetColor = '\u001b[0m';
+
+                  // Handle multi-line descriptions by properly indenting and preserving formatting
+                  const descLines = tool.description.split('\n');
+                  message += `${greenColor}${descLines[0]}${resetColor}\n`;
+
+                  // If there are multiple lines, add proper indentation for each line
+                  if (descLines.length > 1) {
+                    for (let i = 1; i < descLines.length; i++) {
+                      // Skip empty lines at the end
+                      if (
+                        i === descLines.length - 1 &&
+                        descLines[i].trim() === ''
+                      )
+                        continue;
+                      message += `      ${greenColor}${descLines[i]}${resetColor}\n`;
+                    }
+                  }
+                  // Reset is handled inline with each line now
+                } else {
+                  // Use cyan color for the tool name even when not showing descriptions
+                  message += `  - \u001b[36m${tool.name}\u001b[0m\n`;
+                }
+              });
+            } else {
+              message += '  No tools available\n';
+            }
+            message += '\n';
+          }
+
+          // Make sure to reset any ANSI formatting at the end to prevent it from affecting the terminal
+          message += '\u001b[0m';
+
+          addMessage({
+            type: MessageType.INFO,
+            content: message,
+            timestamp: new Date(),
+          });
+        },
+      },
+      {
         name: 'memory',
         description:
-          'Manage memory. Usage: /memory <show|refresh|add> [text for add]',
+          'manage memory. Usage: /memory <show|refresh|add> [text for add]',
         action: (mainCommand, subCommand, args) => {
           switch (subCommand) {
             case 'show':
@@ -163,7 +305,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'tools',
-        description: 'list available tools',
+        description: 'list available Gemini CLI tools',
         action: async (_mainCommand, _subCommand, _args) => {
           const toolRegistry = await config?.getToolRegistry();
           const tools = toolRegistry?.getAllTools();
@@ -175,10 +317,14 @@ export const useSlashCommandProcessor = (
             });
             return;
           }
-          const toolList = tools.map((tool) => tool.name);
+
+          // Filter out MCP tools by checking if they have a serverName property
+          const geminiTools = tools.filter((tool) => !('serverName' in tool));
+          const geminiToolList = geminiTools.map((tool) => tool.name);
+
           addMessage({
             type: MessageType.INFO,
-            content: `Available tools:\n\n${toolList.join('\n')}`,
+            content: `Available Gemini CLI tools:\n\n${geminiToolList.join('\n')}`,
             timestamp: new Date(),
           });
         },
@@ -191,9 +337,9 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'about',
-        description: 'Show version info',
+        description: 'show version info',
         action: (_mainCommand, _subCommand, _args) => {
-          const osVersion = `${process.platform} ${process.version}`;
+          const osVersion = process.platform;
           let sandboxEnv = 'no sandbox';
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX;
@@ -201,7 +347,7 @@ export const useSlashCommandProcessor = (
             sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-
+          const cliVersion = getCliVersion();
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
@@ -214,7 +360,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'bug',
-        description: 'Submit a bug report.',
+        description: 'submit a bug report',
         action: (_mainCommand, _subCommand, args) => {
           let bugDescription = _subCommand || '';
           if (args) {
@@ -231,6 +377,7 @@ export const useSlashCommandProcessor = (
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const memoryUsage = formatMemoryUsage(process.memoryUsage().rss);
+          const cliVersion = getCliVersion();
 
           const diagnosticInfo = `
 ## Describe the bug
@@ -299,7 +446,7 @@ Add any other context about the problem here.
       addMessage,
       toggleCorgiMode,
       config,
-      cliVersion,
+      showToolDescriptions,
     ],
   );
 

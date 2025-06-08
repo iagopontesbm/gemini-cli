@@ -9,6 +9,9 @@ import {
   GenerateContentResponse,
   GenerateContentParameters,
   CountTokensParameters,
+  EmbedContentResponse,
+  EmbedContentParameters,
+  GoogleGenAI,
 } from '@google/genai';
 
 /**
@@ -24,4 +27,28 @@ export interface ContentGenerator {
   ): Promise<AsyncGenerator<GenerateContentResponse>>;
 
   countTokens(request: CountTokensParameters): Promise<CountTokensResponse>;
+
+  embedContent(request: EmbedContentParameters): Promise<EmbedContentResponse>;
+}
+
+export type ContentGeneratorConfig = {
+  model: string;
+  apiKey?: string;
+  vertexai?: boolean;
+  userAgent: string;
+};
+
+export function createContentGenerator(
+  config: ContentGeneratorConfig,
+): ContentGenerator {
+  const googleGenAI = new GoogleGenAI({
+    apiKey: config.apiKey === '' ? undefined : config.apiKey,
+    vertexai: config.vertexai,
+    httpOptions: {
+      headers: {
+        'User-Agent': config.userAgent,
+      },
+    },
+  });
+  return googleGenAI.models;
 }

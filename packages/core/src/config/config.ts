@@ -9,14 +9,15 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import process from 'node:process';
 import * as os from 'node:os';
+import { ContentGeneratorConfig } from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
+import { CodeParserTool } from '../tools/code_parser.js'; // Added CodeParserTool
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
 import { GrepTool } from '../tools/grep.js';
 import { GlobTool } from '../tools/glob.js';
 import { EditTool } from '../tools/edit.js';
 import { ShellTool } from '../tools/shell.js';
-import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
@@ -48,12 +49,14 @@ export class MCPServerConfig {
     // Common
     readonly timeout?: number,
     readonly trust?: boolean,
+    // Metadata
+    readonly description?: string,
   ) {}
 }
 
 export interface ConfigParameters {
-  apiKey: string;
-  model: string;
+  contentGeneratorConfig: ContentGeneratorConfig;
+  embeddingModel: string;
   sandbox: boolean | string;
   targetDir: string;
   debugMode: boolean;
@@ -64,11 +67,9 @@ export interface ConfigParameters {
   toolCallCommand?: string;
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
-  userAgent: string;
   userMemory?: string;
   geminiMdFileCount?: number;
   approvalMode?: ApprovalMode;
-  vertexai?: boolean;
   showMemoryUsage?: boolean;
   contextFileName?: string;
   geminiIgnorePatterns?: string[];
@@ -81,8 +82,8 @@ export interface ConfigParameters {
 
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
-  private readonly apiKey: string;
-  private readonly model: string;
+  private readonly contentGeneratorConfig: ContentGeneratorConfig;
+  private readonly embeddingModel: string;
   private readonly sandbox: boolean | string;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
@@ -93,11 +94,9 @@ export class Config {
   private readonly toolCallCommand: string | undefined;
   private readonly mcpServerCommand: string | undefined;
   private readonly mcpServers: Record<string, MCPServerConfig> | undefined;
-  private readonly userAgent: string;
   private userMemory: string;
   private geminiMdFileCount: number;
   private approvalMode: ApprovalMode;
-  private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetry: boolean;
@@ -110,8 +109,8 @@ export class Config {
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
-    this.apiKey = params.apiKey;
-    this.model = params.model;
+    this.contentGeneratorConfig = params.contentGeneratorConfig;
+    this.embeddingModel = params.embeddingModel;
     this.sandbox = params.sandbox;
     this.targetDir = path.resolve(params.targetDir);
     this.debugMode = params.debugMode;
@@ -122,11 +121,9 @@ export class Config {
     this.toolCallCommand = params.toolCallCommand;
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
-    this.userAgent = params.userAgent;
     this.userMemory = params.userMemory ?? '';
     this.geminiMdFileCount = params.geminiMdFileCount ?? 0;
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
-    this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
     this.telemetry = params.telemetry ?? false;
@@ -154,12 +151,16 @@ export class Config {
     }
   }
 
-  getApiKey(): string {
-    return this.apiKey;
+  getContentGeneratorConfig(): ContentGeneratorConfig {
+    return this.contentGeneratorConfig;
   }
 
   getModel(): string {
-    return this.model;
+    return this.contentGeneratorConfig.model;
+  }
+
+  getEmbeddingModel(): string {
+    return this.embeddingModel;
   }
 
   getSandbox(): boolean | string {
@@ -205,10 +206,6 @@ export class Config {
     return this.mcpServers;
   }
 
-  getUserAgent(): string {
-    return this.userAgent;
-  }
-
   getUserMemory(): string {
     return this.userMemory;
   }
@@ -231,10 +228,6 @@ export class Config {
 
   setApprovalMode(mode: ApprovalMode): void {
     this.approvalMode = mode;
-  }
-
-  getVertexAI(): boolean | undefined {
-    return this.vertexai;
   }
 
   getShowMemoryUsage(): boolean {
@@ -316,18 +309,9 @@ function findEnvFile(startDir: string): string | null {
 
 export function loadEnvironment(): void {
   const envFilePath = findEnvFile(process.cwd());
-  if (!envFilePath) {
-    return;
+  if (envFilePath) {
+    dotenv.config({ path: envFilePath });
   }
-  dotenv.config({ path: envFilePath });
-}
-
-export function createServerConfig(params: ConfigParameters): Config {
-  return new Config({
-    ...params,
-    targetDir: path.resolve(params.targetDir), // Ensure targetDir is resolved
-    userAgent: params.userAgent ?? 'GeminiCLI/unknown', // Default user agent
-  });
 }
 
 export function createToolRegistry(config: Config): Promise<ToolRegistry> {
@@ -351,12 +335,12 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(GrepTool, targetDir);
   registerCoreTool(GlobTool, targetDir, config);
   registerCoreTool(EditTool, config);
-  registerCoreTool(WriteFileTool, config);
   registerCoreTool(WebFetchTool, config);
   registerCoreTool(ReadManyFilesTool, targetDir, config);
   registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);
+  registerCoreTool(CodeParserTool, targetDir, config); // Added CodeParserTool
   return (async () => {
     await registry.discoverTools();
     return registry;
