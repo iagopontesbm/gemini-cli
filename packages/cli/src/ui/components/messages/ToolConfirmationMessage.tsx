@@ -87,8 +87,9 @@ export const ToolConfirmationMessage: React.FC<
 
     // Conditionally add editor options if editors are installed
     const notUsingSandbox = !process.env.SANDBOX;
-    const externalEditorsEnabled = config?.getEnableModifyWithExternalEditors() ?? false;
-    
+    const externalEditorsEnabled =
+      config?.getEnableModifyWithExternalEditors() ?? false;
+
     if (checkHasEditor('vscode') && notUsingSandbox && externalEditorsEnabled) {
       options.push({
         label: 'Modify with VS Code',
