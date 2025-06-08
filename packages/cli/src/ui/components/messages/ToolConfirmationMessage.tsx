@@ -14,6 +14,7 @@ import {
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
   checkHasEditor,
+  Config,
 } from '@gemini-cli/core';
 import {
   RadioButtonSelect,
@@ -22,11 +23,12 @@ import {
 
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
+  config?: Config;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails }) => {
+> = ({ confirmationDetails, config }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
@@ -85,14 +87,16 @@ export const ToolConfirmationMessage: React.FC<
 
     // Conditionally add editor options if editors are installed
     const notUsingSandbox = !process.env.SANDBOX;
-    if (checkHasEditor('vscode') && notUsingSandbox) {
+    const externalEditorsEnabled = config?.getEnableModifyWithExternalEditors() ?? false;
+    
+    if (checkHasEditor('vscode') && notUsingSandbox && externalEditorsEnabled) {
       options.push({
         label: 'Modify with VS Code',
         value: ToolConfirmationOutcome.ModifyVSCode,
       });
     }
 
-    if (checkHasEditor('vim')) {
+    if (checkHasEditor('vim') && externalEditorsEnabled) {
       options.push({
         label: 'Modify with vim',
         value: ToolConfirmationOutcome.ModifyVim,

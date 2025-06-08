@@ -79,6 +79,7 @@ export interface ConfigParameters {
   telemetryLogUserPromptsEnabled?: boolean;
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
+  enableModifyWithExternalEditors?: boolean;
 }
 
 export class Config {
@@ -110,6 +111,7 @@ export class Config {
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private readonly enableModifyWithExternalEditors: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
@@ -142,6 +144,8 @@ export class Config {
       params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringAllowBuildArtifacts =
       params.fileFilteringAllowBuildArtifacts ?? false;
+    this.enableModifyWithExternalEditors =
+      params.enableModifyWithExternalEditors ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -279,6 +283,10 @@ export class Config {
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
+  }
+
+  getEnableModifyWithExternalEditors(): boolean {
+    return this.enableModifyWithExternalEditors;
   }
 
   async getFileService(): Promise<FileDiscoveryService> {

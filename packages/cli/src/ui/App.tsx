@@ -340,6 +340,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 key={h.id}
                 item={h}
                 isPending={false}
+                config={config}
               />
             )),
           ]}
@@ -355,6 +356,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               // HistoryItemDisplay. Refactor later. Use a fake id for now.
               item={{ ...item, id: 0 }}
               isPending={true}
+              config={config}
             />
           ))}
         </Box>
