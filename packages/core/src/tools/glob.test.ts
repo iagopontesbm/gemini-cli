@@ -146,6 +146,36 @@ describe('GlobTool', () => {
       expect(result.returnDisplay).toBe('No files found');
     });
 
+    it('should respect .gitignore file and ignore specified files', async () => {
+      // Create a .gitignore file in the root of the test directory
+      await fs.writeFile(path.join(tempRootDir, '.gitignore'), '*.log\n');
+      // Create a file that should be ignored
+      await fs.writeFile(path.join(tempRootDir, 'ignored.log'), 'log_content');
+
+      // We need a new FileDiscoveryService that knows about the new .gitignore
+      const newMockConfig = {
+        ...mockConfig,
+        getFileService: async () => {
+          const service = new FileDiscoveryService(tempRootDir);
+          // Mock that this is a git repo to force it to read .gitignore
+          await service.initialize({ respectGitIgnore: true, isGitRepo: true });
+          return service;
+        },
+      };
+      const gitGlobTool = new GlobTool(tempRootDir, newMockConfig as Config);
+
+      const params: GlobToolParams = {
+        pattern: '**/*',
+        respect_git_ignore: true,
+      };
+      const result = await gitGlobTool.execute(params, abortSignal);
+
+      // Check that the ignored file is not in the output
+      expect(result.llmContent).not.toContain('ignored.log');
+      // Check that the message indicates a file was ignored
+      expect(result.llmContent).toContain('(1 additional files were git-ignored)');
+    });
+
     it('should correctly sort files by modification time (newest first)', async () => {
       const params: GlobToolParams = { pattern: '*.sortme' };
       const result = await globTool.execute(params, abortSignal);

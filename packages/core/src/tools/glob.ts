@@ -181,29 +181,33 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         params.path || '.',
       );
 
-      // Get centralized file discovery service
       const respectGitIgnore =
         params.respect_git_ignore ??
         this.config.getFileFilteringRespectGitIgnore();
-      const fileDiscovery = await this.config.getFileService();
 
-      const entries = await fg(params.pattern, {
+      const fileDiscovery = await this.config.getFileService();
+      const isGitRepo = fileDiscovery.isGitRepository();
+
+      const globOptions: fg.Options & { objectMode: true } = {
         cwd: searchDirAbsolute,
         absolute: true,
         onlyFiles: true,
         stats: true,
+        objectMode: true,
         dot: true,
         caseSensitiveMatch: params.case_sensitive ?? false,
-        ignore: ['**/node_modules/**', '**/.git/**'],
         followSymbolicLinks: false,
         suppressErrors: true,
-      });
+        ignore: ['**/node_modules/**', '**/.git/**'],
+      };
+
+      const entries = await fg(params.pattern, globOptions);
 
       // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
       let gitIgnoredCount = 0;
 
-      if (respectGitIgnore && fileDiscovery.isGitRepository()) {
+      if (respectGitIgnore && isGitRepo) {
         const allPaths = entries.map((entry) => entry.path);
         const relativePaths = allPaths.map((p) =>
           path.relative(this.rootDirectory, p),
