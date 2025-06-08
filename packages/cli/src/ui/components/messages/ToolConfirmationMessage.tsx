@@ -47,18 +47,21 @@ export const ToolConfirmationMessage: React.FC<
   >();
 
   if (confirmationDetails.type === 'edit') {
-    if (confirmationDetails.isEditing) {
+    if (confirmationDetails.isModifying) {
       return (
-        <Box flexDirection="column" padding={0.5} minWidth="90%">
-          <Box flexGrow={1} flexShrink={1} overflow="hidden" marginBottom={1}>
-            <Box borderStyle="round" borderColor={Colors.Gray} padding={1}>
-              <Text>
-                Edit in progress -{' '}
-                <Text color={Colors.AccentGreen}>
-                  Save and close editor to continue
-                </Text>
-              </Text>
-            </Box>
+        <Box padding={0.5} minWidth="90%">
+          <Box
+            width="100%"
+            borderStyle="round"
+            borderColor={Colors.Gray}
+            justifyContent="space-around"
+            padding={1}
+            overflow="hidden"
+          >
+            <Text>Modify in progress: </Text>
+            <Text color={Colors.AccentGreen}>
+              Save and close external editor to continue
+            </Text>
           </Box>
         </Box>
       );

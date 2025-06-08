@@ -492,7 +492,7 @@ export class CoreToolScheduler {
         const editTool = waitingToolCall.tool as EditTool;
         this.setStatusInternal(callId, 'awaiting_approval', {
           ...waitingToolCall.confirmationDetails,
-          isEditing: true,
+          isModifying: true,
         });
 
         const modifyResults = await editTool.onModify(
@@ -506,7 +506,7 @@ export class CoreToolScheduler {
           this.setStatusInternal(callId, 'awaiting_approval', {
             ...waitingToolCall.confirmationDetails,
             fileDiff: modifyResults.updatedDiff,
-            isEditing: false,
+            isModifying: false,
           });
         }
       }
