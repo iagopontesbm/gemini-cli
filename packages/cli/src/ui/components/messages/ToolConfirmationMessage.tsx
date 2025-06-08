@@ -49,20 +49,18 @@ export const ToolConfirmationMessage: React.FC<
   if (confirmationDetails.type === 'edit') {
     if (confirmationDetails.isModifying) {
       return (
-        <Box padding={0.5} minWidth="90%">
-          <Box
-            width="100%"
-            borderStyle="round"
-            borderColor={Colors.Gray}
-            justifyContent="space-around"
-            padding={1}
-            overflow="hidden"
-          >
-            <Text>Modify in progress: </Text>
-            <Text color={Colors.AccentGreen}>
-              Save and close external editor to continue
-            </Text>
-          </Box>
+        <Box
+          minWidth="90%"
+          borderStyle="round"
+          borderColor={Colors.Gray}
+          justifyContent="space-around"
+          padding={1}
+          overflow="hidden"
+        >
+          <Text>Modify in progress: </Text>
+          <Text color={Colors.AccentGreen}>
+            Save and close external editor to continue
+          </Text>
         </Box>
       );
     }
