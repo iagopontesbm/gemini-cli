@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 
 type EditorType = 'vscode' | 'vim';
 
@@ -57,13 +57,18 @@ export function getDiffCommand(
           '-c',
           'wincmd h | set readonly | wincmd l',
           // set up colors for diffs
-          '-c', 'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+          '-c',
+          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
           // Show helpful messages
-          '-c', 'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c', 'wincmd h | setlocal statusline=OLD\\ FILE',
-          '-c', 'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'wincmd h | setlocal statusline=OLD\\ FILE',
+          '-c',
+          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
           // Auto close all windows when one is closed
-          '-c', 'autocmd WinClosed * wqa',
+          '-c',
+          'autocmd WinClosed * wqa',
           oldPath,
           newPath,
         ],
@@ -90,11 +95,33 @@ export async function openDiff(
   }
 
   try {
-    const command = `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
-    execSync(command, {
-      stdio: 'inherit',
-      encoding: 'utf8',
-    });
+    if (editor === 'vscode') {
+      // Use spawn to avoid blocking the entire process, resolve this function when editor is closed.
+      return new Promise((resolve, reject) => {
+        const process = spawn(diffCommand.command, diffCommand.args, {
+          stdio: 'inherit',
+        });
+
+        process.on('close', (code) => {
+          if (code === 0) {
+            resolve();
+          } else {
+            reject(new Error(`VS Code exited with code ${code}`));
+          }
+        });
+
+        process.on('error', (error) => {
+          reject(error);
+        });
+      });
+    } else {
+      // Use execSync for terminal-based editors like vim
+      const command = `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
+      execSync(command, {
+        stdio: 'inherit',
+        encoding: 'utf8',
+      });
+    }
   } catch (error) {
     console.error(error);
   }
