@@ -10,4 +10,7 @@ cp "packages/core/src/tools/shell.json" "bundle/shell.json"
 # Find and copy all .sb files from packages to the root of the bundle directory
 find packages -name '*.sb' -exec cp -f {} bundle/ \;
 
+# Find and copy all .node files from node_modules/tree-sitter-*/build/Release to the root of the bundle directory
+find node_modules -path "*/tree-sitter-*/build/Release/*.node" -exec cp -f {} bundle/ \;
+
 echo "Assets copied to bundle/"
