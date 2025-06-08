@@ -13,6 +13,7 @@
     (subpath (string-append (param "HOME_DIR") "/.npm"))
     (subpath (string-append (param "HOME_DIR") "/.cache"))
     (subpath (string-append (param "HOME_DIR") "/.gitconfig"))
+    (subpath (string-append (param "HOME_DIR") "/.config/gcloud"))
     (literal "/dev/stdout")
     (literal "/dev/stderr")
     (literal "/dev/null")

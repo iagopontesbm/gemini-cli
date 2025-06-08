@@ -13,6 +13,7 @@ import {
   EmbedContentParameters,
   GoogleGenAI,
 } from '@google/genai';
+import { CodeAssistContentGenerator } from './codeAssist.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -35,11 +36,17 @@ export type ContentGeneratorConfig = {
   model: string;
   apiKey?: string;
   vertexai?: boolean;
+  codeAssist?: boolean;
 };
 
 export function createContentGenerator(
   config: ContentGeneratorConfig,
 ): ContentGenerator {
+  if (config.codeAssist) {
+    return new CodeAssistContentGenerator(
+      process.env.GOOGLE_CLOUD_PROJECT || '',
+    );
+  }
   const version = process.env.CLI_VERSION || process.version;
   const googleGenAI = new GoogleGenAI({
     apiKey: config.apiKey === '' ? undefined : config.apiKey,
