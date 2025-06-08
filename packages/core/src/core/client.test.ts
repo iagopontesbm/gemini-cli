@@ -77,6 +77,11 @@ describe('Gemini Client (client.ts)', () => {
     const MockedConfig = vi.mocked(Config, true);
     MockedConfig.mockImplementation(() => {
       const mock = {
+        getContentGeneratorConfig: vi.fn().mockReturnValue({
+          model: 'test-model',
+          apiKey: 'test-key',
+          vertexai: false,
+        }),
         getToolRegistry: vi.fn().mockResolvedValue(mockToolRegistry),
         getModel: vi.fn().mockReturnValue('test-model'),
         getEmbeddingModel: vi.fn().mockReturnValue('test-embedding-model'),
@@ -212,6 +217,24 @@ describe('Gemini Client (client.ts)', () => {
       await expect(client.generateEmbedding(texts)).rejects.toThrow(
         'API Failure',
       );
+    });
+  });
+
+  describe('addHistory', () => {
+    it('should call chat.addHistory with the provided content', async () => {
+      const mockChat = {
+        addHistory: vi.fn(),
+      };
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      client['chat'] = Promise.resolve(mockChat as any);
+
+      const newContent = {
+        role: 'user',
+        parts: [{ text: 'New history item' }],
+      };
+      await client.addHistory(newContent);
+
+      expect(mockChat.addHistory).toHaveBeenCalledWith(newContent);
     });
   });
 });

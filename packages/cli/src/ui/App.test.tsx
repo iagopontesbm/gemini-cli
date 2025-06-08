@@ -6,14 +6,14 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { render } from 'ink-testing-library';
-import { App } from './App.js';
+import { AppWrapper as App } from './App.js';
 import {
   Config as ServerConfig,
   MCPServerConfig,
   ApprovalMode,
   ToolRegistry,
   AccessibilitySettings,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
 
@@ -65,9 +65,9 @@ interface MockServerConfig {
   getAccessibility: Mock<() => AccessibilitySettings>;
 }
 
-// Mock @gemini-code/core and its Config class
-vi.mock('@gemini-code/core', async (importOriginal) => {
-  const actualCore = await importOriginal<typeof import('@gemini-code/core')>();
+// Mock @gemini-cli/core and its Config class
+vi.mock('@gemini-cli/core', async (importOriginal) => {
+  const actualCore = await importOriginal<typeof import('@gemini-cli/core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -179,13 +179,15 @@ describe('App UI', () => {
   beforeEach(() => {
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
-      apiKey: 'test-key',
-      model: 'test-model',
+      contentGeneratorConfig: {
+        apiKey: 'test-key',
+        model: 'test-model',
+        userAgent: 'test-agent',
+      },
       embeddingModel: 'test-embedding-model',
       sandbox: false,
       targetDir: '/test/dir',
       debugMode: false,
-      userAgent: 'test-agent',
       userMemory: '',
       geminiMdFileCount: 0,
       showMemoryUsage: false,
