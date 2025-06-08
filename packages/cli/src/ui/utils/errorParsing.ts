@@ -43,12 +43,12 @@ export function parseAndFormatApiError(errorMessage: string): string {
         if (isApiError(nestedError)) {
           finalMessage = nestedError.error.message;
         }
-      } catch (e) {
+      } catch (_e) {
         // It's not a nested JSON error, so we just use the message as is.
       }
       return `API Error: ${finalMessage} (Status: ${error.error.status})`;
     }
-  } catch (e) {
+  } catch (_e) {
     // Not a valid JSON, fall through and return the original message.
   }
 
