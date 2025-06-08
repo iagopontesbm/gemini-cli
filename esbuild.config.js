@@ -1,0 +1,14 @@
+import esbuild from 'esbuild';
+import { nativeNodeModulesPlugin } from 'esbuild-native-node-modules-plugin';
+
+esbuild.build({
+  entryPoints: ['packages/cli/index.ts'],
+  bundle: true,
+  outfile: 'bundle/gemini.js',
+  platform: 'node',
+  format: 'esm',
+  banner: {
+    js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);`,
+  },
+  plugins: [nativeNodeModulesPlugin],
+}).catch(() => process.exit(1));
