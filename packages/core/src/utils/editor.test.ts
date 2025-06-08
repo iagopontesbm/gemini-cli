@@ -5,11 +5,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
-import {
-  checkHasEditor,
-  getDiffCommand,
-  openDiff,
-} from './editor.js';
+import { checkHasEditor, getDiffCommand, openDiff } from './editor.js';
 import { execSync, spawn } from 'child_process';
 
 vi.mock('child_process', () => ({
@@ -66,7 +62,8 @@ describe('getDiffCommand', () => {
   });
 
   it('should return null for an unsupported editor', () => {
-    const command = getDiffCommand('old.txt', 'new.txt', 'nano' as any);
+    // @ts-expect-error Testing unsupported editor
+    const command = getDiffCommand('old.txt', 'new.txt', 'nano');
     expect(command).toBeNull();
   });
 });
@@ -86,12 +83,11 @@ describe('openDiff', () => {
     };
     (spawn as Mock).mockReturnValue(mockSpawn);
     await openDiff('old.txt', 'new.txt', 'vscode');
-    expect(spawn).toHaveBeenCalledWith('code', [
-      '--wait',
-      '--diff',
-      'old.txt',
-      'new.txt',
-    ], { stdio: 'inherit' });
+    expect(spawn).toHaveBeenCalledWith(
+      'code',
+      ['--wait', '--diff', 'old.txt', 'new.txt'],
+      { stdio: 'inherit' },
+    );
     expect(mockSpawn.on).toHaveBeenCalledWith('close', expect.any(Function));
     expect(mockSpawn.on).toHaveBeenCalledWith('error', expect.any(Function));
   });
@@ -114,6 +110,8 @@ describe('openDiff', () => {
       }),
     };
     (spawn as Mock).mockReturnValue(mockSpawn);
-    await expect(openDiff('old.txt', 'new.txt', 'vscode')).rejects.toThrow('spawn error');
+    await expect(openDiff('old.txt', 'new.txt', 'vscode')).rejects.toThrow(
+      'spawn error',
+    );
   });
 });
