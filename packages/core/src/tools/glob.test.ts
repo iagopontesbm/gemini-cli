@@ -173,7 +173,9 @@ describe('GlobTool', () => {
       // Check that the ignored file is not in the output
       expect(result.llmContent).not.toContain('ignored.log');
       // Check that the message indicates a file was ignored
-      expect(result.llmContent).toContain('(1 additional files were git-ignored)');
+      expect(result.llmContent).toContain(
+        '(1 additional files were git-ignored)',
+      );
     });
 
     it('should correctly sort files by modification time (newest first)', async () => {
