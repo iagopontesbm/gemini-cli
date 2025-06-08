@@ -18,8 +18,8 @@ import {
   MessageSenderType,
   ToolCallRequestInfo,
   logUserPrompt,
-} from '@gemini-code/core';
-import { type PartListUnion } from '@google/genai';
+} from '@gemini-cli/core';
+import { type Part, type PartListUnion } from '@google/genai';
 import {
   StreamingState,
   HistoryItemWithoutId,
@@ -28,6 +28,7 @@ import {
   ToolCallStatus,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
+import { parseAndFormatApiError } from '../utils/errorParsing.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
@@ -467,7 +468,9 @@ export const useGeminiStream = (
           addItem(
             {
               type: MessageType.ERROR,
-              text: `[Stream Error: ${getErrorMessage(error) || 'Unknown error'}]`,
+              text: parseAndFormatApiError(
+                getErrorMessage(error) || 'Unknown error',
+              ),
             },
             userMessageTimestamp,
           );
@@ -528,6 +531,41 @@ export const useGeminiStream = (
       completedAndReadyToSubmitTools.length > 0 &&
       completedAndReadyToSubmitTools.length === toolCalls.length
     ) {
+      // If all the tools were cancelled, don't submit a response to Gemini.
+      const allToolsCancelled = completedAndReadyToSubmitTools.every(
+        (tc) => tc.status === 'cancelled',
+      );
+
+      if (allToolsCancelled) {
+        if (geminiClient) {
+          // We need to manually add the function responses to the history
+          // so the model knows the tools were cancelled.
+          const responsesToAdd = completedAndReadyToSubmitTools.flatMap(
+            (toolCall) => toolCall.response.responseParts,
+          );
+          for (const response of responsesToAdd) {
+            let parts: Part[];
+            if (Array.isArray(response)) {
+              parts = response;
+            } else if (typeof response === 'string') {
+              parts = [{ text: response }];
+            } else {
+              parts = [response];
+            }
+            geminiClient.addHistory({
+              role: 'user',
+              parts,
+            });
+          }
+        }
+
+        const callIdsToMarkAsSubmitted = completedAndReadyToSubmitTools.map(
+          (toolCall) => toolCall.request.callId,
+        );
+        markToolsAsSubmitted(callIdsToMarkAsSubmitted);
+        return;
+      }
+
       const responsesToSend: PartListUnion[] =
         completedAndReadyToSubmitTools.map(
           (toolCall) => toolCall.response.responseParts,
@@ -539,7 +577,14 @@ export const useGeminiStream = (
       markToolsAsSubmitted(callIdsToMarkAsSubmitted);
       submitQuery(mergePartListUnions(responsesToSend));
     }
-  }, [toolCalls, isResponding, submitQuery, markToolsAsSubmitted, addItem]);
+  }, [
+    toolCalls,
+    isResponding,
+    submitQuery,
+    markToolsAsSubmitted,
+    addItem,
+    geminiClient,
+  ]);
 
   const pendingHistoryItems = [
     pendingHistoryItemRef.current,

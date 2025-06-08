@@ -9,8 +9,9 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-code/core';
+import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
+import { useSession } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatMemoryUsage } from '../utils/formatters.js';
@@ -49,6 +50,8 @@ export const useSlashCommandProcessor = (
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
 ) => {
+  const session = useSession();
+
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -115,7 +118,7 @@ export const useSlashCommandProcessor = (
       {
         name: 'help',
         altName: '?',
-        description: 'for help on gemini-code',
+        description: 'for help on gemini-cli',
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
@@ -136,6 +139,33 @@ export const useSlashCommandProcessor = (
         description: 'change the theme',
         action: (_mainCommand, _subCommand, _args) => {
           openThemeDialog();
+        },
+      },
+      {
+        name: 'stats',
+        altName: 'usage',
+        description: 'check session stats',
+        action: (_mainCommand, _subCommand, _args) => {
+          const now = new Date();
+          const duration = now.getTime() - session.startTime.getTime();
+          const durationInSeconds = Math.floor(duration / 1000);
+          const hours = Math.floor(durationInSeconds / 3600);
+          const minutes = Math.floor((durationInSeconds % 3600) / 60);
+          const seconds = durationInSeconds % 60;
+
+          const durationString = [
+            hours > 0 ? `${hours}h` : '',
+            minutes > 0 ? `${minutes}m` : '',
+            `${seconds}s`,
+          ]
+            .filter(Boolean)
+            .join(' ');
+
+          addMessage({
+            type: MessageType.INFO,
+            content: `Session duration: ${durationString}`,
+            timestamp: new Date(),
+          });
         },
       },
       {
@@ -447,6 +477,7 @@ Add any other context about the problem here.
       toggleCorgiMode,
       config,
       showToolDescriptions,
+      session.startTime,
     ],
   );
 

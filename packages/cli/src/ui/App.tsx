@@ -45,9 +45,10 @@ import {
   type Config,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
+import { SessionProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
@@ -58,7 +59,13 @@ interface AppProps {
   startupWarnings?: string[];
 }
 
-export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
+export const AppWrapper = (props: AppProps) => (
+  <SessionProvider>
+    <App {...props} />
+  </SessionProvider>
+);
+
+const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const { history, addItem, clearItems } = useHistory();
   const {
     consoleMessages,
@@ -355,6 +362,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 key={h.id}
                 item={h}
                 isPending={false}
+                config={config}
               />
             )),
           ]}
@@ -370,6 +378,7 @@ export const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               // HistoryItemDisplay. Refactor later. Use a fake id for now.
               item={{ ...item, id: 0 }}
               isPending={true}
+              config={config}
             />
           ))}
         </Box>

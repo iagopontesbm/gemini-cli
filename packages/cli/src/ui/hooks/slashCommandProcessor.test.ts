@@ -60,10 +60,15 @@ import {
   type Config,
   MCPServerStatus,
   getMCPServerStatus,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
+import { useSession } from '../contexts/SessionContext.js';
 
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
+
+vi.mock('../contexts/SessionContext.js', () => ({
+  useSession: vi.fn(),
+}));
 
 vi.mock('./useShowMemoryCommand.js', () => ({
   SHOW_MEMORY_COMMAND_NAME: '/memory show',
@@ -84,6 +89,7 @@ describe('useSlashCommandProcessor', () => {
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
+  const mockUseSession = useSession as Mock;
 
   beforeEach(() => {
     mockAddItem = vi.fn();
@@ -99,6 +105,9 @@ describe('useSlashCommandProcessor', () => {
       getModel: vi.fn(() => 'test-model'),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
+    mockUseSession.mockReturnValue({
+      startTime: new Date('2025-01-01T00:00:00.000Z'),
+    });
 
     (open as Mock).mockClear();
     mockProcessExit.mockClear();
@@ -227,6 +236,34 @@ describe('useSlashCommandProcessor', () => {
         expect.any(Number),
       );
       expect(commandResult).toBe(true);
+    });
+  });
+
+  describe('/stats command', () => {
+    it('should show the session duration', async () => {
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+
+      // Mock current time
+      const mockDate = new Date('2025-01-01T00:01:05.000Z');
+      vi.setSystemTime(mockDate);
+
+      await act(async () => {
+        commandResult = handleSlashCommand('/stats');
+      });
+
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: 'Session duration: 1m 5s',
+        }),
+        expect.any(Number),
+      );
+      expect(commandResult).toBe(true);
+
+      // Restore system time
+      vi.useRealTimers();
     });
   });
 
@@ -452,7 +489,7 @@ Add any other context about the problem here.
   describe('/mcp command', () => {
     beforeEach(() => {
       // Mock the core module with getMCPServerStatus
-      vi.mock('@gemini-code/core', async (importOriginal) => {
+      vi.mock('@gemini-cli/core', async (importOriginal) => {
         const actual = await importOriginal();
         return {
           ...actual,
