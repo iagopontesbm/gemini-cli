@@ -537,7 +537,7 @@ Expectation for required parameters:
     await openDiff(
       this.tempOldDiffPath,
       this.tempNewDiffPath,
-      outcome === ToolConfirmationOutcome.ModifyVSCode ? 'vscode' : 'vimdiff',
+      outcome === ToolConfirmationOutcome.ModifyVSCode ? 'vscode' : 'vim',
     );
     return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }

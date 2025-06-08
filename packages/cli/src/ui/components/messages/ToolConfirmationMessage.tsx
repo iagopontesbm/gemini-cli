@@ -90,10 +90,10 @@ export const ToolConfirmationMessage: React.FC<
       });
     }
 
-    if (checkHasEditor('vimdiff')) {
+    if (checkHasEditor('vim')) {
       options.push({
-        label: 'Modify with vimdiff',
-        value: ToolConfirmationOutcome.ModifyVimdiff,
+        label: 'Modify with vim',
+        value: ToolConfirmationOutcome.ModifyVim,
       });
     }
 

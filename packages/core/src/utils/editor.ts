@@ -6,14 +6,14 @@
 
 import { execSync } from 'child_process';
 
-type EditorType = 'vscode' | 'vimdiff';
+type EditorType = 'vscode' | 'vim';
 
 interface DiffCommand {
   command: string;
   args: string[];
 }
 
-export function checkHasEditor(editor: 'vscode' | 'vimdiff'): boolean {
+export function checkHasEditor(editor: EditorType): boolean {
   const commandExists = (cmd: string): boolean => {
     try {
       execSync(`which ${cmd}`, { stdio: 'ignore' });
@@ -25,8 +25,8 @@ export function checkHasEditor(editor: 'vscode' | 'vimdiff'): boolean {
 
   if (editor === 'vscode') {
     return commandExists('code');
-  } else if (editor === 'vimdiff') {
-    return commandExists('vimdiff');
+  } else if (editor === 'vim') {
+    return commandExists('vim');
   }
   return false;
 }
@@ -45,10 +45,11 @@ export function getDiffCommand(
         command: 'code',
         args: ['--wait', '--diff', oldPath, newPath],
       };
-    case 'vimdiff':
+    case 'vim':
       return {
-        command: 'vimdiff',
+        command: 'vim',
         args: [
+          '-d',
           // skip viminfo file to avoid E138 errors
           '-i',
           'NONE',
@@ -84,7 +85,7 @@ export async function openDiff(
 ): Promise<void> {
   const diffCommand = getDiffCommand(oldPath, newPath, editor);
   if (!diffCommand) {
-    console.error('No diff tool available. Install vimdiff or vscode.');
+    console.error('No diff tool available. Install vim or vscode.');
     return;
   }
 

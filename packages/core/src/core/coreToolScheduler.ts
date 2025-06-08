@@ -485,7 +485,7 @@ export class CoreToolScheduler {
       );
     } else if (
       outcome === ToolConfirmationOutcome.ModifyVSCode ||
-      outcome === ToolConfirmationOutcome.ModifyVimdiff
+      outcome === ToolConfirmationOutcome.ModifyVim
     ) {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
