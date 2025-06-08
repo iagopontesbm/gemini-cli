@@ -548,11 +548,7 @@ Expectation for required parameters:
 
     const editor = await this.getEditor(outcome);
 
-    await openDiff(
-      this.tempOldDiffPath,
-      this.tempNewDiffPath,
-      editor,
-    );
+    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath, editor);
     return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }
 

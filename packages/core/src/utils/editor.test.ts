@@ -34,7 +34,9 @@ describe('checkHasEditor', () => {
   it('should return true for windsurf if "windsurf" command exists', () => {
     (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/windsurf'));
     expect(checkHasEditor('windsurf')).toBe(true);
-    expect(execSync).toHaveBeenCalledWith('which windsurf', { stdio: 'ignore' });
+    expect(execSync).toHaveBeenCalledWith('which windsurf', {
+      stdio: 'ignore',
+    });
   });
 
   it('should return false for windsurf if "windsurf" command does not exist', () => {
