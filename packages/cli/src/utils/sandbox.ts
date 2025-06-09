@@ -29,7 +29,6 @@ function getContainerPath(hostPath: string): string {
   return hostPath;
 }
 
-
 const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'gemini-cli-sandbox';
 
 /**
@@ -175,9 +174,7 @@ function entrypoint(workdir: string): string[] {
     for (const p of paths) {
       const containerPath = getContainerPath(p);
       if (
-        containerPath
-          .toLowerCase()
-          .startsWith(containerWorkdir.toLowerCase())
+        containerPath.toLowerCase().startsWith(containerWorkdir.toLowerCase())
       ) {
         pathSuffix += `:${containerPath}`;
       }
@@ -193,9 +190,7 @@ function entrypoint(workdir: string): string[] {
     for (const p of paths) {
       const containerPath = getContainerPath(p);
       if (
-        containerPath
-          .toLowerCase()
-          .startsWith(containerWorkdir.toLowerCase())
+        containerPath.toLowerCase().startsWith(containerWorkdir.toLowerCase())
       ) {
         pythonPathSuffix += `:${containerPath}`;
       }
@@ -462,7 +457,10 @@ export async function start_sandbox(sandbox: string) {
       '--volume',
       `${sandboxVenvPath}:${getContainerPath(process.env.VIRTUAL_ENV)}`,
     );
-    args.push('--env', `VIRTUAL_ENV=${getContainerPath(process.env.VIRTUAL_ENV)}`);
+    args.push(
+      '--env',
+      `VIRTUAL_ENV=${getContainerPath(process.env.VIRTUAL_ENV)}`,
+    );
   }
 
   // copy additional environment variables from SANDBOX_ENV
