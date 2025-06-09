@@ -416,9 +416,7 @@ export async function start_sandbox(sandbox: string) {
   // name container after image, plus numeric suffix to avoid conflicts
   const imageName = parseImageName(image);
   let index = 0;
-  const containerNameCheck = execSync(
-    `${sandbox} ps -a --format "{{.Names}}"`,
-  )
+  const containerNameCheck = execSync(`${sandbox} ps -a --format "{{.Names}}"`)
     .toString()
     .trim();
   while (containerNameCheck.includes(`${imageName}-${index}`)) {
