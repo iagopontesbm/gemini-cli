@@ -24,9 +24,7 @@ import { hideBin } from 'yargs/helpers';
 try {
   execSync('node scripts/sandbox_command.js -q');
 } catch {
-  console.error(
-    'ERROR: sandboxing disabled. See docs to enable sandboxing.',
-  );
+  console.error('ERROR: sandboxing disabled. See docs to enable sandboxing.');
   process.exit(1);
 }
 
