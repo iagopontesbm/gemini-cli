@@ -38,12 +38,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 async function main() {
-  const projectName = basename(process.cwd());
-  process.stdout.write(`\x1b]2;✨ Gemini - ${projectName} \x07`);
-
-  process.on('exit', () => {
-    process.stdout.write(`\x1b]2;\x07`);
-  });
+  const workspaceRoot = process.cwd();
+  const settings = loadSettings(workspaceRoot);
+  setWindowTitle(basename(workspaceRoot), settings);
 
   // warn about deprecated environment variables
   if (process.env.GEMINI_CODE_MODEL) {
@@ -64,8 +61,6 @@ async function main() {
       process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
   }
 
-  const workspaceRoot = process.cwd();
-  const settings = loadSettings(workspaceRoot);
   const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
 
   const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
@@ -134,6 +129,16 @@ async function main() {
 
   await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
+}
+
+function setWindowTitle(title: string, settings: LoadedSettings) {
+  if (!settings.merged.hideWindowTitle) {
+    process.stdout.write(`\x1b]2;✦ Gemini - ${title} \x07`);
+
+    process.on('exit', () => {
+      process.stdout.write(`\x1b]2;\x07`);
+    });
+  }
 }
 
 // --- Global Unhandled Rejection Handler ---
