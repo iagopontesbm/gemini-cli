@@ -5,8 +5,8 @@
  */
 
 import { OAuth2Client } from 'google-auth-library';
-import express from 'express';
-import url, { UrlWithParsedQuery } from 'url';
+import * as http from 'http';
+import url from 'url';
 import crypto from 'crypto';
 import * as net from 'net';
 
@@ -31,18 +31,17 @@ const SIGN_IN_FAILURE_URL =
   'https://developers.google.com/gemini-code-assist/auth_failure_gemini';
 
 export async function doGCALogin(): Promise<OAuth2Client> {
-  let redirectPort: number = await getAvailablePort();
-  let client: OAuth2Client = await createOAuth2Client(redirectPort);
-  let loggedIn: boolean = await login(client, redirectPort);
+  const redirectPort: number = await getAvailablePort();
+  const client: OAuth2Client = await createOAuth2Client(redirectPort);
+  await login(client, redirectPort);
   return client;
 }
 
 function createOAuth2Client(redirectPort: number): OAuth2Client {
-  let redirectURI: string = `http://localhost:${redirectPort}/oauth2redirect`;
   return new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_NOT_SO_SECRET,
-    redirectUri: redirectURI,
+    redirectUri: `http://localhost:${redirectPort}/oauth2redirect`,
   });
 }
 
@@ -71,43 +70,50 @@ function getAvailablePort(): Promise<number> {
   });
 }
 
-function login(oauth2Client: OAuth2Client, port: number): Promise<boolean> {
-  let state = crypto.randomBytes(32).toString('hex');
-  let authURL: string = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: OAUTH_SCOPE,
-    state: state,
-  });
-
-  console.log('Login:\n\n', authURL);
-
-  return new Promise((resolve) => {
-    let app = express();
-    // Receive the callback from Google's OAuth 2.0 server.
-    app.get('/oauth2redirect', async (req: any, res: any) => {
-      let q: any = url.parse(req.url, true).query;
-      console.log('received callback');
-      if (q.error) {
-        // An error response e.g. error=access_denied
-        console.log('Error:' + q.error);
-        res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-        res.end();
-        resolve(false);
-      } else if (q.state !== state) {
-        //check state value
-        console.log('State mismatch. Possible CSRF attack');
-        res.end('State mismatch. Possible CSRF attack');
-        resolve(false);
-      } else {
-        // Get access and refresh tokens (if access_type is offline)
-        let { tokens } = await oauth2Client.getToken(q.code);
-        console.log('Logged in! Tokens:\n\n', tokens);
-        oauth2Client.setCredentials(tokens);
-        res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
-        res.end();
-        resolve(true);
-      }
+function login(oAuth2Client: OAuth2Client, port: number): Promise<boolean> {
+  return new Promise((resolve, reject) => {
+    const state = crypto.randomBytes(32).toString('hex');
+    const authURL: string = oAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: OAUTH_SCOPE,
+      state,
     });
-    app.listen(port);
+
+    console.log('Login:\n\n', authURL);
+
+    const server = http
+      .createServer(async (req, res) => {
+        try {
+          if (req.url!.indexOf('/oauth2callback') > -1) {
+            // acquire the code from the querystring, and close the web server.
+            const qs = new url.URL(req.url!).searchParams;
+            if (qs.get('error')) {
+              console.error(`Error during authentication: ${qs.get('error')}`);
+
+              res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
+              res.end();
+              resolve(false);
+            } else if (qs.get('state') !== state) {
+              //check state value
+              console.log('State mismatch. Possible CSRF attack');
+
+              res.end('State mismatch. Possible CSRF attack');
+              resolve(false);
+            } else if (!qs.get('code')) {
+              const { tokens } = await oAuth2Client.getToken(qs.get('code')!);
+              console.log('Logged in! Tokens:\n\n', tokens);
+
+              oAuth2Client.setCredentials(tokens);
+              res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
+              res.end();
+              resolve(true);
+            }
+          }
+        } catch (e) {
+          reject(e);
+        }
+        server.close();
+      })
+      .listen(port);
   });
 }

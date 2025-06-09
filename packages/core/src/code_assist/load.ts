@@ -22,7 +22,7 @@ export async function doLoadCodeAssist(
     new URL(LOAD_CODE_ASSIST_ENDPOINT, DEFAULT_ENDPOINT),
     {
       method: 'POST',
-      headers: headers,
+      headers,
       body: JSON.stringify(req),
     },
   );

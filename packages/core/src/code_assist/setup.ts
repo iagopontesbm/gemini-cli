@@ -17,7 +17,7 @@ import {
 
 export async function doSetup(): Promise<string> {
   const oauth2Client: OAuth2Client = await doGCALogin();
-  let clientMetadata: ClientMetadata = {
+  const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
     ideVersion: null,
     pluginVersion: null,
@@ -29,7 +29,7 @@ export async function doSetup(): Promise<string> {
   };
 
   // Call LoadCodeAssist.
-  let loadCodeAssistRes: LoadCodeAssistResponse = await doLoadCodeAssist(
+  const loadCodeAssistRes: LoadCodeAssistResponse = await doLoadCodeAssist(
     {
       cloudaicompanionProject: 'aipp-internal-testing',
       metadata: clientMetadata,
@@ -38,7 +38,7 @@ export async function doSetup(): Promise<string> {
   );
 
   // Call OnboardUser until long running operation is complete.
-  let onboardUserReq: OnboardUserRequest = {
+  const onboardUserReq: OnboardUserRequest = {
     tierId: 'legacy-tier',
     cloudaicompanionProject: loadCodeAssistRes.cloudaicompanionProject || '',
     metadata: clientMetadata,

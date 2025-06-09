@@ -22,7 +22,7 @@ export async function doOnboardUser(
     new URL(ONBOARD_USER_ENDPOINT, DEFAULT_ENDPOINT),
     {
       method: 'POST',
-      headers: headers,
+      headers,
       body: JSON.stringify(req),
     },
   );
