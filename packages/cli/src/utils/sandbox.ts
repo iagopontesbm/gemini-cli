@@ -11,6 +11,7 @@ import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { quote } from 'shell-quote';
 import { readPackageUp } from 'read-package-up';
+import commandExists from 'command-exists';
 import {
   USER_SETTINGS_DIR,
   SETTINGS_DIRECTORY_NAME,
@@ -98,9 +99,9 @@ export function sandbox_command(sandbox?: string | boolean): string {
 
   if (sandbox === true) {
     // look for docker or podman, in that order
-    if (execSync('command -v docker || true').toString().trim()) {
+    if (commandExists.sync('docker')) {
       return 'docker'; // Set sandbox to 'docker' if found
-    } else if (execSync('command -v podman || true').toString().trim()) {
+    } else if (commandExists.sync('podman')) {
       return 'podman'; // Set sandbox to 'podman' if found
     } else {
       console.error(
@@ -111,7 +112,7 @@ export function sandbox_command(sandbox?: string | boolean): string {
     }
   } else if (sandbox) {
     // confirm that specfied command exists
-    if (execSync(`command -v ${sandbox} || true`).toString().trim()) {
+    if (commandExists.sync(sandbox)) {
       return sandbox;
     } else {
       console.error(
@@ -124,7 +125,7 @@ export function sandbox_command(sandbox?: string | boolean): string {
     // unless SEATBELT_PROFILE is set to 'none', which we allow as an escape hatch
     if (
       os.platform() === 'darwin' &&
-      execSync('command -v sandbox-exec || true').toString().trim() &&
+      commandExists.sync('sandbox-exec') &&
       process.env.SEATBELT_PROFILE !== 'none'
     ) {
       return 'sandbox-exec';
@@ -415,13 +416,12 @@ export async function start_sandbox(sandbox: string) {
   // name container after image, plus numeric suffix to avoid conflicts
   const imageName = parseImageName(image);
   let index = 0;
-  while (
-    execSync(
-      `${sandbox} ps -a --format "{{.Names}}" | grep "${imageName}-${index}" || true`,
-    )
-      .toString()
-      .trim()
-  ) {
+  const containerNameCheck = execSync(
+    `${sandbox} ps -a --format "{{.Names}}"`,
+  )
+    .toString()
+    .trim();
+  while (containerNameCheck.includes(`${imageName}-${index}`)) {
     index++;
   }
   const containerName = `${imageName}-${index}`;
