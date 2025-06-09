@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { render } from 'ink';
-import { App } from './ui/App.js';
+import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
@@ -28,6 +28,7 @@ import {
   ShellTool,
   WebFetchTool,
   WebSearchTool,
+  WriteFileTool,
 } from '@gemini-cli/core';
 
 export async function main() {
@@ -95,7 +96,7 @@ export async function main() {
   if (process.stdin.isTTY && input?.length === 0) {
     render(
       <React.StrictMode>
-        <App
+        <AppWrapper
           config={config}
           settings={settings}
           startupWarnings={startupWarnings}
@@ -155,13 +156,14 @@ async function loadNonInteractiveConfig(
     GrepTool.Name,
     GlobTool.Name,
     EditTool.Name,
+    WriteFileTool.Name,
     WebFetchTool.Name,
     WebSearchTool.Name,
     ReadManyFilesTool.Name,
     ShellTool.Name,
     MemoryTool.Name,
   ];
-  const interactiveTools = [ShellTool.Name, EditTool.Name];
+  const interactiveTools = [ShellTool.Name, EditTool.Name, WriteFileTool.Name];
   const nonInteractiveTools = existingCoreTools.filter(
     (tool) => !interactiveTools.includes(tool),
   );

@@ -61,9 +61,14 @@ import {
   MCPServerStatus,
   getMCPServerStatus,
 } from '@gemini-cli/core';
+import { useSession } from '../contexts/SessionContext.js';
 
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
+
+vi.mock('../contexts/SessionContext.js', () => ({
+  useSession: vi.fn(),
+}));
 
 vi.mock('./useShowMemoryCommand.js', () => ({
   SHOW_MEMORY_COMMAND_NAME: '/memory show',
@@ -84,6 +89,7 @@ describe('useSlashCommandProcessor', () => {
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
+  const mockUseSession = useSession as Mock;
 
   beforeEach(() => {
     mockAddItem = vi.fn();
@@ -99,6 +105,9 @@ describe('useSlashCommandProcessor', () => {
       getModel: vi.fn(() => 'test-model'),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
+    mockUseSession.mockReturnValue({
+      startTime: new Date('2025-01-01T00:00:00.000Z'),
+    });
 
     (open as Mock).mockClear();
     mockProcessExit.mockClear();
@@ -227,6 +236,34 @@ describe('useSlashCommandProcessor', () => {
         expect.any(Number),
       );
       expect(commandResult).toBe(true);
+    });
+  });
+
+  describe('/stats command', () => {
+    it('should show the session duration', async () => {
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+
+      // Mock current time
+      const mockDate = new Date('2025-01-01T00:01:05.000Z');
+      vi.setSystemTime(mockDate);
+
+      await act(async () => {
+        commandResult = handleSlashCommand('/stats');
+      });
+
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: 'Session duration: 1m 5s',
+        }),
+        expect.any(Number),
+      );
+      expect(commandResult).toBe(true);
+
+      // Restore system time
+      vi.useRealTimers();
     });
   });
 
@@ -386,8 +423,8 @@ Add any other context about the problem here.
     it('should display only Gemini CLI tools (filtering out MCP tools)', async () => {
       // Create mock tools - some with serverName property (MCP tools) and some without (Gemini CLI tools)
       const mockTools = [
-        { name: 'tool1' },
-        { name: 'tool2' },
+        { name: 'tool1', displayName: 'Tool1' },
+        { name: 'tool2', displayName: 'Tool2' },
         { name: 'mcp_tool1', serverName: 'mcp-server1' },
         { name: 'mcp_tool2', serverName: 'mcp-server1' },
       ];
@@ -410,7 +447,7 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: 'Available Gemini CLI tools:\n\ntool1\ntool2',
+          text: 'Available Gemini CLI tools:\n\nTool1\nTool2',
         }),
         expect.any(Number),
       );

@@ -30,7 +30,7 @@ import { spawn } from 'child_process';
 const OUTPUT_UPDATE_INTERVAL_MS = 1000;
 
 export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
-  static readonly Name: string = 'execute_bash_command';
+  static Name: string = 'execute_bash_command';
   private whitelist: Set<string> = new Set();
 
   constructor(private readonly config: Config) {
@@ -159,6 +159,13 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
           `Reason: ${validationError}`,
         ].join('\n'),
         returnDisplay: `Error: ${validationError}`,
+      };
+    }
+
+    if (abortSignal.aborted) {
+      return {
+        llmContent: 'Command was cancelled by user before it could start.',
+        returnDisplay: 'Command cancelled by user.',
       };
     }
 

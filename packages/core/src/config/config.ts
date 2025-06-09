@@ -11,13 +11,13 @@ import process from 'node:process';
 import * as os from 'node:os';
 import { ContentGeneratorConfig } from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
-import { CodeParserTool } from '../tools/code_parser.js'; // Added CodeParserTool
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
 import { GrepTool } from '../tools/grep.js';
 import { GlobTool } from '../tools/glob.js';
 import { EditTool } from '../tools/edit.js';
 import { ShellTool } from '../tools/shell.js';
+import { WriteFileTool } from '../tools/write-file.js';
 import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
@@ -343,12 +343,12 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(GrepTool, targetDir);
   registerCoreTool(GlobTool, targetDir, config);
   registerCoreTool(EditTool, config);
+  registerCoreTool(WriteFileTool, config);
   registerCoreTool(WebFetchTool, config);
   registerCoreTool(ReadManyFilesTool, targetDir, config);
   registerCoreTool(ShellTool, config);
   registerCoreTool(MemoryTool);
   registerCoreTool(WebSearchTool, config);
-  registerCoreTool(CodeParserTool, targetDir, config); // Added CodeParserTool
   return (async () => {
     await registry.discoverTools();
     return registry;
