@@ -15,7 +15,10 @@ interface DiffCommand {
 
 function commandExists(cmd: string): boolean {
   try {
-    execSync(`which ${cmd}`, { stdio: 'ignore' });
+    execSync(
+      process.platform === 'win32' ? `where.exe ${cmd}` : `command -v ${cmd}`,
+      { stdio: 'ignore' },
+    );
     return true;
   } catch {
     return false;
@@ -24,9 +27,15 @@ function commandExists(cmd: string): boolean {
 
 export function checkHasEditor(editor: EditorType): boolean {
   if (editor === 'vscode') {
+<<<<<<< HEAD
     return commandExists('code');
   } else if (editor === 'windsurf') {
     return commandExists('windsurf');
+=======
+    return process.platform === 'win32'
+      ? commandExists('code.cmd')
+      : commandExists('code');
+>>>>>>> main
   } else if (editor === 'vim') {
     return commandExists('vim');
   }
@@ -123,7 +132,10 @@ export async function openDiff(
       });
     } else {
       // Use execSync for terminal-based editors like vim
-      const command = `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
+      const command =
+        process.platform === 'win32'
+          ? `${diffCommand.command} ${diffCommand.args.join(' ')}`
+          : `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
       execSync(command, {
         stdio: 'inherit',
         encoding: 'utf8',

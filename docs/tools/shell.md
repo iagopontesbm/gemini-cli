@@ -2,11 +2,11 @@
 
 This document provides details on the shell tool.
 
-## `execute_bash_command`
+## `run_shell_command`
 
-- **Purpose:** Executes a given shell command using `bash -c <command>`. This tool is essential for interacting with the underlying operating system, running scripts, or performing command-line operations.
+- **Purpose:** Executes a given shell command. On Windows, this will be executed with `cmd.exe /c`. On other platforms, it will be executed with `bash -c`. This tool is essential for interacting with the underlying operating system, running scripts, or performing command-line operations.
 - **Arguments:**
-  - `command` (string, required): The exact bash command to execute.
+  - `command` (string, required): The exact shell command to execute.
   - `description` (string, optional): A brief description of the command's purpose, which will be shown to the user.
   - `directory` (string, optional): The directory (relative to the project root) in which to execute the command. If not provided, the command runs in the project root.
 - **Behavior:**
@@ -22,18 +22,23 @@ This document provides details on the shell tool.
     - `Signal`: The signal number if the command was terminated by a signal.
     - `Background PIDs`: A list of PIDs for any background processes started.
 - **Examples:**
+
   - Listing files in the current directory:
+
     ```
-    execute_bash_command(command="ls -la")
+
+    run_shell_command(command="ls -la")
     ```
+
   - Running a script in a specific directory:
     ```
-    execute_bash_command(command="./my_script.sh", directory="scripts", description="Run my custom script")
+    run_shell_command(command="./my_script.sh", directory="scripts", description="Run my custom script")
     ```
   - Starting a background server:
     ```
-    execute_bash_command(command="npm run dev &", description="Start development server in background")
+    run_shell_command(command="npm run dev &", description="Start development server in background")
     ```
+
 - **Important Notes:**
   - **Security:** Be cautious when executing commands, especially those constructed from user input, to prevent security vulnerabilities.
   - **Interactive Commands:** Avoid commands that require interactive user input, as this can cause the tool to hang. Use non-interactive flags if available (e.g., `npm init -y`).
