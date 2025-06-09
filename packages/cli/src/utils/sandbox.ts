@@ -166,16 +166,12 @@ function ports(): string[] {
 function entrypoint(workdir: string): string[] {
   const isWindows = os.platform() === 'win32';
   const containerWorkdir = getContainerPath(workdir);
-  // set up shell command to be run inside container
-  // start with setting up PATH and PYTHONPATH with optional suffixes from host
   const shellCmds = [];
+  const pathSeparator = isWindows ? ';' : ':';
 
-  // copy any paths in PATH that are under working directory in sandbox
-  // note we can't just pass these as --env since that would override base PATH
-  // instead we construct a suffix and append as part of shellCmd below
   let pathSuffix = '';
   if (process.env.PATH) {
-    const paths = process.env.PATH.split(isWindows ? ';' : ':');
+    const paths = process.env.PATH.split(pathSeparator);
     for (const p of paths) {
       const containerPath = getContainerPath(p);
       if (
@@ -183,24 +179,17 @@ function entrypoint(workdir: string): string[] {
           .toLowerCase()
           .startsWith(containerWorkdir.toLowerCase())
       ) {
-        pathSuffix += isWindows ? `;${containerPath}` : `:${containerPath}`;
+        pathSuffix += `:${containerPath}`;
       }
     }
   }
   if (pathSuffix) {
-    shellCmds.push(
-      isWindows
-        ? `set "PATH=%PATH%${pathSuffix}"`
-        : `export PATH="$PATH${pathSuffix}";`,
-    ); // suffix includes leading separator
+    shellCmds.push(`export PATH="$PATH${pathSuffix}";`);
   }
 
-  // copy any paths in PYTHONPATH that are under working directory in sandbox
-  // note we can't just pass these as --env since that would override base PYTHONPATH
-  // instead we construct a suffix and append as part of shellCmd below
   let pythonPathSuffix = '';
   if (process.env.PYTHONPATH) {
-    const paths = process.env.PYTHONPATH.split(isWindows ? ';' : ':');
+    const paths = process.env.PYTHONPATH.split(pathSeparator);
     for (const p of paths) {
       const containerPath = getContainerPath(p);
       if (
@@ -208,55 +197,41 @@ function entrypoint(workdir: string): string[] {
           .toLowerCase()
           .startsWith(containerWorkdir.toLowerCase())
       ) {
-        pythonPathSuffix += isWindows
-          ? `;${containerPath}`
-          : `:${containerPath}`;
+        pythonPathSuffix += `:${containerPath}`;
       }
     }
   }
   if (pythonPathSuffix) {
+    shellCmds.push(`export PYTHONPATH="$PYTHONPATH${pythonPathSuffix}";`);
+  }
+
+  const projectSandboxBashrc = path.join(
+    SETTINGS_DIRECTORY_NAME,
+    'sandbox.bashrc',
+  );
+  if (fs.existsSync(projectSandboxBashrc)) {
+    shellCmds.push(`source ${getContainerPath(projectSandboxBashrc)};`);
+  }
+
+  ports().forEach((p) =>
     shellCmds.push(
-      isWindows
-        ? `set "PYTHONPATH=%PYTHONPATH%${pythonPathSuffix}"`
-        : `export PYTHONPATH="$PYTHONPATH${pythonPathSuffix}";`,
-    ); // suffix includes leading separator
-  }
+      `socat TCP4-LISTEN:${p},bind=$(hostname -i),fork,reuseaddr TCP4:127.0.0.1:${p} 2> /dev/null &`,
+    ),
+  );
 
-  if (!isWindows) {
-    // source sandbox.bashrc if exists under project settings directory
-    const projectSandboxBashrc = path.join(
-      SETTINGS_DIRECTORY_NAME,
-      'sandbox.bashrc',
-    );
-    if (fs.existsSync(projectSandboxBashrc)) {
-      shellCmds.push(`source ${projectSandboxBashrc};`);
-    }
-
-    // also set up redirects (via socat) so servers can listen on localhost instead of 0.0.0.0
-    ports().forEach((p) =>
-      shellCmds.push(
-        `socat TCP4-LISTEN:${p},bind=$(hostname -i),fork,reuseaddr TCP4:127.0.0.1:${p} 2> /dev/null &`,
-      ),
-    );
-  }
-
-  // append remaining args (shell -c "gemini cli_args...")
-  // cli_args need to be quoted before being inserted into shell_cmd
   const cliArgs = process.argv.slice(2).map((arg) => quote([arg]));
   const cliCmd =
     process.env.NODE_ENV === 'development'
       ? process.env.DEBUG
         ? 'npm run debug --'
         : 'npm rebuild && npm run start --'
-      : process.env.DEBUG // for production binary debugging
+      : process.env.DEBUG
         ? `node --inspect-brk=0.0.0.0:${process.env.DEBUG_PORT || '9229'} $(which gemini)`
         : 'gemini';
 
   const args = [...shellCmds, cliCmd, ...cliArgs];
 
-  return isWindows
-    ? ['cmd.exe', '/c', args.join(' & ')]
-    : ['bash', '-c', args.join(' ')];
+  return ['bash', '-c', args.join(' ')];
 }
 
 export async function start_sandbox(sandbox: string) {
