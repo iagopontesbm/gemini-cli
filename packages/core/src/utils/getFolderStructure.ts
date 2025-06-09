@@ -8,12 +8,10 @@ import * as fs from 'fs/promises';
 import { Dirent } from 'fs';
 import * as path from 'path';
 import { getErrorMessage, isNodeError } from './errors.js';
-import { GitIgnoreParser, GitIgnoreFilter } from './gitIgnoreParser.js';
-import { isGitRepository } from './gitUtils.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 const MAX_ITEMS = 200;
 const TRUNCATION_INDICATOR = '...';
-const DEFAULT_IGNORED_FOLDERS = new Set(['node_modules', '.git', 'dist']);
 
 // --- Interfaces ---
 
@@ -21,23 +19,9 @@ const DEFAULT_IGNORED_FOLDERS = new Set(['node_modules', '.git', 'dist']);
 interface FolderStructureOptions {
   /** Maximum number of files and folders combined to display. Defaults to 200. */
   maxItems?: number;
-  /** Set of folder names to ignore completely. Case-sensitive. */
-  ignoredFolders?: Set<string>;
-  /** Optional regex to filter included files by name. */
-  fileIncludePattern?: RegExp;
-  /** Whether to respect .gitignore patterns. Defaults to true. */
-  respectGitIgnore?: boolean;
-  /** The root of the project, used for gitignore resolution. */
-  projectRoot?: string;
+  /** FileDiscoveryService for filtering. */
+  fileService?: FileDiscoveryService;
 }
-
-// Define a type for the merged options where fileIncludePattern remains optional
-type MergedFolderStructureOptions = Required<
-  Omit<FolderStructureOptions, 'fileIncludePattern' | 'projectRoot'>
-> & {
-  fileIncludePattern?: RegExp;
-  projectRoot?: string;
-};
 
 /** Represents the full, unfiltered information about a folder and its contents. */
 interface FullFolderInfo {
@@ -58,8 +42,7 @@ interface FullFolderInfo {
 
 async function readFullStructure(
   rootPath: string,
-  options: MergedFolderStructureOptions,
-  gitIgnoreFilter: GitIgnoreFilter | null,
+  options?: FolderStructureOptions,
 ): Promise<FullFolderInfo | null> {
   const rootName = path.basename(rootPath);
   const rootNode: FullFolderInfo = {
@@ -70,6 +53,7 @@ async function readFullStructure(
     totalChildren: 0,
     totalFiles: 0,
   };
+  const maxItems = options?.maxItems ?? MAX_ITEMS;
 
   const queue: Array<{ folderInfo: FullFolderInfo; currentPath: string }> = [
     { folderInfo: rootNode, currentPath: rootPath },
@@ -87,7 +71,7 @@ async function readFullStructure(
     }
     processedPaths.add(currentPath);
 
-    if (currentItemCount >= options.maxItems) {
+    if (currentItemCount >= maxItems) {
       // If the root itself caused us to exceed, we can't really show anything.
       // Otherwise, this folder won't be processed further.
       // The parent that queued this would have set its own hasMoreSubfolders flag.
@@ -122,26 +106,19 @@ async function readFullStructure(
     // Process files first in the current directory
     for (const entry of entries) {
       if (entry.isFile()) {
-        if (currentItemCount >= options.maxItems) {
+        if (currentItemCount >= maxItems) {
           folderInfo.hasMoreFiles = true;
           break;
         }
         const fileName = entry.name;
         const filePath = path.join(currentPath, fileName);
-        if (gitIgnoreFilter) {
-          if (gitIgnoreFilter.isIgnored(filePath)) {
-            continue;
-          }
+        if (options?.fileService?.shouldIgnoreFile(filePath)) {
+          continue;
         }
-        if (
-          !options.fileIncludePattern ||
-          options.fileIncludePattern.test(fileName)
-        ) {
-          filesInCurrentDir.push(fileName);
-          currentItemCount++;
-          folderInfo.totalFiles++;
-          folderInfo.totalChildren++;
-        }
+        filesInCurrentDir.push(fileName);
+        currentItemCount++;
+        folderInfo.totalFiles++;
+        folderInfo.totalChildren++;
       }
     }
     folderInfo.files = filesInCurrentDir;
@@ -151,7 +128,7 @@ async function readFullStructure(
       if (entry.isDirectory()) {
         // Check if adding this directory ITSELF would meet or exceed maxItems
         // (currentItemCount refers to items *already* added before this one)
-        if (currentItemCount >= options.maxItems) {
+        if (currentItemCount >= maxItems) {
           folderInfo.hasMoreSubfolders = true;
           break; // Already at limit, cannot add this folder or any more
         }
@@ -162,14 +139,7 @@ async function readFullStructure(
         const subFolderName = entry.name;
         const subFolderPath = path.join(currentPath, subFolderName);
 
-        let isIgnoredByGit = false;
-        if (gitIgnoreFilter) {
-          if (gitIgnoreFilter.isIgnored(subFolderPath)) {
-            isIgnoredByGit = true;
-          }
-        }
-
-        if (options.ignoredFolders.has(subFolderName) || isIgnoredByGit) {
+        if (options?.fileService?.shouldIgnoreFile(subFolderPath)) {
           const ignoredSubFolder: FullFolderInfo = {
             name: subFolderName,
             path: subFolderPath,
@@ -292,30 +262,11 @@ export async function getFolderStructure(
   options?: FolderStructureOptions,
 ): Promise<string> {
   const resolvedPath = path.resolve(directory);
-  const mergedOptions: MergedFolderStructureOptions = {
-    maxItems: options?.maxItems ?? MAX_ITEMS,
-    ignoredFolders: options?.ignoredFolders ?? DEFAULT_IGNORED_FOLDERS,
-    fileIncludePattern: options?.fileIncludePattern,
-    respectGitIgnore: options?.respectGitIgnore ?? true,
-    projectRoot: options?.projectRoot ?? resolvedPath,
-  };
-
-  let gitIgnoreFilter: GitIgnoreFilter | null = null;
-  if (mergedOptions.respectGitIgnore && mergedOptions.projectRoot) {
-    if (isGitRepository(mergedOptions.projectRoot)) {
-      const parser = new GitIgnoreParser(mergedOptions.projectRoot);
-      await parser.initialize();
-      gitIgnoreFilter = parser;
-    }
-  }
 
   try {
     // 1. Read the structure using BFS, respecting maxItems
-    const structureRoot = await readFullStructure(
-      resolvedPath,
-      mergedOptions,
-      gitIgnoreFilter,
-    );
+    const structureRoot = await readFullStructure(resolvedPath, options);
+    const maxItems = options?.maxItems ?? MAX_ITEMS;
 
     if (!structureRoot) {
       return `Error: Could not read directory "${resolvedPath}". Check path and permissions.`;
@@ -347,11 +298,11 @@ export async function getFolderStructure(
     checkForTruncation(structureRoot);
 
     if (truncationOccurred) {
-      disclaimer = `Folders or files indicated with ${TRUNCATION_INDICATOR} contain more items not shown, were ignored, or the display limit (${mergedOptions.maxItems} items) was reached.`;
+      disclaimer = `Folders or files indicated with ${TRUNCATION_INDICATOR} contain more items not shown, were ignored, or the display limit (${maxItems} items) was reached.`;
     }
 
     const summary =
-      `Showing up to ${mergedOptions.maxItems} items (files + folders). ${disclaimer}`.trim();
+      `Showing up to ${maxItems} items (files + folders). ${disclaimer}`.trim();
 
     const output = `${summary}\n\n${displayPath}/\n${structureLines.join('\n')}`;
     return output;

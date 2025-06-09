@@ -80,7 +80,7 @@ export interface ConfigParameters {
   telemetry?: boolean;
   telemetryLogUserPromptsEnabled?: boolean;
   fileFilteringRespectGitIgnore?: boolean;
-  fileFilteringAllowBuildArtifacts?: boolean;
+  fileFilteringRespectAIExclude?: boolean;
   checkpoint?: boolean;
 }
 
@@ -111,7 +111,7 @@ export class Config {
   private readonly geminiClient: GeminiClient;
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
-  private readonly fileFilteringAllowBuildArtifacts: boolean;
+  private readonly fileFilteringRespectAIExclude: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
   private readonly checkpoint: boolean;
@@ -143,8 +143,8 @@ export class Config {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4317';
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringAllowBuildArtifacts =
-      params.fileFilteringAllowBuildArtifacts ?? false;
+    this.fileFilteringRespectAIExclude =
+      params.fileFilteringRespectAIExclude ?? true;
     this.checkpoint = params.checkpoint ?? false;
 
     if (params.contextFileName) {
@@ -289,8 +289,8 @@ export class Config {
     return this.fileFilteringRespectGitIgnore;
   }
 
-  getFileFilteringAllowBuildArtifacts(): boolean {
-    return this.fileFilteringAllowBuildArtifacts;
+  getFileFilteringRespectAIExclude(): boolean {
+    return this.fileFilteringRespectAIExclude;
   }
 
   getCheckpointEnabled(): boolean {
@@ -302,7 +302,7 @@ export class Config {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
       await this.fileDiscoveryService.initialize({
         respectGitIgnore: this.fileFilteringRespectGitIgnore,
-        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
+        respectAIExclude: this.fileFilteringRespectAIExclude,
       });
     }
     return this.fileDiscoveryService;

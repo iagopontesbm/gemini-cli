@@ -9,6 +9,7 @@ import * as fsSync from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
 import { bfsFileSearch } from './bfsFileSearch.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import {
   GEMINI_CONFIG_DIR,
   getCurrentGeminiMdFilename,
@@ -175,12 +176,15 @@ async function getGeminiMdFilePathsInternal(
   }
   paths.push(...upwardPaths);
 
+  const fileService = new FileDiscoveryService(projectRoot || resolvedCwd);
+  await fileService.initialize({
+    respectGitIgnore: true,
+  });
   const downwardPaths = await bfsFileSearch(resolvedCwd, {
     fileName: getCurrentGeminiMdFilename(),
     maxDirs: MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
     debug: debugMode,
-    respectGitIgnore: true,
-    projectRoot: projectRoot || resolvedCwd,
+    fileService,
   });
   downwardPaths.sort(); // Sort for consistent ordering, though hierarchy might be more complex
   if (debugMode && downwardPaths.length > 0)

@@ -193,8 +193,7 @@ export async function loadCliConfig(
         : (settings.telemetry ?? false),
     // Git-aware file filtering settings
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-    fileFilteringAllowBuildArtifacts:
-      settings.fileFiltering?.allowBuildArtifacts,
+    fileFilteringRespectAIExclude: settings.fileFiltering?.respectAIExclude,
     checkpoint: argv.checkpoint,
   });
 }

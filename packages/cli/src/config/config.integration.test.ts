@@ -59,13 +59,13 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: undefined, // Should default to true
-        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
+        fileFilteringRespectAIExclude: undefined, // Should default to true
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(true);
     });
 
     it('should load custom file filtering settings from configuration', async () => {
@@ -76,13 +76,13 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: false,
-        fileFilteringAllowBuildArtifacts: true,
+        fileFilteringRespectAIExclude: false,
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(false);
     });
 
     it('should merge user and workspace file filtering settings', async () => {
@@ -93,13 +93,13 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: true,
+        fileFilteringRespectAIExclude: true,
       };
 
       const config = new Config(configParams);
 
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(true);
     });
   });
 
@@ -112,16 +112,14 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: false,
-        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
+        fileFilteringRespectAIExclude: false,
       };
 
       const config = new Config(configParams);
 
       // Specified settings should be applied
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-
-      // Missing settings should use defaults
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(false);
     });
 
     it('should handle empty configuration objects gracefully', async () => {
@@ -132,14 +130,14 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: undefined,
-        fileFilteringAllowBuildArtifacts: undefined,
+        fileFilteringRespectAIExclude: undefined,
       };
 
       const config = new Config(configParams);
 
       // All settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(true);
     });
 
     it('should handle missing configuration sections gracefully', async () => {
@@ -156,7 +154,7 @@ describe('Configuration Integration Tests', () => {
 
       // All git-aware settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(true);
     });
   });
 
@@ -169,29 +167,13 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: false,
+        fileFilteringRespectAIExclude: true,
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-    });
-
-    it('should handle a development-focused configuration', async () => {
-      const configParams: ConfigParameters = {
-        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
-        embeddingModel: 'test-embedding-model',
-        sandbox: false,
-        targetDir: tempDir,
-        debugMode: false,
-        fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: true,
-      };
-
-      const config = new Config(configParams);
-
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(true);
     });
 
     it('should handle a CI/CD environment configuration', async () => {
@@ -202,13 +184,13 @@ describe('Configuration Integration Tests', () => {
         targetDir: tempDir,
         debugMode: false,
         fileFilteringRespectGitIgnore: false, // CI might need to see all files
-        fileFilteringAllowBuildArtifacts: true,
+        fileFilteringRespectAIExclude: false, // CI might need to see all files
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
+      expect(config.getFileFilteringRespectAIExclude()).toBe(false);
     });
   });
 });
