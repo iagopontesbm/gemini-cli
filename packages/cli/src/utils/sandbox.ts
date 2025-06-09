@@ -289,7 +289,7 @@ export async function start_sandbox(sandbox: string) {
   console.error(`hopping into sandbox (command: ${sandbox}) ...`);
 
   // determine full path for gemini-cli to distinguish linked vs installed setting
-  const gcPath = execSync(`realpath $(which gemini)`).toString().trim();
+  const gcPath = fs.realpathSync(process.argv[1]);
 
   const projectSandboxDockerfile = path.join(
     SETTINGS_DIRECTORY_NAME,
