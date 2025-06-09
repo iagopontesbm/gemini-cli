@@ -164,7 +164,9 @@ function entrypoint(workdir: string): string[] {
   if (process.env.PATH) {
     const paths = process.env.PATH.split(isWindows ? ';' : ':');
     for (const path of paths) {
-      if (path.startsWith(workdir)) {
+      if (
+        path.toLowerCase().startsWith(workdir.toLowerCase())
+      ) {
         pathSuffix += isWindows ? `;${path}` : `:${path}`;
       }
     }
@@ -184,7 +186,9 @@ function entrypoint(workdir: string): string[] {
   if (process.env.PYTHONPATH) {
     const paths = process.env.PYTHONPATH.split(isWindows ? ';' : ':');
     for (const path of paths) {
-      if (path.startsWith(workdir)) {
+      if (
+        path.toLowerCase().startsWith(workdir.toLowerCase())
+      ) {
         pythonPathSuffix += isWindows ? `;${path}` : `:${path}`;
       }
     }
@@ -355,7 +359,7 @@ export async function start_sandbox(sandbox: string) {
   }
 
   // mount current directory as working directory in sandbox (set via --workdir)
-  args.push('--volume', `${process.cwd()}:${workdir}`);
+  args.push('--volume', `${path.resolve(process.cwd())}:${workdir}`);
 
   // mount user settings directory inside container, after creating if missing
   // note user/home changes inside sandbox and we mount at BOTH paths for consistency
