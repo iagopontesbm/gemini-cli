@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as fs from 'fs';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Text, Box, useInput, useStdin } from 'ink';
 import { Colors } from '../colors.js';
@@ -17,7 +18,7 @@ import process from 'node:process';
 import { useCompletion } from '../hooks/useCompletion.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
 import { SlashCommand } from '../hooks/slashCommandProcessor.js';
-import { Config } from '@gemini-code/core';
+import { Config } from '@gemini-cli/core';
 
 export interface InputPromptProps {
   onSubmit: (value: string) => void;
@@ -39,7 +40,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   onClearScreen,
   config,
   slashCommands,
-  placeholder = 'Type your message or @path/to/file',
+  placeholder = '  Type your message or @path/to/file',
   height = 10,
   focus = true,
   widthFraction,
@@ -58,11 +59,20 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
   const { stdin, setRawMode } = useStdin();
 
+  const isValidPath = useCallback((filePath: string): boolean => {
+    try {
+      return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+    } catch (_e) {
+      return false;
+    }
+  }, []);
+
   const buffer = useTextBuffer({
     initialText: '',
     viewport: { height, width: effectiveWidth },
     stdin,
     setRawMode,
+    isValidPath,
   });
 
   const completion = useCompletion(
@@ -349,7 +359,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         </Text>
         <Box flexGrow={1} flexDirection="column">
           {buffer.text.length === 0 && placeholder ? (
-            <Text color={Colors.Gray}>{placeholder}</Text>
+            focus ? (
+              <Text>
+                {chalk.inverse(placeholder.slice(0, 1))}
+                <Text color={Colors.Gray}>{placeholder.slice(1)}</Text>
+              </Text>
+            ) : (
+              <Text color={Colors.Gray}>{placeholder}</Text>
+            )
           ) : (
             linesToRender.map((lineText, visualIdxInRenderedSet) => {
               const cursorVisualRow = cursorVisualRowAbsolute - scrollVisualRow;

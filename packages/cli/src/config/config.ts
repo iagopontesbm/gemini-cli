@@ -10,19 +10,15 @@ import process from 'node:process';
 import {
   Config,
   loadEnvironment,
-  createServerConfig,
   loadServerHierarchicalMemory,
-  ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-} from '@gemini-code/core';
+  ContentGeneratorConfig,
+} from '@gemini-cli/core';
 import { Settings } from './settings.js';
-import { readPackageUp } from 'read-package-up';
-import {
-  getEffectiveModel,
-  type EffectiveModelCheckResult,
-} from '../utils/modelCheck.js';
+import { getEffectiveModel } from '../utils/modelCheck.js';
+import { getCliVersion } from '../utils/version.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -36,6 +32,7 @@ const logger = {
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-06-05';
 export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
+export const DEFAULT_GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
 
 interface CliArgs {
   model: string | undefined;
@@ -119,19 +116,69 @@ export async function loadHierarchicalGeminiMemory(
   return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
 }
 
-export interface LoadCliConfigResult {
-  config: Config;
-  modelWasSwitched: boolean;
-  originalModelBeforeSwitch?: string;
-  finalModel: string;
-}
-
 export async function loadCliConfig(
   settings: Settings,
   geminiIgnorePatterns: string[],
-): Promise<LoadCliConfigResult> {
+): Promise<Config> {
   loadEnvironment();
 
+  const argv = await parseArguments();
+  const debugMode = argv.debug || false;
+
+  // Set the context filename in the server's memoryTool module BEFORE loading memory
+  // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
+  // directly to the Config constructor in core, and have core handle setGeminiMdFilename.
+  // However, loadHierarchicalGeminiMemory is called *before* createServerConfig.
+  if (settings.contextFileName) {
+    setServerGeminiMdFilename(settings.contextFileName);
+  } else {
+    // Reset to default if not provided in settings.
+    setServerGeminiMdFilename(getCurrentGeminiMdFilename());
+  }
+
+  // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
+  const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
+    process.cwd(),
+    debugMode,
+  );
+
+  const contentGeneratorConfig = await createContentGeneratorConfig(argv);
+
+  return new Config({
+    contentGeneratorConfig,
+    embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
+    sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
+    targetDir: process.cwd(),
+    debugMode,
+    question: argv.prompt || '',
+    fullContext: argv.all_files || false,
+    coreTools: settings.coreTools || undefined,
+    toolDiscoveryCommand: settings.toolDiscoveryCommand,
+    toolCallCommand: settings.toolCallCommand,
+    mcpServerCommand: settings.mcpServerCommand,
+    mcpServers: settings.mcpServers,
+    userMemory: memoryContent,
+    geminiMdFileCount: fileCount,
+    approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
+    showMemoryUsage:
+      argv.show_memory_usage || settings.showMemoryUsage || false,
+    geminiIgnorePatterns,
+    accessibility: settings.accessibility,
+    telemetry:
+      argv.telemetry !== undefined
+        ? argv.telemetry
+        : (settings.telemetry ?? false),
+    // Git-aware file filtering settings
+    fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+    fileFilteringAllowBuildArtifacts:
+      settings.fileFiltering?.allowBuildArtifacts,
+    enableModifyWithExternalEditors: settings.enableModifyWithExternalEditors,
+  });
+}
+
+async function createContentGeneratorConfig(
+  argv: CliArgs,
+): Promise<ContentGeneratorConfig> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const googleApiKey = process.env.GOOGLE_API_KEY;
   const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
@@ -155,99 +202,16 @@ export async function loadCliConfig(
     process.exit(1);
   }
 
-  const argv = await parseArguments();
-  const debugMode = argv.debug || false;
-
-  // Set the context filename in the server's memoryTool module BEFORE loading memory
-  // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
-  // directly to the Config constructor in core, and have core handle setGeminiMdFilename.
-  // However, loadHierarchicalGeminiMemory is called *before* createServerConfig.
-  if (settings.contextFileName) {
-    setServerGeminiMdFilename(settings.contextFileName);
-  } else {
-    // Reset to default if not provided in settings.
-    setServerGeminiMdFilename(getCurrentGeminiMdFilename());
-  }
-
-  // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
-  const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
-    process.cwd(),
-    debugMode,
-  );
-
-  const userAgent = await createUserAgent();
-  const apiKeyForServer = geminiApiKey || googleApiKey || '';
-  const useVertexAI = hasGeminiApiKey ? false : undefined;
-
-  let modelToUse = argv.model || DEFAULT_GEMINI_MODEL;
-  let modelSwitched = false;
-  let originalModel: string | undefined = undefined;
-
-  if (apiKeyForServer) {
-    const checkResult: EffectiveModelCheckResult = await getEffectiveModel(
-      apiKeyForServer,
-      modelToUse,
-    );
-    if (checkResult.switched) {
-      modelSwitched = true;
-      originalModel = checkResult.originalModelIfSwitched;
-      modelToUse = checkResult.effectiveModel;
-    }
-  } else {
-    // logger.debug('API key not available during config load. Skipping model availability check.');
-  }
-
-  const configParams: ConfigParameters = {
-    apiKey: apiKeyForServer,
-    model: modelToUse,
-    sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
-    targetDir: process.cwd(),
-    debugMode,
-    question: argv.prompt || '',
-    fullContext: argv.all_files || false,
-    coreTools: settings.coreTools || undefined,
-    toolDiscoveryCommand: settings.toolDiscoveryCommand,
-    toolCallCommand: settings.toolCallCommand,
-    mcpServerCommand: settings.mcpServerCommand,
-    mcpServers: settings.mcpServers,
-    userAgent,
-    userMemory: memoryContent,
-    geminiMdFileCount: fileCount,
-    approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
-    vertexai: useVertexAI,
-    showMemoryUsage:
-      argv.show_memory_usage || settings.showMemoryUsage || false,
-    geminiIgnorePatterns,
-    accessibility: settings.accessibility,
-    telemetry:
-      argv.telemetry !== undefined
-        ? argv.telemetry
-        : (settings.telemetry ?? false),
-    // Git-aware file filtering settings
-    fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-    fileFilteringAllowBuildArtifacts:
-      settings.fileFiltering?.allowBuildArtifacts,
+  const config: ContentGeneratorConfig = {
+    model: argv.model || DEFAULT_GEMINI_MODEL,
+    apiKey: geminiApiKey || googleApiKey || '',
+    vertexai: hasGeminiApiKey ? false : undefined,
+    userAgent: `GeminiCLI/${getCliVersion()}/(${process.platform}; ${process.arch})`,
   };
 
-  const config = createServerConfig(configParams);
-  return {
-    config,
-    modelWasSwitched: modelSwitched,
-    originalModelBeforeSwitch: originalModel,
-    finalModel: modelToUse,
-  };
-}
-
-async function createUserAgent(): Promise<string> {
-  try {
-    const packageJsonInfo = await readPackageUp({ cwd: import.meta.url });
-    const cliVersion = packageJsonInfo?.packageJson.version || 'unknown';
-    return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(
-      `Could not determine package version for User-Agent: ${message}`,
-    );
-    return `GeminiCLI/unknown Node.js/${process.version} (${process.platform}; ${process.arch})`;
+  if (config.apiKey) {
+    config.model = await getEffectiveModel(config.apiKey, config.model);
   }
+
+  return config;
 }
