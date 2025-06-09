@@ -510,7 +510,7 @@ export async function start_sandbox(sandbox: string) {
   // spawn child and let it inherit stdio
   const child = spawn(sandbox, args, {
     stdio: 'inherit',
-    detached: true,
+    detached: os.platform() !== 'win32',
   });
 
   // uncomment this line (and comment the await on following line) to let parent exit
