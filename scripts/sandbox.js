@@ -25,7 +25,7 @@ try {
   execSync('node scripts/sandbox_command.js -q');
 } catch {
   console.error(
-    'ERROR: sandboxing disabled. See README.md to enable sandboxing.',
+    'ERROR: sandboxing disabled. See docs to enable sandboxing.',
   );
   process.exit(1);
 }
