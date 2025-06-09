@@ -11,7 +11,7 @@ import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
-import { useSession } from '../contexts/SessionContext.js';
+import { useSessionStats } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatMemoryUsage } from '../utils/formatters.js';
@@ -50,8 +50,7 @@ export const useSlashCommandProcessor = (
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
 ) => {
-  const session = useSession();
-
+  const session = useSessionStats();
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -147,7 +146,9 @@ export const useSlashCommandProcessor = (
         description: 'check session stats',
         action: (_mainCommand, _subCommand, _args) => {
           const now = new Date();
-          const duration = now.getTime() - session.startTime.getTime();
+          const { sessionStartTime, cumulative } = session.stats;
+
+          const duration = now.getTime() - sessionStartTime.getTime();
           const durationInSeconds = Math.floor(duration / 1000);
           const hours = Math.floor(durationInSeconds / 3600);
           const minutes = Math.floor((durationInSeconds % 3600) / 60);
@@ -161,9 +162,26 @@ export const useSlashCommandProcessor = (
             .filter(Boolean)
             .join(' ');
 
+          const cacheEfficiency =
+            cumulative.promptTokenCount > 0
+              ? (
+                  (cumulative.cachedContentTokenCount /
+                    cumulative.promptTokenCount) *
+                  100
+                ).toFixed(2)
+              : '0.00';
+
+          const statsContent = [
+            `Session Duration: ${durationString}`,
+            `Total Tokens:     ${cumulative.totalTokenCount.toLocaleString()}`,
+            `Input Tokens:     ${cumulative.promptTokenCount.toLocaleString()}`,
+            `Output Tokens:    ${cumulative.candidatesTokenCount.toLocaleString()}`,
+            `Cache Efficiency: ${cacheEfficiency}% (${cumulative.cachedContentTokenCount.toLocaleString()} tokens from cache)`,
+          ].join('\n');
+
           addMessage({
             type: MessageType.INFO,
-            content: `Session duration: ${durationString}`,
+            content: statsContent,
             timestamp: new Date(),
           });
         },
@@ -477,7 +495,7 @@ Add any other context about the problem here.
       toggleCorgiMode,
       config,
       showToolDescriptions,
-      session.startTime,
+      session,
     ],
   );
 
