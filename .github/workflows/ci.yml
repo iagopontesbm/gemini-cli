@@ -65,6 +65,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Auth
+        run: npm auth:npm
+
       - name: Run integration test from GitHub commit
         run: npx --yes github:${{ github.repository }}@${{ github.sha }} -p "hello world"
 
