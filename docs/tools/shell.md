@@ -22,11 +22,14 @@ This document provides details on the shell tool.
     - `Signal`: The signal number if the command was terminated by a signal.
     - `Background PIDs`: A list of PIDs for any background processes started.
 - **Examples:**
+
   - Listing files in the current directory:
+
     ```
 
     run_shell_command(command="ls -la")
     ```
+
   - Running a script in a specific directory:
     ```
     run_shell_command(command="./my_script.sh", directory="scripts", description="Run my custom script")
@@ -35,6 +38,7 @@ This document provides details on the shell tool.
     ```
     run_shell_command(command="npm run dev &", description="Start development server in background")
     ```
+
 - **Important Notes:**
   - **Security:** Be cautious when executing commands, especially those constructed from user input, to prevent security vulnerabilities.
   - **Interactive Commands:** Avoid commands that require interactive user input, as this can cause the tool to hang. Use non-interactive flags if available (e.g., `npm init -y`).
