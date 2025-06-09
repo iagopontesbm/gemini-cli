@@ -27,15 +27,11 @@ function commandExists(cmd: string): boolean {
 
 export function checkHasEditor(editor: EditorType): boolean {
   if (editor === 'vscode') {
-<<<<<<< HEAD
-    return commandExists('code');
-  } else if (editor === 'windsurf') {
-    return commandExists('windsurf');
-=======
     return process.platform === 'win32'
       ? commandExists('code.cmd')
       : commandExists('code');
->>>>>>> main
+  } else if (editor === 'windsurf') {
+    return commandExists('windsurf');
   } else if (editor === 'vim') {
     return commandExists('vim');
   }
