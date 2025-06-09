@@ -162,21 +162,20 @@ export const useSlashCommandProcessor = (
             .filter(Boolean)
             .join(' ');
 
-          const cacheEfficiency =
-            cumulative.promptTokenCount > 0
-              ? (
-                  (cumulative.cachedContentTokenCount /
-                    cumulative.promptTokenCount) *
-                  100
-                ).toFixed(2)
-              : '0.00';
+          const overheadTotal =
+            cumulative.thoughtsTokenCount + cumulative.toolUsePromptTokenCount;
 
           const statsContent = [
-            `Session Duration: ${durationString}`,
-            `Total Tokens:     ${cumulative.totalTokenCount.toLocaleString()}`,
-            `Input Tokens:     ${cumulative.promptTokenCount.toLocaleString()}`,
-            `Output Tokens:    ${cumulative.candidatesTokenCount.toLocaleString()}`,
-            `Cache Efficiency: ${cacheEfficiency}% (${cumulative.cachedContentTokenCount.toLocaleString()} tokens from cache)`,
+            `  ⎿ Total duration (wall): ${durationString}`,
+            `    Total Token usage:`,
+            `         Turns: ${cumulative.turnCount.toLocaleString()}`,
+            `         Total: ${cumulative.totalTokenCount.toLocaleString()}`,
+            `             ├─ Input: ${cumulative.promptTokenCount.toLocaleString()}`,
+            `             ├─ Output: ${cumulative.candidatesTokenCount.toLocaleString()}`,
+            `             ├─ Cached: ${cumulative.cachedContentTokenCount.toLocaleString()}`,
+            `             └─ Overhead: ${overheadTotal.toLocaleString()}`,
+            `                  ├─ Model thoughts: ${cumulative.thoughtsTokenCount.toLocaleString()}`,
+            `                  └─ Tool-use prompts: ${cumulative.toolUsePromptTokenCount.toLocaleString()}`,
           ].join('\n');
 
           addMessage({

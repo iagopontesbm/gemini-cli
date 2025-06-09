@@ -259,11 +259,11 @@ describe('useSlashCommandProcessor', () => {
           cumulative: {
             totalTokenCount: 900,
             promptTokenCount: 200,
-            candidatesTokenCount: 700,
+            candidatesTokenCount: 400,
             cachedContentTokenCount: 100,
             turnCount: 1,
-            toolUsePromptTokenCount: 0,
-            thoughtsTokenCount: 0,
+            toolUsePromptTokenCount: 50,
+            thoughtsTokenCount: 150,
           },
         },
       });
@@ -279,11 +279,16 @@ describe('useSlashCommandProcessor', () => {
 
       // Assert
       const expectedContent = [
-        `Session Duration: 1h 2m 3s`,
-        `Total Tokens:     900`,
-        `Input Tokens:     200`,
-        `Output Tokens:    700`,
-        `Cache Efficiency: 50.00% (100 tokens from cache)`,
+        `  ⎿ Total duration (wall): 1h 2m 3s`,
+        `    Total Token usage:`,
+        `         Turns: 1`,
+        `         Total: 900`,
+        `             ├─ Input: 200`,
+        `             ├─ Output: 400`,
+        `             ├─ Cached: 100`,
+        `             └─ Overhead: 200`,
+        `                  ├─ Model thoughts: 150`,
+        `                  └─ Tool-use prompts: 50`,
       ].join('\n');
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
