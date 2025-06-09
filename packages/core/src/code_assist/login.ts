@@ -111,9 +111,10 @@ function login(oAuth2Client: OAuth2Client, port: number): Promise<boolean> {
           }
         } catch (e) {
           reject(e);
+        } finally {
+          server.close();
         }
-        server.close();
-      })
-      .listen(port);
+      });
+    server.listen(port);
   });
 }

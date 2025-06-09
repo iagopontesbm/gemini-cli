@@ -17,6 +17,7 @@ import { Readable } from 'stream';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
 import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
+import type { ReadableStream } from 'node:stream/web';
 
 
 export class CodeAssistContentGenerator implements ContentGenerator {
@@ -42,7 +43,7 @@ export class CodeAssistContentGenerator implements ContentGenerator {
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
       const rl = readline.createInterface({
-        input: Readable.fromWeb(response.body as ReadableStream),
+        input: Readable.fromWeb(response.body as ReadableStream<Uint8Array>),
         crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
       });
 
