@@ -16,9 +16,7 @@ interface DiffCommand {
 function commandExists(cmd: string): boolean {
   try {
     execSync(
-      process.platform === 'win32'
-        ? `where.exe ${cmd}`
-        : `command -v ${cmd}`,
+      process.platform === 'win32' ? `where.exe ${cmd}` : `command -v ${cmd}`,
       { stdio: 'ignore' },
     );
     return true;
