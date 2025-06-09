@@ -298,7 +298,7 @@ export async function start_sandbox(sandbox: string) {
   const isCustomProjectSandbox = fs.existsSync(projectSandboxDockerfile);
 
   const image = await getSandboxImageName(isCustomProjectSandbox);
-  const workdir = process.cwd();
+  const workdir = path.resolve(process.cwd());
 
   // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-cli repo
   //
