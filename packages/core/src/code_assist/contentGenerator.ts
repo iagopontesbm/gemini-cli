@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GoogleAuth } from 'google-auth-library';
+import { OAuth2Client } from 'google-auth-library';
 import {
   GenerateContentResponse,
   GenerateContentParameters,
@@ -15,25 +15,15 @@ import {
 } from '@google/genai';
 import { Readable } from 'stream';
 import * as readline from 'readline';
-import { ContentGenerator } from './contentGenerator.js';
+import { ContentGenerator } from '../core/contentGenerator.js';
+import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
 
-const domain = 'https://cloudcode-pa.googleapis.com';
-const apiVersion = 'v1internal';
 
 export class CodeAssistContentGenerator implements ContentGenerator {
-  private projectId: string;
+  private auth: OAuth2Client;
 
-  private auth: GoogleAuth;
-
-  constructor(projectId: string) {
-    this.projectId = projectId;
-    this.auth = new GoogleAuth({
-      scopes: [
-        'https://www.googleapis.com/auth/cloud-platform',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://www.googleapis.com/auth/userinfo.profile',
-      ],
-    });
+  constructor(auth: OAuth2Client) {
+    this.auth = auth;
   }
 
   async generateContent(
@@ -92,13 +82,13 @@ export class CodeAssistContentGenerator implements ContentGenerator {
 
   private async callCodeAssist(method: string, req: object): Promise<Response> {
     const token = await this.auth.getAccessToken();
-    const url = `${domain}/${apiVersion}:${method}`;
+    const url = `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'X-Goog-User-Project': this.projectId,
+        'X-Goog-User-Project': this.auth.projectId!,
       },
       body: JSON.stringify(req),
     });

@@ -7,9 +7,9 @@
 import { OAuth2Client } from 'google-auth-library';
 
 import { ClientMetadata } from './metadata.js';
-import { DEFAULT_ENDPOINT } from './constants.js';
+import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
 
-const ONBOARD_USER_ENDPOINT = '/v1internal:onboardUser';
+const ONBOARD_USER_ENDPOINT = new URL(CCPA_API_VERSION + ':onboardUser', CCPA_ENDPOINT)
 
 export async function doOnboardUser(
   req: OnboardUserRequest,
@@ -19,7 +19,7 @@ export async function doOnboardUser(
   const authHeaders = await oauth2Client.getRequestHeaders();
   const headers = { 'Content-Type': 'application/json', ...authHeaders };
   const res: Response = await fetch(
-    new URL(ONBOARD_USER_ENDPOINT, DEFAULT_ENDPOINT),
+    ONBOARD_USER_ENDPOINT,
     {
       method: 'POST',
       headers,

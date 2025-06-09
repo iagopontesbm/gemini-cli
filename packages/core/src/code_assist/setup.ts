@@ -15,7 +15,7 @@ import {
   OnboardUserRequest,
 } from './onboard.js';
 
-export async function doSetup(): Promise<string> {
+export async function doSetup(projectId: string): Promise<OAuth2Client> {
   const oauth2Client: OAuth2Client = await doGCALogin();
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
@@ -31,7 +31,8 @@ export async function doSetup(): Promise<string> {
   // Call LoadCodeAssist.
   const loadCodeAssistRes: LoadCodeAssistResponse = await doLoadCodeAssist(
     {
-      cloudaicompanionProject: 'aipp-internal-testing',
+      // TODO: Support Free Tier user without projectId.
+      cloudaicompanionProject: projectId,
       metadata: clientMetadata,
     },
     oauth2Client,
@@ -52,5 +53,6 @@ export async function doSetup(): Promise<string> {
     lroRes = await doOnboardUser(onboardUserReq, oauth2Client);
   }
 
-  return lroRes.response?.cloudaicompanionProject?.id || '';
+  
+  return oauth2Client;
 }

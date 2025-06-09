@@ -7,9 +7,10 @@
 import { OAuth2Client } from 'google-auth-library';
 
 import { ClientMetadata } from './metadata.js';
-import { DEFAULT_ENDPOINT } from './constants.js';
+import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
 
-const LOAD_CODE_ASSIST_ENDPOINT = '/v1internal:loadCodeAssist';
+
+const LOAD_CODE_ASSIST_ENDPOINT = new URL(CCPA_API_VERSION + ':loadCodeAssist', CCPA_ENDPOINT)
 
 export async function doLoadCodeAssist(
   req: LoadCodeAssistRequest,
@@ -19,7 +20,7 @@ export async function doLoadCodeAssist(
   const authHeaders = await oauth2Client.getRequestHeaders();
   const headers = { 'Content-Type': 'application/json', ...authHeaders };
   const res: Response = await fetch(
-    new URL(LOAD_CODE_ASSIST_ENDPOINT, DEFAULT_ENDPOINT),
+    LOAD_CODE_ASSIST_ENDPOINT,
     {
       method: 'POST',
       headers,
