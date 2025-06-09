@@ -513,10 +513,21 @@ export async function start_sandbox(sandbox: string) {
     detached: os.platform() !== 'win32',
   });
 
+  child.on('error', (err) => {
+    console.error('Sandbox process error:', err);
+  });
+
   // uncomment this line (and comment the await on following line) to let parent exit
   // child.unref();
-  await new Promise((resolve) => {
-    child.on('close', resolve);
+  await new Promise<void>((resolve) => {
+    child.on('close', (code, signal) => {
+      if (code !== 0) {
+        console.log(
+          `Sandbox process exited with code: ${code}, signal: ${signal}`,
+        );
+      }
+      resolve();
+    });
   });
 }
 
