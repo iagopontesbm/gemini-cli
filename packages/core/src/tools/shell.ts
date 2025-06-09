@@ -162,6 +162,13 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
       };
     }
 
+    if (abortSignal.aborted) {
+      return {
+        llmContent: 'Command was cancelled by user before it could start.',
+        returnDisplay: 'Command cancelled by user.',
+      };
+    }
+
     const isWindows = os.platform() === 'win32';
 
     // pgrep is not available on Windows, so we can't get background PIDs
