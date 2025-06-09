@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { ApprovalMode } from '@gemini-code/core';
+import { ApprovalMode } from '@gemini-cli/core';
 
 interface AutoAcceptIndicatorProps {
   approvalMode: ApprovalMode;
@@ -40,7 +40,7 @@ export const AutoAcceptIndicator: React.FC<AutoAcceptIndicatorProps> = ({
     <Box>
       <Text color={textColor}>
         {textContent}
-        {subText && <Text color={Colors.SubtleComment}>{subText}</Text>}
+        {subText && <Text color={Colors.Gray}>{subText}</Text>}
       </Text>
     </Box>
   );

@@ -7,18 +7,20 @@
 import React from 'react';
 import { Text } from 'ink';
 import { Colors } from '../colors.js';
-import { type MCPServerConfig } from '@gemini-code/core';
+import { type MCPServerConfig } from '@gemini-cli/core';
 
 interface ContextSummaryDisplayProps {
   geminiMdFileCount: number;
   contextFileName: string;
   mcpServers?: Record<string, MCPServerConfig>;
+  showToolDescriptions?: boolean;
 }
 
 export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
   geminiMdFileCount,
   contextFileName,
   mcpServers,
+  showToolDescriptions,
 }) => {
   const mcpServerCount = Object.keys(mcpServers || {}).length;
 
@@ -45,7 +47,15 @@ export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
   }
   if (mcpText) {
     summaryText += mcpText;
+    // Add Ctrl+T hint when MCP servers are available
+    if (mcpServers && Object.keys(mcpServers).length > 0) {
+      if (showToolDescriptions) {
+        summaryText += ' (Ctrl+T to hide descriptions)';
+      } else {
+        summaryText += ' (Ctrl+T to view descriptions)';
+      }
+    }
   }
 
-  return <Text color={Colors.SubtleComment}>{summaryText}</Text>;
+  return <Text color={Colors.Gray}>{summaryText}</Text>;
 };

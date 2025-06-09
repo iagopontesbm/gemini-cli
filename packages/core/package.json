@@ -1,5 +1,5 @@
 {
-  "name": "@gemini-code/core",
+  "name": "@gemini-cli/core",
   "version": "0.1.0",
   "description": "Gemini CLI Server",
   "type": "module",
@@ -26,9 +26,15 @@
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
-    "minimatch": "^10.0.0",
+    "ignore": "^7.0.0",
     "shell-quote": "^1.8.2",
-    "strip-ansi": "^7.1.0"
+    "strip-ansi": "^7.1.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/sdk-node": "^0.52.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.52.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "^0.52.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.52.0",
+    "@opentelemetry/instrumentation-http": "^0.52.0"
   },
   "devDependencies": {
     "@types/diff": "^7.0.2",

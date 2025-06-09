@@ -19,7 +19,7 @@ set -euo pipefail
 # note this includes the case where sandbox-exec (seatbelt) is used
 # this happens most commonly when user runs `npm run build:all` without enabling sandboxing
 if ! scripts/sandbox_command.sh -q || [ "$(scripts/sandbox_command.sh)" == "sandbox-exec" ]; then
-    echo "WARNING: container-based sandboxing is disabled (see README.md#sandboxing)"
+    echo "WARNING: container-based sandboxing is disabled (see CONTRIBUTING.md#enabling-sandboxing)"
     exit 0
 fi
 
@@ -60,15 +60,15 @@ fi
 
 # prepare global installation files for prod builds
 # pack cli
-echo "packing @gemini-code/cli ..."
-rm -f packages/cli/dist/gemini-code-cli-*.tgz
-npm pack -w @gemini-code/cli --pack-destination ./packages/cli/dist &>/dev/null
+echo "packing @gemini-cli/cli ..."
+rm -f packages/cli/dist/gemini-cli-cli-*.tgz
+npm pack -w @gemini-cli/cli --pack-destination ./packages/cli/dist &>/dev/null
 # pack core
-echo "packing @gemini-code/core ..."
-rm -f packages/core/dist/gemini-code-core-*.tgz
-npm pack -w @gemini-code/core --pack-destination ./packages/core/dist &>/dev/null
+echo "packing @gemini-cli/core ..."
+rm -f packages/core/dist/gemini-cli-core-*.tgz
+npm pack -w @gemini-cli/core --pack-destination ./packages/core/dist &>/dev/null
 # give node user (used during installation, see Dockerfile) access to these files
-chmod 755 packages/*/dist/gemini-code-*.tgz
+chmod 755 packages/*/dist/gemini-cli-*.tgz
 
 # redirect build output to /dev/null unless VERBOSE is set
 BUILD_STDOUT="/dev/null"
@@ -76,36 +76,26 @@ if [ -n "${VERBOSE:-}" ]; then
     BUILD_STDOUT="/dev/stdout"
 fi
 
-# initialize build arg array from BUILD_SANDBOX_FLAGS
-read -r -a build_args <<<"${BUILD_SANDBOX_FLAGS:-}"
-
 build_image() {
-    local -n build_args=$1
-
     if [[ "$CMD" == "podman" ]]; then
         # use empty --authfile to skip unnecessary auth refresh overhead
-        $CMD build --authfile=<(echo '{}') "${build_args[@]}" >$BUILD_STDOUT
+        $CMD build --authfile=<(echo '{}') "$@" >$BUILD_STDOUT
     elif [[ "$CMD" == "docker" ]]; then
-        # use config directory to skip unnecessary auth refresh overhead
-        $CMD --config=".docker" buildx build "${build_args[@]}" >$BUILD_STDOUT
+        $CMD --config=".docker" buildx build "$@" >$BUILD_STDOUT
     else
-        $CMD build "${build_args[@]}" >$BUILD_STDOUT
+        $CMD build "$@" >$BUILD_STDOUT
     fi
 }
 
-# build container images & prune older unused images
-
 echo "building $BASE_IMAGE ... (can be slow first time)"
-base_image_build_args=(${build_args[@]})
-base_image_build_args+=(-f "$BASE_DOCKERFILE" -t "$BASE_IMAGE" .)
-build_image base_image_build_args
+# shellcheck disable=SC2086 # allow globbing and word splitting for BUILD_SANDBOX_FLAGS
+build_image ${BUILD_SANDBOX_FLAGS:-} -f "$BASE_DOCKERFILE" -t "$BASE_IMAGE" .
 echo "built $BASE_IMAGE"
 
 if [[ -n "$CUSTOM_DOCKERFILE" && -n "$CUSTOM_IMAGE" ]]; then
     echo "building $CUSTOM_IMAGE ... (can be slow first time)"
-    custom_image_build_args=(${build_args[@]})
-    custom_image_build_args+=(-f "$CUSTOM_DOCKERFILE" -t "$CUSTOM_IMAGE" .)
-    build_image custom_image_build_args
+    # shellcheck disable=SC2086 # allow globbing and word splitting for BUILD_SANDBOX_FLAGS
+    build_image ${BUILD_SANDBOX_FLAGS:-} -f "$CUSTOM_DOCKERFILE" -t "$CUSTOM_IMAGE" .
     echo "built $CUSTOM_IMAGE"
 fi
 

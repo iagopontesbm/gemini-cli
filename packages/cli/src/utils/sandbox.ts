@@ -209,7 +209,7 @@ function entrypoint(workdir: string): string[] {
     process.env.NODE_ENV === 'development'
       ? process.env.DEBUG
         ? 'npm run debug --'
-        : 'npm run start --'
+        : 'npm rebuild && npm run start --'
       : process.env.DEBUG // for production binary debugging
         ? `node --inspect-brk=0.0.0.0:${process.env.DEBUG_PORT || '9229'} $(which gemini)`
         : 'gemini';
@@ -306,11 +306,10 @@ export async function start_sandbox(sandbox: string) {
       );
       if (isCustomProjectSandbox) {
         console.error(`using ${projectSandboxDockerfile} for sandbox`);
-        buildArgs += `-s -f ${path.resolve(projectSandboxDockerfile)} -i ${image}`;
+        buildArgs += `-f ${path.resolve(projectSandboxDockerfile)} -i ${image}`;
       }
-      spawnSync(`cd ${gcRoot} && scripts/build_sandbox.sh ${buildArgs}`, {
+      execSync(`cd ${gcRoot} && scripts/build_sandbox.sh -s ${buildArgs}`, {
         stdio: 'inherit',
-        shell: true,
         env: {
           ...process.env,
           GEMINI_SANDBOX: sandbox, // in case sandbox is enabled via flags (see config.ts under cli package)

@@ -16,7 +16,7 @@
 set -euo pipefail
 
 if ! scripts/sandbox_command.sh -q; then
-    echo "ERROR: sandboxing disabled. See README.md to enable sandboxing."
+    echo "ERROR: sandboxing disabled. See docs to enable sandboxing."
     exit 1
 fi
 
@@ -41,7 +41,7 @@ while getopts "i" opt; do
 done
 shift $((OPTIND - 1))
 
-IMAGE=gemini-code-sandbox
+IMAGE=gemini-cli-sandbox
 CMD=$(scripts/sandbox_command.sh)
 
 # list all containers running on sandbox image
@@ -61,7 +61,7 @@ elif [[ "${1:-}" =~ ^[0-9]+$ ]]; then
 else
     # exit if no sandbox is running
     if [ ${#sandboxes[@]} -eq 0 ]; then
-        echo "No sandboxes found. Are you running gemini-code with sandboxing enabled?"
+        echo "No sandboxes found. Are you running gemini-cli with sandboxing enabled?"
         exit 1
     fi
     # exit if multiple sandboxes are running
