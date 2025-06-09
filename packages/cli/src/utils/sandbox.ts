@@ -17,6 +17,19 @@ import {
   SETTINGS_DIRECTORY_NAME,
 } from '../config/settings.js';
 
+function getContainerPath(hostPath: string): string {
+  if (os.platform() !== 'win32') {
+    return hostPath;
+  }
+  const withForwardSlashes = hostPath.replace(/\\/g, '/');
+  const match = withForwardSlashes.match(/^([A-Z]):\/(.*)/i);
+  if (match) {
+    return `/${match[1].toLowerCase()}/${match[2]}`;
+  }
+  return hostPath;
+}
+
+
 const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'gemini-cli-sandbox';
 
 /**
@@ -152,7 +165,7 @@ function ports(): string[] {
 
 function entrypoint(workdir: string): string[] {
   const isWindows = os.platform() === 'win32';
-
+  const containerWorkdir = getContainerPath(workdir);
   // set up shell command to be run inside container
   // start with setting up PATH and PYTHONPATH with optional suffixes from host
   const shellCmds = [];
@@ -163,11 +176,14 @@ function entrypoint(workdir: string): string[] {
   let pathSuffix = '';
   if (process.env.PATH) {
     const paths = process.env.PATH.split(isWindows ? ';' : ':');
-    for (const path of paths) {
+    for (const p of paths) {
+      const containerPath = getContainerPath(p);
       if (
-        path.toLowerCase().startsWith(workdir.toLowerCase())
+        containerPath
+          .toLowerCase()
+          .startsWith(containerWorkdir.toLowerCase())
       ) {
-        pathSuffix += isWindows ? `;${path}` : `:${path}`;
+        pathSuffix += isWindows ? `;${containerPath}` : `:${containerPath}`;
       }
     }
   }
@@ -185,11 +201,16 @@ function entrypoint(workdir: string): string[] {
   let pythonPathSuffix = '';
   if (process.env.PYTHONPATH) {
     const paths = process.env.PYTHONPATH.split(isWindows ? ';' : ':');
-    for (const path of paths) {
+    for (const p of paths) {
+      const containerPath = getContainerPath(p);
       if (
-        path.toLowerCase().startsWith(workdir.toLowerCase())
+        containerPath
+          .toLowerCase()
+          .startsWith(containerWorkdir.toLowerCase())
       ) {
-        pythonPathSuffix += isWindows ? `;${path}` : `:${path}`;
+        pythonPathSuffix += isWindows
+          ? `;${containerPath}`
+          : `:${containerPath}`;
       }
     }
   }
@@ -303,6 +324,7 @@ export async function start_sandbox(sandbox: string) {
 
   const image = await getSandboxImageName(isCustomProjectSandbox);
   const workdir = path.resolve(process.cwd());
+  const containerWorkdir = getContainerPath(workdir);
 
   // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-cli repo
   //
@@ -351,7 +373,7 @@ export async function start_sandbox(sandbox: string) {
 
   // use interactive mode and auto-remove container on exit
   // run init binary inside container to forward signals & reap zombies
-  const args = ['run', '-i', '--rm', '--init', '--workdir', workdir];
+  const args = ['run', '-i', '--rm', '--init', '--workdir', containerWorkdir];
 
   // add TTY only if stdin is TTY as well, i.e. for piped input don't init TTY in container
   if (process.stdin.isTTY) {
@@ -359,25 +381,25 @@ export async function start_sandbox(sandbox: string) {
   }
 
   // mount current directory as working directory in sandbox (set via --workdir)
-  args.push('--volume', `${path.resolve(process.cwd())}:${workdir}`);
+  args.push('--volume', `${workdir}:${containerWorkdir}`);
 
   // mount user settings directory inside container, after creating if missing
   // note user/home changes inside sandbox and we mount at BOTH paths for consistency
   const userSettingsDirOnHost = USER_SETTINGS_DIR;
-  const userSettingsDirInSandbox = `/home/node/${SETTINGS_DIRECTORY_NAME}`;
+  const userSettingsDirInSandbox = getContainerPath(userSettingsDirOnHost);
   if (!fs.existsSync(userSettingsDirOnHost)) {
     fs.mkdirSync(userSettingsDirOnHost);
   }
-  args.push('--volume', `${userSettingsDirOnHost}:${userSettingsDirOnHost}`);
+  args.push('--volume', `${userSettingsDirOnHost}:${userSettingsDirInSandbox}`);
   if (userSettingsDirInSandbox !== userSettingsDirOnHost) {
     args.push(
       '--volume',
-      `${userSettingsDirOnHost}:${userSettingsDirInSandbox}`,
+      `${userSettingsDirOnHost}:${getContainerPath(userSettingsDirOnHost)}`,
     );
   }
 
   // mount os.tmpdir() as os.tmpdir() inside container
-  args.push('--volume', `${os.tmpdir()}:${os.tmpdir()}`);
+  args.push('--volume', `${os.tmpdir()}:${getContainerPath(os.tmpdir())}`);
 
   // mount paths listed in SANDBOX_MOUNTS
   if (process.env.SANDBOX_MOUNTS) {
@@ -451,7 +473,9 @@ export async function start_sandbox(sandbox: string) {
   // also mount-replace VIRTUAL_ENV directory with <project_settings>/sandbox.venv
   // sandbox can then set up this new VIRTUAL_ENV directory using sandbox.bashrc (see below)
   // directory will be empty if not set up, which is still preferable to having host binaries
-  if (process.env.VIRTUAL_ENV?.startsWith(workdir)) {
+  if (
+    process.env.VIRTUAL_ENV?.toLowerCase().startsWith(workdir.toLowerCase())
+  ) {
     const sandboxVenvPath = path.resolve(
       SETTINGS_DIRECTORY_NAME,
       'sandbox.venv',
@@ -459,8 +483,11 @@ export async function start_sandbox(sandbox: string) {
     if (!fs.existsSync(sandboxVenvPath)) {
       fs.mkdirSync(sandboxVenvPath, { recursive: true });
     }
-    args.push('--volume', `${sandboxVenvPath}:${process.env.VIRTUAL_ENV}`);
-    args.push('--env', `VIRTUAL_ENV=${process.env.VIRTUAL_ENV}`);
+    args.push(
+      '--volume',
+      `${sandboxVenvPath}:${getContainerPath(process.env.VIRTUAL_ENV)}`,
+    );
+    args.push('--env', `VIRTUAL_ENV=${getContainerPath(process.env.VIRTUAL_ENV)}`);
   }
 
   // copy additional environment variables from SANDBOX_ENV
