@@ -52,6 +52,22 @@ jobs:
             packages/*/dist
             package-lock.json # Only upload dist and lockfile
 
+  integration:
+    name: Integration Test (from Git)
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      matrix:
+        node-version: [20.x]
+    steps:
+      - name: Set up Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run integration test from GitHub commit
+        run: npx --yes github:${{ github.repository }}@${{ github.sha }} -p "hello world"
+
   test:
     name: Test
     runs-on: ubuntu-latest
