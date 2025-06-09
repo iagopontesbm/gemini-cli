@@ -474,6 +474,8 @@ Expectation for required parameters:
         return 'vscode';
       case ToolConfirmationOutcome.ModifyWindsurf:
         return 'windsurf';
+      case ToolConfirmationOutcome.ModifyCursor:
+        return 'cursor';
       default:
         return 'vim';
     }

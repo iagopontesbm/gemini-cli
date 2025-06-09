@@ -234,6 +234,7 @@ export enum ToolConfirmationOutcome {
   ProceedAlwaysTool = 'proceed_always_tool',
   ModifyVSCode = 'modify_vscode',
   ModifyWindsurf = 'modify_windsurf',
+  ModifyCursor = 'modify_cursor',
   ModifyVim = 'modify_vim',
   Cancel = 'cancel',
 }
