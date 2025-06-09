@@ -372,8 +372,8 @@ export async function start_sandbox(sandbox: string) {
     );
   }
 
-  // mount os.tmpdir() as /tmp inside container
-  args.push('--volume', `${os.tmpdir()}:/tmp`);
+  // mount os.tmpdir() as os.tmpdir() inside container
+  args.push('--volume', `${os.tmpdir()}:${os.tmpdir()}`);
 
   // mount paths listed in SANDBOX_MOUNTS
   if (process.env.SANDBOX_MOUNTS) {
