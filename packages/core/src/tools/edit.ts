@@ -468,19 +468,6 @@ Expectation for required parameters:
     }
   }
 
-  async getEditor(outcome: ToolConfirmationOutcome): Promise<EditorType> {
-    switch (outcome) {
-      case ToolConfirmationOutcome.ModifyVSCode:
-        return 'vscode';
-      case ToolConfirmationOutcome.ModifyWindsurf:
-        return 'windsurf';
-      case ToolConfirmationOutcome.ModifyCursor:
-        return 'cursor';
-      default:
-        return 'vim';
-    }
-  }
-
   /**
    * Creates temp files for the current and proposed file contents and opens a diff tool.
    * When the diff tool is closed, the tool will check if the file has been modified and provide the updated params.
@@ -489,7 +476,7 @@ Expectation for required parameters:
   async onModify(
     params: EditToolParams,
     _abortSignal: AbortSignal,
-    outcome: ToolConfirmationOutcome,
+    editorType: EditorType,
   ): Promise<
     { updatedParams: EditToolParams; updatedDiff: string } | undefined
   > {
@@ -497,9 +484,7 @@ Expectation for required parameters:
     this.tempOldDiffPath = oldPath;
     this.tempNewDiffPath = newPath;
 
-    const editor = await this.getEditor(outcome);
-
-    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath, editor);
+    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath, editorType);
     return await this.getUpdatedParamsIfModified(params, _abortSignal);
   }
 

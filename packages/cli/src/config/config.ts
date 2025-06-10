@@ -172,6 +172,7 @@ export async function loadCliConfig(
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
     enableModifyWithExternalEditors: settings.enableModifyWithExternalEditors,
+    preferredEditor: settings.preferredEditor,
   });
 }
 

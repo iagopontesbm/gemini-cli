@@ -13,7 +13,6 @@ import {
   ToolConfirmationOutcome,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
-  checkHasEditor,
   Config,
 } from '@gemini-cli/core';
 import {
@@ -85,41 +84,13 @@ export const ToolConfirmationMessage: React.FC<
         value: ToolConfirmationOutcome.ProceedAlways,
       },
     );
-
-    // Conditionally add editor options if editors are installed
-    const notUsingSandbox = !process.env.SANDBOX;
+  
     const externalEditorsEnabled =
       config?.getEnableModifyWithExternalEditors() ?? false;
-
-    if (checkHasEditor('vscode') && notUsingSandbox && externalEditorsEnabled) {
+    if (externalEditorsEnabled) {
       options.push({
-        label: 'Modify with VS Code',
-        value: ToolConfirmationOutcome.ModifyVSCode,
-      });
-    }
-
-    if (
-      checkHasEditor('windsurf') &&
-      notUsingSandbox &&
-      externalEditorsEnabled
-    ) {
-      options.push({
-        label: 'Modify with Windsurf',
-        value: ToolConfirmationOutcome.ModifyWindsurf,
-      });
-    }
-
-    if (checkHasEditor('cursor') && notUsingSandbox && externalEditorsEnabled) {
-      options.push({
-        label: 'Modify with Cursor',
-        value: ToolConfirmationOutcome.ModifyCursor,
-      });
-    }
-
-    if (checkHasEditor('vim') && externalEditorsEnabled) {
-      options.push({
-        label: 'Modify with vim',
-        value: ToolConfirmationOutcome.ModifyVim,
+        label: 'Modify with external editor',
+        value: ToolConfirmationOutcome.ModifyWithEditor,
       });
     }
 

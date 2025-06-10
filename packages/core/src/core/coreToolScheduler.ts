@@ -15,9 +15,11 @@ import {
   ApprovalMode,
   EditTool,
   EditToolParams,
+  Config,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
 import { getResponseTextFromParts } from '../utils/generateContentResponseUtilities.js';
+import { getPreferredEditorFromConfig } from '../utils/editor.js';
 
 export type ValidatingToolCall = {
   status: 'validating';
@@ -203,6 +205,7 @@ interface CoreToolSchedulerOptions {
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
   approvalMode?: ApprovalMode;
+  config: Config;
 }
 
 export class CoreToolScheduler {
@@ -212,6 +215,7 @@ export class CoreToolScheduler {
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
   private approvalMode: ApprovalMode;
+  private config: Config;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
@@ -219,6 +223,7 @@ export class CoreToolScheduler {
     this.onAllToolCallsComplete = options.onAllToolCallsComplete;
     this.onToolCallsUpdate = options.onToolCallsUpdate;
     this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
+    this.config = options.config;
   }
 
   private setStatusInternal(
@@ -485,14 +490,17 @@ export class CoreToolScheduler {
         'User did not allow tool call',
       );
     } else if (
-      outcome === ToolConfirmationOutcome.ModifyVSCode ||
-      outcome === ToolConfirmationOutcome.ModifyWindsurf ||
-      outcome === ToolConfirmationOutcome.ModifyCursor ||
-      outcome === ToolConfirmationOutcome.ModifyVim
+      outcome === ToolConfirmationOutcome.ModifyWithEditor
     ) {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
+        const editorType = getPreferredEditorFromConfig(this.config);
+        if (!editorType) {
+          console.error('No editor found. Please set a preferred editor in /editor.');
+          return;
+        }
+
         this.setStatusInternal(callId, 'awaiting_approval', {
           ...waitingToolCall.confirmationDetails,
           isModifying: true,
@@ -501,7 +509,7 @@ export class CoreToolScheduler {
         const modifyResults = await editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,
           signal,
-          outcome,
+          editorType,
         );
 
         if (modifyResults) {

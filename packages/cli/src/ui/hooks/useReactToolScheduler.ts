@@ -162,6 +162,7 @@ export function useReactToolScheduler(
         onAllToolCallsComplete: allToolCallsCompleteHandler,
         onToolCallsUpdate: toolCallsUpdateHandler,
         approvalMode: config.getApprovalMode(),
+        config,
       }),
     [
       config,

@@ -5,8 +5,13 @@
  */
 
 import { execSync, spawn } from 'child_process';
+import { Config } from '../config/config.js';
 
 export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim';
+
+function isValidEditorType(editor: string): editor is EditorType {
+  return ['vscode', 'windsurf', 'cursor', 'vim'].includes(editor);
+}
 
 interface DiffCommand {
   command: string;
@@ -37,6 +42,27 @@ export function checkHasEditor(editor: EditorType): boolean {
   const command =
     process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
   return commandExists(command);
+}
+
+export function allowEditorInSandbox(editor: EditorType): boolean {
+  const notUsingSandbox = !process.env.SANDBOX;
+  if (['vscode', 'windsurf', 'cursor'].includes(editor)) {
+    return notUsingSandbox;
+  }
+  return true;
+}
+
+/**
+ * Get the preferred editor from the config.
+ * Returns null if preferred editor is not set / invalid / not available / not allowed in sandbox.
+ */
+export function getPreferredEditorFromConfig(config: Config,): EditorType | null {
+  const preferredEditor = config.getPreferredEditor();
+  
+  if (preferredEditor && isValidEditorType(preferredEditor) && checkHasEditor(preferredEditor) && allowEditorInSandbox(preferredEditor)) {
+    return preferredEditor;
+  }
+  return null;
 }
 
 /**
