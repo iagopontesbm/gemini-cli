@@ -145,7 +145,7 @@ export async function loadCliConfig(
 
   const contentGeneratorConfig = await createContentGeneratorConfig(argv);
 
-  const mcpServers = settings.mcpServers || {};
+  const mcpServers = mergedMcpServers(settings, extensions);
 
   let sandbox = argv.sandbox ?? settings.sandbox;
   if (argv.yolo) {
@@ -164,7 +164,7 @@ export async function loadCliConfig(
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
     toolCallCommand: settings.toolCallCommand,
     mcpServerCommand: settings.mcpServerCommand,
-    mcpServers: settings.mcpServers,
+    mcpServers,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
@@ -182,6 +182,22 @@ export async function loadCliConfig(
       settings.fileFiltering?.allowBuildArtifacts,
     enableModifyWithExternalEditors: settings.enableModifyWithExternalEditors,
   });
+}
+
+function mergedMcpServers(settings: Settings, extensions: ExtensionConfig[]) {
+  const mcpServers = settings.mcpServers || {};
+  for (const extension of extensions) {
+    Object.entries(extension.mcpServers || {}).forEach(([key, server]) => {
+      if (mcpServers[key]) {
+        logger.warn(
+          `Skipping extension MCP config for server with key "${key}" as it already exists.`,
+        );
+        return;
+      }
+      mcpServers[key] = server;
+    });
+  }
+  return mcpServers;
 }
 
 async function createContentGeneratorConfig(

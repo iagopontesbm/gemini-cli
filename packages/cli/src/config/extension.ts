@@ -25,14 +25,13 @@ export function loadExtensions(workspaceDir: string): ExtensionConfig[] {
     ...loadExtensionsFromDir(os.homedir()),
   ];
 
-  console.debug(
-    `Found ${allExtensions.length} extensions in workspace and home directories.`,
-  );
-
   const uniqueExtensions: ExtensionConfig[] = [];
   const seenNames = new Set<string>();
   for (const extension of allExtensions) {
     if (!seenNames.has(extension.name)) {
+      console.log(
+        `Loading extension: ${extension.name} (version: ${extension.version})`,
+      );
       uniqueExtensions.push(extension);
       seenNames.add(extension.name);
     }
@@ -69,6 +68,12 @@ function loadExtensionsFromDir(dir: string): ExtensionConfig[] {
     try {
       const fileContent = fs.readFileSync(extensionPath, 'utf-8');
       const extensionConfig = JSON.parse(fileContent) as ExtensionConfig;
+      if (!extensionConfig.name || !extensionConfig.version) {
+        console.error(
+          `Invalid extension config in ${extensionPath}: missing name or version.`,
+        );
+        continue;
+      }
       extensions.push(extensionConfig);
     } catch (e) {
       console.error(

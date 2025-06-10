@@ -17,7 +17,7 @@ import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
-import { loadExtensions } from './config/extension.js';
+import { loadExtensions, ExtensionConfig } from './config/extension.js';
 import {
   ApprovalMode,
   Config,
@@ -76,7 +76,11 @@ export async function main() {
   }
 
   const extensions = loadExtensions(workspaceRoot);
-  const config = await loadCliConfig(settings.merged, extensions, geminiIgnorePatterns);
+  const config = await loadCliConfig(
+    settings.merged,
+    extensions,
+    geminiIgnorePatterns,
+  );
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
@@ -126,7 +130,11 @@ export async function main() {
   }
 
   // Non-interactive mode handled by runNonInteractive
-  const nonInteractiveConfig = await loadNonInteractiveConfig(config, settings);
+  const nonInteractiveConfig = await loadNonInteractiveConfig(
+    config,
+    extensions,
+    settings,
+  );
 
   await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
@@ -159,6 +167,7 @@ process.on('unhandledRejection', (reason, _promise) => {
 
 async function loadNonInteractiveConfig(
   config: Config,
+  extensions: ExtensionConfig[],
   settings: LoadedSettings,
 ) {
   if (config.getApprovalMode() === ApprovalMode.YOLO) {
@@ -192,6 +201,7 @@ async function loadNonInteractiveConfig(
   };
   return await loadCliConfig(
     nonInteractiveSettings,
+    extensions,
     config.getGeminiIgnorePatterns(),
   );
 }
