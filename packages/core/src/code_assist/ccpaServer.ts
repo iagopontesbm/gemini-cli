@@ -24,7 +24,7 @@ export const CCPA_API_VERSION = '/v1internal';
 export class CcpaServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
-    readonly projectId: string,
+    readonly projectId?: string,
   ) {}
 
   async generateContentStream(
@@ -77,7 +77,10 @@ export class CcpaServer implements ContentGenerator {
     const res = await this.auth.request({
       url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Goog-User-Project': this.projectId || '',
+      },
       responseType: 'json',
       body: JSON.stringify(req),
     });

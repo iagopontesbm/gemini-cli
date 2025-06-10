@@ -5,11 +5,18 @@
  */
 
 import { ClientMetadata, OnboardUserRequest } from './types.js';
-import { CcpaServer } from './ccpa.js';
-import {loginWithOauth} from './login.js';
+import { CcpaServer } from './ccpaServer.js';
+import { OAuth2Client } from 'google-auth-library';
 
-export async function doSetup(projectId?: string): Promise<void> {
-  const oAuth2Client = await loginWithOauth()
+/**
+ *
+ * @param projectId the user's project id, if any
+ * @returns the user's actual project id
+ */
+export async function setupUser(
+  oAuth2Client: OAuth2Client,
+  projectId?: string,
+): Promise<string> {
   const ccpaServer: CcpaServer = new CcpaServer(oAuth2Client, projectId);
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
@@ -26,16 +33,18 @@ export async function doSetup(projectId?: string): Promise<void> {
     metadata: clientMetadata,
   });
 
-  const onboardRes: OnboardUserRequest = {
+  const onboardReq: OnboardUserRequest = {
     tierId: 'legacy-tier',
     cloudaicompanionProject: loadRes.cloudaicompanionProject || '',
     metadata: clientMetadata,
   };
 
   // Poll onboardUser until long running operation is complete.
-  let lroRes = await ccpaServer.onboardUser(onboardRes);
+  let lroRes = await ccpaServer.onboardUser(onboardReq);
   while (!lroRes.done) {
     await new Promise((f) => setTimeout(f, 5000));
-    lroRes = await ccpaServer.onboardUser(onboardRes);
+    lroRes = await ccpaServer.onboardUser(onboardReq);
   }
+
+  return lroRes.response?.cloudaicompanionProject?.id!;
 }

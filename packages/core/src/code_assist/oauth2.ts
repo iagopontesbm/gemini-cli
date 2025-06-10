@@ -31,31 +31,6 @@ const SIGN_IN_SUCCESS_URL =
 const SIGN_IN_FAILURE_URL =
   'https://developers.google.com/gemini-code-assist/auth_failure_gemini';
 
-/**
- * Returns first available port in user's machine
- * @returns port number
- */
-function getAvailablePort(): Promise<number> {
-  return new Promise((resolve, reject) => {
-    let port = 0;
-    try {
-      const server = net.createServer();
-      server.listen(0, () => {
-        const address = server.address()! as net.AddressInfo;
-        port = address.port;
-      });
-      server.on('listening', () => {
-        server.close();
-        server.unref();
-      });
-      server.on('error', (e) => reject(e));
-      server.on('close', () => resolve(port));
-    } catch (e) {
-      reject(e);
-    }
-  });
-}
-
 export async function loginWithOauth(): Promise<OAuth2Client> {
   const port = await getAvailablePort();
   const oAuth2Client = new OAuth2Client({
@@ -111,5 +86,26 @@ export async function loginWithOauth(): Promise<OAuth2Client> {
       }
     });
     server.listen(port);
+  });
+}
+
+function getAvailablePort(): Promise<number> {
+  return new Promise((resolve, reject) => {
+    let port = 0;
+    try {
+      const server = net.createServer();
+      server.listen(0, () => {
+        const address = server.address()! as net.AddressInfo;
+        port = address.port;
+      });
+      server.on('listening', () => {
+        server.close();
+        server.unref();
+      });
+      server.on('error', (e) => reject(e));
+      server.on('close', () => resolve(port));
+    } catch (e) {
+      reject(e);
+    }
   });
 }
