@@ -5,5 +5,5 @@
  */
 
 export function getCliVersion(): string {
-  return process.env.CLI_VERSION || "unknown";
+  return process.env.CLI_VERSION || 'unknown';
 }
