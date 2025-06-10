@@ -161,10 +161,10 @@ describe('SessionStatsContext', () => {
     expect(stats?.cumulative.thoughtsTokenCount).toBe(22); // 20 + 2
     expect(stats?.cumulative.apiTimeMs).toBe(150); // 100 + 50
 
-    // These fields should ONLY be from the FIRST call, because isNewTurnForAggregation was true
-    expect(stats?.cumulative.promptTokenCount).toBe(100);
-    expect(stats?.cumulative.cachedContentTokenCount).toBe(50);
-    expect(stats?.cumulative.toolUsePromptTokenCount).toBe(10);
+    // These fields should be the SUM of both calls
+    expect(stats?.cumulative.promptTokenCount).toBe(110);
+    expect(stats?.cumulative.cachedContentTokenCount).toBe(55);
+    expect(stats?.cumulative.toolUsePromptTokenCount).toBe(11);
 
     // --- Check Current Turn Stats ---
     // All fields should be the SUM of both calls for the turn
