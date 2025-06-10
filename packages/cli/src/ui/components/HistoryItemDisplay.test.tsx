@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
 import { render } from 'ink-testing-library';
 import { describe, it, expect, vi } from 'vitest';
 import { HistoryItemDisplay } from './HistoryItemDisplay.js';
@@ -73,11 +72,13 @@ describe('<HistoryItemDisplay />', () => {
       cachedContentTokenCount: 5,
       toolUsePromptTokenCount: 2,
       thoughtsTokenCount: 3,
+      apiTimeMs: 123,
     };
     const item: HistoryItem = {
       ...baseItem,
       type: MessageType.STATS,
       stats,
+      lastTurnStats: stats,
       duration: '1s',
     };
     const { lastFrame } = render(

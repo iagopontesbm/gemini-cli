@@ -7,12 +7,14 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
+import { formatDuration } from '../utils/formatters.js';
 import { CumulativeStats } from '../contexts/SessionContext.js';
 
 // --- Prop and Data Structures ---
 
 interface StatsDisplayProps {
   stats: CumulativeStats;
+  lastTurnStats: CumulativeStats;
   duration: string;
 }
 
@@ -102,15 +104,16 @@ const StatsColumn: React.FC<{
 
 export const StatsDisplay: React.FC<StatsDisplayProps> = ({
   stats,
+  lastTurnStats,
   duration,
 }) => {
   const lastTurnFormatted: FormattedStats = {
-    inputTokens: 0,
-    outputTokens: 0,
-    toolUseTokens: 0,
-    thoughtsTokens: 0,
-    cachedTokens: 0,
-    totalTokens: 0,
+    inputTokens: lastTurnStats.promptTokenCount,
+    outputTokens: lastTurnStats.candidatesTokenCount,
+    toolUseTokens: lastTurnStats.toolUsePromptTokenCount,
+    thoughtsTokens: lastTurnStats.thoughtsTokenCount,
+    cachedTokens: lastTurnStats.cachedContentTokenCount,
+    totalTokens: lastTurnStats.totalTokenCount,
   };
 
   const cumulativeFormatted: FormattedStats = {
@@ -145,7 +148,10 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
 
       <Box flexDirection="row" justifyContent="flex-end" marginTop={1}>
         <Box width="48%" flexDirection="column">
-          <StatRow label="Total duration (API)" value="TODO" />
+          <StatRow
+            label="Total duration (API)"
+            value={formatDuration(stats.apiTimeMs)}
+          />
           <StatRow label="Total duration (wall)" value={duration} />
         </Box>
       </Box>

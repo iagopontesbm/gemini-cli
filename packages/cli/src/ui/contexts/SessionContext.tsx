@@ -24,17 +24,13 @@ export interface CumulativeStats {
   cachedContentTokenCount: number;
   toolUsePromptTokenCount: number;
   thoughtsTokenCount: number;
-}
-
-interface LastTurnStats {
-  metadata: GenerateContentResponseUsageMetadata;
-  // TODO(abhipatel12): Add apiTime, etc. here in a future step.
+  apiTimeMs: number;
 }
 
 interface SessionStatsState {
   sessionStartTime: Date;
   cumulative: CumulativeStats;
-  lastTurn: LastTurnStats | null;
+  currentTurn: CumulativeStats;
   isNewTurnForAggregation: boolean;
 }
 
@@ -43,7 +39,9 @@ interface SessionStatsState {
 interface SessionStatsContextValue {
   stats: SessionStatsState;
   startNewTurn: () => void;
-  addUsage: (metadata: GenerateContentResponseUsageMetadata) => void;
+  addUsage: (
+    metadata: GenerateContentResponseUsageMetadata & { apiTimeMs?: number },
+  ) => void;
 }
 
 // --- Context Definition ---
@@ -51,6 +49,31 @@ interface SessionStatsContextValue {
 const SessionStatsContext = createContext<SessionStatsContextValue | undefined>(
   undefined,
 );
+
+// --- Helper Functions ---
+
+/**
+ * A small, reusable helper function to sum token counts.
+ * @param target The object to add the tokens to (e.g., cumulative, currentTurn).
+ * @param source The metadata object from the API response.
+ * @param addPromptTokens Whether to add the prompt-related tokens.
+ */
+const addTokens = (
+  target: CumulativeStats,
+  source: GenerateContentResponseUsageMetadata & { apiTimeMs?: number },
+  addPromptTokens: boolean,
+) => {
+  target.candidatesTokenCount += source.candidatesTokenCount ?? 0;
+  target.thoughtsTokenCount += source.thoughtsTokenCount ?? 0;
+  target.totalTokenCount += source.totalTokenCount ?? 0;
+  target.apiTimeMs += source.apiTimeMs ?? 0;
+
+  if (addPromptTokens) {
+    target.promptTokenCount += source.promptTokenCount ?? 0;
+    target.cachedContentTokenCount += source.cachedContentTokenCount ?? 0;
+    target.toolUsePromptTokenCount += source.toolUsePromptTokenCount ?? 0;
+  }
+};
 
 // --- Provider Component ---
 
@@ -67,35 +90,41 @@ export const SessionStatsProvider: React.FC<{ children: React.ReactNode }> = ({
       cachedContentTokenCount: 0,
       toolUsePromptTokenCount: 0,
       thoughtsTokenCount: 0,
+      apiTimeMs: 0,
     },
-    lastTurn: null,
+    currentTurn: {
+      turnCount: 0,
+      promptTokenCount: 0,
+      candidatesTokenCount: 0,
+      totalTokenCount: 0,
+      cachedContentTokenCount: 0,
+      toolUsePromptTokenCount: 0,
+      thoughtsTokenCount: 0,
+      apiTimeMs: 0,
+    },
     isNewTurnForAggregation: true,
   });
 
   // A single, internal worker function to handle all metadata aggregation.
   const aggregateTokens = useCallback(
-    (metadata: GenerateContentResponseUsageMetadata) => {
+    (
+      metadata: GenerateContentResponseUsageMetadata & { apiTimeMs?: number },
+    ) => {
       setStats((prevState) => {
         const { isNewTurnForAggregation } = prevState;
         const newCumulative = { ...prevState.cumulative };
+        const newCurrentTurn = { ...prevState.currentTurn };
 
-        newCumulative.candidatesTokenCount +=
-          metadata.candidatesTokenCount ?? 0;
-        newCumulative.thoughtsTokenCount += metadata.thoughtsTokenCount ?? 0;
-        newCumulative.totalTokenCount += metadata.totalTokenCount ?? 0;
+        // Always add all tokens to the current turn's stats.
+        addTokens(newCurrentTurn, metadata, true);
 
-        if (isNewTurnForAggregation) {
-          newCumulative.promptTokenCount += metadata.promptTokenCount ?? 0;
-          newCumulative.cachedContentTokenCount +=
-            metadata.cachedContentTokenCount ?? 0;
-          newCumulative.toolUsePromptTokenCount +=
-            metadata.toolUsePromptTokenCount ?? 0;
-        }
+        // Only add prompt-related tokens to the cumulative stats for the first API call of a turn.
+        addTokens(newCumulative, metadata, isNewTurnForAggregation);
 
         return {
           ...prevState,
           cumulative: newCumulative,
-          lastTurn: { metadata },
+          currentTurn: newCurrentTurn,
           isNewTurnForAggregation: false,
         };
       });
@@ -109,6 +138,16 @@ export const SessionStatsProvider: React.FC<{ children: React.ReactNode }> = ({
       cumulative: {
         ...prevState.cumulative,
         turnCount: prevState.cumulative.turnCount + 1,
+      },
+      currentTurn: {
+        turnCount: 0, // Reset for the new turn's accumulation.
+        promptTokenCount: 0,
+        candidatesTokenCount: 0,
+        totalTokenCount: 0,
+        cachedContentTokenCount: 0,
+        toolUsePromptTokenCount: 0,
+        thoughtsTokenCount: 0,
+        apiTimeMs: 0,
       },
       isNewTurnForAggregation: true,
     }));

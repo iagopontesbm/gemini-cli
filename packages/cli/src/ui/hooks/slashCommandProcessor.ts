@@ -10,15 +10,11 @@ import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
-import {
-  Message,
-  MessageType,
-  HistoryItemWithoutId,
-} from '../types.js';
+import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
-import { formatMemoryUsage } from '../utils/formatters.js';
+import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
 
 export interface SlashCommandActionReturn {
@@ -71,6 +67,7 @@ export const useSlashCommandProcessor = (
         historyItemContent = {
           type: 'stats',
           stats: message.stats,
+          lastTurnStats: message.lastTurnStats,
           duration: message.duration,
         };
       } else {
@@ -156,26 +153,14 @@ export const useSlashCommandProcessor = (
         description: 'check session stats',
         action: (_mainCommand, _subCommand, _args) => {
           const now = new Date();
-          const { sessionStartTime, cumulative } = session.stats;
-
-          const duration = now.getTime() - sessionStartTime.getTime();
-          const durationInSeconds = Math.floor(duration / 1000);
-          const hours = Math.floor(durationInSeconds / 3600);
-          const minutes = Math.floor((durationInSeconds % 3600) / 60);
-          const seconds = durationInSeconds % 60;
-
-          const durationString = [
-            hours > 0 ? `${hours}h` : '',
-            minutes > 0 ? `${minutes}m` : '',
-            `${seconds}s`,
-          ]
-            .filter(Boolean)
-            .join(' ');
+          const { sessionStartTime, cumulative, currentTurn } = session.stats;
+          const wallDuration = now.getTime() - sessionStartTime.getTime();
 
           addMessage({
             type: MessageType.STATS,
             stats: cumulative,
-            duration: durationString,
+            lastTurnStats: currentTurn,
+            duration: formatDuration(wallDuration),
             timestamp: new Date(),
           });
         },

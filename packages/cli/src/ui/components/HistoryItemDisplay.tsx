@@ -60,7 +60,11 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
       />
     )}
     {item.type === 'stats' && (
-      <StatsDisplay stats={item.stats} duration={item.duration} />
+      <StatsDisplay
+        stats={item.stats}
+        lastTurnStats={item.lastTurnStats}
+        duration={item.duration}
+      />
     )}
     {item.type === 'tool_group' && (
       <ToolGroupMessage

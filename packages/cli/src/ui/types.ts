@@ -93,6 +93,7 @@ export type HistoryItemAbout = HistoryItemBase & {
 export type HistoryItemStats = HistoryItemBase & {
   type: 'stats';
   stats: CumulativeStats;
+  lastTurnStats: CumulativeStats;
   duration: string;
 };
 
@@ -153,6 +154,7 @@ export type Message =
       type: MessageType.STATS;
       timestamp: Date;
       stats: CumulativeStats;
+      lastTurnStats: CumulativeStats;
       duration: string;
       content?: string;
     };
