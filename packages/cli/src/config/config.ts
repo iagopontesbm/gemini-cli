@@ -151,7 +151,7 @@ export async function loadCliConfig(
   return new Config({
     contentGeneratorConfig,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
-    sandbox: sandbox,
+    sandbox,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
