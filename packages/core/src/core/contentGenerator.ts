@@ -44,8 +44,7 @@ export async function createContentGenerator(
   config: ContentGeneratorConfig,
 ): Promise<ContentGenerator> {
   if (config.codeAssist) {
-    const oauth2Client = await doSetup(process.env.GOOGLE_CLOUD_PROJECT || '');
-    return new CodeAssistContentGenerator(oauth2Client);
+    return new CodeAssistContentGenerator();
   }
   const version = process.env.CLI_VERSION || process.version;
   const googleGenAI = new GoogleGenAI({

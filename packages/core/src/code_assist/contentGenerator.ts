@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OAuth2Client } from 'google-auth-library';
+import { GoogleAuth } from 'google-auth-library';
 import {
   GenerateContentResponse,
   GenerateContentParameters,
@@ -21,10 +21,17 @@ import type { ReadableStream } from 'node:stream/web';
 
 
 export class CodeAssistContentGenerator implements ContentGenerator {
-  private auth: OAuth2Client;
+  
+  private auth: GoogleAuth;
 
-  constructor(auth: OAuth2Client) {
-    this.auth = auth;
+  constructor() {
+    this.auth = new GoogleAuth({
+      scopes: [
+        'https://www.googleapis.com/auth/cloud-platform',
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+      ],
+    });
   }
 
   async generateContent(
@@ -38,7 +45,7 @@ export class CodeAssistContentGenerator implements ContentGenerator {
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     const response = await this.callCodeAssist(
-      'streamGenerateChat?alt=sse',
+      'streamGenerateChat', //?alt=sse
       request,
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
@@ -81,15 +88,16 @@ export class CodeAssistContentGenerator implements ContentGenerator {
     throw Error();
   }
 
-  private async callCodeAssist(method: string, req: object): Promise<Response> {
+  private async callCodeAssist(method: string, req: object): Promise<Response> {  
     const token = await this.auth.getAccessToken();
+
     const url = `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
-        'X-Goog-User-Project': this.auth.projectId!,
+        'X-Goog-User-Project': await this.auth.getProjectId(),
       },
       body: JSON.stringify(req),
     });
