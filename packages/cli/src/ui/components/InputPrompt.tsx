@@ -9,7 +9,12 @@ import { Text, Box, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
-import { cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
+import {
+  cpSlice,
+  cpLen,
+  TextBuffer,
+  NEWLINE_INPUT_SEQUENCES,
+} from './shared/text-buffer.js';
 import chalk from 'chalk';
 import stringWidth from 'string-width';
 import process from 'node:process';
@@ -281,16 +286,16 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         console.log('[InputPromptCombined] event', { input, key });
       }
 
-      // Ctrl+Enter for newline, Enter for submit
-      if (key.return) {
-        if (key.ctrl) {
-          // Ctrl+Enter for newline
-          buffer.newline();
-        } else {
-          // Enter for submit
-          if (query.trim()) {
-            handleSubmitAndClear(query);
-          }
+      if (
+        key.return &&
+        !key.ctrl &&
+        !key.shift &&
+        !NEWLINE_INPUT_SEQUENCES.includes(input || '')
+      ) {
+        // Only handling plain vanilla enter here.
+        // The one that submits the query.
+        if (query.trim()) {
+          handleSubmitAndClear(query);
         }
         return;
       }
@@ -344,7 +349,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         <Text
           color={shellModeActive ? Colors.AccentYellow : Colors.AccentPurple}
         >
-          {shellModeActive ? '! ' : '> '}
+          {shellModeActive ? '! ' : buffer.lines.length > 1 ? '» ' : '> '}
         </Text>
         <Box flexGrow={1} flexDirection="column">
           {buffer.text.length === 0 && placeholder ? (

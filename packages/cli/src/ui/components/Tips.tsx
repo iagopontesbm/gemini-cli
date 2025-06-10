@@ -31,9 +31,16 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
       <Text color={Colors.Foreground}>
         3. Be specific for the best results.
       </Text>
+      <Text color={Colors.Foreground}>
+        4. Use{' '}
+        <Text bold color={Colors.AccentPurple}>
+          Alt+Enter
+        </Text>{' '}
+        for multi-line input.
+      </Text>
       {geminiMdFileCount === 0 && (
         <Text color={Colors.Foreground}>
-          4. Create{' '}
+          5. Create{' '}
           <Text bold color={Colors.AccentPurple}>
             GEMINI.md
           </Text>{' '}

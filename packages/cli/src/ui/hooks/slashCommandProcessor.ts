@@ -32,6 +32,7 @@ import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
+import { terminalSetup } from '../utils/terminalSetup.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -513,6 +514,38 @@ export const useSlashCommandProcessor = (
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
+        },
+      },
+      {
+        name: 'terminal-setup',
+        description:
+          'configure terminal for Shift+Enter and Ctrl+Enter support',
+        action: async (_mainCommand, _subCommand, _args) => {
+          addMessage({
+            type: MessageType.INFO,
+            content: 'Detecting and configuring terminal...',
+            timestamp: new Date(),
+          });
+
+          const result = await terminalSetup();
+
+          if (result.success) {
+            addMessage({
+              type: MessageType.INFO,
+              content:
+                result.message +
+                (result.requiresRestart
+                  ? '\n\nPlease restart your terminal for changes to take effect.'
+                  : ''),
+              timestamp: new Date(),
+            });
+          } else {
+            addMessage({
+              type: MessageType.ERROR,
+              content: result.message,
+              timestamp: new Date(),
+            });
+          }
         },
       },
       {

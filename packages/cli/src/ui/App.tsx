@@ -97,7 +97,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [footerHeight, setFooterHeight] = useState<number>(0);
   const [corgiMode, setCorgiMode] = useState(false);
   const [shellModeActive, setShellModeActive] = useState(false);
-  const [showErrorDetails, setShowErrorDetails] = useState<boolean>(false);
+  const [showErrorDetails, setShowErrorDetails] = useState<boolean>(true);
   const [showToolDescriptions, setShowToolDescriptions] =
     useState<boolean>(false);
   const [ctrlCPressedOnce, setCtrlCPressedOnce] = useState(false);

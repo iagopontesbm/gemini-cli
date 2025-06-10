@@ -2,7 +2,14 @@
 
 Gemini CLI supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
 
-## Slash commands (`/`)
+## Keyboard Shortcuts
+
+- **Multi-line Input:**
+  - **Shift+Enter** or **Ctrl+Enter** or **Alt+Enter** (Option+Enter on Mac): Insert a new line without submitting your message
+  - **Enter**: Submit your message
+  - When in multi-line mode, the prompt changes from `>` to `»` to indicate multi-line content
+
+## Slash Commands (`/`)
 
 Slash commands provide meta-level control over the CLI itself.
 
@@ -61,6 +68,24 @@ Slash commands provide meta-level control over the CLI itself.
 - **`/compress`**
 
   - **Description:** Replace the entire chat context with a summary. This saves on tokens used for future tasks while retaining a high level summary of what has happened.
+
+- **`/terminal-setup`**
+  - **Description:** Automatically detects and configures your terminal emulator to work with gemini-cli.
+  - **Action:**
+    - Detects your current terminal emulator
+    - For supported terminals, automatically adds the necessary keybinding configuration
+    - Creates backups of configuration files before modifying them
+    - Reports success or failure with appropriate instructions
+  - **Supported Terminals:**
+    - **Kitty** - Adds keybindings to `~/.config/kitty/kitty.conf`
+    - **Alacritty** - Adds keybindings to `~/.config/alacritty/alacritty.toml` or `.yml`
+    - **Ghostty** - Adds keybindings to `~/.config/ghostty/config`
+    - **URxvt** - Adds keybindings to `~/.Xresources` (requires `xrdb -merge ~/.Xresources`)
+    - **VS Code** - Adds keybindings to VS Code's `keybindings.json`
+    - **Foot** - Works out of the box, no configuration needed
+  - **Notes:**
+    - Most terminals require a restart after configuration
+    - VS Code requires restarting the entire application, not just the terminal
 
 - **`/bug`**
 

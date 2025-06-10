@@ -13,6 +13,19 @@ import { useState, useCallback, useEffect, useMemo } from 'react';
 import stringWidth from 'string-width';
 import { unescapePath } from '@gemini-cli/core';
 
+// Constants for newline input sequences
+export const NEWLINE_INPUT_SEQUENCES = [
+  '\n',
+  '\r\n',
+  '\\\r', // VSCode terminal represents shift + enter this way
+  '[13;2u', // shift-enter kitty (needs-setup)
+  '[13;5u', // ctrl-enter kitty (needs-setup)
+  '[27;2;13~', // shift-enter foot (no-setup)
+  '[27;5;13~', // ctrl-enter foot (no-setup)
+  '\x1b[13;2u', // shift-enter alacritty (needs-setup)
+  '\x1b[13;5u', // ctrl-enter alacritty (needs-setup)
+];
+
 export type Direction =
   | 'left'
   | 'right'
@@ -1252,12 +1265,7 @@ export function useTextBuffer({
 
       if (key['escape']) return false;
 
-      if (
-        key['return'] ||
-        input === '\r' ||
-        input === '\n' ||
-        input === '\\\r' // VSCode terminal represents shift + enter this way
-      )
+      if (key['return'] || (input && NEWLINE_INPUT_SEQUENCES.includes(input)))
         newline();
       else if (key['leftArrow'] && !key['meta'] && !key['ctrl'] && !key['alt'])
         move('left');
