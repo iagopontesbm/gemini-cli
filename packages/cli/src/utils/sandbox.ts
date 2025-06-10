@@ -102,7 +102,6 @@ async function getSandboxImageName(
   );
 }
 
-// node.js equivalent of scripts/sandbox_command.sh
 export function sandbox_command(sandbox?: string | boolean): string {
   // note environment variable takes precedence over argument (from command line or settings)
   sandbox = process.env.GEMINI_SANDBOX?.toLowerCase().trim() ?? sandbox;
@@ -113,7 +112,7 @@ export function sandbox_command(sandbox?: string | boolean): string {
     return '';
   }
 
-  if (typeof sandbox === 'string') {
+  if (typeof sandbox === 'string' && sandbox !== '') {
     // confirm that specfied command exists
     if (commandExists.sync(sandbox)) {
       return sandbox;
@@ -124,13 +123,8 @@ export function sandbox_command(sandbox?: string | boolean): string {
     process.exit(1);
   }
 
-
   // look for seatbelt, docker, or podman, in that order
-  if (
-    os.platform() === 'darwin' &&
-    commandExists.sync('sandbox-exec') &&
-    process.env.SEATBELT_PROFILE !== 'none'
-  ) {
+  if (os.platform() === 'darwin' && commandExists.sync('sandbox-exec')) {
     return 'sandbox-exec';
   } else if (commandExists.sync('docker')) {
     return 'docker';
@@ -138,10 +132,11 @@ export function sandbox_command(sandbox?: string | boolean): string {
     return 'podman';
   }
 
+  // throw an error if user requested sandbox but no command was found
   if (sandbox === true) {
     console.error(
       'ERROR: GEMINI_SANDBOX is true but failed to determine command for sandbox; ' +
-      'install docker or podman or specify command in GEMINI_SANDBOX',
+        'install docker or podman or specify command in GEMINI_SANDBOX',
     );
     process.exit(1);
   }
@@ -305,7 +300,7 @@ export async function start_sandbox(sandbox: string) {
     if (!gcPath.includes('gemini-cli/packages/')) {
       console.error(
         'ERROR: cannot build sandbox using installed gemini binary; ' +
-        'run `npm link ./packages/cli` under gemini-cli repo to switch to linked binary.',
+          'run `npm link ./packages/cli` under gemini-cli repo to switch to linked binary.',
       );
       process.exit(1);
     } else {
