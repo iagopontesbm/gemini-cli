@@ -10,6 +10,10 @@ import { Colors } from '../colors.js';
 import { formatDuration } from '../utils/formatters.js';
 import { CumulativeStats } from '../contexts/SessionContext.js';
 
+// --- Constants ---
+
+const COLUMN_WIDTH = '48%';
+
 // --- Prop and Data Structures ---
 
 interface StatsDisplayProps {
@@ -60,7 +64,7 @@ const StatsColumn: React.FC<{
     isCumulative && stats.cachedTokens > 0 ? Colors.AccentGreen : undefined;
 
   return (
-    <Box flexDirection="column" width="48%">
+    <Box flexDirection="column" width={COLUMN_WIDTH}>
       <Text bold>{title}</Text>
       <Box marginTop={1} flexDirection="column">
         <StatRow
@@ -84,6 +88,7 @@ const StatsColumn: React.FC<{
           value={cachedDisplay}
           valueColor={cachedColor}
         />
+        {/* Divider Line */}
         <Box
           borderTop={true}
           borderLeft={false}
@@ -148,7 +153,7 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
 
       <Box flexDirection="row" justifyContent="space-between" marginTop={1}>
         {/* Left column for "Last Turn" duration */}
-        <Box width="48%" flexDirection="column">
+        <Box width={COLUMN_WIDTH} flexDirection="column">
           <StatRow
             label="Turn Duration (API)"
             value={formatDuration(lastTurnStats.apiTimeMs)}
@@ -156,7 +161,7 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
         </Box>
 
         {/* Right column for "Cumulative" durations */}
-        <Box width="48%" flexDirection="column">
+        <Box width={COLUMN_WIDTH} flexDirection="column">
           <StatRow
             label="Total duration (API)"
             value={formatDuration(stats.apiTimeMs)}

@@ -43,39 +43,7 @@ describe('<StatsDisplay />', () => {
       />,
     );
 
-    const output = lastFrame();
-
-    // Check for main title and duration
-    expect(output).toContain('Stats');
-    expect(output).toContain('Total duration (wall)');
-    expect(output).toContain(mockDuration);
-    expect(output).toContain('Total duration (API)');
-    expect(output).toContain('50.2s');
-
-    // Check for column titles
-    expect(output).toContain('Last Turn');
-    expect(output).toContain('Cumulative (10 Turns)');
-
-    // Check for some last turn stats
-    expect(output).toContain('100'); // Last Turn Input Tokens
-    expect(output).toContain('200'); // Last Turn Output Tokens
-    expect(output).toContain('350'); // Last Turn Total Tokens
-    expect(output).toContain('1.2s'); // Last Turn API Time
-
-    // Check cumulative stats
-    expect(output).toContain('Input Tokens');
-    expect(output).toContain('1,000');
-    expect(output).toContain('Output Tokens');
-    expect(output).toContain('2,000');
-    expect(output).toContain('Tool Use Tokens');
-    expect(output).toContain('200');
-    expect(output).toContain('Thoughts Tokens');
-    expect(output).toContain('300');
-    expect(output).toContain('Cached Tokens');
-    // Check for percentage calculation
-    expect(output).toContain('500 (14.3%)');
-    expect(output).toContain('Total Tokens');
-    expect(output).toContain('3,500');
+    expect(lastFrame()).toMatchSnapshot();
   });
 
   it('renders zero state correctly', () => {
@@ -98,12 +66,6 @@ describe('<StatsDisplay />', () => {
       />,
     );
 
-    const output = lastFrame();
-
-    expect(output).toContain('Cumulative (0 Turns)');
-    expect(output).toContain('Total Tokens');
-    expect(output).toContain('0');
-    // Ensure percentage is not shown for cached tokens when total is zero
-    expect(output).not.toContain('%');
+    expect(lastFrame()).toMatchSnapshot();
   });
 });

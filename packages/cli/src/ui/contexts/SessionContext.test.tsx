@@ -156,25 +156,25 @@ describe('SessionStatsContext', () => {
 
     // --- Check Cumulative Stats ---
     // These fields should be the SUM of both calls
-    expect(stats?.cumulative.totalTokenCount).toBe(330); // 300 + 30
-    expect(stats?.cumulative.candidatesTokenCount).toBe(220); // 200 + 20
-    expect(stats?.cumulative.thoughtsTokenCount).toBe(22); // 20 + 2
-    expect(stats?.cumulative.apiTimeMs).toBe(150); // 100 + 50
+    expect(stats?.cumulative.totalTokenCount).toBe(300 + 30);
+    expect(stats?.cumulative.candidatesTokenCount).toBe(200 + 20);
+    expect(stats?.cumulative.thoughtsTokenCount).toBe(20 + 2);
+    expect(stats?.cumulative.apiTimeMs).toBe(100 + 50);
 
     // These fields should be the SUM of both calls
-    expect(stats?.cumulative.promptTokenCount).toBe(110);
-    expect(stats?.cumulative.cachedContentTokenCount).toBe(55);
-    expect(stats?.cumulative.toolUsePromptTokenCount).toBe(11);
+    expect(stats?.cumulative.promptTokenCount).toBe(100 + 10);
+    expect(stats?.cumulative.cachedContentTokenCount).toBe(50 + 5);
+    expect(stats?.cumulative.toolUsePromptTokenCount).toBe(10 + 1);
 
     // --- Check Current Turn Stats ---
     // All fields should be the SUM of both calls for the turn
-    expect(stats?.currentTurn.totalTokenCount).toBe(330);
-    expect(stats?.currentTurn.candidatesTokenCount).toBe(220);
-    expect(stats?.currentTurn.thoughtsTokenCount).toBe(22);
-    expect(stats?.currentTurn.promptTokenCount).toBe(110); // 100 + 10
-    expect(stats?.currentTurn.cachedContentTokenCount).toBe(55); // 50 + 5
-    expect(stats?.currentTurn.toolUsePromptTokenCount).toBe(11); // 10 + 1
-    expect(stats?.currentTurn.apiTimeMs).toBe(150); // 100 + 50
+    expect(stats?.currentTurn.totalTokenCount).toBe(300 + 30);
+    expect(stats?.currentTurn.candidatesTokenCount).toBe(200 + 20);
+    expect(stats?.currentTurn.thoughtsTokenCount).toBe(20 + 2);
+    expect(stats?.currentTurn.promptTokenCount).toBe(100 + 10);
+    expect(stats?.currentTurn.cachedContentTokenCount).toBe(50 + 5);
+    expect(stats?.currentTurn.toolUsePromptTokenCount).toBe(10 + 1);
+    expect(stats?.currentTurn.apiTimeMs).toBe(100 + 50);
   });
 
   it('should throw an error when useSessionStats is used outside of a provider', () => {

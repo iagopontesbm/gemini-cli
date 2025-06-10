@@ -9,38 +9,10 @@ import { describe, it, expect, vi } from 'vitest';
 import { HistoryItemDisplay } from './HistoryItemDisplay.js';
 import { HistoryItem, MessageType } from '../types.js';
 import { CumulativeStats } from '../contexts/SessionContext.js';
-import { Text } from 'ink';
 
 // Mock child components
-vi.mock('./messages/UserMessage.js', () => ({
-  UserMessage: ({ text }: { text: string }) => <Text>UserMessage: {text}</Text>,
-}));
-vi.mock('./messages/UserShellMessage.js', () => ({
-  UserShellMessage: ({ text }: { text: string }) => (
-    <Text>UserShellMessage: {text}</Text>
-  ),
-}));
-vi.mock('./messages/GeminiMessage.js', () => ({
-  GeminiMessage: ({ text }: { text: string }) => (
-    <Text>GeminiMessage: {text}</Text>
-  ),
-}));
-vi.mock('./messages/InfoMessage.js', () => ({
-  InfoMessage: ({ text }: { text: string }) => <Text>InfoMessage: {text}</Text>,
-}));
-vi.mock('./messages/ErrorMessage.js', () => ({
-  ErrorMessage: ({ text }: { text: string }) => (
-    <Text>ErrorMessage: {text}</Text>
-  ),
-}));
-vi.mock('./AboutBox.js', () => ({
-  AboutBox: () => <Text>AboutBox</Text>,
-}));
-vi.mock('./StatsDisplay.js', () => ({
-  StatsDisplay: () => <Text>StatsDisplay</Text>,
-}));
 vi.mock('./messages/ToolGroupMessage.js', () => ({
-  ToolGroupMessage: () => <Text>ToolGroupMessage</Text>,
+  ToolGroupMessage: () => <div />,
 }));
 
 describe('<HistoryItemDisplay />', () => {
@@ -60,7 +32,7 @@ describe('<HistoryItemDisplay />', () => {
     const { lastFrame } = render(
       <HistoryItemDisplay {...baseItem} item={item} />,
     );
-    expect(lastFrame()).toContain('UserMessage: Hello');
+    expect(lastFrame()).toContain('Hello');
   });
 
   it('renders StatsDisplay for "stats" type', () => {
@@ -84,7 +56,7 @@ describe('<HistoryItemDisplay />', () => {
     const { lastFrame } = render(
       <HistoryItemDisplay {...baseItem} item={item} />,
     );
-    expect(lastFrame()).toContain('StatsDisplay');
+    expect(lastFrame()).toContain('Stats');
   });
 
   it('renders AboutBox for "about" type', () => {
@@ -99,6 +71,6 @@ describe('<HistoryItemDisplay />', () => {
     const { lastFrame } = render(
       <HistoryItemDisplay {...baseItem} item={item} />,
     );
-    expect(lastFrame()).toContain('AboutBox');
+    expect(lastFrame()).toContain('About Gemini CLI');
   });
 });
