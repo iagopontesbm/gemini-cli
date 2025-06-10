@@ -19,7 +19,7 @@ const ansiColors: ColorsTheme = {
   AccentRed: 'red',
   Comment: 'gray',
   Gray: 'gray',
-  GradientColors: ['#0000FF', 'green'],
+  GradientColors: ['cyan', 'green'],
 };
 
 export const ANSI: Theme = new Theme(
