@@ -31,7 +31,6 @@ const SIGN_IN_SUCCESS_URL =
 const SIGN_IN_FAILURE_URL =
   'https://developers.google.com/gemini-code-assist/auth_failure_gemini';
 
-
 /**
  * Returns first available port in user's machine
  * @returns port number
@@ -56,7 +55,8 @@ function getAvailablePort(): Promise<number> {
     }
   });
 }
-export async function doGCALogin(): Promise<OAuth2Client> {
+
+export async function loginWithOauth(): Promise<OAuth2Client> {
   const port = await getAvailablePort();
   const oAuth2Client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
@@ -71,8 +71,6 @@ export async function doGCALogin(): Promise<OAuth2Client> {
       scope: OAUTH_SCOPE,
       state,
     });
-
-    console.log('Opening browser for login:\n\n', authURL);
     open(authURL);
 
     const server = http.createServer(async (req, res) => {
@@ -95,7 +93,7 @@ export async function doGCALogin(): Promise<OAuth2Client> {
           reject(new Error('State mismatch. Possible CSRF attack'));
         } else if (qs.get('code')) {
           const code: string = qs.get('code')!;
-          console.log()
+          console.log();
           const { tokens } = await oAuth2Client.getToken(code);
           console.log('Logged in! Tokens:\n\n', tokens);
 

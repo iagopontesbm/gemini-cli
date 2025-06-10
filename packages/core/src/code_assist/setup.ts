@@ -6,8 +6,11 @@
 
 import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CcpaServer } from './ccpa.js';
+import {loginWithOauth} from './login.js';
 
-export async function doSetup(ccpaServer: CcpaServer): Promise<void> {
+export async function doSetup(projectId?: string): Promise<void> {
+  const oAuth2Client = await loginWithOauth()
+  const ccpaServer: CcpaServer = new CcpaServer(oAuth2Client, projectId);
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
     platform: 'PLATFORM_UNSPECIFIED',
@@ -21,7 +24,7 @@ export async function doSetup(ccpaServer: CcpaServer): Promise<void> {
   const loadRes = await ccpaServer.loadCodeAssist({
     cloudaicompanionProject: process.env.GOOGLE_CLOUD_PROJECT,
     metadata: clientMetadata,
-  })
+  });
 
   const onboardRes: OnboardUserRequest = {
     tierId: 'legacy-tier',

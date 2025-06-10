@@ -14,6 +14,7 @@ import {
   GoogleGenAI,
 } from '@google/genai';
 
+
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
  */
@@ -41,6 +42,10 @@ export type ContentGeneratorConfig = {
 export async function createContentGenerator(
   config: ContentGeneratorConfig,
 ): Promise<ContentGenerator> {
+  if (config.codeAssist) {
+
+
+  }
   const version = process.env.CLI_VERSION || process.version;
   const googleGenAI = new GoogleGenAI({
     apiKey: config.apiKey === '' ? undefined : config.apiKey,

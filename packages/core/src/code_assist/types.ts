@@ -1,5 +1,3 @@
-
-
 export interface ClientMetadata {
   ideType?: ClientMetadataIdeType;
   ideVersion?: string;
@@ -31,7 +29,6 @@ export type ClientMetadataPluginType =
   | 'GEMINI'
   | 'AIPLUGIN_INTELLIJ'
   | 'AIPLUGIN_STUDIO';
-
 
 export interface LoadCodeAssistRequest {
   cloudaicompanionProject?: string;
