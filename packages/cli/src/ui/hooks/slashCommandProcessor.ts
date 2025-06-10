@@ -9,7 +9,13 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config, MCPServerStatus, getMCPServerStatus, getMCPDiscoveryState, MCPDiscoveryState } from '@gemini-cli/core';
+import {
+  Config,
+  MCPServerStatus,
+  getMCPServerStatus,
+  getMCPDiscoveryState,
+  MCPDiscoveryState,
+} from '@gemini-cli/core';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
@@ -227,15 +233,18 @@ export const useSlashCommandProcessor = (
           }
 
           // Check if any servers are still connecting
-          const connectingServers = serverNames.filter(name => 
-            getMCPServerStatus(name) === MCPServerStatus.CONNECTING
+          const connectingServers = serverNames.filter(
+            (name) => getMCPServerStatus(name) === MCPServerStatus.CONNECTING,
           );
           const discoveryState = getMCPDiscoveryState();
 
           let message = '';
-          
+
           // Add overall discovery status message if needed
-          if (discoveryState === MCPDiscoveryState.IN_PROGRESS || connectingServers.length > 0) {
+          if (
+            discoveryState === MCPDiscoveryState.IN_PROGRESS ||
+            connectingServers.length > 0
+          ) {
             message += `\u001b[33m⏳ MCP servers are starting up (${connectingServers.length} initializing)...\u001b[0m\n`;
             message += `\u001b[90mNote: First startup may take longer. Tool availability will update automatically.\u001b[0m\n\n`;
           }

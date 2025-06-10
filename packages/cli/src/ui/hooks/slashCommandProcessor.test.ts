@@ -612,7 +612,9 @@ Add any other context about the problem here.
       });
 
       // Setup getMCPDiscoveryState mock to return completed so no startup message is shown
-      vi.mocked(getMCPDiscoveryState).mockReturnValue(MCPDiscoveryState.COMPLETED);
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
 
       // Mock tools from each server
       const mockServer1Tools = [
@@ -657,16 +659,22 @@ Add any other context about the problem here.
       // Check that the message contains details about servers and their tools
       const message = mockAddItem.mock.calls[1][0].text;
       // Server 1 - Connected
-      expect(message).toContain('🟢 \u001b[1mserver1\u001b[0m - Ready (2 tools)');
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (2 tools)',
+      );
       expect(message).toContain('\u001b[36mserver1_tool1\u001b[0m');
       expect(message).toContain('\u001b[36mserver1_tool2\u001b[0m');
 
       // Server 2 - Connected
-      expect(message).toContain('🟢 \u001b[1mserver2\u001b[0m - Ready (1 tools)');
+      expect(message).toContain(
+        '🟢 \u001b[1mserver2\u001b[0m - Ready (1 tools)',
+      );
       expect(message).toContain('\u001b[36mserver2_tool1\u001b[0m');
 
       // Server 3 - Disconnected
-      expect(message).toContain('🔴 \u001b[1mserver3\u001b[0m - Disconnected (1 tools cached)');
+      expect(message).toContain(
+        '🔴 \u001b[1mserver3\u001b[0m - Disconnected (1 tools cached)',
+      );
       expect(message).toContain('\u001b[36mserver3_tool1\u001b[0m');
 
       expect(commandResult).toBe(true);
@@ -688,7 +696,9 @@ Add any other context about the problem here.
       });
 
       // Setup getMCPDiscoveryState mock to return completed
-      vi.mocked(getMCPDiscoveryState).mockReturnValue(MCPDiscoveryState.COMPLETED);
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
 
       // Mock tools from server with descriptions
       const mockServerTools = [
@@ -755,7 +765,9 @@ Add any other context about the problem here.
       });
 
       // Setup getMCPDiscoveryState mock to return completed
-      vi.mocked(getMCPDiscoveryState).mockReturnValue(MCPDiscoveryState.COMPLETED);
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
 
       // Mock tools from each server - server2 has no tools
       const mockServer1Tools = [{ name: 'server1_tool1' }];
@@ -793,9 +805,13 @@ Add any other context about the problem here.
 
       // Check that the message contains details about both servers and their tools
       const message = mockAddItem.mock.calls[1][0].text;
-      expect(message).toContain('🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)');
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)',
+      );
       expect(message).toContain('\u001b[36mserver1_tool1\u001b[0m');
-      expect(message).toContain('🔴 \u001b[1mserver2\u001b[0m - Disconnected (0 tools cached)');
+      expect(message).toContain(
+        '🔴 \u001b[1mserver2\u001b[0m - Disconnected (0 tools cached)',
+      );
       expect(message).toContain('No tools available');
 
       expect(commandResult).toBe(true);
@@ -816,7 +832,9 @@ Add any other context about the problem here.
       });
 
       // Setup getMCPDiscoveryState mock to return in progress
-      vi.mocked(getMCPDiscoveryState).mockReturnValue(MCPDiscoveryState.IN_PROGRESS);
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.IN_PROGRESS,
+      );
 
       // Mock tools from each server
       const mockServer1Tools = [{ name: 'server1_tool1' }];
@@ -843,14 +861,22 @@ Add any other context about the problem here.
       });
 
       const message = mockAddItem.mock.calls[1][0].text;
-      
+
       // Check that startup indicator is shown
-      expect(message).toContain('⏳ MCP servers are starting up (1 initializing)...');
-      expect(message).toContain('Note: First startup may take longer. Tool availability will update automatically.');
-      
+      expect(message).toContain(
+        '⏳ MCP servers are starting up (1 initializing)...',
+      );
+      expect(message).toContain(
+        'Note: First startup may take longer. Tool availability will update automatically.',
+      );
+
       // Check server statuses
-      expect(message).toContain('🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)');
-      expect(message).toContain('🔄 \u001b[1mserver2\u001b[0m - Starting... (first startup may take longer) (tools will appear when ready)');
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)',
+      );
+      expect(message).toContain(
+        '🔄 \u001b[1mserver2\u001b[0m - Starting... (first startup may take longer) (tools will appear when ready)',
+      );
 
       expect(commandResult).toBe(true);
     });

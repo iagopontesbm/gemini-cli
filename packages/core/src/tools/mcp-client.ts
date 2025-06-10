@@ -123,7 +123,7 @@ export async function discoverMcpTools(
 ): Promise<void> {
   // Set discovery state to in progress
   mcpDiscoveryState = MCPDiscoveryState.IN_PROGRESS;
-  
+
   try {
     if (mcpServerCommand) {
       const cmd = mcpServerCommand;
@@ -143,7 +143,7 @@ export async function discoverMcpTools(
         connectAndDiscover(mcpServerName, mcpServerConfig, toolRegistry),
     );
     await Promise.all(discoveryPromises);
-    
+
     // Mark discovery as completed
     mcpDiscoveryState = MCPDiscoveryState.COMPLETED;
   } catch (error) {
@@ -217,7 +217,7 @@ async function connectAndDiscover(
       trust: mcpServerConfig.trust,
       // Exclude args and env which may contain sensitive data
     };
-    
+
     console.error(
       `failed to start or connect to MCP server '${mcpServerName}' ` +
         `${JSON.stringify(safeConfig)}; \n${error}`,
