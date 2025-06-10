@@ -24,7 +24,6 @@ import {
   allowEditorTypeInSandbox,
 } from '@gemini-cli/core';
 
-// Mock the editor checking functions
 vi.mock('@gemini-cli/core', async () => {
   const actual = await vi.importActual('@gemini-cli/core');
   return {
@@ -34,13 +33,15 @@ vi.mock('@gemini-cli/core', async () => {
   };
 });
 
+const mockCheckHasEditorType = vi.mocked(checkHasEditorType);
+const mockAllowEditorTypeInSandbox = vi.mocked(allowEditorTypeInSandbox);
+
 describe('useEditorSettings', () => {
   let mockLoadedSettings: LoadedSettings;
   let mockSetEditorError: MockedFunction<(error: string | null) => void>;
   let mockAddItem: MockedFunction<
     (item: Omit<HistoryItem, 'id'>, timestamp: number) => void
   >;
-  let mockCheckHasEditor: MockedFunction<typeof checkHasEditor>;
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -52,10 +53,9 @@ describe('useEditorSettings', () => {
     mockSetEditorError = vi.fn();
     mockAddItem = vi.fn();
 
-    mockCheckHasEditor = checkHasEditor as MockedFunction<
-      typeof checkHasEditor
-    >;
-    mockCheckHasEditor.mockReturnValue(true);
+    // Reset mock implementations to default
+    mockCheckHasEditorType.mockReturnValue(true);
+    mockAllowEditorTypeInSandbox.mockReturnValue(true);
   });
 
   afterEach(() => {
@@ -217,7 +217,27 @@ describe('useEditorSettings', () => {
       useEditorSettings(mockLoadedSettings, mockSetEditorError, mockAddItem),
     );
 
-    mockCheckHasEditor.mockReturnValue(false);
+    mockCheckHasEditorType.mockReturnValue(false);
+
+    const editorType: EditorType = 'vscode';
+    const scope = SettingScope.User;
+
+    act(() => {
+      result.current.openEditorDialog();
+      result.current.handleEditorSelect(editorType, scope);
+    });
+
+    expect(mockLoadedSettings.setValue).not.toHaveBeenCalled();
+    expect(mockAddItem).not.toHaveBeenCalled();
+    expect(result.current.isEditorDialogOpen).toBe(true);
+  });
+
+  it('should not set preference for editors not allowed in sandbox', () => {
+    const { result } = renderHook(() =>
+      useEditorSettings(mockLoadedSettings, mockSetEditorError, mockAddItem),
+    );
+
+    mockAllowEditorTypeInSandbox.mockReturnValue(false);
 
     const editorType: EditorType = 'vscode';
     const scope = SettingScope.User;

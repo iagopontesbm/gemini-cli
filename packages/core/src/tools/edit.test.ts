@@ -32,7 +32,6 @@ import fs from 'fs';
 import os from 'os';
 import { ApprovalMode, Config } from '../config/config.js';
 import { Content, Part, SchemaUnion } from '@google/genai';
-import { ToolConfirmationOutcome } from './tools.js';
 
 describe('EditTool', () => {
   let tool: EditTool;
