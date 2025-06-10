@@ -70,6 +70,7 @@ export function useReactToolScheduler(
     React.SetStateAction<HistoryItemWithoutId | null>
   >,
   getPreferredEditor?: () => string | undefined,
+  onEditorNotConfigured?: () => void,
 ): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
   const [toolCallsForDisplay, setToolCallsForDisplay] = useState<
     TrackedToolCall[]
@@ -165,6 +166,7 @@ export function useReactToolScheduler(
         approvalMode: config.getApprovalMode(),
         config,
         getPreferredEditor,
+        onEditorNotConfigured,
       }),
     [
       config,
@@ -172,6 +174,7 @@ export function useReactToolScheduler(
       allToolCallsCompleteHandler,
       toolCallsUpdateHandler,
       getPreferredEditor,
+      onEditorNotConfigured,
     ],
   );
 

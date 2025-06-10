@@ -22,6 +22,7 @@ interface HistoryItemDisplayProps {
   availableTerminalHeight: number;
   isPending: boolean;
   config?: Config;
+  isBlocked?: boolean;
 }
 
 export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
@@ -29,6 +30,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   availableTerminalHeight,
   isPending,
   config,
+  isBlocked = false,
 }) => (
   <Box flexDirection="column" key={item.id}>
     {/* Render standard message types */}
@@ -64,6 +66,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         groupId={item.id}
         availableTerminalHeight={availableTerminalHeight}
         config={config}
+        blockInput={isBlocked}
       />
     )}
   </Box>

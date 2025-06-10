@@ -208,6 +208,7 @@ interface CoreToolSchedulerOptions {
   approvalMode?: ApprovalMode;
   config: Config;
   getPreferredEditor?: () => string | undefined;
+  onEditorNotConfigured?: () => void;
 }
 
 export class CoreToolScheduler {
@@ -219,6 +220,7 @@ export class CoreToolScheduler {
   private approvalMode: ApprovalMode;
   private config: Config;
   private getPreferredEditor?: () => string | undefined;
+  private onEditorNotConfigured?: () => void;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
@@ -228,6 +230,7 @@ export class CoreToolScheduler {
     this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
     this.config = options.config;
     this.getPreferredEditor = options.getPreferredEditor;
+    this.onEditorNotConfigured = options.onEditorNotConfigured;
   }
 
   private setStatusInternal(
@@ -502,7 +505,11 @@ export class CoreToolScheduler {
         const editorType = this.getPreferredEditor?.();
         const isValidEditor = isEditorAvailable(editorType);
         if (!isValidEditor) {
-          console.error('Please configure a preferred editor using the "/editor" command.');
+          if (this.onEditorNotConfigured) {
+            this.onEditorNotConfigured();
+          } else {
+            console.error('Please configure a preferred editor using the "/editor" command.');
+          }
           return;
         }
 

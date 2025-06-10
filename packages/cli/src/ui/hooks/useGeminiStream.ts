@@ -77,6 +77,7 @@ export const useGeminiStream = (
   ) => import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean,
   shellModeActive: boolean,
   loadedSettings: LoadedSettings,
+  onEditorNotConfigured?: () => void,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -108,6 +109,7 @@ export const useGeminiStream = (
       config,
       setPendingHistoryItem,
       getPreferredEditor,
+      onEditorNotConfigured,
     );
 
   const pendingToolCallGroupDisplay = useMemo(

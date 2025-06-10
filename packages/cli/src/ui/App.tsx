@@ -235,6 +235,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       handleSlashCommand,
       shellModeActive,
       settings,
+      openEditorDialog,
     );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
@@ -375,6 +376,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 item={h}
                 isPending={false}
                 config={config}
+                isBlocked={isEditorDialogOpen}
               />
             )),
           ]}
@@ -391,6 +393,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               item={{ ...item, id: 0 }}
               isPending={true}
               config={config}
+              isBlocked={isEditorDialogOpen}
             />
           ))}
         </Box>
