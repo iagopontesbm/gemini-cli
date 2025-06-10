@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 import { OAuth2Client } from 'google-auth-library';
 import {
   LoadCodeAssistResponse,

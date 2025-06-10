@@ -46,5 +46,5 @@ export async function setupUser(
     lroRes = await ccpaServer.onboardUser(onboardReq);
   }
 
-  return lroRes.response?.cloudaicompanionProject?.id!;
+  return lroRes.response?.cloudaicompanionProject?.id || '';
 }

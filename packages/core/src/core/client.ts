@@ -5,7 +5,6 @@
  */
 
 import {
-  EmbedContentResponse,
   EmbedContentParameters,
   GenerateContentConfig,
   Part,
@@ -37,7 +36,6 @@ import {
   ContentGenerator,
   createContentGenerator,
 } from './contentGenerator.js';
-
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 
 const proxy =
