@@ -317,7 +317,6 @@ export class GeminiClient {
 
       this._logApiRequest(model, inputTokenCount);
 
-
       const apiCall = () =>
         cg.generateContent({
           model,

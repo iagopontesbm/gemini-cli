@@ -9,13 +9,14 @@ import * as http from 'http';
 import url from 'url';
 import crypto from 'crypto';
 import * as net from 'net';
+import open from 'open';
 
 //  OAuth Client ID used to initiate OAuth2Client class.
 const OAUTH_CLIENT_ID =
   '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 
 // OAuth Secret value used to initiate OAuth2Client class.
-const OAUTH_CLIENT_NOT_SO_SECRET = process.env.GCA_OAUTH_SECRET;
+const OAUTH_CLIENT_SECRET = 'GOCSPX-4uHgMPm-1o7Sk-geV6Cu5clXFsx';
 
 // OAuth Scopes for Cloud Code authorization.
 const OAUTH_SCOPE = [
@@ -33,15 +34,15 @@ const SIGN_IN_FAILURE_URL =
 export async function doGCALogin(): Promise<OAuth2Client> {
   const redirectPort: number = await getAvailablePort();
   const client: OAuth2Client = await createOAuth2Client(redirectPort);
-  await login(client, redirectPort);
+  const outcome = await login(client, redirectPort);
   return client;
 }
 
 function createOAuth2Client(redirectPort: number): OAuth2Client {
   return new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
-    clientSecret: OAUTH_CLIENT_NOT_SO_SECRET,
-    redirectUri: `http://localhost:${redirectPort}/oauth2redirect`,
+    clientSecret: OAUTH_CLIENT_SECRET,
+    redirectUri: `http://localhost:${redirectPort}/oauth2callback`,
   });
 }
 
@@ -79,42 +80,54 @@ function login(oAuth2Client: OAuth2Client, port: number): Promise<boolean> {
       state,
     });
 
-    console.log('Login:\n\n', authURL);
+    console.log('Opening browser for login:\n\n', authURL);
+    open(authURL);
 
-    const server = http
-      .createServer(async (req, res) => {
-        try {
-          if (req.url!.indexOf('/oauth2callback') > -1) {
-            // acquire the code from the querystring, and close the web server.
-            const qs = new url.URL(req.url!).searchParams;
-            if (qs.get('error')) {
-              console.error(`Error during authentication: ${qs.get('error')}`);
-
-              res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-              res.end();
-              resolve(false);
-            } else if (qs.get('state') !== state) {
-              //check state value
-              console.log('State mismatch. Possible CSRF attack');
-
-              res.end('State mismatch. Possible CSRF attack');
-              resolve(false);
-            } else if (!qs.get('code')) {
-              const { tokens } = await oAuth2Client.getToken(qs.get('code')!);
-              console.log('Logged in! Tokens:\n\n', tokens);
-
-              oAuth2Client.setCredentials(tokens);
-              res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
-              res.end();
-              resolve(true);
-            }
-          }
-        } catch (e) {
-          reject(e);
-        } finally {
-          server.close();
+    const server = http.createServer(async (req, res) => {
+      try {
+        if (req.url!.indexOf('/oauth2callback') === -1) {
+          console.log('Unexpected request:', req.url);
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
+          res.end();
+          reject(new Error('Unexpected request: ' + req.url));
         }
-      });
+        // acquire the code from the querystring, and close the web server.
+        const qs = new url.URL(req.url!, 'http://localhost:3000').searchParams;
+        console.log('Processing request:', qs);
+        if (qs.get('error')) {
+          console.error(`Error during authentication: ${qs.get('error')}`);
+
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
+          res.end();
+          resolve(false);
+        } else if (qs.get('state') !== state) {
+          //check state value
+          console.log('State mismatch. Possible CSRF attack');
+
+          res.end('State mismatch. Possible CSRF attack');
+          resolve(false);
+        } else if (qs.get('code')) {
+          const code: string  = qs.get('code')!;
+          console.log('Received code:', code);
+          const { tokens } = await oAuth2Client.getToken(code);
+          console.log('Logged in! Tokens:\n\n', tokens);
+
+          oAuth2Client.setCredentials(tokens);
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
+          res.end();
+          resolve(true);
+        } else {
+          console.log('No code found in request:', qs);
+        }
+
+      } catch (e) {
+        console.log('Error processing request:', e);
+        reject(new Error('Could not process request: ' + req.url));
+        reject(e);
+      } finally {
+        server.close();
+      }
+    });
     server.listen(port);
   });
 }

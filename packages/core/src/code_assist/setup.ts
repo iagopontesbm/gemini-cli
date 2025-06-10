@@ -53,6 +53,5 @@ export async function doSetup(projectId: string): Promise<OAuth2Client> {
     lroRes = await doOnboardUser(onboardUserReq, oauth2Client);
   }
 
-  
   return oauth2Client;
 }

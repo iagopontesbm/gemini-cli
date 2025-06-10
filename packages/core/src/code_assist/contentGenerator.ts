@@ -18,10 +18,9 @@ import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
 import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
 import type { ReadableStream } from 'node:stream/web';
-
+import { doGCALogin } from './login.js';
 
 export class CodeAssistContentGenerator implements ContentGenerator {
-  
   private auth: GoogleAuth;
 
   constructor() {
@@ -44,8 +43,10 @@ export class CodeAssistContentGenerator implements ContentGenerator {
   async generateContentStream(
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    const derp = await doGCALogin();
+
     const response = await this.callCodeAssist(
-      'streamGenerateChat', //?alt=sse
+      'streamGenerateChat?alt=sse',
       request,
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
@@ -88,7 +89,7 @@ export class CodeAssistContentGenerator implements ContentGenerator {
     throw Error();
   }
 
-  private async callCodeAssist(method: string, req: object): Promise<Response> {  
+  private async callCodeAssist(method: string, req: object): Promise<Response> {
     const token = await this.auth.getAccessToken();
 
     const url = `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`;

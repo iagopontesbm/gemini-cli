@@ -9,28 +9,27 @@ import { OAuth2Client } from 'google-auth-library';
 import { ClientMetadata } from './metadata.js';
 import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
 
-
-const LOAD_CODE_ASSIST_ENDPOINT = new URL(CCPA_API_VERSION + ':loadCodeAssist', CCPA_ENDPOINT)
+const LOAD_CODE_ASSIST_ENDPOINT = new URL(
+  CCPA_API_VERSION + ':loadCodeAssist',
+  CCPA_ENDPOINT,
+);
 
 export async function doLoadCodeAssist(
   req: LoadCodeAssistRequest,
   oauth2Client: OAuth2Client,
 ): Promise<LoadCodeAssistResponse> {
   console.log('LoadCodeAssist req: ', JSON.stringify(req));
-  const authHeaders = await oauth2Client.getRequestHeaders();
-  const headers = { 'Content-Type': 'application/json', ...authHeaders };
-  const res: Response = await fetch(
-    LOAD_CODE_ASSIST_ENDPOINT,
-    {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(req),
+
+  const res = await fetch(LOAD_CODE_ASSIST_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(await oauth2Client.getRequestHeaders()),
     },
-  );
-  const data: LoadCodeAssistResponse =
-    (await res.json()) as LoadCodeAssistResponse;
-  console.log('LoadCodeAssist res: ', JSON.stringify(data));
-  return data;
+    body: JSON.stringify(req),
+  });
+
+  return (await res.json()) as LoadCodeAssistResponse;
 }
 
 export interface LoadCodeAssistRequest {
@@ -65,6 +64,20 @@ export interface GeminiUserTier {
 }
 
 /**
+ * Includes information specifying the reasons for a user's ineligibility for a specific tier.
+ * @param reasonCode mnemonic code representing the reason for in-eligibility.
+ * @param reasonMessage message to display to the user.
+ * @param tierId id of the tier.
+ * @param tierName name of the tier.
+ */
+export interface IneligibleTier {
+  reasonCode: IneligibleTierReasonCode;
+  reasonMessage: string;
+  tierId: UserTierId;
+  tierName: string;
+}
+
+/**
  * List of predefined reason codes when a tier is blocked from a specific tier.
  * https://source.corp.google.com/piper///depot/google3/google/internal/cloud/code/v1internal/cloudcode.proto;l=378
  */
@@ -80,21 +93,6 @@ export enum IneligibleTierReasonCode {
   UNSUPPORTED_LOCATION = 'UNSUPPORTED_LOCATION',
   // go/keep-sorted end
 }
-
-/**
- * Includes information specifying the reasons for a user's ineligibility for a specific tier.
- * @param reasonCode mnemonic code representing the reason for in-eligibility.
- * @param reasonMessage message to display to the user.
- * @param tierId id of the tier.
- * @param tierName name of the tier.
- */
-export interface IneligibleTier {
-  reasonCode: IneligibleTierReasonCode;
-  reasonMessage: string;
-  tierId: UserTierId;
-  tierName: string;
-}
-
 /**
  * UserTierId represents IDs returned from the Cloud Code Private API representing a user's tier
  *
