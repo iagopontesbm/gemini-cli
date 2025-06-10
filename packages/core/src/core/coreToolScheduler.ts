@@ -16,10 +16,11 @@ import {
   EditTool,
   EditToolParams,
   Config,
+  EditorType,
+  isEditorAvailable,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
 import { getResponseTextFromParts } from '../utils/generateContentResponseUtilities.js';
-import { getPreferredEditorFromConfig } from '../utils/editor.js';
 
 export type ValidatingToolCall = {
   status: 'validating';
@@ -206,6 +207,7 @@ interface CoreToolSchedulerOptions {
   onToolCallsUpdate?: ToolCallsUpdateHandler;
   approvalMode?: ApprovalMode;
   config: Config;
+  getPreferredEditor?: () => string | undefined;
 }
 
 export class CoreToolScheduler {
@@ -216,6 +218,7 @@ export class CoreToolScheduler {
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
   private approvalMode: ApprovalMode;
   private config: Config;
+  private getPreferredEditor?: () => string | undefined;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
@@ -224,6 +227,7 @@ export class CoreToolScheduler {
     this.onToolCallsUpdate = options.onToolCallsUpdate;
     this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
     this.config = options.config;
+    this.getPreferredEditor = options.getPreferredEditor;
   }
 
   private setStatusInternal(
@@ -495,9 +499,10 @@ export class CoreToolScheduler {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
-        const editorType = getPreferredEditorFromConfig(this.config);
-        if (!editorType) {
-          console.error('No editor found. Please set a preferred editor in /editor.');
+        const editorType = this.getPreferredEditor?.();
+        const isValidEditor = isEditorAvailable(editorType);
+        if (!isValidEditor) {
+          console.error('Please configure a preferred editor using the "/editor" command.');
           return;
         }
 
@@ -509,7 +514,7 @@ export class CoreToolScheduler {
         const modifyResults = await editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,
           signal,
-          editorType,
+          editorType as EditorType,
         );
 
         if (modifyResults) {

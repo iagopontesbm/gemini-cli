@@ -234,6 +234,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       setDebugMessage,
       handleSlashCommand,
       shellModeActive,
+      settings,
     );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);

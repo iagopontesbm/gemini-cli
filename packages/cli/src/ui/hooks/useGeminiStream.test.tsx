@@ -19,6 +19,7 @@ import { Config } from '@gemini-cli/core';
 import { Part, PartListUnion } from '@google/genai';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Dispatch, SetStateAction } from 'react';
+import { LoadedSettings } from '../../config/settings.js';
 
 // --- MOCKS ---
 const mockSendMessageStream = vi
@@ -297,6 +298,15 @@ describe('useGeminiStream', () => {
       .mockReturnValue((async function* () {})());
   });
 
+  const mockLoadedSettings: LoadedSettings = {
+    merged: { preferredEditor: 'vscode' },
+    user: { path: '/user/settings.json', settings: {} },
+    workspace: { path: '/workspace/.gemini/settings.json', settings: {} },
+    errors: [],
+    forScope: vi.fn(),
+    setValue: vi.fn(),
+  } as unknown as LoadedSettings;
+
   const renderTestHook = (
     initialToolCalls: TrackedToolCall[] = [],
     geminiClient?: any,
@@ -323,6 +333,7 @@ describe('useGeminiStream', () => {
           | import('./slashCommandProcessor.js').SlashCommandActionReturn
           | boolean;
         shellModeActive: boolean;
+        loadedSettings: LoadedSettings;
       }) =>
         useGeminiStream(
           props.client,
@@ -332,6 +343,7 @@ describe('useGeminiStream', () => {
           props.onDebugMessage,
           props.handleSlashCommand,
           props.shellModeActive,
+          props.loadedSettings,
         ),
       {
         initialProps: {
@@ -343,6 +355,7 @@ describe('useGeminiStream', () => {
           handleSlashCommand:
             mockHandleSlashCommand as unknown as typeof mockHandleSlashCommand,
           shellModeActive: false,
+          loadedSettings: mockLoadedSettings,
         },
       },
     );
@@ -465,6 +478,7 @@ describe('useGeminiStream', () => {
         handleSlashCommand:
           mockHandleSlashCommand as unknown as typeof mockHandleSlashCommand,
         shellModeActive: false,
+        loadedSettings: mockLoadedSettings,
       });
     });
 
@@ -519,6 +533,7 @@ describe('useGeminiStream', () => {
         handleSlashCommand:
           mockHandleSlashCommand as unknown as typeof mockHandleSlashCommand,
         shellModeActive: false,
+        loadedSettings: mockLoadedSettings,
       });
     });
 

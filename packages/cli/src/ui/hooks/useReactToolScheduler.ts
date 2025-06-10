@@ -69,6 +69,7 @@ export function useReactToolScheduler(
   setPendingHistoryItem: React.Dispatch<
     React.SetStateAction<HistoryItemWithoutId | null>
   >,
+  getPreferredEditor?: () => string | undefined,
 ): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
   const [toolCallsForDisplay, setToolCallsForDisplay] = useState<
     TrackedToolCall[]
@@ -163,12 +164,14 @@ export function useReactToolScheduler(
         onToolCallsUpdate: toolCallsUpdateHandler,
         approvalMode: config.getApprovalMode(),
         config,
+        getPreferredEditor,
       }),
     [
       config,
       outputUpdateHandler,
       allToolCallsCompleteHandler,
       toolCallsUpdateHandler,
+      getPreferredEditor,
     ],
   );
 

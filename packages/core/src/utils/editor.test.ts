@@ -5,7 +5,7 @@
  */
 
 import { vi, describe, it, expect, beforeEach, type Mock } from 'vitest';
-import { checkHasEditor, getDiffCommand, openDiff } from './editor.js';
+import { checkHasEditorType, getDiffCommand, openDiff } from './editor.js';
 import { execSync, spawn } from 'child_process';
 
 vi.mock('child_process', () => ({
@@ -20,7 +20,7 @@ describe('checkHasEditor', () => {
 
   it('should return true for vscode if "code" command exists', () => {
     (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/code'));
-    expect(checkHasEditor('vscode')).toBe(true);
+    expect(checkHasEditorType('vscode')).toBe(true);
     const expectedCommand =
       process.platform === 'win32' ? 'where.exe code.cmd' : 'command -v code';
     expect(execSync).toHaveBeenCalledWith(expectedCommand, {
@@ -32,12 +32,12 @@ describe('checkHasEditor', () => {
     (execSync as Mock).mockImplementation(() => {
       throw new Error();
     });
-    expect(checkHasEditor('vscode')).toBe(false);
+    expect(checkHasEditorType('vscode')).toBe(false);
   });
 
   it('should return true for windsurf if "windsurf" command exists', () => {
     (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/windsurf'));
-    expect(checkHasEditor('windsurf')).toBe(true);
+    expect(checkHasEditorType('windsurf')).toBe(true);
     expect(execSync).toHaveBeenCalledWith('command -v windsurf', {
       stdio: 'ignore',
     });
@@ -47,12 +47,12 @@ describe('checkHasEditor', () => {
     (execSync as Mock).mockImplementation(() => {
       throw new Error();
     });
-    expect(checkHasEditor('windsurf')).toBe(false);
+    expect(checkHasEditorType('windsurf')).toBe(false);
   });
 
   it('should return true for cursor if "cursor" command exists', () => {
     (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/cursor'));
-    expect(checkHasEditor('cursor')).toBe(true);
+    expect(checkHasEditorType('cursor')).toBe(true);
     expect(execSync).toHaveBeenCalledWith('command -v cursor', {
       stdio: 'ignore',
     });
@@ -62,12 +62,12 @@ describe('checkHasEditor', () => {
     (execSync as Mock).mockImplementation(() => {
       throw new Error();
     });
-    expect(checkHasEditor('cursor')).toBe(false);
+    expect(checkHasEditorType('cursor')).toBe(false);
   });
 
   it('should return true for vim if "vim" command exists', () => {
     (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/vim'));
-    expect(checkHasEditor('vim')).toBe(true);
+    expect(checkHasEditorType('vim')).toBe(true);
     const expectedCommand =
       process.platform === 'win32' ? 'where.exe vim' : 'command -v vim';
     expect(execSync).toHaveBeenCalledWith(expectedCommand, {
@@ -79,7 +79,7 @@ describe('checkHasEditor', () => {
     (execSync as Mock).mockImplementation(() => {
       throw new Error();
     });
-    expect(checkHasEditor('vim')).toBe(false);
+    expect(checkHasEditorType('vim')).toBe(false);
   });
 });
 

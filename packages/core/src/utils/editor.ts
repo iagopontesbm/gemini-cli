@@ -5,7 +5,6 @@
  */
 
 import { execSync, spawn } from 'child_process';
-import { Config } from '../config/config.js';
 
 export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim';
 
@@ -37,14 +36,14 @@ const editorCommands: Record<EditorType, { win32: string; default: string }> = {
   vim: { win32: 'vim', default: 'vim' },
 };
 
-export function checkHasEditor(editor: EditorType): boolean {
+export function checkHasEditorType(editor: EditorType): boolean {
   const commandConfig = editorCommands[editor];
   const command =
     process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
   return commandExists(command);
 }
 
-export function allowEditorInSandbox(editor: EditorType): boolean {
+export function allowEditorTypeInSandbox(editor: EditorType): boolean {
   const notUsingSandbox = !process.env.SANDBOX;
   if (['vscode', 'windsurf', 'cursor'].includes(editor)) {
     return notUsingSandbox;
@@ -53,16 +52,14 @@ export function allowEditorInSandbox(editor: EditorType): boolean {
 }
 
 /**
- * Get the preferred editor from the config.
- * Returns null if preferred editor is not set / invalid / not available / not allowed in sandbox.
+ * Check if the editor is valid and can be used.
+ * Returns false if preferred editor is not set / invalid / not available / not allowed in sandbox.
  */
-export function getPreferredEditorFromConfig(config: Config,): EditorType | null {
-  const preferredEditor = config.getPreferredEditor();
-  
-  if (preferredEditor && isValidEditorType(preferredEditor) && checkHasEditor(preferredEditor) && allowEditorInSandbox(preferredEditor)) {
-    return preferredEditor;
+export function isEditorAvailable(editor: string | undefined): boolean {  
+  if (editor && isValidEditorType(editor)) {
+    return checkHasEditorType(editor as EditorType) && allowEditorTypeInSandbox(editor as EditorType);
   }
-  return null;
+  return false;
 }
 
 /**

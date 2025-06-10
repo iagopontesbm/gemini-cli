@@ -42,6 +42,7 @@ import {
   TrackedCompletedToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
+import { LoadedSettings } from '../../config/settings.js';
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   const resultParts: PartListUnion = [];
@@ -75,6 +76,7 @@ export const useGeminiStream = (
     cmd: PartListUnion,
   ) => import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean,
   shellModeActive: boolean,
+  loadedSettings: LoadedSettings,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -82,6 +84,11 @@ export const useGeminiStream = (
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
   const logger = useLogger();
+
+  const getPreferredEditor = useCallback(
+    () => loadedSettings.merged.preferredEditor,
+    [loadedSettings]
+  );
 
   const [toolCalls, scheduleToolCalls, markToolsAsSubmitted] =
     useReactToolScheduler(
@@ -100,6 +107,7 @@ export const useGeminiStream = (
       },
       config,
       setPendingHistoryItem,
+      getPreferredEditor,
     );
 
   const pendingToolCallGroupDisplay = useMemo(
