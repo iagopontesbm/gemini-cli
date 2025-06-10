@@ -392,7 +392,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               item={{ ...item, id: 0 }}
               isPending={true}
               config={config}
-              blockInput={isEditorDialogOpen}
+              isFocused={!isEditorDialogOpen}
             />
           ))}
         </Box>

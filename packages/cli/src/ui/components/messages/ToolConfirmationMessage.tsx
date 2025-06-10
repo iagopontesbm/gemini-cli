@@ -23,16 +23,16 @@ import {
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
   config?: Config;
-  blockInput?: boolean;
+  isFocused?: boolean;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails, config, blockInput = false }) => {
+> = ({ confirmationDetails, config, isFocused = true }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
-    if (blockInput) return;
+    if (!isFocused) return;
     if (key.escape) {
       onConfirm(ToolConfirmationOutcome.Cancel);
     }
@@ -168,7 +168,7 @@ export const ToolConfirmationMessage: React.FC<
         <RadioButtonSelect
           items={options}
           onSelect={handleSelect}
-          isFocused={!blockInput}
+          isFocused={isFocused}
         />
       </Box>
     </Box>
