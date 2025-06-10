@@ -146,7 +146,16 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
         />
       </Box>
 
-      <Box flexDirection="row" justifyContent="flex-end" marginTop={1}>
+      <Box flexDirection="row" justifyContent="space-between" marginTop={1}>
+        {/* Left column for "Last Turn" duration */}
+        <Box width="48%" flexDirection="column">
+          <StatRow
+            label="Turn Duration (API)"
+            value={formatDuration(lastTurnStats.apiTimeMs)}
+          />
+        </Box>
+
+        {/* Right column for "Cumulative" durations */}
         <Box width="48%" flexDirection="column">
           <StatRow
             label="Total duration (API)"

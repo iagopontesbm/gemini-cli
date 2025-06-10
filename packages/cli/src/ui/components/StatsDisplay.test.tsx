@@ -60,6 +60,7 @@ describe('<StatsDisplay />', () => {
     expect(output).toContain('100'); // Last Turn Input Tokens
     expect(output).toContain('200'); // Last Turn Output Tokens
     expect(output).toContain('350'); // Last Turn Total Tokens
+    expect(output).toContain('1.2s'); // Last Turn API Time
 
     // Check cumulative stats
     expect(output).toContain('Input Tokens');
