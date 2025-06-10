@@ -35,7 +35,9 @@ const nodeArgs = [];
 try {
   const sandboxCommand = execSync('node scripts/sandbox_command.js', {
     cwd: root,
-  }).toString().trim();
+  })
+    .toString()
+    .trim();
   if (process.env.DEBUG && !sandboxCommand) {
     if (process.env.SANDBOX) {
       const port = process.env.DEBUG_PORT || '9229';
