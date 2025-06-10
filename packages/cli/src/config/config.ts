@@ -18,6 +18,7 @@ import {
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 import { getEffectiveModel } from '../utils/modelCheck.js';
+import { ExtensionConfig } from './extension.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -117,6 +118,7 @@ export async function loadHierarchicalGeminiMemory(
 
 export async function loadCliConfig(
   settings: Settings,
+  extensions: ExtensionConfig[],
   geminiIgnorePatterns: string[],
 ): Promise<Config> {
   loadEnvironment();
@@ -142,6 +144,8 @@ export async function loadCliConfig(
   );
 
   const contentGeneratorConfig = await createContentGeneratorConfig(argv);
+
+  const mcpServers = settings.mcpServers || {};
 
   let sandbox = argv.sandbox ?? settings.sandbox;
   if (argv.yolo) {

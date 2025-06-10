@@ -17,6 +17,7 @@ import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
+import { loadExtensions } from './config/extension.js';
 import {
   ApprovalMode,
   Config,
@@ -74,7 +75,8 @@ export async function main() {
     process.exit(1);
   }
 
-  const config = await loadCliConfig(settings.merged, geminiIgnorePatterns);
+  const extensions = loadExtensions(workspaceRoot);
+  const config = await loadCliConfig(settings.merged, extensions, geminiIgnorePatterns);
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
