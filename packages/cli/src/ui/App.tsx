@@ -11,6 +11,7 @@ import {
   measureElement,
   Static,
   Text,
+  useStdin,
   useInput,
   type Key as InkKeyType,
 } from 'ink';
@@ -50,6 +51,8 @@ import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
 import { SessionProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
+import { useTextBuffer } from './components/shared/text-buffer.js';
+import * as fs from 'fs';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
 
@@ -90,6 +93,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     useState<boolean>(false);
   const [ctrlCPressedOnce, setCtrlCPressedOnce] = useState(false);
   const ctrlCTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
+  const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -162,46 +167,69 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     showToolDescriptions,
   );
 
+  const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
+  const { stdin, setRawMode } = useStdin();
+  const isValidPath = useCallback((filePath: string): boolean => {
+    try {
+      return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+    } catch (_e) {
+      return false;
+    }
+  }, []);
+
+  const buffer = useTextBuffer({
+    initialText: '',
+    viewport: { height: 10, width: Math.round(terminalWidth * 0.9) - 3 },
+    stdin,
+    setRawMode,
+    isValidPath,
+  });
+
+  const handleExit = useCallback(
+    (
+      pressedOnce: boolean,
+      setPressedOnce: (value: boolean) => void,
+      timerRef: React.MutableRefObject<NodeJS.Timeout | null>,
+    ) => {
+      if (pressedOnce) {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
+        }
+        process.exit(0);
+      } else {
+        setPressedOnce(true);
+        timerRef.current = setTimeout(() => {
+          setPressedOnce(false);
+          timerRef.current = null;
+        }, CTRL_C_PROMPT_DURATION_MS);
+      }
+    },
+    [],
+  );
+
   useInput((input: string, key: InkKeyType) => {
     if (key.ctrl && input === 'o') {
       setShowErrorDetails((prev) => !prev);
       refreshStatic();
     } else if (key.ctrl && input === 't') {
-      // Toggle showing tool descriptions
       const newValue = !showToolDescriptions;
       setShowToolDescriptions(newValue);
       refreshStatic();
 
-      // Re-execute the MCP command to show/hide descriptions
       const mcpServers = config.getMcpServers();
       if (Object.keys(mcpServers || {}).length > 0) {
-        // Pass description flag based on the new value
         handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
       }
     } else if (key.ctrl && (input === 'c' || input === 'C')) {
-      if (ctrlCPressedOnce) {
-        if (ctrlCTimerRef.current) {
-          clearTimeout(ctrlCTimerRef.current);
-        }
-        process.exit(0);
-      } else {
-        setCtrlCPressedOnce(true);
-        ctrlCTimerRef.current = setTimeout(() => {
-          setCtrlCPressedOnce(false);
-          ctrlCTimerRef.current = null;
-        }, CTRL_C_PROMPT_DURATION_MS);
+      handleExit(ctrlCPressedOnce, setCtrlCPressedOnce, ctrlCTimerRef);
+    } else if (key.ctrl && (input === 'd' || input === 'D')) {
+      if (buffer.text.length > 0) {
+        // Do nothing if there is text in the input.
+        return;
       }
+      handleExit(ctrlDPressedOnce, setCtrlDPressedOnce, ctrlDTimerRef);
     }
   });
-
-  useEffect(
-    () => () => {
-      if (ctrlCTimerRef.current) {
-        clearTimeout(ctrlCTimerRef.current);
-      }
-    },
-    [],
-  );
 
   useConsolePatcher({
     onNewMessage: handleNewMessage,
@@ -438,6 +466,10 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                     <Text color={Colors.AccentYellow}>
                       Press Ctrl+C again to exit.
                     </Text>
+                  ) : ctrlDPressedOnce ? (
+                    <Text color={Colors.AccentYellow}>
+                      Press Ctrl+D again to exit.
+                    </Text>
                   ) : (
                     <ContextSummaryDisplay
                       geminiMdFileCount={geminiMdFileCount}
@@ -467,6 +499,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
               {isInputActive && (
                 <InputPrompt
+                  buffer={buffer}
                   widthFraction={0.9}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
