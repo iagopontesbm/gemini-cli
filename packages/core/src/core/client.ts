@@ -38,6 +38,18 @@ import {
   createContentGenerator,
 } from './contentGenerator.js';
 
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
+
+const proxy =
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy ||
+  process.env.HTTP_PROXY ||
+  process.env.http_proxy;
+
+if (proxy) {
+  setGlobalDispatcher(new ProxyAgent(proxy));
+}
+
 export class GeminiClient {
   private chat: Promise<GeminiChat>;
   private contentGenerator: ContentGenerator;
@@ -174,9 +186,10 @@ export class GeminiClient {
     request: PartListUnion,
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
-  ): AsyncGenerator<ServerGeminiStreamEvent> {
+  ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
     if (!turns) {
-      return;
+      const chat = await this.chat;
+      return new Turn(chat);
     }
 
     const compressed = await this.tryCompressChat();
@@ -193,9 +206,12 @@ export class GeminiClient {
       const nextSpeakerCheck = await checkNextSpeaker(chat, this, signal);
       if (nextSpeakerCheck?.next_speaker === 'model') {
         const nextRequest = [{ text: 'Please continue.' }];
+        // This recursive call's events will be yielded out, but the final
+        // turn object will be from the top-level call.
         yield* this.sendMessageStream(nextRequest, signal, turns - 1);
       }
     }
+    return turn;
   }
 
   private _logApiRequest(model: string, inputTokenCount: number): void {
@@ -423,6 +439,10 @@ export class GeminiClient {
         });
 
       const result = await retryWithBackoff(apiCall);
+      console.log(
+        'Raw API Response in client.ts:',
+        JSON.stringify(result, null, 2),
+      );
       const durationMs = Date.now() - startTime;
       this._logApiResponse(modelToUse, durationMs, attempt, result);
       return result;

@@ -9,12 +9,18 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
+import {
+  Config,
+  MCPServerStatus,
+  getMCPServerStatus,
+  getMCPDiscoveryState,
+  MCPDiscoveryState,
+} from '@gemini-cli/core';
 import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
-import { useSession } from '../contexts/SessionContext.js';
+import { useSessionStats } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
-import { formatMemoryUsage } from '../utils/formatters.js';
+import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
 
 export interface SlashCommandActionReturn {
@@ -51,8 +57,7 @@ export const useSlashCommandProcessor = (
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
 ) => {
-  const session = useSession();
-
+  const session = useSessionStats();
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -64,6 +69,13 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
+        };
+      } else if (message.type === MessageType.STATS) {
+        historyItemContent = {
+          type: 'stats',
+          stats: message.stats,
+          lastTurnStats: message.lastTurnStats,
+          duration: message.duration,
         };
       } else {
         historyItemContent = {
@@ -155,23 +167,14 @@ export const useSlashCommandProcessor = (
         description: 'check session stats',
         action: (_mainCommand, _subCommand, _args) => {
           const now = new Date();
-          const duration = now.getTime() - session.startTime.getTime();
-          const durationInSeconds = Math.floor(duration / 1000);
-          const hours = Math.floor(durationInSeconds / 3600);
-          const minutes = Math.floor((durationInSeconds % 3600) / 60);
-          const seconds = durationInSeconds % 60;
-
-          const durationString = [
-            hours > 0 ? `${hours}h` : '',
-            minutes > 0 ? `${minutes}m` : '',
-            `${seconds}s`,
-          ]
-            .filter(Boolean)
-            .join(' ');
+          const { sessionStartTime, cumulative, currentTurn } = session.stats;
+          const wallDuration = now.getTime() - sessionStartTime.getTime();
 
           addMessage({
-            type: MessageType.INFO,
-            content: `Session duration: ${durationString}`,
+            type: MessageType.STATS,
+            stats: cumulative,
+            lastTurnStats: currentTurn,
+            duration: formatDuration(wallDuration),
             timestamp: new Date(),
           });
         },
@@ -217,32 +220,62 @@ export const useSlashCommandProcessor = (
             return;
           }
 
-          let message = 'Configured MCP servers and tools:\n\n';
+          // Check if any servers are still connecting
+          const connectingServers = serverNames.filter(
+            (name) => getMCPServerStatus(name) === MCPServerStatus.CONNECTING,
+          );
+          const discoveryState = getMCPDiscoveryState();
+
+          let message = '';
+
+          // Add overall discovery status message if needed
+          if (
+            discoveryState === MCPDiscoveryState.IN_PROGRESS ||
+            connectingServers.length > 0
+          ) {
+            message += `\u001b[33m⏳ MCP servers are starting up (${connectingServers.length} initializing)...\u001b[0m\n`;
+            message += `\u001b[90mNote: First startup may take longer. Tool availability will update automatically.\u001b[0m\n\n`;
+          }
+
+          message += 'Configured MCP servers:\n\n';
 
           for (const serverName of serverNames) {
             const serverTools = toolRegistry.getToolsByServer(serverName);
             const status = getMCPServerStatus(serverName);
 
-            // Add status indicator
-            let statusDot = '';
+            // Add status indicator with descriptive text
+            let statusIndicator = '';
+            let statusText = '';
             switch (status) {
               case MCPServerStatus.CONNECTED:
-                statusDot = '🟢'; // Green dot for connected
+                statusIndicator = '🟢';
+                statusText = 'Ready';
                 break;
               case MCPServerStatus.CONNECTING:
-                statusDot = '🟡'; // Yellow dot for connecting
+                statusIndicator = '🔄';
+                statusText = 'Starting... (first startup may take longer)';
                 break;
               case MCPServerStatus.DISCONNECTED:
               default:
-                statusDot = '🔴'; // Red dot for disconnected
+                statusIndicator = '🔴';
+                statusText = 'Disconnected';
                 break;
             }
 
             // Get server description if available
             const server = mcpServers[serverName];
 
-            // Format server header with bold formatting
-            message += `${statusDot} \u001b[1m${serverName}\u001b[0m (${serverTools.length} tools)`;
+            // Format server header with bold formatting and status
+            message += `${statusIndicator} \u001b[1m${serverName}\u001b[0m - ${statusText}`;
+
+            // Add tool count with conditional messaging
+            if (status === MCPServerStatus.CONNECTED) {
+              message += ` (${serverTools.length} tools)`;
+            } else if (status === MCPServerStatus.CONNECTING) {
+              message += ` (tools will appear when ready)`;
+            } else {
+              message += ` (${serverTools.length} tools cached)`;
+            }
 
             // Add server description with proper handling of multi-line descriptions
             if (useShowDescriptions && server?.description) {
@@ -486,7 +519,7 @@ Add any other context about the problem here.
       toggleCorgiMode,
       config,
       showToolDescriptions,
-      session.startTime,
+      session,
     ],
   );
 

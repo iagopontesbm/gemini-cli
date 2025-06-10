@@ -50,7 +50,7 @@ import {
 } from '@gemini-cli/core';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
-import { SessionProvider } from './contexts/SessionContext.js';
+import { SessionStatsProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
@@ -62,9 +62,9 @@ interface AppProps {
 }
 
 export const AppWrapper = (props: AppProps) => (
-  <SessionProvider>
+  <SessionStatsProvider>
     <App {...props} />
-  </SessionProvider>
+  </SessionStatsProvider>
 );
 
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {

@@ -60,14 +60,16 @@ import {
   type Config,
   MCPServerStatus,
   getMCPServerStatus,
+  MCPDiscoveryState,
+  getMCPDiscoveryState,
 } from '@gemini-cli/core';
-import { useSession } from '../contexts/SessionContext.js';
+import { useSessionStats } from '../contexts/SessionContext.js';
 
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 
 vi.mock('../contexts/SessionContext.js', () => ({
-  useSession: vi.fn(),
+  useSessionStats: vi.fn(),
 }));
 
 vi.mock('./useShowMemoryCommand.js', () => ({
@@ -90,7 +92,7 @@ describe('useSlashCommandProcessor', () => {
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
-  const mockUseSession = useSession as Mock;
+  const mockUseSessionStats = useSessionStats as Mock;
 
   beforeEach(() => {
     mockAddItem = vi.fn();
@@ -107,8 +109,19 @@ describe('useSlashCommandProcessor', () => {
       getModel: vi.fn(() => 'test-model'),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
-    mockUseSession.mockReturnValue({
-      startTime: new Date('2025-01-01T00:00:00.000Z'),
+    mockUseSessionStats.mockReturnValue({
+      stats: {
+        sessionStartTime: new Date('2025-01-01T00:00:00.000Z'),
+        cumulative: {
+          turnCount: 0,
+          promptTokenCount: 0,
+          candidatesTokenCount: 0,
+          totalTokenCount: 0,
+          cachedContentTokenCount: 0,
+          toolUsePromptTokenCount: 0,
+          thoughtsTokenCount: 0,
+        },
+      },
     });
 
     (open as Mock).mockClear();
@@ -243,29 +256,44 @@ describe('useSlashCommandProcessor', () => {
   });
 
   describe('/stats command', () => {
-    it('should show the session duration', async () => {
-      const { handleSlashCommand } = getProcessor();
-      let commandResult: SlashCommandActionReturn | boolean = false;
-
-      // Mock current time
-      const mockDate = new Date('2025-01-01T00:01:05.000Z');
-      vi.setSystemTime(mockDate);
-
-      await act(async () => {
-        commandResult = handleSlashCommand('/stats');
+    it('should show detailed session statistics', async () => {
+      // Arrange
+      const cumulativeStats = {
+        totalTokenCount: 900,
+        promptTokenCount: 200,
+        candidatesTokenCount: 400,
+        cachedContentTokenCount: 100,
+        turnCount: 1,
+        toolUsePromptTokenCount: 50,
+        thoughtsTokenCount: 150,
+      };
+      mockUseSessionStats.mockReturnValue({
+        stats: {
+          sessionStartTime: new Date('2025-01-01T00:00:00.000Z'),
+          cumulative: cumulativeStats,
+        },
       });
 
+      const { handleSlashCommand } = getProcessor();
+      const mockDate = new Date('2025-01-01T01:02:03.000Z'); // 1h 2m 3s duration
+      vi.setSystemTime(mockDate);
+
+      // Act
+      await act(async () => {
+        handleSlashCommand('/stats');
+      });
+
+      // Assert
       expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
+        2, // Called after the user message
         expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Session duration: 1m 5s',
+          type: MessageType.STATS,
+          stats: cumulativeStats,
+          duration: '1h 2m 3s',
         }),
         expect.any(Number),
       );
-      expect(commandResult).toBe(true);
 
-      // Restore system time
       vi.useRealTimers();
     });
   });
@@ -501,7 +529,7 @@ Add any other context about the problem here.
 
   describe('/mcp command', () => {
     beforeEach(() => {
-      // Mock the core module with getMCPServerStatus
+      // Mock the core module with getMCPServerStatus and getMCPDiscoveryState
       vi.mock('@gemini-cli/core', async (importOriginal) => {
         const actual = await importOriginal();
         return {
@@ -511,7 +539,13 @@ Add any other context about the problem here.
             CONNECTING: 'connecting',
             DISCONNECTED: 'disconnected',
           },
+          MCPDiscoveryState: {
+            NOT_STARTED: 'not_started',
+            IN_PROGRESS: 'in_progress',
+            COMPLETED: 'completed',
+          },
           getMCPServerStatus: vi.fn(),
+          getMCPDiscoveryState: vi.fn(),
         };
       });
     });
@@ -572,12 +606,17 @@ Add any other context about the problem here.
         server3: { command: 'cmd3' },
       };
 
-      // Setup getMCPServerStatus mock implementation
+      // Setup getMCPServerStatus mock implementation - use all CONNECTED to avoid startup message in this test
       vi.mocked(getMCPServerStatus).mockImplementation((serverName) => {
         if (serverName === 'server1') return MCPServerStatus.CONNECTED;
-        if (serverName === 'server2') return MCPServerStatus.CONNECTING;
+        if (serverName === 'server2') return MCPServerStatus.CONNECTED;
         return MCPServerStatus.DISCONNECTED; // Default for server3 and others
       });
+
+      // Setup getMCPDiscoveryState mock to return completed so no startup message is shown
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
 
       // Mock tools from each server
       const mockServer1Tools = [
@@ -614,24 +653,30 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Configured MCP servers and tools:'),
+          text: expect.stringContaining('Configured MCP servers:'),
         }),
         expect.any(Number),
       );
 
-      // Check that the message contains details about both servers and their tools
+      // Check that the message contains details about servers and their tools
       const message = mockAddItem.mock.calls[1][0].text;
-      // Server 1 - Connected (green dot)
-      expect(message).toContain('🟢 \u001b[1mserver1\u001b[0m (2 tools)');
+      // Server 1 - Connected
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (2 tools)',
+      );
       expect(message).toContain('\u001b[36mserver1_tool1\u001b[0m');
       expect(message).toContain('\u001b[36mserver1_tool2\u001b[0m');
 
-      // Server 2 - Connecting (yellow dot)
-      expect(message).toContain('🟡 \u001b[1mserver2\u001b[0m (1 tools)');
+      // Server 2 - Connected
+      expect(message).toContain(
+        '🟢 \u001b[1mserver2\u001b[0m - Ready (1 tools)',
+      );
       expect(message).toContain('\u001b[36mserver2_tool1\u001b[0m');
 
-      // Server 3 - No status, should default to Disconnected (red dot)
-      expect(message).toContain('🔴 \u001b[1mserver3\u001b[0m (1 tools)');
+      // Server 3 - Disconnected
+      expect(message).toContain(
+        '🔴 \u001b[1mserver3\u001b[0m - Disconnected (1 tools cached)',
+      );
       expect(message).toContain('\u001b[36mserver3_tool1\u001b[0m');
 
       expect(commandResult).toBe(true);
@@ -651,6 +696,11 @@ Add any other context about the problem here.
         if (serverName === 'server1') return MCPServerStatus.CONNECTED;
         return MCPServerStatus.DISCONNECTED;
       });
+
+      // Setup getMCPDiscoveryState mock to return completed
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
 
       // Mock tools from server with descriptions
       const mockServerTools = [
@@ -676,7 +726,7 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Configured MCP servers and tools:'),
+          text: expect.stringContaining('Configured MCP servers:'),
         }),
         expect.any(Number),
       );
@@ -684,7 +734,7 @@ Add any other context about the problem here.
       const message = mockAddItem.mock.calls[1][0].text;
 
       // Check that server description is included (with ANSI color codes)
-      expect(message).toContain('\u001b[1mserver1\u001b[0m (2 tools)');
+      expect(message).toContain('\u001b[1mserver1\u001b[0m - Ready (2 tools)');
       expect(message).toContain(
         '\u001b[32mThis is a server description\u001b[0m',
       );
@@ -716,6 +766,11 @@ Add any other context about the problem here.
         return MCPServerStatus.DISCONNECTED;
       });
 
+      // Setup getMCPDiscoveryState mock to return completed
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
+
       // Mock tools from each server - server2 has no tools
       const mockServer1Tools = [{ name: 'server1_tool1' }];
 
@@ -745,17 +800,85 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Configured MCP servers and tools:'),
+          text: expect.stringContaining('Configured MCP servers:'),
         }),
         expect.any(Number),
       );
 
       // Check that the message contains details about both servers and their tools
       const message = mockAddItem.mock.calls[1][0].text;
-      expect(message).toContain('🟢 \u001b[1mserver1\u001b[0m (1 tools)');
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)',
+      );
       expect(message).toContain('\u001b[36mserver1_tool1\u001b[0m');
-      expect(message).toContain('🔴 \u001b[1mserver2\u001b[0m (0 tools)');
+      expect(message).toContain(
+        '🔴 \u001b[1mserver2\u001b[0m - Disconnected (0 tools cached)',
+      );
       expect(message).toContain('No tools available');
+
+      expect(commandResult).toBe(true);
+    });
+
+    it('should show startup indicator when servers are connecting', async () => {
+      // Mock MCP servers configuration
+      const mockMcpServers = {
+        server1: { command: 'cmd1' },
+        server2: { command: 'cmd2' },
+      };
+
+      // Setup getMCPServerStatus mock implementation with one server connecting
+      vi.mocked(getMCPServerStatus).mockImplementation((serverName) => {
+        if (serverName === 'server1') return MCPServerStatus.CONNECTED;
+        if (serverName === 'server2') return MCPServerStatus.CONNECTING;
+        return MCPServerStatus.DISCONNECTED;
+      });
+
+      // Setup getMCPDiscoveryState mock to return in progress
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.IN_PROGRESS,
+      );
+
+      // Mock tools from each server
+      const mockServer1Tools = [{ name: 'server1_tool1' }];
+      const mockServer2Tools = [{ name: 'server2_tool1' }];
+
+      const mockGetToolsByServer = vi.fn().mockImplementation((serverName) => {
+        if (serverName === 'server1') return mockServer1Tools;
+        if (serverName === 'server2') return mockServer2Tools;
+        return [];
+      });
+
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getToolsByServer: mockGetToolsByServer,
+        }),
+        getMcpServers: vi.fn().mockReturnValue(mockMcpServers),
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = handleSlashCommand('/mcp');
+      });
+
+      const message = mockAddItem.mock.calls[1][0].text;
+
+      // Check that startup indicator is shown
+      expect(message).toContain(
+        '⏳ MCP servers are starting up (1 initializing)...',
+      );
+      expect(message).toContain(
+        'Note: First startup may take longer. Tool availability will update automatically.',
+      );
+
+      // Check server statuses
+      expect(message).toContain(
+        '🟢 \u001b[1mserver1\u001b[0m - Ready (1 tools)',
+      );
+      expect(message).toContain(
+        '🔄 \u001b[1mserver2\u001b[0m - Starting... (first startup may take longer) (tools will appear when ready)',
+      );
 
       expect(commandResult).toBe(true);
     });
