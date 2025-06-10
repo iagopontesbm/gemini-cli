@@ -16,7 +16,7 @@ const OAUTH_CLIENT_ID =
   '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
 
 // OAuth Secret value used to initiate OAuth2Client class.
-const OAUTH_CLIENT_SECRET = 'GOCSPX-4uHgMPm-1o7Sk-geV6Cu5clXFsx';
+const OAUTH_CLIENT_SECRET = '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';
 
 // OAuth Scopes for Cloud Code authorization.
 const OAUTH_SCOPE = [
@@ -31,20 +31,6 @@ const SIGN_IN_SUCCESS_URL =
 const SIGN_IN_FAILURE_URL =
   'https://developers.google.com/gemini-code-assist/auth_failure_gemini';
 
-export async function doGCALogin(): Promise<OAuth2Client> {
-  const redirectPort: number = await getAvailablePort();
-  const client: OAuth2Client = await createOAuth2Client(redirectPort);
-  const outcome = await login(client, redirectPort);
-  return client;
-}
-
-function createOAuth2Client(redirectPort: number): OAuth2Client {
-  return new OAuth2Client({
-    clientId: OAUTH_CLIENT_ID,
-    clientSecret: OAUTH_CLIENT_SECRET,
-    redirectUri: `http://localhost:${redirectPort}/oauth2callback`,
-  });
-}
 
 /**
  * Returns first available port in user's machine
@@ -70,8 +56,14 @@ function getAvailablePort(): Promise<number> {
     }
   });
 }
+export async function doGCALogin(): Promise<OAuth2Client> {
+  const port = await getAvailablePort();
+  const oAuth2Client = new OAuth2Client({
+    clientId: OAUTH_CLIENT_ID,
+    clientSecret: OAUTH_CLIENT_SECRET,
+    redirectUri: `http://localhost:${port}/oauth2callback`,
+  });
 
-function login(oAuth2Client: OAuth2Client, port: number): Promise<boolean> {
   return new Promise((resolve, reject) => {
     const state = crypto.randomBytes(32).toString('hex');
     const authURL: string = oAuth2Client.generateAuthUrl({
@@ -95,34 +87,26 @@ function login(oAuth2Client: OAuth2Client, port: number): Promise<boolean> {
         const qs = new url.URL(req.url!, 'http://localhost:3000').searchParams;
         console.log('Processing request:', qs);
         if (qs.get('error')) {
-          console.error(`Error during authentication: ${qs.get('error')}`);
-
           res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
           res.end();
-          resolve(false);
+          reject(new Error(`Error during authentication: ${qs.get('error')}`));
         } else if (qs.get('state') !== state) {
-          //check state value
-          console.log('State mismatch. Possible CSRF attack');
-
           res.end('State mismatch. Possible CSRF attack');
-          resolve(false);
+          reject(new Error('State mismatch. Possible CSRF attack'));
         } else if (qs.get('code')) {
-          const code: string  = qs.get('code')!;
-          console.log('Received code:', code);
+          const code: string = qs.get('code')!;
+          console.log()
           const { tokens } = await oAuth2Client.getToken(code);
           console.log('Logged in! Tokens:\n\n', tokens);
 
           oAuth2Client.setCredentials(tokens);
           res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
           res.end();
-          resolve(true);
+          resolve(oAuth2Client);
         } else {
-          console.log('No code found in request:', qs);
+          reject(new Error('No code found in request'));
         }
-
       } catch (e) {
-        console.log('Error processing request:', e);
-        reject(new Error('Could not process request: ' + req.url));
         reject(e);
       } finally {
         server.close();

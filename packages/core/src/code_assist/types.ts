@@ -1,36 +1,37 @@
-/**
- * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
- */
 
-import { OAuth2Client } from 'google-auth-library';
 
-import { ClientMetadata } from './metadata.js';
-import { CCPA_ENDPOINT, CCPA_API_VERSION } from './constants.js';
-
-const LOAD_CODE_ASSIST_ENDPOINT = new URL(
-  CCPA_API_VERSION + ':loadCodeAssist',
-  CCPA_ENDPOINT,
-);
-
-export async function doLoadCodeAssist(
-  req: LoadCodeAssistRequest,
-  oauth2Client: OAuth2Client,
-): Promise<LoadCodeAssistResponse> {
-  console.log('LoadCodeAssist req: ', JSON.stringify(req));
-
-  const res = await fetch(LOAD_CODE_ASSIST_ENDPOINT, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(await oauth2Client.getRequestHeaders()),
-    },
-    body: JSON.stringify(req),
-  });
-
-  return (await res.json()) as LoadCodeAssistResponse;
+export interface ClientMetadata {
+  ideType?: ClientMetadataIdeType;
+  ideVersion?: string;
+  pluginVersion?: string;
+  platform?: ClientMetadataPlatform;
+  updateChannel?: string;
+  duetProject?: string;
+  pluginType?: ClientMetadataPluginType;
+  ideName?: string;
 }
+
+export type ClientMetadataIdeType =
+  | 'IDE_UNSPECIFIED'
+  | 'VSCODE'
+  | 'INTELLIJ'
+  | 'VSCODE_CLOUD_WORKSTATION'
+  | 'INTELLIJ_CLOUD_WORKSTATION'
+  | 'CLOUD_SHELL';
+export type ClientMetadataPlatform =
+  | 'PLATFORM_UNSPECIFIED'
+  | 'DARWIN_AMD64'
+  | 'DARWIN_ARM64'
+  | 'LINUX_AMD64'
+  | 'LINUX_ARM64'
+  | 'WINDOWS_AMD64';
+export type ClientMetadataPluginType =
+  | 'PLUGIN_UNSPECIFIED'
+  | 'CLOUD_CODE'
+  | 'GEMINI'
+  | 'AIPLUGIN_INTELLIJ'
+  | 'AIPLUGIN_STUDIO';
+
 
 export interface LoadCodeAssistRequest {
   cloudaicompanionProject?: string;
@@ -111,4 +112,61 @@ export enum UserTierId {
 export interface PrivacyNotice {
   showNotice: boolean;
   noticeText?: string;
+}
+
+/**
+ * Proto signature of OnboardUserRequest as payload to OnboardUser call
+ */
+export interface OnboardUserRequest {
+  tierId: string | undefined;
+  cloudaicompanionProject: string | undefined;
+  metadata: ClientMetadata | undefined;
+}
+
+/**
+ * Represents LongrunningOperation proto
+ * http://google3/google/longrunning/operations.proto;rcl=698857719;l=107
+ */
+export interface LongrunningOperationResponse {
+  name: string;
+  done?: boolean;
+  response?: OnboardUserResponse;
+}
+
+/**
+ * Represents OnboardUserResponse proto
+ * http://google3/google/internal/cloud/code/v1internal/cloudcode.proto;l=215
+ */
+export interface OnboardUserResponse {
+  // tslint:disable-next-line:enforce-name-casing This is the name of the field in the proto.
+  cloudaicompanionProject?: {
+    id: string;
+    name: string;
+  };
+}
+
+/**
+ * Status code of user license status
+ * it does not stricly correspond to the proto
+ * Error value is an additional value assigned to error responses from OnboardUser
+ */
+export enum OnboardUserStatusCode {
+  Default = 'DEFAULT',
+  Notice = 'NOTICE',
+  Warning = 'WARNING',
+  Error = 'ERROR',
+}
+
+/**
+ * Status of user onboarded to gemini
+ */
+export interface OnboardUserStatus {
+  statusCode: OnboardUserStatusCode;
+  displayMessage: string;
+  helpLink: HelpLinkUrl | undefined;
+}
+
+export interface HelpLinkUrl {
+  description: string;
+  url: string;
 }

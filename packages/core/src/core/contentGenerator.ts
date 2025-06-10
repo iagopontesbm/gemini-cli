@@ -13,8 +13,6 @@ import {
   EmbedContentParameters,
   GoogleGenAI,
 } from '@google/genai';
-import { CodeAssistContentGenerator } from '../code_assist/contentGenerator.js';
-import { doSetup } from '../code_assist/setup.js';
 
 /**
  * Interface abstracting the core functionalities for generating content and counting tokens.
@@ -43,9 +41,6 @@ export type ContentGeneratorConfig = {
 export async function createContentGenerator(
   config: ContentGeneratorConfig,
 ): Promise<ContentGenerator> {
-  if (config.codeAssist) {
-    return new CodeAssistContentGenerator();
-  }
   const version = process.env.CLI_VERSION || process.version;
   const googleGenAI = new GoogleGenAI({
     apiKey: config.apiKey === '' ? undefined : config.apiKey,

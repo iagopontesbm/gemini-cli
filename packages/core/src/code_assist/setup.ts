@@ -4,54 +4,35 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OAuth2Client } from 'google-auth-library';
+import { ClientMetadata, OnboardUserRequest } from './types.js';
+import { CcpaServer } from './ccpa.js';
 
-import { ClientMetadata } from './metadata.js';
-import { doLoadCodeAssist, LoadCodeAssistResponse } from './load.js';
-import { doGCALogin } from './login.js';
-import {
-  doOnboardUser,
-  LongrunningOperationResponse,
-  OnboardUserRequest,
-} from './onboard.js';
-
-export async function doSetup(projectId: string): Promise<OAuth2Client> {
-  const oauth2Client: OAuth2Client = await doGCALogin();
+export async function doSetup(ccpaServer: CcpaServer): Promise<void> {
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
-    ideVersion: null,
-    pluginVersion: null,
     platform: 'PLATFORM_UNSPECIFIED',
-    updateChannel: null,
-    duetProject: 'aipp-internal-testing',
     pluginType: 'GEMINI',
-    ideName: null,
   };
-
-  // Call LoadCodeAssist.
-  const loadCodeAssistRes: LoadCodeAssistResponse = await doLoadCodeAssist(
-    {
-      // TODO: Support Free Tier user without projectId.
-      cloudaicompanionProject: projectId,
-      metadata: clientMetadata,
-    },
-    oauth2Client,
-  );
-
-  // Call OnboardUser until long running operation is complete.
-  const onboardUserReq: OnboardUserRequest = {
-    tierId: 'legacy-tier',
-    cloudaicompanionProject: loadCodeAssistRes.cloudaicompanionProject || '',
-    metadata: clientMetadata,
-  };
-  let lroRes: LongrunningOperationResponse = await doOnboardUser(
-    onboardUserReq,
-    oauth2Client,
-  );
-  while (!lroRes.done) {
-    await new Promise((f) => setTimeout(f, 5000));
-    lroRes = await doOnboardUser(onboardUserReq, oauth2Client);
+  if (process.env.GOOGLE_CLOUD_PROJECT) {
+    clientMetadata.duetProject = process.env.GOOGLE_CLOUD_PROJECT;
   }
 
-  return oauth2Client;
+  // TODO: Support Free Tier user without projectId.
+  const loadRes = await ccpaServer.loadCodeAssist({
+    cloudaicompanionProject: process.env.GOOGLE_CLOUD_PROJECT,
+    metadata: clientMetadata,
+  })
+
+  const onboardRes: OnboardUserRequest = {
+    tierId: 'legacy-tier',
+    cloudaicompanionProject: loadRes.cloudaicompanionProject || '',
+    metadata: clientMetadata,
+  };
+
+  // Poll onboardUser until long running operation is complete.
+  let lroRes = await ccpaServer.onboardUser(onboardRes);
+  while (!lroRes.done) {
+    await new Promise((f) => setTimeout(f, 5000));
+    lroRes = await ccpaServer.onboardUser(onboardRes);
+  }
 }
