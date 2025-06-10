@@ -127,7 +127,7 @@ export function EditorSettingsDialog({
       </Box>
 
       <Box flexDirection="column" width="55%" paddingLeft={2}>
-        <Text bold>Editor Preferences</Text>
+        <Text bold>Editor Preference</Text>
         <Box marginTop={1}>
           <Text color={Colors.Gray}>
             These editors are currently supported. Please note that some editors
