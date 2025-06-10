@@ -86,6 +86,7 @@ describe('useSlashCommandProcessor', () => {
   let mockSetShowHelp: ReturnType<typeof vi.fn>;
   let mockOnDebugMessage: ReturnType<typeof vi.fn>;
   let mockOpenThemeDialog: ReturnType<typeof vi.fn>;
+  let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
@@ -98,6 +99,7 @@ describe('useSlashCommandProcessor', () => {
     mockSetShowHelp = vi.fn();
     mockOnDebugMessage = vi.fn();
     mockOpenThemeDialog = vi.fn();
+    mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockConfig = {
       getDebugMode: vi.fn(() => false),
@@ -126,6 +128,7 @@ describe('useSlashCommandProcessor', () => {
         mockSetShowHelp,
         mockOnDebugMessage,
         mockOpenThemeDialog,
+        mockOpenEditorDialog,
         mockPerformMemoryRefresh,
         mockCorgiMode,
         showToolDescriptions,
@@ -275,6 +278,16 @@ describe('useSlashCommandProcessor', () => {
         commandResult = handleSlashCommand('/help');
       });
       expect(mockSetShowHelp).toHaveBeenCalledWith(true);
+      expect(commandResult).toBe(true);
+    });
+
+    it('/editor should open editor dialog and return true', async () => {
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = handleSlashCommand('/editor');
+      });
+      expect(mockOpenEditorDialog).toHaveBeenCalled();
       expect(commandResult).toBe(true);
     });
   });

@@ -19,6 +19,7 @@ import { Colors } from '../../colors.js';
 export interface RadioSelectItem<T> {
   label: string;
   value: T;
+  disabled?: boolean;
 }
 
 /**
@@ -88,7 +89,7 @@ export function RadioButtonSelect<T>({
   /**
    * Custom item component for displaying the label.
    * Color changes based on whether the item is selected and if its group is focused.
-   * Now also handles displaying theme type with custom color.
+   * Now also handles displaying theme type with custom color and dims unavailable items.
    */
   function CustomThemeItemComponent(
     props: InkSelectItemProps,
@@ -97,11 +98,14 @@ export function RadioButtonSelect<T>({
     const itemWithThemeProps = props as typeof props & {
       themeNameDisplay?: string;
       themeTypeDisplay?: string;
+      disabled?: boolean;
     };
 
     let textColor = Colors.Foreground;
     if (isSelected) {
       textColor = Colors.AccentGreen;
+    } else if (itemWithThemeProps.disabled === true) {
+      textColor = Colors.Gray; // Dim disabled items
     }
 
     if (
