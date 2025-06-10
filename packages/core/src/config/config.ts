@@ -79,7 +79,6 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
   enableModifyWithExternalEditors?: boolean;
-  preferredEditor?: string;
 }
 
 export class Config {
@@ -109,7 +108,6 @@ export class Config {
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly enableModifyWithExternalEditors: boolean;
-  private readonly preferredEditor: string | undefined;
   private fileDiscoveryService: FileDiscoveryService | null = null;
 
   constructor(params: ConfigParameters) {
@@ -141,7 +139,6 @@ export class Config {
       params.fileFilteringAllowBuildArtifacts ?? false;
     this.enableModifyWithExternalEditors =
       params.enableModifyWithExternalEditors ?? false;
-    this.preferredEditor = params.preferredEditor;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -275,10 +272,6 @@ export class Config {
 
   getEnableModifyWithExternalEditors(): boolean {
     return this.enableModifyWithExternalEditors;
-  }
-
-  getPreferredEditor(): string | undefined {
-    return this.preferredEditor;
   }
 
   async getFileService(): Promise<FileDiscoveryService> {
