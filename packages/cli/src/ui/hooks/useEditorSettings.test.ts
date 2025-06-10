@@ -18,14 +18,15 @@ import { renderHook } from '@testing-library/react';
 import { useEditorSettings } from './useEditorSettings.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { MessageType, type HistoryItem } from '../types.js';
-import { type EditorType, checkHasEditor } from '@gemini-cli/core';
+import { type EditorType, checkHasEditorType, allowEditorTypeInSandbox } from '@gemini-cli/core';
 
-// Mock the checkHasEditor function
+// Mock the editor checking functions
 vi.mock('@gemini-cli/core', async () => {
   const actual = await vi.importActual('@gemini-cli/core');
   return {
     ...actual,
-    checkHasEditor: vi.fn(() => true), // Default to true for most tests
+    checkHasEditorType: vi.fn(() => true),
+    allowEditorTypeInSandbox: vi.fn(() => true),
   };
 });
 
@@ -50,7 +51,7 @@ describe('useEditorSettings', () => {
     mockCheckHasEditor = checkHasEditor as MockedFunction<
       typeof checkHasEditor
     >;
-    mockCheckHasEditor.mockReturnValue(true); // Default to available
+    mockCheckHasEditor.mockReturnValue(true);
   });
 
   afterEach(() => {
