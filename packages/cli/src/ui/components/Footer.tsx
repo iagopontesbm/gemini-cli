@@ -22,6 +22,8 @@ interface FooterProps {
   errorCount: number;
   showErrorDetails: boolean;
   showMemoryUsage?: boolean;
+  promptTokenCount: number;
+  candidatesTokenCount: number;
 }
 
 export const Footer: React.FC<FooterProps> = ({
@@ -34,6 +36,8 @@ export const Footer: React.FC<FooterProps> = ({
   errorCount,
   showErrorDetails,
   showMemoryUsage,
+  promptTokenCount,
+  candidatesTokenCount,
 }) => (
   <Box marginTop={1} justifyContent="space-between" width="100%">
     <Box>
@@ -74,6 +78,16 @@ export const Footer: React.FC<FooterProps> = ({
     {/* Right Section: Gemini Label and Console Summary */}
     <Box alignItems="center">
       <Text color={Colors.AccentBlue}> {model} </Text>
+      <Text color={Colors.Gray}>| </Text>
+      <Text>
+        <Text color={Colors.AccentYellow}>
+          🢁 {promptTokenCount.toLocaleString()}
+        </Text>
+        <Text color={Colors.LightBlue}>
+          {' '}
+          🡻 {candidatesTokenCount.toLocaleString()}
+        </Text>
+      </Text>
       {corgiMode && (
         <Text>
           <Text color={Colors.Gray}>| </Text>
