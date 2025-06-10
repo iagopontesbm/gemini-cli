@@ -145,7 +145,7 @@ export async function loadCliConfig(
 
   const contentGeneratorConfig = await createContentGeneratorConfig(argv);
 
-  const mcpServers = mergedMcpServers(settings, extensions);
+  const mcpServers = mergeMcpServers(settings, extensions);
 
   let sandbox = argv.sandbox ?? settings.sandbox;
   if (argv.yolo) {
@@ -184,7 +184,7 @@ export async function loadCliConfig(
   });
 }
 
-function mergedMcpServers(settings: Settings, extensions: ExtensionConfig[]) {
+function mergeMcpServers(settings: Settings, extensions: ExtensionConfig[]) {
   const mcpServers = settings.mcpServers || {};
   for (const extension of extensions) {
     Object.entries(extension.mcpServers || {}).forEach(([key, server]) => {
