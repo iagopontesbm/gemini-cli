@@ -86,7 +86,7 @@ export const ToolConfirmationMessage: React.FC<
         value: ToolConfirmationOutcome.ProceedAlways,
       },
     );
-  
+
     const externalEditorsEnabled =
       config?.getEnableModifyWithExternalEditors() ?? false;
     if (externalEditorsEnabled) {
@@ -165,9 +165,9 @@ export const ToolConfirmationMessage: React.FC<
 
       {/* Select Input for Options */}
       <Box flexShrink={0}>
-        <RadioButtonSelect 
-          items={options} 
-          onSelect={handleSelect} 
+        <RadioButtonSelect
+          items={options}
+          onSelect={handleSelect}
           isFocused={!blockInput}
         />
       </Box>

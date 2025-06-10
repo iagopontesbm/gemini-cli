@@ -496,9 +496,7 @@ export class CoreToolScheduler {
         'cancelled',
         'User did not allow tool call',
       );
-    } else if (
-      outcome === ToolConfirmationOutcome.ModifyWithEditor
-    ) {
+    } else if (outcome === ToolConfirmationOutcome.ModifyWithEditor) {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
@@ -508,7 +506,9 @@ export class CoreToolScheduler {
           if (this.onEditorNotConfigured) {
             this.onEditorNotConfigured();
           } else {
-            console.error('Please configure a preferred editor using the "/editor" command.');
+            console.error(
+              'Please configure a preferred editor using the "/editor" command.',
+            );
           }
           return;
         }

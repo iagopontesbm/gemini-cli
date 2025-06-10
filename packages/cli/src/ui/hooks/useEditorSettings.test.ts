@@ -18,7 +18,11 @@ import { renderHook } from '@testing-library/react';
 import { useEditorSettings } from './useEditorSettings.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { MessageType, type HistoryItem } from '../types.js';
-import { type EditorType, checkHasEditorType, allowEditorTypeInSandbox } from '@gemini-cli/core';
+import {
+  type EditorType,
+  checkHasEditorType,
+  allowEditorTypeInSandbox,
+} from '@gemini-cli/core';
 
 // Mock the editor checking functions
 vi.mock('@gemini-cli/core', async () => {

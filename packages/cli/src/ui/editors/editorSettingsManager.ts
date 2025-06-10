@@ -4,7 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { allowEditorTypeInSandbox, checkHasEditorType, type EditorType } from '@gemini-cli/core';
+import {
+  allowEditorTypeInSandbox,
+  checkHasEditorType,
+  type EditorType,
+} from '@gemini-cli/core';
 
 export interface EditorDisplay {
   name: string;
@@ -33,8 +37,10 @@ class EditorSettingsManager {
       ...editorTypes.map((type) => {
         const hasEditor = checkHasEditorType(type);
         const isAllowedInSandbox = allowEditorTypeInSandbox(type);
-        
-        let labelSuffix = !isAllowedInSandbox ? ' (Not available in sandbox)' : '';
+
+        let labelSuffix = !isAllowedInSandbox
+          ? ' (Not available in sandbox)'
+          : '';
         labelSuffix = !hasEditor ? ' (Not installed)' : labelSuffix;
 
         return {

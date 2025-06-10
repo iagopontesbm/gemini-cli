@@ -634,7 +634,7 @@ describe('EditTool', () => {
       const result = await tool.onModify(
         params,
         new AbortController().signal,
-        'vscode'
+        'vscode',
       );
 
       expect(mockOpenDiff).toHaveBeenCalledTimes(1);
@@ -678,7 +678,7 @@ describe('EditTool', () => {
       const result = await tool.onModify(
         params,
         new AbortController().signal,
-        'vscode'
+        'vscode',
       );
 
       expect(mockOpenDiff).toHaveBeenCalledTimes(1);
@@ -711,7 +711,7 @@ describe('EditTool', () => {
       const result1 = await tool.onModify(
         params,
         new AbortController().signal,
-        'vscode'
+        'vscode',
       );
       const firstCall = mockOpenDiff.mock.calls[0];
       const firstOldPath = firstCall[0];
@@ -727,7 +727,7 @@ describe('EditTool', () => {
       const result2 = await tool.onModify(
         params,
         new AbortController().signal,
-        'vscode'
+        'vscode',
       );
       const secondCall = mockOpenDiff.mock.calls[1];
       const secondOldPath = secondCall[0];

@@ -55,9 +55,12 @@ export function allowEditorTypeInSandbox(editor: EditorType): boolean {
  * Check if the editor is valid and can be used.
  * Returns false if preferred editor is not set / invalid / not available / not allowed in sandbox.
  */
-export function isEditorAvailable(editor: string | undefined): boolean {  
+export function isEditorAvailable(editor: string | undefined): boolean {
   if (editor && isValidEditorType(editor)) {
-    return checkHasEditorType(editor as EditorType) && allowEditorTypeInSandbox(editor as EditorType);
+    return (
+      checkHasEditorType(editor as EditorType) &&
+      allowEditorTypeInSandbox(editor as EditorType)
+    );
   }
   return false;
 }

@@ -7,7 +7,11 @@
 import { useState, useCallback } from 'react';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { type HistoryItem, MessageType } from '../types.js';
-import { allowEditorTypeInSandbox, checkHasEditorType, EditorType } from '@gemini-cli/core';
+import {
+  allowEditorTypeInSandbox,
+  checkHasEditorType,
+  EditorType,
+} from '@gemini-cli/core';
 
 interface UseEditorSettingsReturn {
   isEditorDialogOpen: boolean;
@@ -32,7 +36,11 @@ export const useEditorSettings = (
 
   const handleEditorSelect = useCallback(
     (editorType: EditorType | undefined, scope: SettingScope) => {
-      if (editorType && (!checkHasEditorType(editorType) || !allowEditorTypeInSandbox(editorType))) {
+      if (
+        editorType &&
+        (!checkHasEditorType(editorType) ||
+          !allowEditorTypeInSandbox(editorType))
+      ) {
         return;
       }
 

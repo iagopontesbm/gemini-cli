@@ -130,7 +130,8 @@ export function EditorSettingsDialog({
         <Text bold>Editor Preferences</Text>
         <Box marginTop={1}>
           <Text color={Colors.Gray}>
-            These editors are currently supported. Please note that some editors cannot be used in sandbox mode.
+            These editors are currently supported. Please note that some editors
+            cannot be used in sandbox mode.
           </Text>
         </Box>
       </Box>

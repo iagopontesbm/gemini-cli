@@ -88,7 +88,7 @@ export const useGeminiStream = (
 
   const getPreferredEditor = useCallback(
     () => loadedSettings.merged.preferredEditor,
-    [loadedSettings]
+    [loadedSettings],
   );
 
   const [toolCalls, scheduleToolCalls, markToolsAsSubmitted] =
