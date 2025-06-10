@@ -15,6 +15,7 @@ import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
 import { GeminiMessageContent } from './messages/GeminiMessageContent.js';
 import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
+import { StatsDisplay } from './StatsDisplay.js';
 import { Config } from '@gemini-cli/core';
 
 interface HistoryItemDisplayProps {
@@ -57,6 +58,9 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         sandboxEnv={item.sandboxEnv}
         modelVersion={item.modelVersion}
       />
+    )}
+    {item.type === 'stats' && (
+      <StatsDisplay stats={item.stats} duration={item.duration} />
     )}
     {item.type === 'tool_group' && (
       <ToolGroupMessage

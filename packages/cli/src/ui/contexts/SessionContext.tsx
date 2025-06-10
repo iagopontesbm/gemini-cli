@@ -16,7 +16,7 @@ import { type GenerateContentResponseUsageMetadata } from '@google/genai';
 
 // --- Interface Definitions ---
 
-interface CumulativeStats {
+export interface CumulativeStats {
   turnCount: number;
   promptTokenCount: number;
   candidatesTokenCount: number;

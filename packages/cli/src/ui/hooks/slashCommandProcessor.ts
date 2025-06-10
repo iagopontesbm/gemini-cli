@@ -10,7 +10,11 @@ import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { Config, MCPServerStatus, getMCPServerStatus } from '@gemini-cli/core';
-import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
+import {
+  Message,
+  MessageType,
+  HistoryItemWithoutId,
+} from '../types.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
@@ -62,6 +66,12 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
+        };
+      } else if (message.type === MessageType.STATS) {
+        historyItemContent = {
+          type: 'stats',
+          stats: message.stats,
+          duration: message.duration,
         };
       } else {
         historyItemContent = {
@@ -162,25 +172,10 @@ export const useSlashCommandProcessor = (
             .filter(Boolean)
             .join(' ');
 
-          const overheadTotal =
-            cumulative.thoughtsTokenCount + cumulative.toolUsePromptTokenCount;
-
-          const statsContent = [
-            `  ⎿ Total duration (wall): ${durationString}`,
-            `    Total Token usage:`,
-            `         Turns: ${cumulative.turnCount.toLocaleString()}`,
-            `         Total: ${cumulative.totalTokenCount.toLocaleString()}`,
-            `             ├─ Input: ${cumulative.promptTokenCount.toLocaleString()}`,
-            `             ├─ Output: ${cumulative.candidatesTokenCount.toLocaleString()}`,
-            `             ├─ Cached: ${cumulative.cachedContentTokenCount.toLocaleString()}`,
-            `             └─ Overhead: ${overheadTotal.toLocaleString()}`,
-            `                  ├─ Model thoughts: ${cumulative.thoughtsTokenCount.toLocaleString()}`,
-            `                  └─ Tool-use prompts: ${cumulative.toolUsePromptTokenCount.toLocaleString()}`,
-          ].join('\n');
-
           addMessage({
-            type: MessageType.INFO,
-            content: statsContent,
+            type: MessageType.STATS,
+            stats: cumulative,
+            duration: durationString,
             timestamp: new Date(),
           });
         },
