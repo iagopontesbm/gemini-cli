@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { ContentGenerator } from '../core/contentGenerator.js';
 import { loginWithOauth } from './oauth2.js';
 import { setupUser } from './setup.js';

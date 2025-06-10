@@ -1,3 +1,10 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+
 import { OAuth2Client } from 'google-auth-library';
 import {
   LoadCodeAssistResponse,
@@ -18,7 +25,9 @@ import * as readline from 'readline';
 import type { ReadableStream } from 'node:stream/web';
 import { ContentGenerator } from '../core/contentGenerator.js';
 
-export const CCPA_ENDPOINT = 'https://cloudcode-pa.googleapis.com';
+// TODO: Use production endpoint once it supports our methods.
+export const CCPA_ENDPOINT =
+  'https://staging-cloudcode-pa.sandbox.googleapis.com';
 export const CCPA_API_VERSION = '/v1internal';
 
 export class CcpaServer implements ContentGenerator {
@@ -31,7 +40,7 @@ export class CcpaServer implements ContentGenerator {
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     return await this.streamEndpoint<GenerateContentResponse>(
-      'streamGenerateChat?alt=sse',
+      'streamGenerateContent',
       req,
     );
   }
@@ -40,7 +49,7 @@ export class CcpaServer implements ContentGenerator {
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
     return await this.callEndpoint<GenerateContentResponse>(
-      'generateChat',
+      'generateContent',
       req,
     );
   }
@@ -99,6 +108,9 @@ export class CcpaServer implements ContentGenerator {
     const res = await this.auth.request({
       url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
       method: 'POST',
+      params: {
+        alt: 'sse',
+      },
       headers: { 'Content-Type': 'application/json' },
       responseType: 'stream',
       body: JSON.stringify(req),
