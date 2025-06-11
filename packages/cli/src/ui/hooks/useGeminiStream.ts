@@ -19,6 +19,7 @@ import {
   ToolCallRequestInfo,
   logUserPrompt,
   GitService,
+  EditorType,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -46,7 +47,6 @@ import {
   TrackedCompletedToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
-import { LoadedSettings } from '../../config/settings.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
@@ -84,8 +84,7 @@ export const useGeminiStream = (
     import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean
   >,
   shellModeActive: boolean,
-  loadedSettings: LoadedSettings,
-  onEditorNotConfigured: () => void,
+  getPreferredEditor: () => EditorType | undefined,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -100,11 +99,6 @@ export const useGeminiStream = (
     }
     return new GitService(config.getProjectRoot());
   }, [config]);
-
-  const getPreferredEditor = useCallback(
-    () => loadedSettings.merged.preferredEditor,
-    [loadedSettings],
-  );
 
   const [toolCalls, scheduleToolCalls, markToolsAsSubmitted] =
     useReactToolScheduler(
@@ -124,7 +118,6 @@ export const useGeminiStream = (
       config,
       setPendingHistoryItem,
       getPreferredEditor,
-      onEditorNotConfigured,
     );
 
   const pendingToolCallGroupDisplay = useMemo(

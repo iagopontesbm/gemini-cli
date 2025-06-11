@@ -15,7 +15,7 @@ import {
   TrackedExecutingToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
-import { Config } from '@gemini-cli/core';
+import { Config, EditorType } from '@gemini-cli/core';
 import { Part, PartListUnion } from '@google/genai';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { HistoryItem } from '../types.js';
@@ -358,8 +358,7 @@ describe('useGeminiStream', () => {
           props.onDebugMessage,
           props.handleSlashCommand,
           props.shellModeActive,
-          props.loadedSettings,
-          () => {},
+          () => 'vscode' as EditorType,
         ),
       {
         initialProps: {

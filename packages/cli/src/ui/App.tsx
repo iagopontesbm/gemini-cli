@@ -47,6 +47,8 @@ import {
   type Config,
   getCurrentGeminiMdFilename,
   ApprovalMode,
+  isEditorAvailable,
+  EditorType,
 } from '@gemini-cli/core';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
@@ -227,6 +229,16 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [config]);
 
+  const getPreferredEditor = useCallback(() => {
+    const editorType = settings.merged.preferredEditor;
+    const isValidEditor = isEditorAvailable(editorType);
+    if (!isValidEditor) {
+      openEditorDialog();
+      return;
+    }
+    return editorType as EditorType;
+  }, [settings, openEditorDialog]);
+
   const { streamingState, submitQuery, initError, pendingHistoryItems } =
     useGeminiStream(
       config.getGeminiClient(),
@@ -237,8 +249,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       setDebugMessage,
       handleSlashCommand,
       shellModeActive,
-      settings,
-      openEditorDialog,
+      getPreferredEditor,
     );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);

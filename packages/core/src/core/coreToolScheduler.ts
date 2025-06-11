@@ -16,7 +16,6 @@ import {
   EditTool,
   EditToolParams,
   EditorType,
-  isEditorAvailable,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
 import { getResponseTextFromParts } from '../utils/generateContentResponseUtilities.js';
@@ -205,8 +204,7 @@ interface CoreToolSchedulerOptions {
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
   approvalMode?: ApprovalMode;
-  getPreferredEditor: () => string | undefined;
-  onEditorNotConfigured: () => void;
+  getPreferredEditor: () => EditorType | undefined;
 }
 
 export class CoreToolScheduler {
@@ -216,8 +214,7 @@ export class CoreToolScheduler {
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
   private approvalMode: ApprovalMode;
-  private getPreferredEditor: () => string | undefined;
-  private onEditorNotConfigured: () => void;
+  private getPreferredEditor: () => EditorType | undefined;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
@@ -226,7 +223,6 @@ export class CoreToolScheduler {
     this.onToolCallsUpdate = options.onToolCallsUpdate;
     this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
     this.getPreferredEditor = options.getPreferredEditor;
-    this.onEditorNotConfigured = options.onEditorNotConfigured;
   }
 
   private setStatusInternal(
@@ -497,15 +493,7 @@ export class CoreToolScheduler {
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
         const editorType = this.getPreferredEditor();
-        const isValidEditor = isEditorAvailable(editorType);
-        if (!isValidEditor) {
-          if (this.onEditorNotConfigured) {
-            this.onEditorNotConfigured();
-          } else {
-            console.error(
-              'Please configure a preferred editor using the "/editor" command.',
-            );
-          }
+        if (!editorType) {
           return;
         }
 

@@ -79,7 +79,6 @@ describe('CoreToolScheduler', () => {
       onAllToolCallsComplete,
       onToolCallsUpdate,
       getPreferredEditor: () => 'vscode',
-      onEditorNotConfigured: () => {},
     });
 
     const abortController = new AbortController();
