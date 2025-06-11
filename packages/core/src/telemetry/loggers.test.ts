@@ -12,6 +12,7 @@ import {
   logApiResponse,
   logCliConfiguration,
   logUserPrompt,
+  logToolCall,
 } from './loggers.js';
 import * as metrics from './metrics.js';
 import * as sdk from './sdk.js';
@@ -234,6 +235,63 @@ describe('loggers', () => {
           'error.message': 'test-error',
         },
       });
+    });
+  });
+
+  describe('logToolCall', () => {
+    const mockConfig = {
+      getSessionId: () => 'test-session-id',
+    } as Config;
+
+    const mockMetrics = {
+      recordToolCallMetrics: vi.fn(),
+    };
+
+    beforeEach(() => {
+      vi.spyOn(metrics, 'recordToolCallMetrics').mockImplementation(
+        mockMetrics.recordToolCallMetrics,
+      );
+    });
+
+    it('should log a tool call with all fields', () => {
+      const event = {
+        function_name: 'test-function',
+        function_args: {
+          arg1: 'value1',
+          arg2: 2,
+        },
+        duration_ms: 100,
+        success: true,
+      };
+
+      logToolCall(mockConfig, event);
+
+      expect(mockLogger.emit).toHaveBeenCalledWith({
+        body: 'Tool call: test-function. Success: true. Duration: 100ms.',
+        attributes: {
+          'session.id': 'test-session-id',
+          'event.name': 'gemini_cli.tool_call',
+          'event.timestamp': '2025-01-01T00:00:00.000Z',
+          function_name: 'test-function',
+          function_args: JSON.stringify(
+            {
+              arg1: 'value1',
+              arg2: 2,
+            },
+            null,
+            2,
+          ),
+          duration_ms: 100,
+          success: true,
+        },
+      });
+
+      expect(mockMetrics.recordToolCallMetrics).toHaveBeenCalledWith(
+        mockConfig,
+        'test-function',
+        100,
+        true,
+      );
     });
   });
 });

@@ -111,7 +111,7 @@ export function logToolCall(
     ...event,
     'event.name': EVENT_TOOL_CALL,
     'event.timestamp': new Date().toISOString(),
-    function_args: JSON.stringify(event.function_args),
+    function_args: JSON.stringify(event.function_args, null, 2),
   };
   if (event.error) {
     attributes['error.message'] = event.error;
