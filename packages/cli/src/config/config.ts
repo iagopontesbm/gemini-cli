@@ -144,7 +144,7 @@ export async function loadCliConfig(
   }
 
   const extensionContextFilePaths = extensions
-    .map((e) => e.contextFilePath)
+    .map((e) => e.contextFileName)
     .filter((p): p is string => !!p);
 
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
