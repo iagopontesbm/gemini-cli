@@ -351,7 +351,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
   if (quittingMessages) {
     return (
-      <Box flexDirection="column">
+      <Box flexDirection="column" marginBottom={1}>
         {quittingMessages.map((item) => (
           <HistoryItemDisplay
             key={item.id}
