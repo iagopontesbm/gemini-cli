@@ -91,7 +91,7 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description: 'Enable telemetry?',
     })
-    .version() // This will enable the --version flag based on package.json
+    .version(process.env.CLI_VERSION || '0.0.0') // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
     .strict().argv;
@@ -120,6 +120,7 @@ export async function loadCliConfig(
   settings: Settings,
   extensions: ExtensionConfig[],
   geminiIgnorePatterns: string[],
+  sessionId: string,
 ): Promise<Config> {
   loadEnvironment();
 
@@ -147,15 +148,11 @@ export async function loadCliConfig(
 
   const mcpServers = mergeMcpServers(settings, extensions);
 
-  let sandbox = argv.sandbox ?? settings.sandbox;
-  if (argv.yolo) {
-    sandbox = false;
-  }
-
   return new Config({
+    sessionId,
     contentGeneratorConfig,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
-    sandbox,
+    sandbox: argv.sandbox ?? settings.sandbox,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
