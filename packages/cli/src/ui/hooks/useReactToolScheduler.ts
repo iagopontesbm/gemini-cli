@@ -132,7 +132,7 @@ export function useReactToolScheduler(
       });
       onComplete(completedToolCalls);
     },
-    [onComplete, config],
+    [onComplete],
   );
 
   const toolCallsUpdateHandler: ToolCallsUpdateHandler = useCallback(
