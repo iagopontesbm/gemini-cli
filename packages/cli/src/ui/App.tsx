@@ -169,22 +169,24 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [config, addItem]);
 
-  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
-    config,
-    history,
-    addItem,
-    clearItems,
-    loadHistory,
-    refreshStatic,
-    setShowHelp,
-    setDebugMessage,
-    openThemeDialog,
-    openEditorDialog,
-    performMemoryRefresh,
-    toggleCorgiMode,
-    showToolDescriptions,
-    setQuittingMessages,
-  );
+  const { handleSlashCommand, slashCommands, userTools } =
+    useSlashCommandProcessor(
+      config,
+      history,
+      addItem,
+      clearItems,
+      loadHistory,
+      refreshStatic,
+      setShowHelp,
+      setDebugMessage,
+      openThemeDialog,
+      openEditorDialog,
+      performMemoryRefresh,
+      toggleCorgiMode,
+      showToolDescriptions,
+      setQuittingMessages,
+      settings.mergedTools,
+    );
 
   const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
   const { stdin, setRawMode } = useStdin();
@@ -586,6 +588,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                   onClearScreen={handleClearScreen}
                   config={config}
                   slashCommands={slashCommands}
+                  userTools={userTools}
                   shellModeActive={shellModeActive}
                   setShellModeActive={setShellModeActive}
                 />

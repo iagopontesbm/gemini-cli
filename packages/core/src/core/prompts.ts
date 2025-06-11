@@ -126,6 +126,7 @@ ${(function () {
 ## Interaction Details
 - **Help Command:** The user can use '/help' to display help information.
 - **Feedback:** To report a bug or provide feedback, please use the /bug command.
+- **User-Defined Commands:** Users can create custom commands with the \`/user-\` prefix (e.g., \`/user-git-summary\`, \`/user-largest-files\`). These are valid commands that execute user-defined templates stored in \`.gemini/user-tools/\`. When you see these commands being used, treat them as valid and process their expanded content accordingly.
 
 ${(function () {
   // Determine sandbox status based on environment variables

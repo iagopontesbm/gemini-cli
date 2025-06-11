@@ -17,6 +17,7 @@ import { useCompletion } from '../hooks/useCompletion.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
 import { SlashCommand } from '../hooks/slashCommandProcessor.js';
 import { Config } from '@gemini-cli/core';
+import { UserTool } from '../../utils/userToolsLoader.js';
 
 export interface InputPromptProps {
   buffer: TextBuffer;
@@ -25,6 +26,7 @@ export interface InputPromptProps {
   onClearScreen: () => void;
   config: Config; // Added config for useCompletion
   slashCommands: SlashCommand[]; // Added slashCommands for useCompletion
+  userTools: Map<string, UserTool>;
   placeholder?: string;
   focus?: boolean;
   inputWidth: number;
@@ -40,6 +42,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   onClearScreen,
   config,
   slashCommands,
+  userTools,
   placeholder = '  Type your message or @path/to/file',
   focus = true,
   inputWidth,
@@ -55,6 +58,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
     isAtCommand(buffer.text) || isSlashCommand(buffer.text),
     slashCommands,
     config,
+    userTools,
   );
 
   const resetCompletionState = completion.resetCompletionState;
@@ -111,9 +115,25 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       if (query.trimStart().startsWith('/')) {
         const slashIndex = query.indexOf('/');
         const base = query.substring(0, slashIndex + 1);
-        const newValue = base + selectedSuggestion.value;
-        buffer.setText(newValue);
-        handleSubmitAndClear(newValue);
+        const autoCompleteStartIndex = slashIndex + 1;
+
+        if (selectedSuggestion.autoSubmit === false) {
+          // Replace from after the slash to the end with the suggestion + space
+          buffer.replaceRangeByOffset(
+            autoCompleteStartIndex,
+            buffer.text.length,
+            selectedSuggestion.value + ' ',
+          );
+        } else {
+          // For commands with autoSubmit true (default), replace and submit immediately
+          buffer.replaceRangeByOffset(
+            autoCompleteStartIndex,
+            buffer.text.length,
+            selectedSuggestion.value,
+          );
+          const newValue = base + selectedSuggestion.value;
+          handleSubmitAndClear(newValue);
+        }
       } else {
         const atIndex = query.lastIndexOf('@');
         if (atIndex === -1) return;

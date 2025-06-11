@@ -20,6 +20,10 @@ import {
   Suggestion,
 } from '../components/SuggestionsDisplay.js';
 import { SlashCommand } from './slashCommandProcessor.js';
+import { UserTool } from '../../utils/userToolsLoader.js';
+
+// Commands that should not auto-submit when selected
+const NO_AUTOSUBMIT_COMMANDS = ['memory'];
 
 export interface UseCompletionReturn {
   suggestions: Suggestion[];
@@ -40,6 +44,7 @@ export function useCompletion(
   isActive: boolean,
   slashCommands: SlashCommand[],
   config?: Config,
+  userTools?: Map<string, UserTool>,
 ): UseCompletionReturn {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
@@ -127,7 +132,9 @@ export function useCompletion(
     // --- Handle Slash Command Completion ---
     if (trimmedQuery.startsWith('/')) {
       const partialCommand = trimmedQuery.substring(1);
-      const filteredSuggestions = slashCommands
+
+      // Filter regular slash commands
+      const filteredSlashCommands = slashCommands
         .filter(
           (cmd) =>
             cmd.name.startsWith(partialCommand) ||
@@ -150,12 +157,33 @@ export function useCompletion(
           label: cmd.name, // Always show the main name as label
           value: cmd.name, // Value should be the main command name for execution
           description: cmd.description,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label));
+          autoSubmit: !NO_AUTOSUBMIT_COMMANDS.includes(cmd.name),
+        }));
 
-      setSuggestions(filteredSuggestions);
-      setShowSuggestions(filteredSuggestions.length > 0);
-      setActiveSuggestionIndex(filteredSuggestions.length > 0 ? 0 : -1);
+      // Add user tool suggestions
+      const userToolSuggestions: Suggestion[] = [];
+      if (userTools) {
+        for (const [toolName, tool] of userTools) {
+          const fullCommand = `user-${toolName}`;
+          if (fullCommand.startsWith(partialCommand)) {
+            userToolSuggestions.push({
+              label: fullCommand,
+              value: fullCommand,
+              description: tool.description || `User-defined tool: ${toolName}`,
+              autoSubmit: tool.autoSubmit === true,
+            });
+          }
+        }
+      }
+
+      const allSuggestions = [
+        ...filteredSlashCommands,
+        ...userToolSuggestions,
+      ].sort((a, b) => a.label.localeCompare(b.label));
+
+      setSuggestions(allSuggestions);
+      setShowSuggestions(allSuggestions.length > 0);
+      setActiveSuggestionIndex(allSuggestions.length > 0 ? 0 : -1);
       setVisibleStartIndex(0);
       setIsLoadingSuggestions(false);
       return;
@@ -339,6 +367,7 @@ export function useCompletion(
             return {
               label,
               value: escapePath(label), // Value for completion should be just the name part
+              autoSubmit: true,
             };
           });
         }
@@ -392,7 +421,15 @@ export function useCompletion(
       isMounted = false;
       clearTimeout(debounceTimeout);
     };
-  }, [query, cwd, isActive, resetCompletionState, slashCommands, config]);
+  }, [
+    query,
+    cwd,
+    isActive,
+    resetCompletionState,
+    slashCommands,
+    config,
+    userTools,
+  ]);
 
   return {
     suggestions,

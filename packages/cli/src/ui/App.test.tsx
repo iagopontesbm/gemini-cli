@@ -179,7 +179,13 @@ describe('App UI', () => {
       path: '/workspace/.gemini/settings.json',
       settings,
     };
-    return new LoadedSettings(userSettingsFile, workspaceSettingsFile, []);
+    return new LoadedSettings(
+      userSettingsFile,
+      workspaceSettingsFile,
+      [],
+      new Map(),
+      new Map(),
+    );
   };
 
   beforeEach(() => {

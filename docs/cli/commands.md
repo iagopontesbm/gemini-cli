@@ -122,3 +122,110 @@ The `!` prefix provides a powerful way to interact with your system's shell dire
 - **Caution for all `!` usage:** Be mindful of the commands you execute, as they have the same permissions and impact as if you ran them directly in your terminal. The Shell Mode feature does not inherently add extra sandboxing beyond what's already configured for the underlying `run_shell_command` tool.
 
 This integrated shell capability allows for seamless switching between AI-assisted tasks and direct system interaction.
+
+## User-Defined Commands (`/user-`)
+
+The Gemini CLI supports custom user-defined commands that allow you to create personalized shortcuts and workflows. These commands are stored as markdown files in the `.gemini/user-tools/` directories and can be invoked using the `/user-` prefix.
+
+### Creating User Tools
+
+1. **Location:** User tools can be stored in two locations:
+
+   - **Global tools:** `~/.gemini/user-tools/` - Available from any directory
+   - **Workspace tools:** `.gemini/user-tools/` - Relative to your current working directory
+
+   When both locations contain a tool with the same name, the workspace tool takes precedence.
+
+2. **Format:** Each tool is a markdown file (`.md`) with YAML frontmatter.
+3. **Naming:** The filename (without `.md` extension) becomes the tool name.
+
+### User Tool File Structure
+
+```markdown
+---
+description: Brief description of what this tool does
+autoSubmit: false
+---
+
+Your prompt template here. This template will be sent to Gemini as-is,
+along with any additional instructions the user provides when invoking the tool.
+```
+
+**Frontmatter Options:**
+
+- `description`: A brief description shown in autocomplete
+- `autoSubmit`: Set to `true` if the tool should auto-submit when selected from autocomplete (defaults to `false`)
+
+### Example User Tools
+
+**`.gemini/user-tools/git-log.md`**
+
+```markdown
+---
+description: Show git commit history with customizable formatting
+---
+
+Please show the git commit history for this repository. Use `git log` with appropriate formatting options to display:
+
+- Commit hash (abbreviated)
+- Author name and date
+- Commit message
+- Files changed statistics
+
+Make the output clear and easy to read. If the user provides additional instructions (like date ranges, author filters, or specific formatting), incorporate those into the git log command.
+```
+
+**`.gemini/user-tools/find-math-book.md`**
+
+```markdown
+---
+description: Get a random math book recommendation
+---
+
+Please recommend a random mathematics book. Consider various branches of mathematics (algebra, calculus, geometry, topology, number theory, statistics, etc.) and difficulty levels (from popular math to advanced textbooks).
+
+For your recommendation, please provide:
+
+1. Book title and author(s)
+2. What branch of mathematics it covers
+3. The target audience/difficulty level
+4. A brief description of what makes this book interesting or valuable
+5. Why someone might want to read it
+
+If the user provides any preferences or constraints in their additional instructions, take those into account when making your recommendation.
+```
+
+### Using User Tools
+
+- **Invocation:** Use `/user-toolname` followed by any additional instructions or context.
+- **Examples:**
+  - `/user-git-log` - Shows full git history with default formatting
+  - `/user-git-log --since="1 week ago" --author="John"` - Shows commits from last week by John
+  - `/user-git-log last 4 days` - User can use free form text and Gemini will do the right thing and show git log for last four days
+  - `/user-find-math-book` - Gets a random math book recommendation
+  - `/user-find-math-book find me a good topology book` - Gets a recommendation for a topology book
+- **Autocomplete:** Type `/user-` and press Tab to see available user tools.
+
+### Managing User Tools
+
+- **`/reload-user-tools`**
+  - **Description:** Reloads all user tools from both global (`~/.gemini/user-tools/`) and workspace (`.gemini/user-tools/`) directories.
+  - **Action:** Scans both directories and refreshes the available user tools list. Workspace tools take precedence over global tools with the same name.
+  - **Usage:** Run this command after adding, modifying, or removing user tool files.
+
+### How User Tools Work
+
+When you invoke a user tool, the tool's template is sent to Gemini along with any additional instructions you provide. For example:
+
+- `/user-git-log` sends the git-log template to Gemini
+- `/user-git-log last 3 days` sends the template plus "At the time of invoking this tool, the user provided these additional instructions: last 3 days"
+
+This approach allows Gemini to use its judgment to interpret your specific needs while following the general template of the tool.
+
+### Best Practices
+
+- Keep tool names descriptive and use hyphens for multi-word names (e.g., `git-summary`, `code-review`)
+- Provide clear descriptions in the frontmatter for better autocomplete hints
+- Test your tools after creation using the actual command syntax
+- Write clear prompts that explain what the tool does and what information it needs
+- Consider creating tools for repetitive tasks or complex multi-step workflows
