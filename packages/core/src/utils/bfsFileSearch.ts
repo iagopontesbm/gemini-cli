@@ -66,15 +66,13 @@ export async function bfsFileSearch(
     scannedDirCount++;
 
     if (debug) {
-      logger.debug(
-        `Scanning [${scannedDirCount}/${maxDirs}]: ${currentDir}`,
-      );
+      logger.debug(`Scanning [${scannedDirCount}/${maxDirs}]: ${currentDir}`);
     }
 
     let entries: Dirent[];
     try {
       entries = await fs.readdir(currentDir, { withFileTypes: true });
-    } catch (error) {
+    } catch {
       // Ignore errors for directories we can't read (e.g., permissions)
       continue;
     }

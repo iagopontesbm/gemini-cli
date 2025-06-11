@@ -27,8 +27,6 @@ const logger = {
     console.error('[ERROR] [MemoryDiscovery]', ...args),
 };
 
-
-
 const MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY = 200;
 
 interface GeminiFileContent {
@@ -78,8 +76,6 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
     currentDir = parentDir;
   }
 }
-
-
 
 async function getGeminiMdFilePathsInternal(
   currentWorkingDirectory: string,

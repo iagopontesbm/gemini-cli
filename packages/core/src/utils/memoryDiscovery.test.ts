@@ -560,9 +560,7 @@ describe('loadServerHierarchicalMemory', () => {
 
     expect(consoleDebugSpy).toHaveBeenCalledWith(
       expect.stringContaining('[DEBUG] [BfsFileSearch]'),
-      expect.stringContaining(
-        'Scanning [200/200]:',
-      ),
+      expect.stringContaining('Scanning [200/200]:'),
     );
     consoleDebugSpy.mockRestore();
   });

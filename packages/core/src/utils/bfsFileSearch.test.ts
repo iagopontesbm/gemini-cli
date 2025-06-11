@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Dirent, PathLike } from 'fs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import * as fs from 'fs/promises';
 import * as gitUtils from './gitUtils.js';
@@ -12,6 +13,20 @@ import { bfsFileSearch } from './bfsFileSearch.js';
 vi.mock('fs/promises');
 vi.mock('./gitUtils.js');
 
+const createMockDirent = (name: string, isFile: boolean): Dirent => {
+  const dirent = new Dirent();
+  dirent.name = name;
+  dirent.isFile = () => isFile;
+  dirent.isDirectory = () => !isFile;
+  return dirent;
+};
+
+// Type for the specific overload we're using
+type ReaddirWithFileTypes = (
+  path: PathLike,
+  options: { withFileTypes: true },
+) => Promise<Dirent[]>;
+
 describe('bfsFileSearch', () => {
   beforeEach(() => {
     vi.resetAllMocks();
@@ -19,10 +34,11 @@ describe('bfsFileSearch', () => {
 
   it('should find a file in the root directory', async () => {
     const mockFs = vi.mocked(fs);
-    mockFs.readdir.mockResolvedValue([
-      { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-      { name: 'file2.txt', isFile: () => true, isDirectory: () => false },
-    ] as any);
+    const mockReaddir = mockFs.readdir as unknown as ReaddirWithFileTypes;
+    vi.mocked(mockReaddir).mockResolvedValue([
+      createMockDirent('file1.txt', true),
+      createMockDirent('file2.txt', true),
+    ]);
 
     const result = await bfsFileSearch('/test', { fileName: 'file1.txt' });
     expect(result).toEqual(['/test/file1.txt']);
@@ -30,16 +46,13 @@ describe('bfsFileSearch', () => {
 
   it('should find a file in a subdirectory', async () => {
     const mockFs = vi.mocked(fs);
-    mockFs.readdir.mockImplementation(async (dir) => {
+    const mockReaddir = mockFs.readdir as unknown as ReaddirWithFileTypes;
+    vi.mocked(mockReaddir).mockImplementation(async (dir) => {
       if (dir === '/test') {
-        return [
-          { name: 'subdir', isFile: () => false, isDirectory: () => true },
-        ] as any;
+        return [createMockDirent('subdir', false)];
       }
       if (dir === '/test/subdir') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       return [];
     });
@@ -50,22 +63,19 @@ describe('bfsFileSearch', () => {
 
   it('should ignore specified directories', async () => {
     const mockFs = vi.mocked(fs);
-    mockFs.readdir.mockImplementation(async (dir) => {
+    const mockReaddir = mockFs.readdir as unknown as ReaddirWithFileTypes;
+    vi.mocked(mockReaddir).mockImplementation(async (dir) => {
       if (dir === '/test') {
         return [
-          { name: 'subdir1', isFile: () => false, isDirectory: () => true },
-          { name: 'subdir2', isFile: () => false, isDirectory: () => true },
-        ] as any;
+          createMockDirent('subdir1', false),
+          createMockDirent('subdir2', false),
+        ];
       }
       if (dir === '/test/subdir1') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       if (dir === '/test/subdir2') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       return [];
     });
@@ -79,22 +89,19 @@ describe('bfsFileSearch', () => {
 
   it('should respect maxDirs limit', async () => {
     const mockFs = vi.mocked(fs);
-    mockFs.readdir.mockImplementation(async (dir) => {
+    const mockReaddir = mockFs.readdir as unknown as ReaddirWithFileTypes;
+    vi.mocked(mockReaddir).mockImplementation(async (dir) => {
       if (dir === '/test') {
         return [
-          { name: 'subdir1', isFile: () => false, isDirectory: () => true },
-          { name: 'subdir2', isFile: () => false, isDirectory: () => true },
-        ] as any;
+          createMockDirent('subdir1', false),
+          createMockDirent('subdir2', false),
+        ];
       }
       if (dir === '/test/subdir1') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       if (dir === '/test/subdir2') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       return [];
     });
@@ -110,23 +117,20 @@ describe('bfsFileSearch', () => {
     const mockFs = vi.mocked(fs);
     const mockGitUtils = vi.mocked(gitUtils);
     mockGitUtils.isGitRepository.mockReturnValue(true);
-    mockFs.readdir.mockImplementation(async (dir) => {
+    const mockReaddir = mockFs.readdir as unknown as ReaddirWithFileTypes;
+    vi.mocked(mockReaddir).mockImplementation(async (dir) => {
       if (dir === '/test') {
         return [
-          { name: '.gitignore', isFile: () => true, isDirectory: () => false },
-          { name: 'subdir1', isFile: () => false, isDirectory: () => true },
-          { name: 'subdir2', isFile: () => false, isDirectory: () => true },
-        ] as any;
+          createMockDirent('.gitignore', true),
+          createMockDirent('subdir1', false),
+          createMockDirent('subdir2', false),
+        ];
       }
       if (dir === '/test/subdir1') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       if (dir === '/test/subdir2') {
-        return [
-          { name: 'file1.txt', isFile: () => true, isDirectory: () => false },
-        ] as any;
+        return [createMockDirent('file1.txt', true)];
       }
       return [];
     });
