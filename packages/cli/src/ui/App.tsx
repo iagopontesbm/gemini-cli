@@ -24,7 +24,6 @@ import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
 import { useConsoleMessages } from './hooks/useConsoleMessages.js';
 import { Header } from './components/Header.js';
-import { defaultAsciiLogo } from './components/AsciiArt.js'; // Added import
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { AutoAcceptIndicator } from './components/AutoAcceptIndicator.js';
 import { ShellModeIndicator } from './components/ShellModeIndicator.js';
@@ -325,7 +324,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     refreshStatic();
   }, [clearItems, clearConsoleMessagesState, refreshStatic]);
 
-  const { rows: terminalHeight } = useTerminalSize();
+  const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize(); // Get terminalWidth
   const mainControlsRef = useRef<DOMElement>(null);
   const pendingHistoryItemRef = useRef<DOMElement>(null);
 
@@ -409,8 +408,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           items={[
             <Box flexDirection="column" key="header">
               <Header
-                customAsciiArt={defaultAsciiLogo}
                 textTitle={process.env.GEMINI_CLI_TITLE}
+                terminalWidth={terminalWidth}
               />
               <Tips config={config} />
             </Box>,

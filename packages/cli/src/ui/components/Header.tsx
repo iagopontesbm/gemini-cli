@@ -8,19 +8,31 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
 import { Colors } from '../colors.js';
-import { defaultAsciiLogo } from './AsciiArt.js'; // Import the default ASCII logo
+import { shortAsciiLogo, longAsciiLogo } from './AsciiArt.js';
+import { getAsciiArtWidth } from '../utils/textUtils.js'; // Import the utility function
 
 interface HeaderProps {
   customAsciiArt?: string; // For user-defined ASCII art
   textTitle?: string; // For a plain text title
+  terminalWidth: number; // For responsive logo
 }
 
 export const Header: React.FC<HeaderProps> = ({
   customAsciiArt,
   textTitle,
+  terminalWidth,
 }) => {
-  // Determine the title to display based on priority
-  const displayTitle = customAsciiArt || textTitle || defaultAsciiLogo;
+  let displayTitle;
+  const widthOfLongLogo = getAsciiArtWidth(longAsciiLogo);
+
+  if (customAsciiArt) {
+    displayTitle = customAsciiArt;
+  } else if (textTitle) {
+    displayTitle = textTitle;
+  } else {
+    displayTitle =
+      terminalWidth >= widthOfLongLogo ? longAsciiLogo : shortAsciiLogo;
+  }
 
   return (
     <>
