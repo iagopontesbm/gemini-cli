@@ -35,7 +35,6 @@ export default tseslint.config(
       'packages/server/dist/**',
       'eslint-rules/*',
       'bundle/**',
-      'dist/**',
     ],
   },
   eslint.configs.recommended,
