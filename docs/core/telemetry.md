@@ -252,6 +252,8 @@ Use this method if you prefer not to use Docker.
 
 ## Data Reference: Logs & Metrics
 
+A `sessionId` is included as a common attribute on all logs and metrics.
+
 ### Logs
 
 These are timestamped records of specific events.
@@ -260,13 +262,18 @@ These are timestamped records of specific events.
 
   - **Attributes**:
     - `model` (string)
+    - `embedding_model` (string)
     - `sandbox_enabled` (boolean)
     - `core_tools_enabled` (string)
     - `approval_mode` (string)
+    - `api_key_enabled` (boolean)
     - `vertex_ai_enabled` (boolean)
+    - `code_assist_enabled` (boolean)
     - `log_user_prompts_enabled` (boolean)
     - `file_filtering_respect_git_ignore` (boolean)
     - `file_filtering_allow_build_artifacts` (boolean)
+    - `debug_mode` (boolean)
+    - `mcp_servers` (string)
 
 - `gemini_cli.user_prompt`: Fired when a user submits a prompt.
 
@@ -289,7 +296,7 @@ These are timestamped records of specific events.
   - **Attributes**:
     - `model`
     - `duration_ms`
-    - `prompt_token_count`
+    - `input_token_count`
 
 - `gemini_cli.api_error`: Fired if the API request fails.
 
@@ -308,6 +315,11 @@ These are timestamped records of specific events.
     - `duration_ms`
     - `error` (optional)
     - `attempt`
+    - `output_token_count`
+    - `cached_content_token_count`
+    - `thoughts_token_count`
+    - `tool_token_count`
+    - `response_text` (optional)
 
 ### Metrics
 
