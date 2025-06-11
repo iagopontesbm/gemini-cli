@@ -171,9 +171,9 @@ exporters:
   googlecloud:
     project: "${GOOGLE_CLOUD_PROJECT}"
     metric:
-      prefix: "custom.googleapis.com/gemini_code"
+      prefix: "custom.googleapis.com/gemini_cli"
     log:
-      default_log_name: "gemini_code"
+      default_log_name: "gemini_cli"
   debug:
     verbosity: detailed
 
@@ -252,29 +252,36 @@ Use this method if you prefer not to use Docker.
 
 ## Data Reference: Logs & Metrics
 
+A `sessionId` is included as a common attribute on all logs and metrics.
+
 ### Logs
 
 These are timestamped records of specific events.
 
-- `gemini_code.config`: Fired once at startup with the CLI's configuration.
+- `gemini_cli.config`: Fired once at startup with the CLI's configuration.
 
   - **Attributes**:
     - `model` (string)
+    - `embedding_model` (string)
     - `sandbox_enabled` (boolean)
     - `core_tools_enabled` (string)
     - `approval_mode` (string)
+    - `api_key_enabled` (boolean)
     - `vertex_ai_enabled` (boolean)
+    - `code_assist_enabled` (boolean)
     - `log_user_prompts_enabled` (boolean)
     - `file_filtering_respect_git_ignore` (boolean)
     - `file_filtering_allow_build_artifacts` (boolean)
+    - `debug_mode` (boolean)
+    - `mcp_servers` (string)
 
-- `gemini_code.user_prompt`: Fired when a user submits a prompt.
+- `gemini_cli.user_prompt`: Fired when a user submits a prompt.
 
   - **Attributes**:
     - `prompt_char_count`
     - `prompt` (except if `log_user_prompts_enabled` is false)
 
-- `gemini_code.tool_call`: Fired for every function call.
+- `gemini_cli.tool_call`: Fired for every function call.
 
   - **Attributes**:
     - `function_name`
@@ -284,14 +291,14 @@ These are timestamped records of specific events.
     - `error` (optional)
     - `error_type` (optional)
 
-- `gemini_code.api_request`: Fired when making a request to the Gemini API.
+- `gemini_cli.api_request`: Fired when making a request to the Gemini API.
 
   - **Attributes**:
     - `model`
     - `duration_ms`
-    - `prompt_token_count`
+    - `input_token_count`
 
-- `gemini_code.api_error`: Fired if the API request fails.
+- `gemini_cli.api_error`: Fired if the API request fails.
 
   - **Attributes**:
     - `model`
@@ -301,43 +308,49 @@ These are timestamped records of specific events.
     - `duration_ms`
     - `attempt`
 
-- `gemini_code.api_response`: Fired upon receiving a response from the Gemini API.
+- `gemini_cli.api_response`: Fired upon receiving a response from the Gemini API.
   - **Attributes**:
     - `model`
     - `status_code`
     - `duration_ms`
     - `error` (optional)
     - `attempt`
+    - `output_token_count`
+    - `cached_content_token_count`
+    - `thoughts_token_count`
+    - `tool_token_count`
+    - `response_text` (optional)
 
 ### Metrics
 
 These are numerical measurements of behavior over time.
 
-- `gemini_code.session.count` (Counter, Int): Incremented once per CLI startup.
+- `gemini_cli.session.count` (Counter, Int): Incremented once per CLI startup.
 
-- `gemini_code.tool.call.count` (Counter, Int): Counts tool calls.
+- `gemini_cli.tool.call.count` (Counter, Int): Counts tool calls.
 
   - **Attributes**:
     - `function_name`
     - `success` (boolean)
 
-- `gemini_code.tool.call.latency` (Histogram, ms): Measures tool call latency.
+- `gemini_cli.tool.call.latency` (Histogram, ms): Measures tool call latency.
 
   - **Attributes**:
     - `function_name`
 
-- `gemini_code.api.request.count` (Counter, Int): Counts all API requests.
+- `gemini_cli.api.request.count` (Counter, Int): Counts all API requests.
 
   - **Attributes**:
     - `model`
     - `status_code`
     - `error_type` (optional)
 
-- `gemini_code.api.request.latency` (Histogram, ms): Measures API request latency.
+- `gemini_cli.api.request.latency` (Histogram, ms): Measures API request latency.
 
   - **Attributes**:
     - `model`
 
-- `gemini_code.token.input.count` (Counter, Int): Counts the total number of input tokens sent to the API.
+- `gemini_cli.token.usage` (Counter, Int): Counts the number of tokens used.
   - **Attributes**:
     - `model`
+    - `type` (string: "input", "output", "thought", "cache", or "tool")

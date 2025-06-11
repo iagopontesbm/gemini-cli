@@ -25,6 +25,7 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { GitService } from '../services/gitService.js';
 import { initializeTelemetry } from '../telemetry/index.js';
 
 export enum ApprovalMode {
@@ -55,6 +56,7 @@ export class MCPServerConfig {
 }
 
 export interface ConfigParameters {
+  sessionId: string;
   contentGeneratorConfig: ContentGeneratorConfig;
   embeddingModel: string;
   sandbox?: boolean | string;
@@ -63,6 +65,7 @@ export interface ConfigParameters {
   question?: string;
   fullContext?: boolean;
   coreTools?: string[];
+  excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
   mcpServerCommand?: string;
@@ -79,10 +82,12 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
   enableModifyWithExternalEditors?: boolean;
+  checkpoint?: boolean;
 }
 
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
+  private readonly sessionId: string;
   private readonly contentGeneratorConfig: ContentGeneratorConfig;
   private readonly embeddingModel: string;
   private readonly sandbox: boolean | string | undefined;
@@ -91,6 +96,7 @@ export class Config {
   private readonly question: string | undefined;
   private readonly fullContext: boolean;
   private readonly coreTools: string[] | undefined;
+  private readonly excludeTools: string[] | undefined;
   private readonly toolDiscoveryCommand: string | undefined;
   private readonly toolCallCommand: string | undefined;
   private readonly mcpServerCommand: string | undefined;
@@ -109,8 +115,11 @@ export class Config {
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly enableModifyWithExternalEditors: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
+  private gitService: GitService | undefined = undefined;
+  private readonly checkpoint: boolean;
 
   constructor(params: ConfigParameters) {
+    this.sessionId = params.sessionId;
     this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel = params.embeddingModel;
     this.sandbox = params.sandbox;
@@ -119,6 +128,7 @@ export class Config {
     this.question = params.question;
     this.fullContext = params.fullContext ?? false;
     this.coreTools = params.coreTools;
+    this.excludeTools = params.excludeTools;
     this.toolDiscoveryCommand = params.toolDiscoveryCommand;
     this.toolCallCommand = params.toolCallCommand;
     this.mcpServerCommand = params.mcpServerCommand;
@@ -139,6 +149,7 @@ export class Config {
       params.fileFilteringAllowBuildArtifacts ?? false;
     this.enableModifyWithExternalEditors =
       params.enableModifyWithExternalEditors ?? false;
+    this.checkpoint = params.checkpoint ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -153,6 +164,10 @@ export class Config {
     if (this.telemetry) {
       initializeTelemetry(this);
     }
+  }
+
+  getSessionId(): string {
+    return this.sessionId;
   }
 
   getContentGeneratorConfig(): ContentGeneratorConfig {
@@ -175,6 +190,10 @@ export class Config {
     return this.targetDir;
   }
 
+  getProjectRoot(): string {
+    return this.targetDir;
+  }
+
   async getToolRegistry(): Promise<ToolRegistry> {
     return this.toolRegistry;
   }
@@ -192,6 +211,10 @@ export class Config {
 
   getCoreTools(): string[] | undefined {
     return this.coreTools;
+  }
+
+  getExcludeTools(): string[] | undefined {
+    return this.excludeTools;
   }
 
   getToolDiscoveryCommand(): string | undefined {
@@ -258,6 +281,10 @@ export class Config {
     return this.geminiClient;
   }
 
+  getGeminiDir(): string {
+    return path.join(this.targetDir, GEMINI_DIR);
+  }
+
   getGeminiIgnorePatterns(): string[] {
     return this.geminiIgnorePatterns;
   }
@@ -274,6 +301,10 @@ export class Config {
     return this.enableModifyWithExternalEditors;
   }
 
+  getCheckpointEnabled(): boolean {
+    return this.checkpoint;
+  }
+
   async getFileService(): Promise<FileDiscoveryService> {
     if (!this.fileDiscoveryService) {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
@@ -283,6 +314,14 @@ export class Config {
       });
     }
     return this.fileDiscoveryService;
+  }
+
+  async getGitService(): Promise<GitService> {
+    if (!this.gitService) {
+      this.gitService = new GitService(this.targetDir);
+      await this.gitService.initialize();
+    }
+    return this.gitService;
   }
 }
 
@@ -328,12 +367,22 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   const tools = config.getCoreTools()
     ? new Set(config.getCoreTools())
     : undefined;
+  const excludeTools = config.getExcludeTools()
+    ? new Set(config.getExcludeTools())
+    : undefined;
 
   // helper to create & register core tools that are enabled
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const registerCoreTool = (ToolClass: any, ...args: unknown[]) => {
     // check both the tool name (.Name) and the class name (.name)
-    if (!tools || tools.has(ToolClass.Name) || tools.has(ToolClass.name)) {
+    if (
+      // coreTools contain tool name
+      (!tools || tools.has(ToolClass.Name) || tools.has(ToolClass.name)) &&
+      // excludeTools don't contain tool name
+      (!excludeTools ||
+        (!excludeTools.has(ToolClass.Name) &&
+          !excludeTools.has(ToolClass.name)))
+    ) {
       registry.registerTool(new ToolClass(...args));
     }
   };

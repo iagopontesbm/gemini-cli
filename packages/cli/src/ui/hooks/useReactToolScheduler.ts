@@ -122,7 +122,7 @@ export function useReactToolScheduler(
         }
         duration = call.durationMs || 0;
 
-        logToolCall({
+        logToolCall(config, {
           function_name: call.request.name,
           function_args: call.request.args,
           duration_ms: duration,
@@ -132,7 +132,7 @@ export function useReactToolScheduler(
       });
       onComplete(completedToolCalls);
     },
-    [onComplete],
+    [onComplete, config],
   );
 
   const toolCallsUpdateHandler: ToolCallsUpdateHandler = useCallback(

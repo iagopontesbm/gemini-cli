@@ -9,8 +9,7 @@ import { render } from 'ink';
 import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { fileURLToPath } from 'node:url';
-import { dirname, basename } from 'node:path';
+import { basename } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
@@ -18,6 +17,7 @@ import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
 import { loadExtensions, ExtensionConfig } from './config/extension.js';
+import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
@@ -32,37 +32,16 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
+  sessionId,
 } from '@gemini-cli/core';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 export async function main() {
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
   setWindowTitle(basename(workspaceRoot), settings);
 
-  // warn about deprecated environment variables
-  if (process.env.GEMINI_CODE_MODEL) {
-    console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
-    process.env.GEMINI_MODEL = process.env.GEMINI_CODE_MODEL;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.',
-    );
-    process.env.GEMINI_SANDBOX = process.env.GEMINI_CODE_SANDBOX;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX_IMAGE) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX_IMAGE is deprecated. Use GEMINI_SANDBOX_IMAGE_NAME instead.',
-    );
-    process.env.GEMINI_SANDBOX_IMAGE_NAME =
-      process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
-  }
-
   const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
-
+  await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
       let errorMessage = `Error in ${error.path}: ${error.message}`;
@@ -80,10 +59,18 @@ export async function main() {
     settings.merged,
     extensions,
     geminiIgnorePatterns,
+    sessionId,
   );
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
+  if (config.getCheckpointEnabled()) {
+    try {
+      await config.getGitService();
+    } catch {
+      // For now swallow the error, later log it.
+    }
+  }
 
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {
@@ -92,6 +79,10 @@ export async function main() {
       console.warn(`Warning: Theme "${settings.merged.theme}" not found.`);
     }
   }
+
+  // When using Code Assist this triggers the Oauth login.
+  // Do this now, before sandboxing, so web redirect works.
+  await config.getGeminiClient().getChat();
 
   // hop into sandbox if we are outside and sandboxing is enabled
   if (!process.env.SANDBOX) {
@@ -203,5 +194,6 @@ async function loadNonInteractiveConfig(
     nonInteractiveSettings,
     extensions,
     config.getGeminiIgnorePatterns(),
+    config.getSessionId(),
   );
 }
