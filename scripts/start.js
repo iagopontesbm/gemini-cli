@@ -19,8 +19,10 @@
 
 import { spawn, execSync } from 'child_process';
 import { join } from 'path';
+import { readFileSync } from 'fs';
 
 const root = join(import.meta.dirname, '..');
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8'));
 
 // check build status, write warnings to file for app to display if needed
 execSync('node ./scripts/check-build-status.js', {
@@ -28,25 +30,27 @@ execSync('node ./scripts/check-build-status.js', {
   cwd: root,
 });
 
+const nodeArgs = [];
+let sandboxCommand = undefined;
+try {
+  sandboxCommand = execSync('node scripts/sandbox_command.js', {
+    cwd: root,
+  })
+    .toString()
+    .trim();
+} catch {
+  // ignore
+}
 // if debugging is enabled and sandboxing is disabled, use --inspect-brk flag
 // note with sandboxing this flag is passed to the binary inside the sandbox
 // inside sandbox SANDBOX should be set and sandbox_command.js should fail
-const nodeArgs = [];
-try {
-  execSync('node scripts/sandbox_command.js -q', {
-    stdio: 'inherit',
-    cwd: root,
-  });
-  if (process.env.DEBUG) {
-    if (process.env.SANDBOX) {
-      const port = process.env.DEBUG_PORT || '9229';
-      nodeArgs.push(`--inspect-brk=0.0.0.0:${port}`);
-    } else {
-      nodeArgs.push('--inspect-brk');
-    }
+if (process.env.DEBUG && !sandboxCommand) {
+  if (process.env.SANDBOX) {
+    const port = process.env.DEBUG_PORT || '9229';
+    nodeArgs.push(`--inspect-brk=0.0.0.0:${port}`);
+  } else {
+    nodeArgs.push('--inspect-brk');
   }
-} catch {
-  // ignore
 }
 
 nodeArgs.push('./packages/cli');
@@ -54,7 +58,7 @@ nodeArgs.push(...process.argv.slice(2));
 
 const env = {
   ...process.env,
-  CLI_VERSION: 'development',
+  CLI_VERSION: pkg.version,
   DEV: 'true',
 };
 

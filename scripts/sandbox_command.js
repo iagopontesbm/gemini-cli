@@ -20,6 +20,7 @@
 import { execSync } from 'child_process';
 import { existsSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
+import stripJsonComments from 'strip-json-comments';
 import os from 'os';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -36,7 +37,9 @@ let geminiSandbox = process.env.GEMINI_SANDBOX;
 if (!geminiSandbox) {
   const userSettingsFile = join(os.homedir(), '.gemini', 'settings.json');
   if (existsSync(userSettingsFile)) {
-    const settings = JSON.parse(readFileSync(userSettingsFile, 'utf-8'));
+    const settings = JSON.parse(
+      stripJsonComments(readFileSync(userSettingsFile, 'utf-8')),
+    );
     if (settings.sandbox) {
       geminiSandbox = settings.sandbox;
     }
@@ -58,13 +61,6 @@ if (!geminiSandbox) {
     currentDir = dirname(currentDir);
   }
   geminiSandbox = process.env.GEMINI_SANDBOX;
-}
-
-if (process.env.GEMINI_CODE_SANDBOX) {
-  console.warn(
-    'WARNING: GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.',
-  );
-  geminiSandbox = process.env.GEMINI_CODE_SANDBOX;
 }
 
 geminiSandbox = (geminiSandbox || '').toLowerCase();

@@ -69,6 +69,7 @@ describe('checkNextSpeaker', () => {
 
     // GeminiChat will receive the mocked instances via the mocked GoogleGenAI constructor
     chatInstance = new GeminiChat(
+      mockConfigInstance,
       mockModelsInstance, // This is the instance returned by mockGoogleGenAIInstance.getGenerativeModel
       'gemini-pro', // model name
       {},

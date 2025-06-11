@@ -18,6 +18,7 @@ import {
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 import { getEffectiveModel } from '../utils/modelCheck.js';
+import { ExtensionConfig } from './extension.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -42,6 +43,7 @@ interface CliArgs {
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
   telemetry: boolean | undefined;
+  checkpoint: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -90,7 +92,13 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description: 'Enable telemetry?',
     })
-    .version() // This will enable the --version flag based on package.json
+    .option('checkpoint', {
+      alias: 'c',
+      type: 'boolean',
+      description: 'Enables checkpointing of file edits',
+      default: false,
+    })
+    .version(process.env.CLI_VERSION || '0.0.0') // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
     .strict().argv;
@@ -117,7 +125,9 @@ export async function loadHierarchicalGeminiMemory(
 
 export async function loadCliConfig(
   settings: Settings,
+  extensions: ExtensionConfig[],
   geminiIgnorePatterns: string[],
+  sessionId: string,
 ): Promise<Config> {
   loadEnvironment();
 
@@ -143,10 +153,13 @@ export async function loadCliConfig(
 
   const contentGeneratorConfig = await createContentGeneratorConfig(argv);
 
+  const mcpServers = mergeMcpServers(settings, extensions);
+
   return new Config({
+    sessionId,
     contentGeneratorConfig,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
-    sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
+    sandbox: argv.sandbox ?? settings.sandbox,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
@@ -156,7 +169,7 @@ export async function loadCliConfig(
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
     toolCallCommand: settings.toolCallCommand,
     mcpServerCommand: settings.mcpServerCommand,
-    mcpServers: settings.mcpServers,
+    mcpServers,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
@@ -173,7 +186,24 @@ export async function loadCliConfig(
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
     enableModifyWithExternalEditors: settings.enableModifyWithExternalEditors,
+    checkpoint: argv.checkpoint,
   });
+}
+
+function mergeMcpServers(settings: Settings, extensions: ExtensionConfig[]) {
+  const mcpServers = settings.mcpServers || {};
+  for (const extension of extensions) {
+    Object.entries(extension.mcpServers || {}).forEach(([key, server]) => {
+      if (mcpServers[key]) {
+        logger.warn(
+          `Skipping extension MCP config for server with key "${key}" as it already exists.`,
+        );
+        return;
+      }
+      mcpServers[key] = server;
+    });
+  }
+  return mcpServers;
 }
 
 async function createContentGeneratorConfig(
@@ -211,6 +241,7 @@ async function createContentGeneratorConfig(
     model: argv.model || DEFAULT_GEMINI_MODEL,
     apiKey: googleApiKey || geminiApiKey || '',
     vertexai: hasGeminiApiKey ? false : undefined,
+    codeAssist: !!process.env.GEMINI_CODE_ASSIST,
   };
 
   if (config.apiKey) {

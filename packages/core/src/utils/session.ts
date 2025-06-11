@@ -4,4 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export const DEFAULT_ENDPOINT = 'https://cloudcode-pa.googleapis.com';
+import { randomUUID } from 'crypto';
+
+export const sessionId = randomUUID();

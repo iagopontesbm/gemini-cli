@@ -9,12 +9,15 @@ import { render } from 'ink';
 import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
+import { basename } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
+import { loadExtensions, ExtensionConfig } from './config/extension.js';
+import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
@@ -29,32 +32,16 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
+  sessionId,
 } from '@gemini-cli/core';
 
 export async function main() {
-  // warn about deprecated environment variables
-  if (process.env.GEMINI_CODE_MODEL) {
-    console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
-    process.env.GEMINI_MODEL = process.env.GEMINI_CODE_MODEL;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.',
-    );
-    process.env.GEMINI_SANDBOX = process.env.GEMINI_CODE_SANDBOX;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX_IMAGE) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX_IMAGE is deprecated. Use GEMINI_SANDBOX_IMAGE_NAME instead.',
-    );
-    process.env.GEMINI_SANDBOX_IMAGE_NAME =
-      process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
-  }
-
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
-  const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
+  setWindowTitle(basename(workspaceRoot), settings);
 
+  const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
+  await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
       let errorMessage = `Error in ${error.path}: ${error.message}`;
@@ -67,10 +54,23 @@ export async function main() {
     process.exit(1);
   }
 
-  const config = await loadCliConfig(settings.merged, geminiIgnorePatterns);
+  const extensions = loadExtensions(workspaceRoot);
+  const config = await loadCliConfig(
+    settings.merged,
+    extensions,
+    geminiIgnorePatterns,
+    sessionId,
+  );
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
+  if (config.getCheckpointEnabled()) {
+    try {
+      await config.getGitService();
+    } catch {
+      // For now swallow the error, later log it.
+    }
+  }
 
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {
@@ -117,10 +117,24 @@ export async function main() {
   }
 
   // Non-interactive mode handled by runNonInteractive
-  const nonInteractiveConfig = await loadNonInteractiveConfig(config, settings);
+  const nonInteractiveConfig = await loadNonInteractiveConfig(
+    config,
+    extensions,
+    settings,
+  );
 
   await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
+}
+
+function setWindowTitle(title: string, settings: LoadedSettings) {
+  if (!settings.merged.hideWindowTitle) {
+    process.stdout.write(`\x1b]2; Gemini - ${title} \x07`);
+
+    process.on('exit', () => {
+      process.stdout.write(`\x1b]2;\x07`);
+    });
+  }
 }
 
 // --- Global Unhandled Rejection Handler ---
@@ -140,6 +154,7 @@ process.on('unhandledRejection', (reason, _promise) => {
 
 async function loadNonInteractiveConfig(
   config: Config,
+  extensions: ExtensionConfig[],
   settings: LoadedSettings,
 ) {
   if (config.getApprovalMode() === ApprovalMode.YOLO) {
@@ -173,6 +188,8 @@ async function loadNonInteractiveConfig(
   };
   return await loadCliConfig(
     nonInteractiveSettings,
+    extensions,
     config.getGeminiIgnorePatterns(),
+    config.getSessionId(),
   );
 }

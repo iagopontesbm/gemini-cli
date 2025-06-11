@@ -5,7 +5,6 @@
  */
 
 import {
-  EmbedContentResponse,
   EmbedContentParameters,
   GenerateContentConfig,
   Part,
@@ -37,10 +36,21 @@ import {
   ContentGenerator,
   createContentGenerator,
 } from './contentGenerator.js';
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
+
+const proxy =
+  process.env.HTTPS_PROXY ||
+  process.env.https_proxy ||
+  process.env.HTTP_PROXY ||
+  process.env.http_proxy;
+
+if (proxy) {
+  setGlobalDispatcher(new ProxyAgent(proxy));
+}
 
 export class GeminiClient {
   private chat: Promise<GeminiChat>;
-  private contentGenerator: ContentGenerator;
+  private contentGenerator: Promise<ContentGenerator>;
   private model: string;
   private embeddingModel: string;
   private generateContentConfig: GenerateContentConfig = {
@@ -65,6 +75,16 @@ export class GeminiClient {
 
   getChat(): Promise<GeminiChat> {
     return this.chat;
+  }
+
+  async getHistory(): Promise<Content[]> {
+    const chat = await this.chat;
+    return chat.getHistory();
+  }
+
+  async setHistory(history: Content[]): Promise<void> {
+    const chat = await this.chat;
+    chat.setHistory(history);
   }
 
   private async getEnvironment(): Promise<Part[]> {
@@ -150,7 +170,8 @@ export class GeminiClient {
       const systemInstruction = getCoreSystemPrompt(userMemory);
 
       return new GeminiChat(
-        this.contentGenerator,
+        this.config,
+        await this.contentGenerator,
         this.model,
         {
           systemInstruction,
@@ -203,9 +224,9 @@ export class GeminiClient {
   }
 
   private _logApiRequest(model: string, inputTokenCount: number): void {
-    logApiRequest({
+    logApiRequest(this.config, {
       model,
-      prompt_token_count: inputTokenCount,
+      input_token_count: inputTokenCount,
       duration_ms: 0, // Duration is not known at request time
     });
   }
@@ -228,12 +249,18 @@ export class GeminiClient {
       responseError = `Finished with reason: ${finishReason}`;
     }
 
-    logApiResponse({
+    logApiResponse(this.config, {
       model,
       duration_ms: durationMs,
       attempt,
       status_code: undefined,
       error: responseError,
+      output_token_count: response.usageMetadata?.candidatesTokenCount ?? 0,
+      cached_content_token_count:
+        response.usageMetadata?.cachedContentTokenCount ?? 0,
+      thoughts_token_count: response.usageMetadata?.thoughtsTokenCount ?? 0,
+      tool_token_count: response.usageMetadata?.toolUsePromptTokenCount ?? 0,
+      response_text: getResponseText(response),
     });
   }
 
@@ -261,7 +288,7 @@ export class GeminiClient {
       }
     }
 
-    logApiError({
+    logApiError(this.config, {
       model,
       error: errorMessage,
       status_code: statusCode,
@@ -277,6 +304,7 @@ export class GeminiClient {
     model: string = 'gemini-2.0-flash',
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
+    const cg = await this.contentGenerator;
     const attempt = 1;
     const startTime = Date.now();
     try {
@@ -290,7 +318,7 @@ export class GeminiClient {
 
       let inputTokenCount = 0;
       try {
-        const { totalTokens } = await this.contentGenerator.countTokens({
+        const { totalTokens } = await cg.countTokens({
           model,
           contents,
         });
@@ -305,7 +333,7 @@ export class GeminiClient {
       this._logApiRequest(model, inputTokenCount);
 
       const apiCall = () =>
-        this.contentGenerator.generateContent({
+        cg.generateContent({
           model,
           config: {
             ...requestConfig,
@@ -385,6 +413,7 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
+    const cg = await this.contentGenerator;
     const modelToUse = this.model;
     const configToUse: GenerateContentConfig = {
       ...this.generateContentConfig,
@@ -405,7 +434,7 @@ export class GeminiClient {
 
       let inputTokenCount = 0;
       try {
-        const { totalTokens } = await this.contentGenerator.countTokens({
+        const { totalTokens } = await cg.countTokens({
           model: modelToUse,
           contents,
         });
@@ -420,7 +449,7 @@ export class GeminiClient {
       this._logApiRequest(modelToUse, inputTokenCount);
 
       const apiCall = () =>
-        this.contentGenerator.generateContent({
+        cg.generateContent({
           model: modelToUse,
           config: requestConfig,
           contents,
@@ -466,8 +495,9 @@ export class GeminiClient {
       model: this.embeddingModel,
       contents: texts,
     };
-    const embedContentResponse: EmbedContentResponse =
-      await this.contentGenerator.embedContent(embedModelParams);
+
+    const cg = await this.contentGenerator;
+    const embedContentResponse = await cg.embedContent(embedModelParams);
     if (
       !embedContentResponse.embeddings ||
       embedContentResponse.embeddings.length === 0
@@ -496,7 +526,8 @@ export class GeminiClient {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
-    const { totalTokens } = await this.contentGenerator.countTokens({
+    const cg = await this.contentGenerator;
+    const { totalTokens } = await cg.countTokens({
       model: this.model,
       contents: history,
     });

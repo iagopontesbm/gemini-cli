@@ -29,6 +29,7 @@ export * from './utils/editor.js';
 
 // Export services
 export * from './services/fileDiscoveryService.js';
+export * from './services/gitService.js';
 
 // Export base tool definitions
 export * from './tools/tools.js';
@@ -51,3 +52,4 @@ export * from './tools/mcp-tool.js';
 
 // Export telemetry functions
 export * from './telemetry/index.js';
+export { sessionId } from './utils/session.js';

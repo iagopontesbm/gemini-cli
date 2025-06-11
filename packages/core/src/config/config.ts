@@ -25,6 +25,7 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { GitService } from '../services/gitService.js';
 import { initializeTelemetry } from '../telemetry/index.js';
 
 export enum ApprovalMode {
@@ -55,9 +56,10 @@ export class MCPServerConfig {
 }
 
 export interface ConfigParameters {
+  sessionId: string;
   contentGeneratorConfig: ContentGeneratorConfig;
   embeddingModel: string;
-  sandbox: boolean | string;
+  sandbox?: boolean | string;
   targetDir: string;
   debugMode: boolean;
   question?: string;
@@ -80,13 +82,15 @@ export interface ConfigParameters {
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
   enableModifyWithExternalEditors?: boolean;
+  checkpoint?: boolean;
 }
 
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
+  private readonly sessionId: string;
   private readonly contentGeneratorConfig: ContentGeneratorConfig;
   private readonly embeddingModel: string;
-  private readonly sandbox: boolean | string;
+  private readonly sandbox: boolean | string | undefined;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
   private readonly question: string | undefined;
@@ -111,8 +115,11 @@ export class Config {
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly enableModifyWithExternalEditors: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
+  private gitService: GitService | undefined = undefined;
+  private readonly checkpoint: boolean;
 
   constructor(params: ConfigParameters) {
+    this.sessionId = params.sessionId;
     this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel = params.embeddingModel;
     this.sandbox = params.sandbox;
@@ -142,6 +149,7 @@ export class Config {
       params.fileFilteringAllowBuildArtifacts ?? false;
     this.enableModifyWithExternalEditors =
       params.enableModifyWithExternalEditors ?? false;
+    this.checkpoint = params.checkpoint ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -158,6 +166,10 @@ export class Config {
     }
   }
 
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
   getContentGeneratorConfig(): ContentGeneratorConfig {
     return this.contentGeneratorConfig;
   }
@@ -170,11 +182,15 @@ export class Config {
     return this.embeddingModel;
   }
 
-  getSandbox(): boolean | string {
+  getSandbox(): boolean | string | undefined {
     return this.sandbox;
   }
 
   getTargetDir(): string {
+    return this.targetDir;
+  }
+
+  getProjectRoot(): string {
     return this.targetDir;
   }
 
@@ -265,6 +281,10 @@ export class Config {
     return this.geminiClient;
   }
 
+  getGeminiDir(): string {
+    return path.join(this.targetDir, GEMINI_DIR);
+  }
+
   getGeminiIgnorePatterns(): string[] {
     return this.geminiIgnorePatterns;
   }
@@ -281,6 +301,10 @@ export class Config {
     return this.enableModifyWithExternalEditors;
   }
 
+  getCheckpointEnabled(): boolean {
+    return this.checkpoint;
+  }
+
   async getFileService(): Promise<FileDiscoveryService> {
     if (!this.fileDiscoveryService) {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
@@ -290,6 +314,14 @@ export class Config {
       });
     }
     return this.fileDiscoveryService;
+  }
+
+  async getGitService(): Promise<GitService> {
+    if (!this.gitService) {
+      this.gitService = new GitService(this.targetDir);
+      await this.gitService.initialize();
+    }
+    return this.gitService;
   }
 }
 

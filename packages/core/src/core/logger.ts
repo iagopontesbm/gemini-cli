@@ -6,16 +6,18 @@
 
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
+import { Content } from '@google/genai';
 
 const GEMINI_DIR = '.gemini';
 const LOG_FILE_NAME = 'logs.json';
+const CHECKPOINT_FILE_NAME = 'checkpoint.json';
 
 export enum MessageSenderType {
   USER = 'user',
 }
 
 export interface LogEntry {
-  sessionId: number;
+  sessionId: string;
   messageId: number;
   timestamp: string;
   type: MessageSenderType;
@@ -23,13 +25,17 @@ export interface LogEntry {
 }
 
 export class Logger {
+  private geminiDir: string | undefined;
   private logFilePath: string | undefined;
-  private sessionId: number | undefined;
+  private checkpointFilePath: string | undefined;
+  private sessionId: string | undefined;
   private messageId = 0; // Instance-specific counter for the next messageId
   private initialized = false;
   private logs: LogEntry[] = []; // In-memory cache, ideally reflects the last known state of the file
 
-  constructor() {}
+  constructor(sessionId: string) {
+    this.sessionId = sessionId;
+  }
 
   private async _readLogFile(): Promise<LogEntry[]> {
     if (!this.logFilePath) {
@@ -47,7 +53,7 @@ export class Logger {
       }
       return parsedLogs.filter(
         (entry) =>
-          typeof entry.sessionId === 'number' &&
+          typeof entry.sessionId === 'string' &&
           typeof entry.messageId === 'number' &&
           typeof entry.timestamp === 'string' &&
           typeof entry.type === 'string' &&
@@ -89,12 +95,12 @@ export class Logger {
     if (this.initialized) {
       return;
     }
-    this.sessionId = Math.floor(Date.now() / 1000);
-    const geminiDir = path.resolve(process.cwd(), GEMINI_DIR);
-    this.logFilePath = path.join(geminiDir, LOG_FILE_NAME);
+    this.geminiDir = path.resolve(process.cwd(), GEMINI_DIR);
+    this.logFilePath = path.join(this.geminiDir, LOG_FILE_NAME);
+    this.checkpointFilePath = path.join(this.geminiDir, CHECKPOINT_FILE_NAME);
 
     try {
-      await fs.mkdir(geminiDir, { recursive: true });
+      await fs.mkdir(this.geminiDir, { recursive: true });
       let fileExisted = true;
       try {
         await fs.access(this.logFilePath);
@@ -190,11 +196,9 @@ export class Logger {
     return this.logs
       .filter((entry) => entry.type === MessageSenderType.USER)
       .sort((a, b) => {
-        if (b.sessionId !== a.sessionId) return b.sessionId - a.sessionId;
         const dateA = new Date(a.timestamp).getTime();
         const dateB = new Date(b.timestamp).getTime();
-        if (dateB !== dateA) return dateB - dateA;
-        return b.messageId - a.messageId;
+        return dateB - dateA;
       })
       .map((entry) => entry.message);
   }
@@ -229,9 +233,66 @@ export class Logger {
     }
   }
 
+  _checkpointPath(tag: string | undefined): string {
+    if (!this.checkpointFilePath || !this.geminiDir) {
+      throw new Error('Checkpoint file path not set.');
+    }
+    if (!tag) {
+      return this.checkpointFilePath;
+    }
+    return path.join(this.geminiDir, `checkpoint-${tag}.json`);
+  }
+
+  async saveCheckpoint(conversation: Content[], tag?: string): Promise<void> {
+    if (!this.initialized || !this.checkpointFilePath) {
+      console.error(
+        'Logger not initialized or checkpoint file path not set. Cannot save a checkpoint.',
+      );
+      return;
+    }
+    const path = this._checkpointPath(tag);
+    try {
+      await fs.writeFile(path, JSON.stringify(conversation, null), 'utf-8');
+    } catch (error) {
+      console.error('Error writing to checkpoint file:', error);
+    }
+  }
+
+  async loadCheckpoint(tag?: string): Promise<Content[]> {
+    if (!this.initialized || !this.checkpointFilePath) {
+      console.error(
+        'Logger not initialized or checkpoint file path not set. Cannot load checkpoint.',
+      );
+      return [];
+    }
+
+    const path = this._checkpointPath(tag);
+
+    try {
+      const fileContent = await fs.readFile(path, 'utf-8');
+      const parsedContent = JSON.parse(fileContent);
+      if (!Array.isArray(parsedContent)) {
+        console.warn(
+          `Checkpoint file at ${path} is not a valid JSON array. Returning empty checkpoint.`,
+        );
+        return [];
+      }
+      return parsedContent as Content[];
+    } catch (error) {
+      const nodeError = error as NodeJS.ErrnoException;
+      if (nodeError.code === 'ENOENT') {
+        // File doesn't exist, which is fine. Return empty array.
+        return [];
+      }
+      console.error(`Failed to read or parse checkpoint file ${path}:`, error);
+      return [];
+    }
+  }
+
   close(): void {
     this.initialized = false;
     this.logFilePath = undefined;
+    this.checkpointFilePath = undefined;
     this.logs = [];
     this.sessionId = undefined;
     this.messageId = 0;
