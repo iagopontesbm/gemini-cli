@@ -40,6 +40,10 @@ export class Logger {
     this.sessionId = sessionId;
   }
 
+  getLogFilePath(): string | undefined {
+    return this.logFilePath;
+  }
+
   private async _readLogFile(): Promise<LogEntry[]> {
     if (!this.logFilePath) {
       throw new Error('Log file path not set during read attempt.');

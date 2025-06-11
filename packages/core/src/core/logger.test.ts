@@ -19,9 +19,9 @@ import path from 'node:path';
 import { Content } from '@google/genai';
 
 const GEMINI_DIR = '.gemini';
-const LOG_FILE_NAME = 'logs.json';
+const LOG_FILE_NAME_PREFIX = 'logs';
 const CHECKPOINT_FILE_NAME = 'checkpoint.json';
-const TEST_LOG_FILE_PATH = path.join(process.cwd(), GEMINI_DIR, LOG_FILE_NAME);
+const TEST_LOG_FILE_PATH = path.join(process.cwd(), GEMINI_DIR, LOG_FILE_NAME_PREFIX);
 const TEST_CHECKPOINT_FILE_PATH = path.join(
   process.cwd(),
   GEMINI_DIR,
@@ -48,7 +48,7 @@ async function cleanupLogFile() {
     const dirContents = await fs.readdir(geminiDirPath);
     for (const file of dirContents) {
       if (
-        (file.startsWith(LOG_FILE_NAME + '.') ||
+        (file.startsWith(LOG_FILE_NAME_PREFIX + '.') ||
           file.startsWith(CHECKPOINT_FILE_NAME + '.')) &&
         file.endsWith('.bak')
       ) {
@@ -66,9 +66,9 @@ async function cleanupLogFile() {
   }
 }
 
-async function readLogFile(): Promise<LogEntry[]> {
+async function readLogFile(sessionId: string): Promise<LogEntry[]> {
   try {
-    const content = await fs.readFile(TEST_LOG_FILE_PATH, 'utf-8');
+    const content = await fs.readFile(`${TEST_LOG_FILE_PATH}-${sessionId}.json`, 'utf-8');
     return JSON.parse(content) as LogEntry[];
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -118,19 +118,18 @@ describe('Logger', () => {
 
       const newLogger = new Logger(testSessionId);
       await newLogger.initialize();
-
       const dirExists = await fs
         .access(geminiDirPath)
         .then(() => true)
         .catch(() => false);
       expect(dirExists).toBe(true);
       const fileExists = await fs
-        .access(TEST_LOG_FILE_PATH)
+        .access(path.join('', newLogger.getLogFilePath() ?? ''))
         .then(() => true)
         .catch(() => false);
       expect(fileExists).toBe(true);
-      const logContent = await readLogFile();
-      expect(logContent).toEqual([]);
+      const logContent = await readLogFile(testSessionId);
+      expect(logContent).toEqual([]);``
       newLogger.close();
     });
 
@@ -161,9 +160,10 @@ describe('Logger', () => {
         },
       ];
       await fs.mkdir(path.join(process.cwd(), GEMINI_DIR), { recursive: true });
-      await fs.writeFile(TEST_LOG_FILE_PATH, JSON.stringify(existingLogs));
+      await fs.writeFile(`${TEST_LOG_FILE_PATH}-${currentSessionId}.json`, JSON.stringify(existingLogs));
       const newLogger = new Logger(currentSessionId);
       await newLogger.initialize();
+      
       expect(newLogger['messageId']).toBe(2);
       expect(newLogger['logs']).toEqual(existingLogs);
       newLogger.close();
@@ -195,23 +195,24 @@ describe('Logger', () => {
       await logger.initialize(); // Second call should not change state
       expect(logger['messageId']).toBe(initialMessageId);
       expect(logger['logs'].length).toBe(initialLogCount);
-      const logsFromFile = await readLogFile();
+      const logsFromFile = await readLogFile(testSessionId);
       expect(logsFromFile.length).toBe(1);
     });
 
     it('should handle invalid JSON in log file by backing it up and starting fresh', async () => {
+      const newLogger = new Logger(testSessionId);
+      await newLogger.initialize();
       await fs.mkdir(path.join(process.cwd(), GEMINI_DIR), { recursive: true });
-      await fs.writeFile(TEST_LOG_FILE_PATH, 'invalid json');
+      await fs.writeFile(path.join('', newLogger.getLogFilePath()!), 'invalid json');
       const consoleDebugSpy = vi
         .spyOn(console, 'debug')
         .mockImplementation(() => {});
-      const newLogger = new Logger(testSessionId);
-      await newLogger.initialize();
+      
       expect(consoleDebugSpy).toHaveBeenCalledWith(
         expect.stringContaining('Invalid JSON in log file'),
         expect.any(SyntaxError),
       );
-      const logContent = await readLogFile();
+      const logContent = await readLogFile(testSessionId);
       expect(logContent).toEqual([]);
       const dirContents = await fs.readdir(
         path.join(process.cwd(), GEMINI_DIR),
@@ -219,7 +220,7 @@ describe('Logger', () => {
       expect(
         dirContents.some(
           (f) =>
-            f.startsWith(LOG_FILE_NAME + '.invalid_json') && f.endsWith('.bak'),
+            f.startsWith(LOG_FILE_NAME_PREFIX + '.invalid_json') && f.endsWith('.bak'),
         ),
       ).toBe(true);
       newLogger.close();
@@ -239,7 +240,7 @@ describe('Logger', () => {
       expect(consoleDebugSpy).toHaveBeenCalledWith(
         `Log file at ${TEST_LOG_FILE_PATH} is not a valid JSON array. Starting with empty logs.`,
       );
-      const logContent = await readLogFile();
+      const logContent = await readLogFile(testSessionId);
       expect(logContent).toEqual([]);
       const dirContents = await fs.readdir(
         path.join(process.cwd(), GEMINI_DIR),
@@ -247,7 +248,7 @@ describe('Logger', () => {
       expect(
         dirContents.some(
           (f) =>
-            f.startsWith(LOG_FILE_NAME + '.malformed_array') &&
+            f.startsWith(LOG_FILE_NAME_PREFIX + '.malformed_array') &&
             f.endsWith('.bak'),
         ),
       ).toBe(true);
@@ -258,7 +259,7 @@ describe('Logger', () => {
   describe('logMessage', () => {
     it('should append a message to the log file and update in-memory logs', async () => {
       await logger.logMessage(MessageSenderType.USER, 'Hello, world!');
-      const logsFromFile = await readLogFile();
+      const logsFromFile = await readLogFile(testSessionId);
       expect(logsFromFile.length).toBe(1);
       expect(logsFromFile[0]).toMatchObject({
         sessionId: testSessionId,
@@ -276,7 +277,7 @@ describe('Logger', () => {
       await logger.logMessage(MessageSenderType.USER, 'First');
       vi.advanceTimersByTime(1000);
       await logger.logMessage(MessageSenderType.USER, 'Second');
-      const logs = await readLogFile();
+      const logs = await readLogFile(testSessionId);
       expect(logs.length).toBe(2);
       expect(logs[0].messageId).toBe(0);
       expect(logs[1].messageId).toBe(1);
@@ -294,7 +295,7 @@ describe('Logger', () => {
       expect(consoleDebugSpy).toHaveBeenCalledWith(
         'Logger not initialized or session ID missing. Cannot log message.',
       );
-      expect((await readLogFile()).length).toBe(0);
+      expect((await readLogFile(testSessionId)).length).toBe(0);
       uninitializedLogger.close();
     });
 
@@ -322,7 +323,7 @@ describe('Logger', () => {
       // Log from logger2. It reads file (sees {s1,0}, {s1,1}, {s1,2}), its internal msgId for s1 is 3.
       await logger2.logMessage(MessageSenderType.USER, 'L2M2'); // L2 internal msgId becomes 4, writes {s1, 3}
 
-      const logsFromFile = await readLogFile();
+      const logsFromFile = await readLogFile(testSessionId);
       expect(logsFromFile.length).toBe(4);
       const messageIdsInFile = logsFromFile
         .map((log) => log.messageId)
@@ -396,6 +397,8 @@ describe('Logger', () => {
     });
 
     it('should return empty array if no user messages exist', async () => {
+      const logger = new Logger(testSessionId);
+      await logger.initialize();
       await logger.logMessage('system' as MessageSenderType, 'System boot');
       const messages = await logger.getPreviousUserMessages();
       expect(messages).toEqual([]);
@@ -417,13 +420,17 @@ describe('Logger', () => {
     ];
 
     it('should save a checkpoint to the default file when no tag is provided', async () => {
+      const logger = new Logger(testSessionId);
+      await logger.initialize();
       await logger.saveCheckpoint(conversation);
-      const fileContent = await fs.readFile(TEST_CHECKPOINT_FILE_PATH, 'utf-8');
-      expect(JSON.parse(fileContent)).toEqual(conversation);
+      const fileContent = await readLogFile(testSessionId);
+      expect(JSON.parse(fileContent.map((entry) => entry.message).join(''))).toEqual(conversation);
     });
 
     it('should save a checkpoint to a tagged file when a tag is provided', async () => {
       const tag = 'my-test-tag';
+      const logger = new Logger(testSessionId);
+      await logger.initialize();
       await logger.saveCheckpoint(conversation, tag);
       const taggedFilePath = path.join(
         process.cwd(),
