@@ -93,6 +93,7 @@ export const WITTY_LOADING_PHRASES = [
   "I'm going the distance, I'm going for speed...",
   'Is this the real life? Is this just fantasy?...',
   "I've got a good feeling about this...",
+  'Poking the bear...',
   'Doing research on the latest memes...',
   'Figuring out how to make this more witty...',
   'Hmmm... let me think...',
