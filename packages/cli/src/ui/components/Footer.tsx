@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { shortenPath, tildeifyPath } from '@gemini-cli/core';
+import { shortenPath, tildeifyPath, tokenLimit } from '@gemini-cli/core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
 import process from 'node:process';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -24,7 +24,16 @@ interface FooterProps {
   showMemoryUsage?: boolean;
   promptTokenCount: number;
   candidatesTokenCount: number;
+  totalTokenCount: number;
 }
+
+const renderProgressBar = (percentage: number, length: number) => {
+  const filledLength = Math.round((percentage / 100) * length);
+  const emptyLength = length - filledLength;
+  const filled = '▰'.repeat(filledLength);
+  const empty = '▱'.repeat(emptyLength);
+  return `${filled}${empty}`;
+};
 
 export const Footer: React.FC<FooterProps> = ({
   model,
@@ -38,73 +47,85 @@ export const Footer: React.FC<FooterProps> = ({
   showMemoryUsage,
   promptTokenCount,
   candidatesTokenCount,
-}) => (
-  <Box marginTop={1} justifyContent="space-between" width="100%">
-    <Box>
-      <Text color={Colors.LightBlue}>
-        {shortenPath(tildeifyPath(targetDir), 70)}
-        {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
-      </Text>
-      {debugMode && (
-        <Text color={Colors.AccentRed}>
-          {' ' + (debugMessage || '--debug')}
-        </Text>
-      )}
-    </Box>
+  totalTokenCount,
+}) => {
+  const limit = tokenLimit(model);
+  const percentage = totalTokenCount / limit;
 
-    {/* Middle Section: Centered Sandbox Info */}
-    <Box
-      flexGrow={1}
-      alignItems="center"
-      justifyContent="center"
-      display="flex"
-    >
-      {process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec' ? (
-        <Text color="green">
-          {process.env.SANDBOX.replace(/^gemini-(?:cli-)?/, '')}
-        </Text>
-      ) : process.env.SANDBOX === 'sandbox-exec' ? (
-        <Text color={Colors.AccentYellow}>
-          sandbox-exec{' '}
-          <Text color={Colors.Gray}>({process.env.SEATBELT_PROFILE})</Text>
-        </Text>
-      ) : (
-        <Text color={Colors.AccentRed}>
-          no sandbox <Text color={Colors.Gray}>(see docs)</Text>
-        </Text>
-      )}
-    </Box>
-
-    {/* Right Section: Gemini Label and Console Summary */}
-    <Box alignItems="center">
-      <Text color={Colors.AccentBlue}> {model} </Text>
-      <Text color={Colors.Gray}>| </Text>
-      <Text>
-        <Text color={Colors.AccentYellow}>
-          🢁 {promptTokenCount.toLocaleString()}
-        </Text>
+  return (
+    <Box marginTop={1} justifyContent="space-between" width="100%">
+      <Box>
         <Text color={Colors.LightBlue}>
-          {' '}
-          🡻 {candidatesTokenCount.toLocaleString()}
+          {shortenPath(tildeifyPath(targetDir), 70)}
+          {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
         </Text>
-      </Text>
-      {corgiMode && (
+        {debugMode && (
+          <Text color={Colors.AccentRed}>
+            {' ' + (debugMessage || '--debug')}
+          </Text>
+        )}
+      </Box>
+
+      {/* Middle Section: Centered Sandbox Info */}
+      <Box
+        flexGrow={1}
+        alignItems="center"
+        justifyContent="center"
+        display="flex"
+      >
+        {process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec' ? (
+          <Text color="green">
+            {process.env.SANDBOX.replace(/^gemini-(?:cli-)?/, '')}
+          </Text>
+        ) : process.env.SANDBOX === 'sandbox-exec' ? (
+          <Text color={Colors.AccentYellow}>
+            sandbox-exec{' '}
+            <Text color={Colors.Gray}>({process.env.SEATBELT_PROFILE})</Text>
+          </Text>
+        ) : (
+          <Text color={Colors.AccentRed}>
+            no sandbox <Text color={Colors.Gray}>(see docs)</Text>
+          </Text>
+        )}
+      </Box>
+
+      {/* Right Section: Gemini Label and Console Summary */}
+      <Box alignItems="center">
+        <Text color={Colors.AccentBlue}> {model} </Text>
+        <Text color={Colors.Gray}>| </Text>
         <Text>
-          <Text color={Colors.Gray}>| </Text>
-          <Text color={Colors.AccentRed}>▼</Text>
-          <Text color={Colors.Foreground}>(´</Text>
-          <Text color={Colors.AccentRed}>ᴥ</Text>
-          <Text color={Colors.Foreground}>`)</Text>
-          <Text color={Colors.AccentRed}>▼ </Text>
+          <Text>
+            {renderProgressBar(percentage * 100, 4)}{' '}
+            {(percentage * 100).toFixed(1)}%
+          </Text>
+          <Text color={Colors.AccentYellow}>
+            {' ['}
+            🢁 {promptTokenCount.toLocaleString()}
+          </Text>
+          <Text color={Colors.LightBlue}>
+            {' '}
+            🡻 {candidatesTokenCount.toLocaleString()}
+            {'] '}
+          </Text>
         </Text>
-      )}
-      {!showErrorDetails && errorCount > 0 && (
-        <Box>
-          <Text color={Colors.Gray}>| </Text>
-          <ConsoleSummaryDisplay errorCount={errorCount} />
-        </Box>
-      )}
-      {showMemoryUsage && <MemoryUsageDisplay />}
+        {corgiMode && (
+          <Text>
+            <Text color={Colors.Gray}>| </Text>
+            <Text color={Colors.AccentRed}>▼</Text>
+            <Text color={Colors.Foreground}>(´</Text>
+            <Text color={Colors.AccentRed}>ᴥ</Text>
+            <Text color={Colors.Foreground}>`)</Text>
+            <Text color={Colors.AccentRed}>▼ </Text>
+          </Text>
+        )}
+        {!showErrorDetails && errorCount > 0 && (
+          <Box>
+            <Text color={Colors.Gray}>| </Text>
+            <ConsoleSummaryDisplay errorCount={errorCount} />
+          </Box>
+        )}
+        {showMemoryUsage && <MemoryUsageDisplay />}
+      </Box>
     </Box>
-  </Box>
-);
+  );
+};
