@@ -35,6 +35,7 @@ describe('runNonInteractive', () => {
   let mockProcessExit: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.resetAllMocks();
     mockChat = {
       sendMessageStream: vi.fn(),
     };
@@ -133,6 +134,7 @@ describe('runNonInteractive', () => {
 
     expect(mockChat.sendMessageStream).toHaveBeenCalledTimes(2);
     expect(mockCoreExecuteToolCall).toHaveBeenCalledWith(
+      mockConfig,
       expect.objectContaining({ callId: 'fc1', name: 'testTool' }),
       mockToolRegistry,
       expect.any(AbortSignal),
@@ -201,7 +203,6 @@ describe('runNonInteractive', () => {
     expect(mockProcessStdoutWrite).toHaveBeenCalledWith(
       'Could not complete request.',
     );
-    consoleErrorSpy.mockRestore();
   });
 
   it('should exit with error if sendMessageStream throws initially', async () => {
@@ -217,6 +218,5 @@ describe('runNonInteractive', () => {
       'Error processing input:',
       apiError,
     );
-    consoleErrorSpy.mockRestore();
   });
 });

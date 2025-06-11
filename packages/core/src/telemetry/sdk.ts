@@ -8,6 +8,7 @@ import { DiagConsoleLogger, DiagLogLevel, diag } from '@opentelemetry/api';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
 import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-grpc';
 import { OTLPMetricExporter } from '@opentelemetry/exporter-metrics-otlp-grpc';
+import { CompressionAlgorithm } from '@opentelemetry/otlp-exporter-base';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 import { Resource } from '@opentelemetry/resources';
@@ -25,7 +26,7 @@ import {
 } from '@opentelemetry/sdk-metrics';
 import { HttpInstrumentation } from '@opentelemetry/instrumentation-http';
 import { Config } from '../config/config.js';
-import { SERVICE_NAME, sessionId } from './constants.js';
+import { SERVICE_NAME } from './constants.js';
 import { initializeMetrics } from './metrics.js';
 import { logCliConfiguration } from './loggers.js';
 
@@ -67,7 +68,7 @@ export function initializeTelemetry(config: Config): void {
   const resource = new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_NAME,
     [SemanticResourceAttributes.SERVICE_VERSION]: process.version,
-    'session.id': sessionId,
+    'session.id': config.getSessionId(),
   });
 
   const otlpEndpoint = config.getTelemetryOtlpEndpoint();
@@ -75,14 +76,23 @@ export function initializeTelemetry(config: Config): void {
   const useOtlp = !!grpcParsedEndpoint;
 
   const spanExporter = useOtlp
-    ? new OTLPTraceExporter({ url: grpcParsedEndpoint })
+    ? new OTLPTraceExporter({
+        url: grpcParsedEndpoint,
+        compression: CompressionAlgorithm.GZIP,
+      })
     : new ConsoleSpanExporter();
   const logExporter = useOtlp
-    ? new OTLPLogExporter({ url: grpcParsedEndpoint })
+    ? new OTLPLogExporter({
+        url: grpcParsedEndpoint,
+        compression: CompressionAlgorithm.GZIP,
+      })
     : new ConsoleLogRecordExporter();
   const metricReader = useOtlp
     ? new PeriodicExportingMetricReader({
-        exporter: new OTLPMetricExporter({ url: grpcParsedEndpoint }),
+        exporter: new OTLPMetricExporter({
+          url: grpcParsedEndpoint,
+          compression: CompressionAlgorithm.GZIP,
+        }),
         exportIntervalMillis: 10000,
       })
     : new PeriodicExportingMetricReader({
@@ -102,7 +112,7 @@ export function initializeTelemetry(config: Config): void {
     sdk.start();
     console.log('OpenTelemetry SDK started successfully.');
     telemetryInitialized = true;
-    initializeMetrics();
+    initializeMetrics(config);
     logCliConfiguration(config);
   } catch (error) {
     console.error('Error starting OpenTelemetry SDK:', error);
