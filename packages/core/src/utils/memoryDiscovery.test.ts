@@ -532,6 +532,107 @@ describe('loadServerHierarchicalMemory', () => {
     );
   });
 
+  it('should load GEMINI.md from extensions directories', async () => {
+    const workspaceExtensionsPath = path.join(
+      PROJECT_ROOT,
+      '.gemini',
+      'extensions',
+    );
+    const homeExtensionsPath = path.join(USER_HOME, '.gemini', 'extensions');
+    const ext1Path = path.join(workspaceExtensionsPath, 'ext1');
+    const ext2Path = path.join(homeExtensionsPath, 'ext2');
+    const ext1GeminiFile = path.join(
+      ext1Path,
+      ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
+    );
+    const ext2GeminiFile = path.join(
+      ext2Path,
+      ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
+    );
+
+    vi.spyOn(fsSync, 'existsSync').mockImplementation((p) => {
+      return p === workspaceExtensionsPath || p === homeExtensionsPath;
+    });
+
+    mockFs.stat.mockImplementation(async (p) => {
+      if (p === path.join(PROJECT_ROOT, '.git')) {
+        return { isDirectory: () => true } as Stats;
+      }
+      throw new Error('File not found');
+    });
+
+    mockFs.access.mockImplementation(async (p) => {
+      if (p === ext1GeminiFile || p === ext2GeminiFile) {
+        return undefined;
+      }
+      throw new Error('File not found');
+    });
+
+    mockFs.readFile.mockImplementation(async (p) => {
+      if (p === ext1GeminiFile) return 'Workspace extension memory';
+      if (p === ext2GeminiFile) return 'Home extension memory';
+      throw new Error('File not found');
+    });
+
+    mockFs.readdir.mockImplementation((async (
+      p: fsSync.PathLike,
+    ): Promise<Dirent[]> => {
+      if (p === workspaceExtensionsPath) {
+        return [
+          {
+            name: 'ext1',
+            isFile: () => false,
+            isDirectory: () => true,
+          } as Dirent,
+        ];
+      }
+      if (p === homeExtensionsPath) {
+        return [
+          {
+            name: 'ext2',
+            isFile: () => false,
+            isDirectory: () => true,
+          } as Dirent,
+        ];
+      }
+      if (p === ext1Path) {
+        return [
+          {
+            name: ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
+            isFile: () => true,
+            isDirectory: () => false,
+          } as Dirent,
+        ];
+      }
+      if (p === ext2Path) {
+        return [
+          {
+            name: ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
+            isFile: () => true,
+            isDirectory: () => false,
+          } as Dirent,
+        ];
+      }
+      return [];
+    }) as unknown as typeof fsPromises.readdir);
+
+    const { memoryContent, fileCount } = await loadServerHierarchicalMemory(
+      CWD,
+      false,
+    );
+
+    const relPathExt1 = path.relative(CWD, ext1GeminiFile);
+    const relPathExt2 = path.relative(CWD, ext2GeminiFile);
+
+    const expectedContent = [
+      `--- Context from: ${relPathExt1} ---\nWorkspace extension memory\n--- End of Context from: ${relPathExt1} ---`,
+      `--- Context from: ${relPathExt2} ---\nHome extension memory\n--- End of Context from: ${relPathExt2} ---`,
+    ].join('\n\n');
+
+    expect(memoryContent).toBe(expectedContent);
+    expect(fileCount).toBe(2);
+  });
+
   it('should respect MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY during downward scan', async () => {
     const consoleDebugSpy = vi
       .spyOn(console, 'debug')

@@ -195,6 +195,37 @@ async function getGeminiMdFilePathsInternal(
     }
   }
 
+  // Search for GEMINI.md in extensions directories
+  const extensionsDirName = 'extensions';
+  const workspaceExtensionsPath = path.join(
+    projectRoot || resolvedCwd,
+    GEMINI_CONFIG_DIR,
+    extensionsDirName,
+  );
+  const homeExtensionsPath = path.join(
+    resolvedHome,
+    GEMINI_CONFIG_DIR,
+    extensionsDirName,
+  );
+
+  for (const extPath of [workspaceExtensionsPath, homeExtensionsPath]) {
+    if (fsSync.existsSync(extPath)) {
+      const extensionPaths = await bfsFileSearch(extPath, {
+        fileName: getCurrentGeminiMdFilename(),
+        maxDirs: MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
+        debug: debugMode,
+        respectGitIgnore: false, // Extensions are not part of the project git repo
+        projectRoot: projectRoot || resolvedCwd,
+      });
+      extensionPaths.sort();
+      for (const ePath of extensionPaths) {
+        if (!paths.includes(ePath)) {
+          paths.push(ePath);
+        }
+      }
+    }
+  }
+
   if (debugMode)
     logger.debug(
       `Final ordered ${getCurrentGeminiMdFilename()} paths to read: ${JSON.stringify(paths)}`,
