@@ -35,6 +35,16 @@ const renderProgressBar = (percentage: number, length: number) => {
   return `${filled}${empty}`;
 };
 
+const formatTokenCount = (count: number): string => {
+  if (count >= 1_000_000) {
+    return `${(count / 1_000_000).toFixed(1)}M`;
+  }
+  if (count > 1000) {
+    return `${Math.round(count / 1000)}k`;
+  }
+  return count.toLocaleString();
+};
+
 export const Footer: React.FC<FooterProps> = ({
   model,
   targetDir,
@@ -100,11 +110,11 @@ export const Footer: React.FC<FooterProps> = ({
           </Text>
           <Text color={Colors.AccentYellow}>
             {' ['}
-            🢁 {promptTokenCount.toLocaleString()}
+            🢁 {formatTokenCount(promptTokenCount)}
           </Text>
           <Text color={Colors.LightBlue}>
             {' '}
-            🡻 {candidatesTokenCount.toLocaleString()}
+            🡻 {formatTokenCount(candidatesTokenCount)}
             {'] '}
           </Text>
         </Text>
