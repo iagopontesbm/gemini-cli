@@ -739,6 +739,7 @@ Add any other context about the problem here.
     session,
     gitService,
     loadHistory,
+    addItem,
   ]);
 
   const handleSlashCommand = useCallback(
