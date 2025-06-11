@@ -32,7 +32,6 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
-  ensureCodeAssistCredentials,
   sessionId,
 } from '@gemini-cli/core';
 
@@ -81,9 +80,9 @@ export async function main() {
     }
   }
 
-  if (config.getContentGeneratorConfig().codeAssist) {
-    await ensureCodeAssistCredentials();
-  }
+  // When using Code Assist this triggers the Oauth login.
+  // Do this now, before sandboxing, so web redirect works.
+  await config.getGeminiClient().getChat();
 
   // hop into sandbox if we are outside and sandboxing is enabled
   if (!process.env.SANDBOX) {

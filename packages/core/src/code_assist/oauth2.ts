@@ -41,7 +41,7 @@ const SIGN_IN_FAILURE_URL =
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
-export async function getAuthenticatedClient(): Promise<OAuth2Client> {
+export async function getCachedCredentialClient(): Promise<OAuth2Client> {
   try {
     const creds = await fs.readFile(
       path.join(process.cwd(), GEMINI_DIR, CREDENTIAL_FILENAME),
@@ -63,21 +63,25 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
   }
 }
 
-export async function ensureOauthCredentials(): Promise<void> {
+export async function clearCachedCredentials(): Promise<void> {
+  await fs.rm(path.join(process.cwd(), GEMINI_DIR, CREDENTIAL_FILENAME));
+}
+
+export async function getOauthClient(): Promise<OAuth2Client> {
   try {
-    await getAuthenticatedClient();
+    return await getCachedCredentialClient();
   } catch (_) {
-    const loggedInClient = await loginWithOauth();
+    const loggedInClient = await webLoginClient();
     await fs.mkdir(path.join(process.cwd(), GEMINI_DIR), { recursive: true });
     await fs.writeFile(
       path.join(process.cwd(), GEMINI_DIR, CREDENTIAL_FILENAME),
       JSON.stringify(loggedInClient.credentials, null, 2),
     );
+    return loggedInClient;
   }
-  console.log('Successfully authenticated with Code Assist');
 }
 
-export async function loginWithOauth(): Promise<OAuth2Client> {
+export async function webLoginClient(): Promise<OAuth2Client> {
   const port = await getAvailablePort();
   const oAuth2Client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
