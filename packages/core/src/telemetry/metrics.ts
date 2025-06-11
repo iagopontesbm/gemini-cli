@@ -18,17 +18,24 @@ import {
   METRIC_TOOL_CALL_LATENCY,
   METRIC_API_REQUEST_COUNT,
   METRIC_API_REQUEST_LATENCY,
-  METRIC_TOKEN_INPUT_COUNT,
+  METRIC_TOKEN_USAGE,
   METRIC_SESSION_COUNT,
 } from './constants.js';
+import { Config } from '../config/config.js';
 
 let cliMeter: Meter | undefined;
 let toolCallCounter: Counter | undefined;
 let toolCallLatencyHistogram: Histogram | undefined;
 let apiRequestCounter: Counter | undefined;
 let apiRequestLatencyHistogram: Histogram | undefined;
-let tokenInputCounter: Counter | undefined;
+let tokenUsageCounter: Counter | undefined;
 let isMetricsInitialized = false;
+
+function getCommonAttributes(config: Config): Attributes {
+  return {
+    'session.id': config.getSessionId(),
+  };
+}
 
 export function getMeter(): Meter | undefined {
   if (!cliMeter) {
@@ -37,7 +44,7 @@ export function getMeter(): Meter | undefined {
   return cliMeter;
 }
 
-export function initializeMetrics(): void {
+export function initializeMetrics(config: Config): void {
   if (isMetricsInitialized) return;
 
   const meter = getMeter();
@@ -64,8 +71,8 @@ export function initializeMetrics(): void {
       valueType: ValueType.INT,
     },
   );
-  tokenInputCounter = meter.createCounter(METRIC_TOKEN_INPUT_COUNT, {
-    description: 'Counts the total number of input tokens sent to the API.',
+  tokenUsageCounter = meter.createCounter(METRIC_TOKEN_USAGE, {
+    description: 'Counts the total number of tokens used.',
     valueType: ValueType.INT,
   });
 
@@ -73,11 +80,12 @@ export function initializeMetrics(): void {
     description: 'Count of CLI sessions started.',
     valueType: ValueType.INT,
   });
-  sessionCounter.add(1);
+  sessionCounter.add(1, getCommonAttributes(config));
   isMetricsInitialized = true;
 }
 
 export function recordToolCallMetrics(
+  config: Config,
   functionName: string,
   durationMs: number,
   success: boolean,
@@ -86,24 +94,33 @@ export function recordToolCallMetrics(
     return;
 
   const metricAttributes: Attributes = {
+    ...getCommonAttributes(config),
     function_name: functionName,
     success,
   };
   toolCallCounter.add(1, metricAttributes);
   toolCallLatencyHistogram.record(durationMs, {
+    ...getCommonAttributes(config),
     function_name: functionName,
   });
 }
 
-export function recordApiRequestMetrics(
+export function recordTokenUsageMetrics(
+  config: Config,
   model: string,
-  inputTokenCount: number,
+  tokenCount: number,
+  type: 'input' | 'output' | 'thought' | 'cache' | 'tool',
 ): void {
-  if (!tokenInputCounter || !isMetricsInitialized) return;
-  tokenInputCounter.add(inputTokenCount, { model });
+  if (!tokenUsageCounter || !isMetricsInitialized) return;
+  tokenUsageCounter.add(tokenCount, {
+    ...getCommonAttributes(config),
+    model,
+    type,
+  });
 }
 
 export function recordApiResponseMetrics(
+  config: Config,
   model: string,
   durationMs: number,
   statusCode?: number | string,
@@ -116,14 +133,19 @@ export function recordApiResponseMetrics(
   )
     return;
   const metricAttributes: Attributes = {
+    ...getCommonAttributes(config),
     model,
     status_code: statusCode ?? (error ? 'error' : 'ok'),
   };
   apiRequestCounter.add(1, metricAttributes);
-  apiRequestLatencyHistogram.record(durationMs, { model });
+  apiRequestLatencyHistogram.record(durationMs, {
+    ...getCommonAttributes(config),
+    model,
+  });
 }
 
 export function recordApiErrorMetrics(
+  config: Config,
   model: string,
   durationMs: number,
   statusCode?: number | string,
@@ -136,10 +158,14 @@ export function recordApiErrorMetrics(
   )
     return;
   const metricAttributes: Attributes = {
+    ...getCommonAttributes(config),
     model,
     status_code: statusCode ?? 'error',
     error_type: errorType ?? 'unknown',
   };
   apiRequestCounter.add(1, metricAttributes);
-  apiRequestLatencyHistogram.record(durationMs, { model });
+  apiRequestLatencyHistogram.record(durationMs, {
+    ...getCommonAttributes(config),
+    model,
+  });
 }
