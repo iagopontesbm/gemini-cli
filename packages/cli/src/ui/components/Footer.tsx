@@ -64,10 +64,28 @@ export const Footer: React.FC<FooterProps> = ({
 
   return (
     <Box marginTop={1} justifyContent="space-between" width="100%">
-      <Box>
-        <Text color={Colors.LightBlue}>
-          {shortenPath(tildeifyPath(targetDir), 70)}
-          {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
+    <Box>
+      <Text color={Colors.LightBlue}>
+        {shortenPath(tildeifyPath(targetDir), 70)}
+        {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
+      </Text>
+      {debugMode && (
+        <Text color={Colors.AccentRed}>
+          {' ' + (debugMessage || '--debug')}
+        </Text>
+      )}
+    </Box>
+
+    {/* Middle Section: Centered Sandbox Info */}
+    <Box
+      flexGrow={1}
+      alignItems="center"
+      justifyContent="center"
+      display="flex"
+    >
+      {process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec' ? (
+        <Text color="green">
+          {process.env.SANDBOX.replace(/^gemini-(?:cli-)?/, '')}
         </Text>
       ) : process.env.SANDBOX === 'sandbox-exec' ? (
         <Text color={Colors.AccentYellow}>
@@ -81,9 +99,9 @@ export const Footer: React.FC<FooterProps> = ({
       )}
     </Box>
 
-      {/* Right Section: Gemini Label and Console Summary */}
-      <Box alignItems="center">
-        <Text color={Colors.AccentBlue}> {model} </Text>
+    {/* Right Section: Gemini Label and Console Summary */}
+    <Box alignItems="center">
+      <Text color={Colors.AccentBlue}> {model} </Text>
         <Text color={Colors.Gray}>| </Text>
         <Text>
           <Text>
@@ -100,24 +118,24 @@ export const Footer: React.FC<FooterProps> = ({
             {'] '}
           </Text>
         </Text>
-        {corgiMode && (
-          <Text>
-            <Text color={Colors.Gray}>| </Text>
-            <Text color={Colors.AccentRed}>▼</Text>
-            <Text color={Colors.Foreground}>(´</Text>
-            <Text color={Colors.AccentRed}>ᴥ</Text>
-            <Text color={Colors.Foreground}>`)</Text>
-            <Text color={Colors.AccentRed}>▼ </Text>
-          </Text>
-        )}
-        {!showErrorDetails && errorCount > 0 && (
-          <Box>
-            <Text color={Colors.Gray}>| </Text>
-            <ConsoleSummaryDisplay errorCount={errorCount} />
-          </Box>
-        )}
-        {showMemoryUsage && <MemoryUsageDisplay />}
-      </Box>
+      {corgiMode && (
+        <Text>
+          <Text color={Colors.Gray}>| </Text>
+          <Text color={Colors.AccentRed}>▼</Text>
+          <Text color={Colors.Foreground}>(´</Text>
+          <Text color={Colors.AccentRed}>ᴥ</Text>
+          <Text color={Colors.Foreground}>`)</Text>
+          <Text color={Colors.AccentRed}>▼ </Text>
+        </Text>
+      )}
+      {!showErrorDetails && errorCount > 0 && (
+        <Box>
+          <Text color={Colors.Gray}>| </Text>
+          <ConsoleSummaryDisplay errorCount={errorCount} />
+        </Box>
+      )}
+      {showMemoryUsage && <MemoryUsageDisplay />}
     </Box>
+  </Box>
   );
 };
