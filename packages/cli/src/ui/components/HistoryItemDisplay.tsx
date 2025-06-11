@@ -16,6 +16,7 @@ import { GeminiMessageContent } from './messages/GeminiMessageContent.js';
 import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
 import { StatsDisplay } from './StatsDisplay.js';
+import { QuitDisplay } from './QuitDisplay.js';
 import { Config } from '@gemini-cli/core';
 
 interface HistoryItemDisplayProps {
@@ -65,6 +66,9 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         lastTurnStats={item.lastTurnStats}
         duration={item.duration}
       />
+    )}
+    {item.type === 'quit' && (
+      <QuitDisplay stats={item.stats} duration={item.duration} />
     )}
     {item.type === 'tool_group' && (
       <ToolGroupMessage
