@@ -334,20 +334,23 @@ describe('EditTool', () => {
       // The main beforeEach already calls mockEnsureCorrectEdit.mockReset()
       // Set a specific mock for this test case
       let mockCalled = false;
-      mockEnsureCorrectEdit.mockImplementationOnce(async (content, p) => {
-        console.log('mockEnsureCorrectEdit CALLED IN TEST');
-        mockCalled = true;
-        expect(content).toBe(originalContent);
-        expect(p).toBe(params);
-        return {
-          params: {
-            file_path: filePath,
-            old_string: correctedOldString,
-            new_string: correctedNewString,
-          },
-          occurrences: 1,
-        };
-      });
+      mockEnsureCorrectEdit.mockImplementationOnce(
+        async (content, p, client) => {
+          console.log('mockEnsureCorrectEdit CALLED IN TEST');
+          mockCalled = true;
+          expect(content).toBe(originalContent);
+          expect(p).toBe(params);
+          expect(client).toBe((tool as any).client);
+          return {
+            params: {
+              file_path: filePath,
+              old_string: correctedOldString,
+              new_string: correctedNewString,
+            },
+            occurrences: 1,
+          };
+        },
+      );
 
       const confirmation = (await tool.shouldConfirmExecute(
         params,

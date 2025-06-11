@@ -23,6 +23,7 @@ import {
   ensureCorrectEdit,
   ensureCorrectFileContent,
 } from '../utils/editCorrector.js';
+import { GeminiClient } from '../core/client.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
 
 /**
@@ -52,6 +53,7 @@ interface GetCorrectedFileContentResult {
  */
 export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
   static readonly Name: string = 'write_file';
+  private readonly client: GeminiClient;
 
   constructor(private readonly config: Config) {
     super(
@@ -74,6 +76,8 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
         type: 'object',
       },
     );
+
+    this.client = this.config.getGeminiClient();
   }
 
   private isWithinRoot(pathToCheck: string): boolean {
@@ -318,7 +322,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
           new_string: proposedContent,
           file_path: filePath,
         },
-        this.config.getGeminiClient(),
+        this.client,
         abortSignal,
       );
       correctedContent = correctedParams.new_string;
@@ -326,7 +330,7 @@ export class WriteFileTool extends BaseTool<WriteFileToolParams, ToolResult> {
       // This implies new file (ENOENT)
       correctedContent = await ensureCorrectFileContent(
         proposedContent,
-        this.config.getGeminiClient(),
+        this.client,
         abortSignal,
       );
     }

@@ -19,6 +19,7 @@ import {
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
+import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
@@ -65,7 +66,9 @@ interface CalculatedEdit {
  */
 export class EditTool extends BaseTool<EditToolParams, ToolResult> {
   static readonly Name = 'replace';
+  private readonly config: Config;
   private readonly rootDirectory: string;
+  private readonly client: GeminiClient;
   private tempOldDiffPath?: string;
   private tempNewDiffPath?: string;
 
@@ -73,7 +76,7 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
    * Creates a new instance of the EditLogic
    * @param rootDirectory Root directory to ground this tool in.
    */
-  constructor(private readonly config: Config) {
+  constructor(config: Config) {
     super(
       EditTool.Name,
       'Edit',
@@ -114,7 +117,9 @@ Expectation for required parameters:
         type: 'object',
       },
     );
+    this.config = config;
     this.rootDirectory = path.resolve(this.config.getTargetDir());
+    this.client = config.getGeminiClient();
   }
 
   /**
@@ -227,7 +232,7 @@ Expectation for required parameters:
       const correctedEdit = await ensureCorrectEdit(
         currentContent,
         params,
-        this.config.getGeminiClient(),
+        this.client,
         abortSignal,
       );
       finalOldString = correctedEdit.params.old_string;

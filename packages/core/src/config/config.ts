@@ -107,11 +107,11 @@ export class Config {
   private readonly telemetry: boolean;
   private readonly telemetryLogUserPromptsEnabled: boolean;
   private readonly telemetryOtlpEndpoint: string;
+  private readonly geminiClient: GeminiClient;
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
   private readonly enableModifyWithExternalEditors: boolean;
-  private geminiClient: GeminiClient | null = null;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
   private readonly checkpoint: boolean;
@@ -156,6 +156,7 @@ export class Config {
     }
 
     this.toolRegistry = createToolRegistry(this);
+    this.geminiClient = new GeminiClient(this);
 
     if (this.telemetry) {
       initializeTelemetry(this);
@@ -270,9 +271,6 @@ export class Config {
   }
 
   getGeminiClient(): GeminiClient {
-    if (!this.geminiClient) {
-      this.geminiClient = new GeminiClient(this);
-    }
     return this.geminiClient;
   }
 
