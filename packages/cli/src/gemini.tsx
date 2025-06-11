@@ -32,7 +32,7 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
-  ensureCodeAssistCredentials
+  ensureCodeAssistCredentials,
   sessionId,
 } from '@gemini-cli/core';
 
@@ -81,7 +81,7 @@ export async function main() {
     }
   }
 
-  if (config.getContentGeneratorConfig().codeAssist){
+  if (config.getContentGeneratorConfig().codeAssist) {
     await ensureCodeAssistCredentials();
   }
 

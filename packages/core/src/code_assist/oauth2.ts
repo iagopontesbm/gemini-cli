@@ -13,7 +13,6 @@ import open from 'open';
 import path from 'node:path';
 import { promises as fs } from 'node:fs';
 
-
 //  OAuth Client ID used to initiate OAuth2Client class.
 const OAUTH_CLIENT_ID =
   '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com';
@@ -46,7 +45,7 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
   try {
     const creds = await fs.readFile(
       path.join(process.cwd(), GEMINI_DIR, CREDENTIAL_FILENAME),
-      'utf-8'
+      'utf-8',
     );
 
     const oAuth2Client = new OAuth2Client({
@@ -58,7 +57,7 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
     await oAuth2Client.getAccessToken();
     // If we are here, the token is valid.
     return oAuth2Client;
-  } catch (e) {
+  } catch (_) {
     // Could not load credentials.
     throw new Error('Could not load credentials');
   }
@@ -67,17 +66,15 @@ export async function getAuthenticatedClient(): Promise<OAuth2Client> {
 export async function ensureOauthCredentials(): Promise<void> {
   try {
     await getAuthenticatedClient();
-  } catch (e) {
+  } catch (_) {
     const loggedInClient = await loginWithOauth();
     await fs.mkdir(path.join(process.cwd(), GEMINI_DIR), { recursive: true });
     await fs.writeFile(
       path.join(process.cwd(), GEMINI_DIR, CREDENTIAL_FILENAME),
-      JSON.stringify(loggedInClient.credentials, null, 2)
+      JSON.stringify(loggedInClient.credentials, null, 2),
     );
   }
 }
-
-
 
 export async function loginWithOauth(): Promise<OAuth2Client> {
   const port = await getAvailablePort();

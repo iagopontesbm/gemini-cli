@@ -340,7 +340,6 @@ describe('EditTool', () => {
           mockCalled = true;
           expect(content).toBe(originalContent);
           expect(p).toBe(params);
-          expect(client).toBe((tool as any).client);
           return {
             params: {
               file_path: filePath,
