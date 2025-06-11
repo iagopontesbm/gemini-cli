@@ -58,8 +58,11 @@ vi.mock('@gemini-cli/core', async () => {
       setUserMemory: vi.fn(),
       setGeminiMdFileCount: vi.fn(),
     })),
-    loadServerHierarchicalMemory: vi.fn(() =>
-      Promise.resolve({ memoryContent: '', fileCount: 0 }),
+    loadServerHierarchicalMemory: vi.fn((cwd, debug, extensionPaths) =>
+      Promise.resolve({
+        memoryContent: extensionPaths?.join(',') || '',
+        fileCount: extensionPaths?.length || 0,
+      }),
     ),
   };
 });
@@ -226,6 +229,30 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  it('should pass extension context file paths to loadServerHierarchicalMemory', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = {};
+    const extensions = [
+      {
+        name: 'ext1',
+        contextFilePath: '/path/to/ext1/gemini.md',
+      },
+      {
+        name: 'ext2',
+      },
+      {
+        name: 'ext3',
+        contextFilePath: '/path/to/ext3/gemini.md',
+      },
+    ];
+    await loadCliConfig(settings, extensions, [], 'session-id');
+    expect(ServerConfig.loadServerHierarchicalMemory).toHaveBeenCalledWith(
+      expect.any(String),
+      false,
+      ['/path/to/ext1/gemini.md', '/path/to/ext3/gemini.md'],
+    );
   });
 
   it('should have a placeholder test to ensure test file validity', () => {
