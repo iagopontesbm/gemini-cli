@@ -102,20 +102,18 @@ export const Footer: React.FC<FooterProps> = ({
       {/* Right Section: Gemini Label and Console Summary */}
       <Box alignItems="center">
         <Text color={Colors.AccentBlue}> {model} </Text>
-        <Text color={Colors.Gray}>| </Text>
         <Text>
-          <Text>
+          <Text color={Colors.Gray}>
             {renderProgressBar(percentage * 100, 4)}{' '}
             {(percentage * 100).toFixed(1)}%
           </Text>
           <Text color={Colors.AccentYellow}>
-            {' ['}
-            🢁 {formatTokenCount(promptTokenCount)}
+            {' '}
+            ⬆︎ {formatTokenCount(promptTokenCount)}
           </Text>
           <Text color={Colors.LightBlue}>
             {' '}
-            🡻 {formatTokenCount(candidatesTokenCount)}
-            {'] '}
+            ⬇ {formatTokenCount(candidatesTokenCount)}{' '}
           </Text>
         </Text>
         {corgiMode && (
