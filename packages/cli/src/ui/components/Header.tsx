@@ -8,30 +8,31 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import Gradient from 'ink-gradient';
 import { Colors } from '../colors.js';
-
-const asciiArtLogo = `
- ██████╗ ███████╗███╗   ███╗██╗███╗   ██╗██╗
-██╔════╝ ██╔════╝████╗ ████║██║████╗  ██║██║
-██║  ███╗█████╗  ██╔████╔██║██║██╔██╗ ██║██║
-██║   ██║██╔══╝  ██║╚██╔╝██║██║██║╚██╗██║██║
-╚██████╔╝███████╗██║ ╚═╝ ██║██║██║ ╚████║██║
- ╚═════╝ ╚══════╝╚═╝     ╚═╝╚═╝╚═╝  ╚═══╝╚═╝
-`;
+import { defaultAsciiLogo } from './AsciiArt.js'; // Import the default ASCII logo
 
 interface HeaderProps {
-  title?: string;
+  customAsciiArt?: string; // For user-defined ASCII art
+  textTitle?: string; // For a plain text title
 }
 
-export const Header: React.FC<HeaderProps> = ({ title = asciiArtLogo }) => (
-  <>
-    <Box marginBottom={1} alignItems="flex-start">
-      {Colors.GradientColors ? (
-        <Gradient colors={Colors.GradientColors}>
-          <Text>{title}</Text>
-        </Gradient>
-      ) : (
-        <Text>{title}</Text>
-      )}
-    </Box>
-  </>
-);
+export const Header: React.FC<HeaderProps> = ({
+  customAsciiArt,
+  textTitle,
+}) => {
+  // Determine the title to display based on priority
+  const displayTitle = customAsciiArt || textTitle || defaultAsciiLogo;
+
+  return (
+    <>
+      <Box marginBottom={1} alignItems="flex-start">
+        {Colors.GradientColors ? (
+          <Gradient colors={Colors.GradientColors}>
+            <Text>{displayTitle}</Text>
+          </Gradient>
+        ) : (
+          <Text>{displayTitle}</Text>
+        )}
+      </Box>
+    </>
+  );
+};
