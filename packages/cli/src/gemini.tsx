@@ -32,6 +32,7 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
+  ensureCodeAssistCredentials
   sessionId,
 } from '@gemini-cli/core';
 
@@ -78,6 +79,10 @@ export async function main() {
       // The useThemeCommand hook in App.tsx will handle opening the dialog.
       console.warn(`Warning: Theme "${settings.merged.theme}" not found.`);
     }
+  }
+
+  if (config.getContentGeneratorConfig().codeAssist){
+    await ensureCodeAssistCredentials();
   }
 
   // hop into sandbox if we are outside and sandboxing is enabled

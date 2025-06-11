@@ -66,9 +66,7 @@ interface CalculatedEdit {
  */
 export class EditTool extends BaseTool<EditToolParams, ToolResult> {
   static readonly Name = 'replace';
-  private readonly config: Config;
   private readonly rootDirectory: string;
-  private readonly client: GeminiClient;
   private tempOldDiffPath?: string;
   private tempNewDiffPath?: string;
 
@@ -76,7 +74,7 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
    * Creates a new instance of the EditLogic
    * @param rootDirectory Root directory to ground this tool in.
    */
-  constructor(config: Config) {
+  constructor(private readonly config: Config) {
     super(
       EditTool.Name,
       'Edit',
@@ -117,9 +115,7 @@ Expectation for required parameters:
         type: 'object',
       },
     );
-    this.config = config;
     this.rootDirectory = path.resolve(this.config.getTargetDir());
-    this.client = config.getGeminiClient();
   }
 
   /**
@@ -232,7 +228,7 @@ Expectation for required parameters:
       const correctedEdit = await ensureCorrectEdit(
         currentContent,
         params,
-        this.client,
+        this.config.getGeminiClient(),
         abortSignal,
       );
       finalOldString = correctedEdit.params.old_string;

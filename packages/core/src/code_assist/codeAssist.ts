@@ -5,12 +5,16 @@
  */
 
 import { ContentGenerator } from '../core/contentGenerator.js';
-import { loginWithOauth } from './oauth2.js';
+import { ensureOauthCredentials, getAuthenticatedClient } from './oauth2.js';
 import { setupUser } from './setup.js';
 import { CcpaServer } from './ccpaServer.js';
 
+export async function ensureCodeAssistCredentials(): Promise<void> {
+  await ensureOauthCredentials();
+}
+
 export async function createCodeAssistContentGenerator(): Promise<ContentGenerator> {
-  const oauth2Client = await loginWithOauth();
+  const oauth2Client = await getAuthenticatedClient();
   const projectId = await setupUser(
     oauth2Client,
     process.env.GOOGLE_CLOUD_PROJECT,
