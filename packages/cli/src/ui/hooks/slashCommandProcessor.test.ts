@@ -327,7 +327,7 @@ describe('useSlashCommandProcessor', () => {
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/editor');
+        commandResult = await handleSlashCommand('/editor');
       });
       expect(mockOpenEditorDialog).toHaveBeenCalled();
       expect(commandResult).toBe(true);
