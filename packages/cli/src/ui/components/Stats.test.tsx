@@ -44,9 +44,18 @@ describe('<StatsColumn />', () => {
     totalTokens: 385,
   };
 
-  it('renders a stats column', () => {
+  it('renders a stats column with children', () => {
     const { lastFrame } = render(
-      <StatsColumn title="Test Stats" stats={mockStats} />,
+      <StatsColumn title="Test Stats" stats={mockStats}>
+        <StatRow label="Child Prop" value="Child Value" />
+      </StatsColumn>,
+    );
+    expect(lastFrame()).toMatchSnapshot();
+  });
+
+  it('renders a stats column with a specific width', () => {
+    const { lastFrame } = render(
+      <StatsColumn title="Test Stats" stats={mockStats} width="50%" />,
     );
     expect(lastFrame()).toMatchSnapshot();
   });

@@ -42,7 +42,9 @@ export const StatsColumn: React.FC<{
   title: string;
   stats: FormattedStats;
   isCumulative?: boolean;
-}> = ({ title, stats, isCumulative = false }) => {
+  width?: string | number;
+  children?: React.ReactNode;
+}> = ({ title, stats, isCumulative = false, width, children }) => {
   const cachedDisplay =
     isCumulative && stats.totalTokens > 0
       ? `${stats.cachedTokens.toLocaleString()} (${((stats.cachedTokens / stats.totalTokens) * 100).toFixed(1)}%)`
@@ -52,7 +54,7 @@ export const StatsColumn: React.FC<{
     isCumulative && stats.cachedTokens > 0 ? Colors.AccentGreen : undefined;
 
   return (
-    <Box flexDirection="column" width={'48%'}>
+    <Box flexDirection="column" width={width}>
       <Text bold>{title}</Text>
       <Box marginTop={1} flexDirection="column">
         {/* All StatRows below will now inherit the gap */}
@@ -89,6 +91,7 @@ export const StatsColumn: React.FC<{
           label="Total Tokens"
           value={stats.totalTokens.toLocaleString()}
         />
+        {children}
       </Box>
     </Box>
   );

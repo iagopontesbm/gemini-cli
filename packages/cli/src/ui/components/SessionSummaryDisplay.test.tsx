@@ -6,10 +6,10 @@
 
 import { render } from 'ink-testing-library';
 import { describe, it, expect } from 'vitest';
-import { QuitDisplay } from './QuitDisplay.js';
+import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { type CumulativeStats } from '../contexts/SessionContext.js';
 
-describe('<QuitDisplay />', () => {
+describe('<SessionSummaryDisplay />', () => {
   const mockStats: CumulativeStats = {
     turnCount: 10,
     promptTokenCount: 1000,
@@ -25,7 +25,7 @@ describe('<QuitDisplay />', () => {
 
   it('renders correctly with given stats and duration', () => {
     const { lastFrame } = render(
-      <QuitDisplay stats={mockStats} duration={mockDuration} />,
+      <SessionSummaryDisplay stats={mockStats} duration={mockDuration} />,
     );
 
     expect(lastFrame()).toMatchSnapshot();
@@ -44,7 +44,7 @@ describe('<QuitDisplay />', () => {
     };
 
     const { lastFrame } = render(
-      <QuitDisplay stats={zeroStats} duration="0s" />,
+      <SessionSummaryDisplay stats={zeroStats} duration="0s" />,
     );
 
     expect(lastFrame()).toMatchSnapshot();

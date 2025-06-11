@@ -61,11 +61,16 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
       </Text>
 
       <Box flexDirection="row" justifyContent="space-between" marginTop={1}>
-        <StatsColumn title="Last Turn" stats={lastTurnFormatted} />
+        <StatsColumn
+          title="Last Turn"
+          stats={lastTurnFormatted}
+          width={COLUMN_WIDTH}
+        />
         <StatsColumn
           title={`Cumulative (${stats.turnCount} Turns)`}
           stats={cumulativeFormatted}
           isCumulative={true}
+          width={COLUMN_WIDTH}
         />
       </Box>
 

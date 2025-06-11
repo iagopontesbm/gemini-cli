@@ -74,7 +74,7 @@ describe('<HistoryItemDisplay />', () => {
     expect(lastFrame()).toContain('About Gemini CLI');
   });
 
-  it('renders QuitDisplay for "quit" type', () => {
+  it('renders SessionSummaryDisplay for "quit" type', () => {
     const stats: CumulativeStats = {
       turnCount: 1,
       promptTokenCount: 10,

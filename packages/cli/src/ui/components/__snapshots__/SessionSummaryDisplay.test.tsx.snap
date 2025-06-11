@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`<QuitDisplay /> > renders correctly with given stats and duration 1`] = `
+exports[`<SessionSummaryDisplay /> > renders correctly with given stats and duration 1`] = `
 "╭─────────────────────────────────────╮
 │                                     │
 │  Agent powering down. Goodbye!      │
@@ -22,7 +22,7 @@ exports[`<QuitDisplay /> > renders correctly with given stats and duration 1`] =
 ╰─────────────────────────────────────╯"
 `;
 
-exports[`<QuitDisplay /> > renders zero state correctly 1`] = `
+exports[`<SessionSummaryDisplay /> > renders zero state correctly 1`] = `
 "╭─────────────────────────────────╮
 │                                 │
 │  Agent powering down. Goodbye!  │
@@ -30,16 +30,16 @@ exports[`<QuitDisplay /> > renders zero state correctly 1`] = `
 │                                 │
 │  Cumulative Stats (0 Turns)     │
 │                                 │
-│  Input Tokens                0  │
-│  Output Tokens               0  │
-│  Tool Use Tokens             0  │
-│  Thoughts Tokens             0  │
-│  Cached Tokens               0  │
-│  ─────────────────────────────  │
-│  Total Tokens                0  │
+│  Input Tokens             0     │
+│  Output Tokens            0     │
+│  Tool Use Tokens          0     │
+│  Thoughts Tokens          0     │
+│  Cached Tokens            0     │
+│  ──────────────────────────     │
+│  Total Tokens             0     │
 │                                 │
-│  Total duration (API)       0s  │
-│  Total duration (wall)      0s  │
+│  Total duration (API)    0s     │
+│  Total duration (wall)   0s     │
 │                                 │
 ╰─────────────────────────────────╯"
 `;

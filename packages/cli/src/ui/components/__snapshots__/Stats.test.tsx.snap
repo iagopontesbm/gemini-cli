@@ -14,23 +14,36 @@ exports[`<StatRow /> > renders with a specific value color 1`] = `"Test Label   
 exports[`<StatsColumn /> > renders a cumulative stats column with percentages 1`] = `
 "Cumulative Stats
 
-Input Tokens                                 100
-Output Tokens                                200
-Tool Use Tokens                               50
-Thoughts Tokens                               25
-Cached Tokens                          10 (2.6%)
-────────────────────────────────────────────────
-Total Tokens                                 385"
+Input Tokens                                                                                     100
+Output Tokens                                                                                    200
+Tool Use Tokens                                                                                   50
+Thoughts Tokens                                                                                   25
+Cached Tokens                                                                              10 (2.6%)
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Total Tokens                                                                                     385"
 `;
 
-exports[`<StatsColumn /> > renders a stats column 1`] = `
+exports[`<StatsColumn /> > renders a stats column with a specific width 1`] = `
 "Test Stats
 
-Input Tokens                                 100
-Output Tokens                                200
-Tool Use Tokens                               50
-Thoughts Tokens                               25
-Cached Tokens                                 10
-────────────────────────────────────────────────
-Total Tokens                                 385"
+Input Tokens                                   100
+Output Tokens                                  200
+Tool Use Tokens                                 50
+Thoughts Tokens                                 25
+Cached Tokens                                   10
+──────────────────────────────────────────────────
+Total Tokens                                   385"
+`;
+
+exports[`<StatsColumn /> > renders a stats column with children 1`] = `
+"Test Stats
+
+Input Tokens                                                                                     100
+Output Tokens                                                                                    200
+Tool Use Tokens                                                                                   50
+Thoughts Tokens                                                                                   25
+Cached Tokens                                                                                     10
+────────────────────────────────────────────────────────────────────────────────────────────────────
+Total Tokens                                                                                     385
+Child Prop                                                                               Child Value"
 `;
