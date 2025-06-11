@@ -529,9 +529,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             showMemoryUsage={
               config.getDebugMode() || config.getShowMemoryUsage()
             }
-            promptTokenCount={sessionStats.currentTurn.promptTokenCount}
-            candidatesTokenCount={sessionStats.currentTurn.candidatesTokenCount}
-            totalTokenCount={sessionStats.currentTurn.totalTokenCount}
+            promptTokenCount={sessionStats.currentResponse.promptTokenCount}
+            candidatesTokenCount={
+              sessionStats.currentResponse.candidatesTokenCount
+            }
+            totalTokenCount={sessionStats.currentResponse.totalTokenCount}
           />
         </Box>
       </Box>
