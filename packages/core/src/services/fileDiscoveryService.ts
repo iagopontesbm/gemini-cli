@@ -37,7 +37,10 @@ export class FileDiscoveryService {
     pattern: string | string[],
     options: fg.Options = {},
   ): Promise<string[]> {
-    const files = await fg(pattern, options);
+    const files = await fg(pattern, {
+      ...options,
+      caseSensitiveMatch: false,
+    });
     return this.filterFiles(files);
   }
 
