@@ -8,12 +8,13 @@ import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import {
+  EDITOR_DISPLAY_NAMES,
   editorSettingsManager,
   type EditorDisplay,
 } from '../editors/editorSettingsManager.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { EditorType } from '@gemini-cli/core';
+import { EditorType, isEditorAvailable } from '@gemini-cli/core';
 
 interface EditorDialogProps {
   onSelect: (editorType: EditorType | undefined, scope: SettingScope) => void;
@@ -43,15 +44,17 @@ export function EditorSettingsDialog({
 
   const editorItems: EditorDisplay[] =
     editorSettingsManager.getAvailableEditorDisplays();
-  const currentPreference = settings.merged.preferredEditor;
-  let initialEditorIndex = currentPreference
+
+  const currentPreference =
+    settings.forScope(selectedScope).settings.preferredEditor;
+  let editorIndex = currentPreference
     ? editorItems.findIndex(
         (item: EditorDisplay) => item.type === currentPreference,
       )
     : 0;
-  if (initialEditorIndex === -1) {
+  if (editorIndex === -1) {
     console.error(`Editor is not supported: ${currentPreference}`);
-    initialEditorIndex = 0;
+    editorIndex = 0;
   }
 
   const scopeItems = [
@@ -84,6 +87,15 @@ export function EditorSettingsDialog({
         : `(Modified in ${otherScope})`;
   }
 
+  let mergedEditorName = 'None';
+  if (
+    settings.merged.preferredEditor &&
+    isEditorAvailable(settings.merged.preferredEditor)
+  ) {
+    mergedEditorName =
+      EDITOR_DISPLAY_NAMES[settings.merged.preferredEditor as EditorType];
+  }
+
   return (
     <Box
       borderStyle="round"
@@ -103,9 +115,10 @@ export function EditorSettingsDialog({
             value: item.type,
             disabled: item.disabled,
           }))}
-          initialIndex={initialEditorIndex}
+          initialIndex={editorIndex}
           onSelect={handleEditorSelect}
           isFocused={focusedSection === 'editor'}
+          key={selectedScope}
         />
 
         <Box marginTop={1} flexDirection="column">
@@ -129,10 +142,24 @@ export function EditorSettingsDialog({
 
       <Box flexDirection="column" width="55%" paddingLeft={2}>
         <Text bold>Editor Preference</Text>
-        <Box marginTop={1}>
+        <Box flexDirection="column" gap={1} marginTop={1}>
           <Text color={Colors.Gray}>
             These editors are currently supported. Please note that some editors
             cannot be used in sandbox mode.
+          </Text>
+          <Text color={Colors.Gray}>
+            Your preferred editor is:{' '}
+            <Text
+              color={
+                mergedEditorName === 'None'
+                  ? Colors.AccentRed
+                  : Colors.AccentCyan
+              }
+              bold
+            >
+              {mergedEditorName}
+            </Text>
+            .
           </Text>
         </Box>
       </Box>

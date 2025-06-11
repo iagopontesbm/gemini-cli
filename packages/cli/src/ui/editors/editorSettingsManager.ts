@@ -16,7 +16,7 @@ export interface EditorDisplay {
   disabled: boolean;
 }
 
-const EDITOR_DISPLAY_NAMES: Record<EditorType, string> = {
+export const EDITOR_DISPLAY_NAMES: Record<EditorType, string> = {
   vscode: 'VS Code',
   windsurf: 'Windsurf',
   cursor: 'Cursor',
@@ -30,7 +30,7 @@ class EditorSettingsManager {
     const editorTypes: EditorType[] = ['vscode', 'windsurf', 'cursor', 'vim'];
     this.availableEditors = [
       {
-        name: 'Not set',
+        name: 'None',
         type: 'not_set',
         disabled: false,
       },
