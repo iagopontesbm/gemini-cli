@@ -407,10 +407,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           key={staticKey}
           items={[
             <Box flexDirection="column" key="header">
-              <Header
-                textTitle={process.env.GEMINI_CLI_TITLE}
-                terminalWidth={terminalWidth}
-              />
+              <Header terminalWidth={terminalWidth} />
               <Tips config={config} />
             </Box>,
             ...history.map((h) => (
