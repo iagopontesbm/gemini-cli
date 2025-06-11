@@ -44,7 +44,9 @@ describe('partListUnionToString', () => {
   });
 
   it('should handle fileData', () => {
-    const part: Part = { fileData: { mimeType: 'text/plain', fileUri: 'file.txt' } };
+    const part: Part = {
+      fileData: { mimeType: 'text/plain', fileUri: 'file.txt' },
+    };
     const result = partListUnionToString(part);
     expect(result).toBe('[File Data]');
   });
@@ -56,7 +58,9 @@ describe('partListUnionToString', () => {
   });
 
   it('should handle functionResponse', () => {
-    const part: Part = { functionResponse: { name: 'myFunction', response: {} } };
+    const part: Part = {
+      functionResponse: { name: 'myFunction', response: {} },
+    };
     const result = partListUnionToString(part);
     expect(result).toBe('[Function Response: myFunction]');
   });
