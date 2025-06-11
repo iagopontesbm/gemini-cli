@@ -286,8 +286,8 @@ export async function start_sandbox(sandbox: string) {
     ];
     // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
     const proxyCommand = process.env.GEMINI_SANDBOX_PROXY_COMMAND;
-    let proxyProcess: ChildProcess | undefined;
-    let sandboxProcess: ChildProcess | undefined;
+    let proxyProcess: ChildProcess | undefined = undefined;
+    let sandboxProcess: ChildProcess | undefined = undefined;
     const sandboxEnv = { ...process.env };
     if (proxyCommand) {
       const proxy =
@@ -625,8 +625,8 @@ export async function start_sandbox(sandbox: string) {
   args.push(...entrypoint(workdir));
 
   // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
-  let proxyProcess: ChildProcess | undefined;
-  let sandboxProcess: ChildProcess | undefined;
+  let proxyProcess: ChildProcess | undefined = undefined;
+  let sandboxProcess: ChildProcess | undefined = undefined;
   if (proxyCommand) {
     // run proxyCommand in its own container
     const proxyContainerCommand = `${sandbox} run --rm --init ${userFlag} --name ${SANDBOX_PROXY_NAME} --network ${SANDBOX_PROXY_NAME} -p 8877:8877 -v ${process.cwd()}:${workdir} --workdir ${workdir} ${image} ${proxyCommand}`;
