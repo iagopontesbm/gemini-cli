@@ -45,7 +45,6 @@ export function checkHasEditorType(editor: EditorType): boolean {
 
 export function allowEditorTypeInSandbox(editor: EditorType): boolean {
   const notUsingSandbox = !process.env.SANDBOX;
-  console.log('notUsingSandbox', notUsingSandbox);
   if (['vscode', 'windsurf', 'cursor'].includes(editor)) {
     return notUsingSandbox;
   }

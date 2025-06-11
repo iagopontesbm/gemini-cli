@@ -78,6 +78,8 @@ describe('CoreToolScheduler', () => {
       toolRegistry: Promise.resolve(toolRegistry as any),
       onAllToolCallsComplete,
       onToolCallsUpdate,
+      getPreferredEditor: () => 'vscode',
+      onEditorNotConfigured: () => {},
     });
 
     const abortController = new AbortController();

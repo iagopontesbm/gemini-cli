@@ -85,7 +85,7 @@ export const useGeminiStream = (
   >,
   shellModeActive: boolean,
   loadedSettings: LoadedSettings,
-  onEditorNotConfigured?: () => void,
+  onEditorNotConfigured: () => void,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);

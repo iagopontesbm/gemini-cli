@@ -205,8 +205,8 @@ interface CoreToolSchedulerOptions {
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
   approvalMode?: ApprovalMode;
-  getPreferredEditor?: () => string | undefined;
-  onEditorNotConfigured?: () => void;
+  getPreferredEditor: () => string | undefined;
+  onEditorNotConfigured: () => void;
 }
 
 export class CoreToolScheduler {
@@ -216,8 +216,8 @@ export class CoreToolScheduler {
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
   private approvalMode: ApprovalMode;
-  private getPreferredEditor?: () => string | undefined;
-  private onEditorNotConfigured?: () => void;
+  private getPreferredEditor: () => string | undefined;
+  private onEditorNotConfigured: () => void;
 
   constructor(options: CoreToolSchedulerOptions) {
     this.toolRegistry = options.toolRegistry;
