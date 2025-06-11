@@ -24,7 +24,7 @@ const server = http.createServer((req, res) => {
   console.log(
     `[PROXY] Denying non-CONNECT request for: ${req.method} ${req.url}`,
   );
-  res.writeHead(405, { 'Content-Type': 'text/plain', 'Connection': 'close' });
+  res.writeHead(405, { 'Content-Type': 'text/plain' });
   res.end('Method Not Allowed');
 });
 
