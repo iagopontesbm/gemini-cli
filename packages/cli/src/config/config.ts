@@ -14,6 +14,7 @@ import {
   getCurrentGeminiMdFilename,
   ApprovalMode,
   ContentGeneratorConfig,
+  GEMINI_CONFIG_DIR as GEMINI_DIR,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 import { getEffectiveModel } from '../utils/modelCheck.js';
@@ -22,7 +23,6 @@ import * as dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '@gemini-cli/core';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
