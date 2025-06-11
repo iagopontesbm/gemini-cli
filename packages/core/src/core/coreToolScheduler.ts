@@ -496,7 +496,7 @@ export class CoreToolScheduler {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (waitingToolCall?.confirmationDetails?.type === 'edit') {
         const editTool = waitingToolCall.tool as EditTool;
-        const editorType = this.getPreferredEditor?.();
+        const editorType = this.getPreferredEditor();
         const isValidEditor = isEditorAvailable(editorType);
         if (!isValidEditor) {
           if (this.onEditorNotConfigured) {
