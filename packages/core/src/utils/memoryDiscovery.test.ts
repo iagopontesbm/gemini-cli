@@ -512,13 +512,7 @@ describe('loadServerHierarchicalMemory', () => {
         ] as Dirent[];
       }
       if (p === ignoredDir) {
-        return [
-          {
-            name: ORIGINAL_GEMINI_MD_FILENAME_CONST_FOR_TEST,
-            isFile: () => true,
-            isDirectory: () => false,
-          } as Dirent,
-        ] as Dirent[];
+        return [] as Dirent[];
       }
       return [] as Dirent[];
     }) as unknown as typeof fsPromises.readdir);
@@ -565,11 +559,37 @@ describe('loadServerHierarchicalMemory', () => {
     await loadServerHierarchicalMemory(CWD, true);
 
     expect(consoleDebugSpy).toHaveBeenCalledWith(
-      expect.stringContaining('[DEBUG] [MemoryDiscovery]'),
-      expect.stringContaining(
-        'Max directory scan limit (200) reached. Stopping downward scan at:',
-      ),
+      expect.stringContaining('[DEBUG] [BfsFileSearch]'),
+      expect.stringContaining('Scanning [200/200]:'),
     );
     consoleDebugSpy.mockRestore();
+  });
+
+  it('should load extension context file paths', async () => {
+    const extensionFilePath = '/test/extensions/ext1/gemini.md';
+    mockFs.access.mockImplementation(async (p) => {
+      if (p === extensionFilePath) {
+        return undefined;
+      }
+      throw new Error('File not found');
+    });
+    mockFs.readFile.mockImplementation(async (p) => {
+      if (p === extensionFilePath) {
+        return 'Extension memory content';
+      }
+      throw new Error('File not found');
+    });
+
+    const { memoryContent, fileCount } = await loadServerHierarchicalMemory(
+      CWD,
+      false,
+      [extensionFilePath],
+    );
+
+    expect(memoryContent).toBe(
+      `--- Context from: ${path.relative(CWD, extensionFilePath)} ---\nExtension memory content\n--- End of Context from: ${path.relative(CWD, extensionFilePath)} ---`,
+    );
+    expect(fileCount).toBe(1);
+    expect(mockFs.readFile).toHaveBeenCalledWith(extensionFilePath, 'utf-8');
   });
 });
