@@ -74,7 +74,7 @@ export async function ensureOauthCredentials(): Promise<void> {
       JSON.stringify(loggedInClient.credentials, null, 2),
     );
   }
-  console.log("Successfully authenticated with Code Assist");
+  console.log('Successfully authenticated with Code Assist');
 }
 
 export async function loginWithOauth(): Promise<OAuth2Client> {
@@ -94,11 +94,11 @@ export async function loginWithOauth(): Promise<OAuth2Client> {
     });
     console.log(
       `\n\nCode Assist login required.\n` +
-      `Attempting to open authentication page in your browser.\n` +
-      `Otherwise navigate to:\n\n${authURL}\n\n`,
+        `Attempting to open authentication page in your browser.\n` +
+        `Otherwise navigate to:\n\n${authURL}\n\n`,
     );
     open(authURL);
-    console.log('Waiting for authentication...')
+    console.log('Waiting for authentication...');
 
     const server = http.createServer(async (req, res) => {
       try {
