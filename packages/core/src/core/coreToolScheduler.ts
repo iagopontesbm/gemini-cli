@@ -505,7 +505,7 @@ export class CoreToolScheduler {
         const modifyResults = await editTool.onModify(
           waitingToolCall.request.args as unknown as EditToolParams,
           signal,
-          editorType as EditorType,
+          editorType,
         );
 
         if (modifyResults) {
