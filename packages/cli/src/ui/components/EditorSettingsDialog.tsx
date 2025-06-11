@@ -44,14 +44,15 @@ export function EditorSettingsDialog({
   const editorItems: EditorDisplay[] =
     editorSettingsManager.getAvailableEditorDisplays();
   const currentPreference = settings.merged.preferredEditor;
-  const initialEditorIndex = currentPreference
-    ? Math.max(
-        0,
-        editorItems.findIndex(
-          (item: EditorDisplay) => item.type === currentPreference,
-        ),
-      )
+  let initialEditorIndex = currentPreference
+    ? editorItems.findIndex(
+      (item: EditorDisplay) => item.type === currentPreference,
+    )
     : 0;
+  if (initialEditorIndex === -1) {
+    console.error(`Editor is not supported: ${currentPreference}`);
+    initialEditorIndex = 0;
+  }
 
   const scopeItems = [
     { label: 'User Settings', value: SettingScope.User },

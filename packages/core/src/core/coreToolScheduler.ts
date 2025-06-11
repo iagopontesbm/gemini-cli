@@ -15,7 +15,6 @@ import {
   ApprovalMode,
   EditTool,
   EditToolParams,
-  Config,
   EditorType,
   isEditorAvailable,
 } from '../index.js';
@@ -206,7 +205,6 @@ interface CoreToolSchedulerOptions {
   onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   onToolCallsUpdate?: ToolCallsUpdateHandler;
   approvalMode?: ApprovalMode;
-  config: Config;
   getPreferredEditor?: () => string | undefined;
   onEditorNotConfigured?: () => void;
 }
@@ -218,7 +216,6 @@ export class CoreToolScheduler {
   private onAllToolCallsComplete?: AllToolCallsCompleteHandler;
   private onToolCallsUpdate?: ToolCallsUpdateHandler;
   private approvalMode: ApprovalMode;
-  private config: Config;
   private getPreferredEditor?: () => string | undefined;
   private onEditorNotConfigured?: () => void;
 
@@ -228,7 +225,6 @@ export class CoreToolScheduler {
     this.onAllToolCallsComplete = options.onAllToolCallsComplete;
     this.onToolCallsUpdate = options.onToolCallsUpdate;
     this.approvalMode = options.approvalMode ?? ApprovalMode.DEFAULT;
-    this.config = options.config;
     this.getPreferredEditor = options.getPreferredEditor;
     this.onEditorNotConfigured = options.onEditorNotConfigured;
   }

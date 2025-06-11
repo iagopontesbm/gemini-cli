@@ -62,7 +62,6 @@ describe('CoreToolScheduler', () => {
       getFunctionDeclarations: () => [],
       tools: new Map(),
       discovery: {} as any,
-      config: {} as any,
       registerTool: () => {},
       getToolByName: () => mockTool,
       getToolByDisplayName: () => mockTool,
@@ -79,7 +78,6 @@ describe('CoreToolScheduler', () => {
       toolRegistry: Promise.resolve(toolRegistry as any),
       onAllToolCallsComplete,
       onToolCallsUpdate,
-      config: {} as any,
     });
 
     const abortController = new AbortController();

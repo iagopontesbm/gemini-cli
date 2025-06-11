@@ -89,7 +89,7 @@ export function RadioButtonSelect<T>({
   /**
    * Custom item component for displaying the label.
    * Color changes based on whether the item is selected and if its group is focused.
-   * Now also handles displaying theme type with custom color and dims unavailable items.
+   * Now also handles displaying theme type with custom color.
    */
   function CustomThemeItemComponent(
     props: InkSelectItemProps,
@@ -105,7 +105,7 @@ export function RadioButtonSelect<T>({
     if (isSelected) {
       textColor = Colors.AccentGreen;
     } else if (itemWithThemeProps.disabled === true) {
-      textColor = Colors.Gray; // Dim disabled items
+      textColor = Colors.Gray;
     }
 
     if (
