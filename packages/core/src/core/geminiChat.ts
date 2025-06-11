@@ -299,6 +299,9 @@ export class GeminiChat {
   addHistory(content: Content): void {
     this.history.push(content);
   }
+  setHistory(history: Content[]): void {
+    this.history = history;
+  }
 
   private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,

@@ -187,6 +187,10 @@ export class Config {
     return this.targetDir;
   }
 
+  getProjectRoot(): string {
+    return this.targetDir;
+  }
+
   async getToolRegistry(): Promise<ToolRegistry> {
     return this.toolRegistry;
   }
@@ -270,6 +274,10 @@ export class Config {
     return this.geminiClient;
   }
 
+  getGeminiDir(): string {
+    return path.join(this.targetDir, GEMINI_DIR);
+  }
+
   getGeminiIgnorePatterns(): string[] {
     return this.geminiIgnorePatterns;
   }
@@ -285,6 +293,10 @@ export class Config {
   getEnableModifyWithExternalEditors(): boolean {
     return this.enableModifyWithExternalEditors;
   }
+  
+  getCheckpointEnabled(): boolean {
+    return this.checkpoint;
+  }
 
   async getFileService(): Promise<FileDiscoveryService> {
     if (!this.fileDiscoveryService) {
@@ -298,9 +310,6 @@ export class Config {
   }
 
   async getGitService(): Promise<GitService> {
-    if (!this.checkpoint) {
-      return Promise.reject(new Error('Checkpointing is disabled'));
-    }
     if (!this.gitService) {
       this.gitService = new GitService(this.targetDir);
       await this.gitService.initialize();

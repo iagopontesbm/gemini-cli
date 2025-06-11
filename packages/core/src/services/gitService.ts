@@ -18,12 +18,12 @@ export class GitService {
 
   constructor(projectRoot: string) {
     this.projectRoot = path.resolve(projectRoot);
-    if (!isGitRepository(this.projectRoot)) {
-      throw new Error('GitService requires a Git repository');
-    }
   }
 
   async initialize(): Promise<void> {
+    if (!isGitRepository(this.projectRoot)) {
+      throw new Error('GitService requires a Git repository');
+    }    
     const gitAvailable = await this.verifyGitAvailability();
     if (!gitAvailable) {
       throw new Error('GitService requires Git to be installed');
@@ -58,6 +58,16 @@ export class GitService {
     );
     if (!isRepoDefined) {
       await repoInstance.init();
+      try {
+        const result = await repoInstance.raw([
+          'worktree',
+          'add',
+          this.projectRoot,
+          '--force',
+        ]);
+      } catch (error) {
+        console.log('Failed to add worktree:', error);
+      }
     }
 
     const visibileGitIgnorePath = path.join(this.projectRoot, '.gitignore');
@@ -92,5 +102,31 @@ export class GitService {
 
       await repoInstance.commit('Initial commit');
     }
+  }
+
+  private get hiddenGitRepository(): SimpleGit {
+    const historyDir = path.join(this.projectRoot, historyDirName);
+    const repoDir = path.join(historyDir, 'repository');
+    return simpleGit(this.projectRoot).env({
+      GIT_DIR: path.join(repoDir, '.git'),
+      GIT_WORK_TREE: this.projectRoot,
+    });
+  }
+
+  async getCurrentCommitHash(): Promise<string> {
+    const hash = await this.hiddenGitRepository.raw('rev-parse', 'HEAD');
+    return hash.trim();
+  }
+
+  async createFileSnapshot(message: string): Promise<string> {
+    const repo = this.hiddenGitRepository;
+    await repo.add('.');
+    const commitResult = await repo.commit(message);
+    return commitResult.commit;
+  }
+
+  async restoreProjectFromSnapshot(commitHash: string): Promise<void> {
+    const repo = this.hiddenGitRepository;
+    await repo.raw(['restore', '--source', commitHash, '.']);
   }
 }

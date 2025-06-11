@@ -17,6 +17,7 @@ import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
 import { loadExtensions, ExtensionConfig } from './config/extension.js';
+import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
@@ -40,7 +41,7 @@ export async function main() {
   setWindowTitle(basename(workspaceRoot), settings);
 
   const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
-
+  await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
       let errorMessage = `Error in ${error.path}: ${error.message}`;
@@ -63,10 +64,12 @@ export async function main() {
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
-  try {
-    await config.getGitService();
-  } catch {
-    // For now swallow the error, later log it.
+  if (config.getCheckpointEnabled()) {
+    try {
+      await config.getGitService();
+    } catch {
+      // For now swallow the error, later log it.
+    }
   }
 
   if (settings.merged.theme) {
