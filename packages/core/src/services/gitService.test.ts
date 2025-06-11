@@ -96,13 +96,6 @@ describe('GitService', () => {
   });
 
   describe('constructor', () => {
-    it('should throw an error if projectRoot is not a Git repository', () => {
-      hoistedIsGitRepositoryMock.mockReturnValue(false);
-      expect(() => new GitService(mockProjectRoot)).toThrow(
-        'GitService requires a Git repository',
-      );
-    });
-
     it('should successfully create an instance if projectRoot is a Git repository', () => {
       expect(() => new GitService(mockProjectRoot)).not.toThrow();
     });
@@ -125,6 +118,14 @@ describe('GitService', () => {
   });
 
   describe('initialize', () => {
+    it('should throw an error if projectRoot is not a Git repository', async () => {
+      hoistedIsGitRepositoryMock.mockReturnValue(false);
+      const service = new GitService(mockProjectRoot);
+      await expect(service.initialize()).rejects.toThrow(
+        'GitService requires a Git repository',
+      );
+    });
+
     it('should throw an error if Git is not available', async () => {
       hoistedMockExec.mockImplementation((command, callback) => {
         callback(new Error('git not found'));

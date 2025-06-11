@@ -146,9 +146,8 @@ export const useSlashCommandProcessor = (
     [addMessage],
   );
 
-  const slashCommands: SlashCommand[] = useMemo(
-    () => {
-      const commands: SlashCommand[] = [
+  const slashCommands: SlashCommand[] = useMemo(() => {
+    const commands: SlashCommand[] = [
       {
         name: 'help',
         altName: '?',
@@ -635,15 +634,14 @@ Add any other context about the problem here.
                 });
                 return;
               }
-              const truncatedFiles = jsonFiles.map(file => {
-                const components = file.split('.')
+              const truncatedFiles = jsonFiles.map((file) => {
+                const components = file.split('.');
                 if (components.length <= 1) {
-                  return file
+                  return file;
                 }
-                components.pop()
-                return components.join('.')
-                }
-              )
+                components.pop();
+                return components.join('.');
+              });
               const fileList = truncatedFiles.join('\n');
               addMessage({
                 type: MessageType.INFO,
@@ -707,26 +705,23 @@ Add any other context about the problem here.
       });
     }
     return commands;
-  },
-    [
-      onDebugMessage,
-      setShowHelp,
-      refreshStatic,
-      openThemeDialog,
-      clearItems,
-      performMemoryRefresh,
-      showMemoryAction,
-      addMemoryAction,
-      addMessage,
-      toggleCorgiMode,
-      config,
-      showToolDescriptions,
-      session,
-      gitService,
-      loadHistory,
-      history,
-    ],
-  );
+  }, [
+    onDebugMessage,
+    setShowHelp,
+    refreshStatic,
+    openThemeDialog,
+    clearItems,
+    performMemoryRefresh,
+    showMemoryAction,
+    addMemoryAction,
+    addMessage,
+    toggleCorgiMode,
+    config,
+    showToolDescriptions,
+    session,
+    gitService,
+    loadHistory,
+  ]);
 
   const handleSlashCommand = useCallback(
     async (

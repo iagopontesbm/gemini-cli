@@ -293,7 +293,7 @@ export class Config {
   getEnableModifyWithExternalEditors(): boolean {
     return this.enableModifyWithExternalEditors;
   }
-  
+
   getCheckpointEnabled(): boolean {
     return this.checkpoint;
   }

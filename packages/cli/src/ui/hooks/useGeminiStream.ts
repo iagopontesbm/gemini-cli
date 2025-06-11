@@ -18,7 +18,7 @@ import {
   MessageSenderType,
   ToolCallRequestInfo,
   logUserPrompt,
-  GitService,  
+  GitService,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -678,7 +678,7 @@ export const useGeminiStream = (
             const timestamp = new Date()
               .toISOString()
               .replace(/:/g, '-')
-              .replace(/\./g, '_');            
+              .replace(/\./g, '_');
             const toolName = toolCall.request.name;
             const fileName = path.basename(filePath);
             const toolCallWithSnapshotFileName = `${timestamp}-${fileName}-${toolName}.json`;

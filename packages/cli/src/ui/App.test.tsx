@@ -123,7 +123,7 @@ vi.mock('@gemini-cli/core', async (importOriginal) => {
         getAccessibility: vi.fn(() => opts.accessibility ?? {}),
         getProjectRoot: vi.fn(() => opts.projectRoot),
         getGeminiClient: vi.fn(() => ({})),
-        checkpoint: vi.fn(() => opts.checkpoint ?? true),
+        getCheckpointEnabled: vi.fn(() => opts.checkpoint ?? true),
       };
     });
   return {

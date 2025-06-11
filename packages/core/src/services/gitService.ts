@@ -23,7 +23,7 @@ export class GitService {
   async initialize(): Promise<void> {
     if (!isGitRepository(this.projectRoot)) {
       throw new Error('GitService requires a Git repository');
-    }    
+    }
     const gitAvailable = await this.verifyGitAvailability();
     if (!gitAvailable) {
       throw new Error('GitService requires Git to be installed');
@@ -59,7 +59,7 @@ export class GitService {
     if (!isRepoDefined) {
       await repoInstance.init();
       try {
-        const result = await repoInstance.raw([
+        await repoInstance.raw([
           'worktree',
           'add',
           this.projectRoot,

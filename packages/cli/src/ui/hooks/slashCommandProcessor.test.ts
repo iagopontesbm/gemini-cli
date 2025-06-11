@@ -116,7 +116,7 @@ describe('useSlashCommandProcessor', () => {
       getSandbox: vi.fn(() => 'test-sandbox'),
       getModel: vi.fn(() => 'test-model'),
       getProjectRoot: vi.fn(() => '/test/dir'),
-      checkpoint: vi.fn(() => true),
+      getCheckpointEnabled: vi.fn(() => true),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
     mockUseSessionStats.mockReturnValue({
@@ -559,7 +559,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
@@ -585,7 +585,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
@@ -647,7 +647,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
@@ -720,7 +720,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor(true);
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
@@ -794,7 +794,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       expect(mockAddItem).toHaveBeenNthCalledWith(
@@ -860,7 +860,7 @@ Add any other context about the problem here.
       const { handleSlashCommand } = getProcessor();
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
-        commandResult = handleSlashCommand('/mcp');
+        commandResult = await handleSlashCommand('/mcp');
       });
 
       const message = mockAddItem.mock.calls[1][0].text;

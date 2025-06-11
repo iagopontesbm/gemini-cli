@@ -279,6 +279,7 @@ describe('useGeminiStream', () => {
         () => ({ getToolSchemaList: vi.fn(() => []) }) as any,
       ),
       getProjectRoot: vi.fn(() => '/test/dir'),
+      getCheckpointEnabled: vi.fn(() => false),
       getGeminiClient: mockGetGeminiClient,
       addHistory: vi.fn(),
     } as unknown as Config;
@@ -332,7 +333,8 @@ describe('useGeminiStream', () => {
         handleSlashCommand: (
           cmd: PartListUnion,
         ) => Promise<
-          import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean
+          | import('./slashCommandProcessor.js').SlashCommandActionReturn
+          | boolean
         >;
         shellModeActive: boolean;
       }) =>
@@ -354,13 +356,12 @@ describe('useGeminiStream', () => {
           setShowHelp: mockSetShowHelp,
           config: mockConfig,
           onDebugMessage: mockOnDebugMessage,
-          handleSlashCommand:
-            mockHandleSlashCommand as unknown as (
-              cmd: PartListUnion,
-            ) => Promise<
-              | import('./slashCommandProcessor.js').SlashCommandActionReturn
-              | boolean
-            >,
+          handleSlashCommand: mockHandleSlashCommand as unknown as (
+            cmd: PartListUnion,
+          ) => Promise<
+            | import('./slashCommandProcessor.js').SlashCommandActionReturn
+            | boolean
+          >,
           shellModeActive: false,
         },
       },
