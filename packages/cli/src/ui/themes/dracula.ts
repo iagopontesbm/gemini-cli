@@ -19,7 +19,6 @@ const draculaColors: ColorsTheme = {
   AccentRed: '#ff5555',
   Comment: '#6272a4',
   Gray: '#6272a4',
-  // GradientColors: ['#f1fa8c', '#50fa7b'],
   GradientColors: ['#ff79c6', '#8be9fd'],
 };
 
