@@ -456,6 +456,7 @@ export const useGeminiStream = (
       scheduleToolCalls,
       handleChatCompressionEvent,
       addUsage,
+      logger,
     ],
   );
 
