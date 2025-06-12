@@ -251,6 +251,7 @@ describe('loggers', () => {
       vi.spyOn(metrics, 'recordToolCallMetrics').mockImplementation(
         mockMetrics.recordToolCallMetrics,
       );
+      mockLogger.emit.mockReset();
     });
 
     it('should log a tool call with all fields', () => {
@@ -268,7 +269,7 @@ describe('loggers', () => {
       logToolCall(mockConfig, event);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
-        body: 'Tool call: test-function. Success: true. Duration: 100ms.',
+        body: 'Tool call: test-function. Decision: accept. Success: true. Duration: 100ms.',
         attributes: {
           'session.id': 'test-session-id',
           'event.name': 'gemini_cli.tool_call',
@@ -311,7 +312,7 @@ describe('loggers', () => {
       logToolCall(mockConfig, event);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
-        body: 'Tool call: test-function. Success: false. Duration: 100ms.',
+        body: 'Tool call: test-function. Decision: reject. Success: false. Duration: 100ms.',
         attributes: {
           'session.id': 'test-session-id',
           'event.name': 'gemini_cli.tool_call',
@@ -355,7 +356,7 @@ describe('loggers', () => {
       logToolCall(mockConfig, event);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
-        body: 'Tool call: test-function. Success: true. Duration: 100ms.',
+        body: 'Tool call: test-function. Decision: modify. Success: true. Duration: 100ms.',
         attributes: {
           'session.id': 'test-session-id',
           'event.name': 'gemini_cli.tool_call',
@@ -459,7 +460,9 @@ describe('loggers', () => {
           duration_ms: 100,
           success: false,
           error: 'test-error',
+          'error.message': 'test-error',
           error_type: 'test-error-type',
+          'error.type': 'test-error-type',
         },
       });
 

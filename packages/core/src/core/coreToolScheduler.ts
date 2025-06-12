@@ -498,10 +498,7 @@ export class CoreToolScheduler {
       case ToolConfirmationOutcome.ProceedAlwaysServer:
       case ToolConfirmationOutcome.ProceedAlwaysTool:
         return 'accept';
-      case ToolConfirmationOutcome.ModifyVSCode:
-      case ToolConfirmationOutcome.ModifyWindsurf:
-      case ToolConfirmationOutcome.ModifyCursor:
-      case ToolConfirmationOutcome.ModifyVim:
+      case ToolConfirmationOutcome.ModifyWithEditor:
         return 'modify';
       case ToolConfirmationOutcome.Cancel:
       default:
