@@ -8,8 +8,8 @@ import { BaseTool, ToolResult } from './tools.js';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { homedir } from 'os';
-
-const memoryToolSchemaData = {
+// Test
+const memoryToolSchemaData2 = {
   name: 'save_memory',
   description:
     'Saves a specific piece of information or fact to your long-term memory. Use this when the user explicitly asks you to remember something, or when they state a clear, concise fact that seems important to retain for future interactions.',
@@ -84,13 +84,13 @@ function ensureNewlineSeparation(currentContent: string): string {
 }
 
 export class MemoryTool extends BaseTool<SaveMemoryParams, ToolResult> {
-  static readonly Name: string = memoryToolSchemaData.name;
+  static readonly Name: string = memoryToolSchemaData2.name;
   constructor() {
     super(
       MemoryTool.Name,
       'Save Memory',
       memoryToolDescription,
-      memoryToolSchemaData.parameters as Record<string, unknown>,
+      memoryToolSchemaData2.parameters as Record<string, unknown>,
     );
   }
 
