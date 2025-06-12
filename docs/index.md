@@ -1,17 +1,17 @@
 # Welcome to Gemini CLI documentation
 
-This documentation provides a comprehensive guide to installing, using, and developing the Gemini CLI. This tool lets you interact with Gemini models through a command-line interface.
+This documentation provides a comprehensive guide to installing, using, and developing Gemini CLI. This tool lets you interact with Gemini models through a command-line interface.
 
 ## Overview
 
-The Gemini CLI brings the capabilities of Gemini models to your terminal in an interactive Read-Eval-Print Loop (REPL) environment. The Gemini CLI consists of a client-side application (`packages/cli`) that communicates with a local server (`packages/core`), which in turn manages requests to the Gemini API and its AI models. The Gemini CLI also contains a variety of tools for file system operations, code execution, and web fetching, which are managed by `packages/core`.
+Gemini CLI brings the capabilities of Gemini models to your terminal in an interactive Read-Eval-Print Loop (REPL) environment. Gemini CLI consists of a client-side application (`packages/cli`) that communicates with a local server (`packages/core`), which in turn manages requests to the Gemini API and its AI models. Gemini CLI also contains a variety of tools for tasks such as performing file system operations, running shells, and web fetching, which are managed by `packages/core`.
 
 ## Navigating the documentation
 
 This documentation is organized into the following sections:
 
-- **[Execution and Deployment](./deployment.md):** Information for running the Gemini CLI.
-- **[Architecture Overview](./architecture.md):** Understand the high-level design of the Gemini CLI, including its components and how they interact.
+- **[Execution and Deployment](./deployment.md):** Information for running Gemini CLI.
+- **[Architecture Overview](./architecture.md):** Understand the high-level design of Gemini CLI, including its components and how they interact.
 - **CLI Usage:** Documentation for `packages/cli`.
   - **[CLI Introduction](./cli/index.md):** Overview of the command-line interface.
   - **[Commands](./cli/commands.md):** Description of available CLI commands.
