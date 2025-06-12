@@ -363,7 +363,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     refreshStatic();
   }, [clearItems, clearConsoleMessagesState, refreshStatic]);
 
-  const { rows: terminalHeight } = useTerminalSize();
   const mainControlsRef = useRef<DOMElement>(null);
   const pendingHistoryItemRef = useRef<DOMElement>(null);
 
@@ -578,7 +577,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
               {isInputActive && (
                 <InputPrompt
-                  buffer={buffer}
                   widthFraction={0.9}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
