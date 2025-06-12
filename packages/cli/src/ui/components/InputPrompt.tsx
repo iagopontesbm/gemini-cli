@@ -10,7 +10,7 @@ import { Text, Box, useInput, useStdin } from 'ink';
 import { Colors } from '../colors.js';
 import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
-import { useTextBuffer, cpSlice, cpLen } from './shared/text-buffer.js';
+import { useTextBuffer, cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
 import chalk from 'chalk';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import stringWidth from 'string-width';
@@ -21,6 +21,7 @@ import { SlashCommand } from '../hooks/slashCommandProcessor.js';
 import { Config } from '@gemini-cli/core';
 
 export interface InputPromptProps {
+  buffer: TextBuffer;
   onSubmit: (value: string) => void;
   userMessages: readonly string[];
   onClearScreen: () => void;
@@ -35,6 +36,7 @@ export interface InputPromptProps {
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
+  buffer,
   onSubmit,
   userMessages,
   onClearScreen,
@@ -66,14 +68,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       return false;
     }
   }, []);
-
-  const buffer = useTextBuffer({
-    initialText: '',
-    viewport: { height, width: effectiveWidth },
-    stdin,
-    setRawMode,
-    isValidPath,
-  });
 
   const completion = useCompletion(
     buffer.text,

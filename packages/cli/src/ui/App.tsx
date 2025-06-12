@@ -577,6 +577,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
               {isInputActive && (
                 <InputPrompt
+                  buffer={buffer}
                   widthFraction={0.9}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
