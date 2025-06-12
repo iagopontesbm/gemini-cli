@@ -7,7 +7,7 @@ steps:
   # Step 2:
   - name: 'us-west1-docker.pkg.dev/gemini-code-dev/gemini-code-containers/gemini-code-builder'
     entrypoint: 'npx'
-    args: ['.', '--yes', '-p', 'Only reply with Hello world!']
+    args: ['.', '-p', 'Only reply with Hello world!']
 
 options:
   defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
