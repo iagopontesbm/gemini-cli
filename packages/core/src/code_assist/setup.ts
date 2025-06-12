@@ -5,7 +5,7 @@
  */
 
 import { ClientMetadata, OnboardUserRequest } from './types.js';
-import { CodeAssistServer } from './ccpaServer.js';
+import { CodeAssistServer } from './server.js';
 import { OAuth2Client } from 'google-auth-library';
 import { GaxiosError } from 'gaxios';
 import { clearCachedCredentials } from './oauth2.js';

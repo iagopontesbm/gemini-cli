@@ -21,7 +21,7 @@ import {
 } from '@google/genai';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
-import { CcpaResponse, toCcpaRequest, fromCcpaResponse } from './converter.js';
+import { CodeAssistResponse, toCodeAssistRequest, fromCodeAsistResponse } from './converter.js';
 import { PassThrough } from 'node:stream';
 
 // TODO: Use production endpoint once it supports our methods.
@@ -38,13 +38,13 @@ export class CodeAssistServer implements ContentGenerator {
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    const resps = await this.streamEndpoint<CcpaResponse>(
+    const resps = await this.streamEndpoint<CodeAssistResponse>(
       'streamGenerateContent',
-      toCcpaRequest(req, this.projectId),
+      toCodeAssistRequest(req, this.projectId),
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
       for await (const resp of resps) {
-        yield fromCcpaResponse(resp);
+        yield fromCodeAsistResponse(resp);
       }
     })();
   }
@@ -52,11 +52,11 @@ export class CodeAssistServer implements ContentGenerator {
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.callEndpoint<CcpaResponse>(
+    const resp = await this.callEndpoint<CodeAssistResponse>(
       'generateContent',
-      toCcpaRequest(req, this.projectId),
+      toCodeAssistRequest(req, this.projectId),
     );
-    return fromCcpaResponse(resp);
+    return fromCodeAsistResponse(resp);
   }
 
   async onboardUser(

@@ -7,7 +7,7 @@
 import { ContentGenerator } from '../core/contentGenerator.js';
 import { getOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
-import { CodeAssistServer } from './ccpaServer.js';
+import { CodeAssistServer } from './server.js';
 
 export async function createCodeAssistContentGenerator(): Promise<ContentGenerator> {
   const oauth2Client = await getOauthClient();
