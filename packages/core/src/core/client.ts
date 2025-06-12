@@ -522,37 +522,41 @@ export class GeminiClient {
     });
   }
 
-  private async tryCompressChat(): Promise<boolean> {
+  async tryCompressChat(force: boolean = false): Promise<boolean> {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
-    const cg = await this.contentGenerator;
-    const { totalTokens } = await cg.countTokens({
-      model: this.model,
-      contents: history,
-    });
+    // If not forced, check if we should compress based on context size.
+    if (!force) {
+      const cg = await this.contentGenerator;
+      const { totalTokens } = await cg.countTokens({
+        model: this.model,
+        contents: history,
+      });
 
-    if (totalTokens === undefined) {
-      // If token count is undefined, we can't determine if we need to compress.
-      console.warn(
-        `Could not determine token count for model ${this.model}. Skipping compression check.`,
-      );
-      return false;
-    }
-    const tokenCount = totalTokens; // Now guaranteed to be a number
+      if (totalTokens === undefined) {
+        // If token count is undefined, we can't determine if we need to compress.
+        console.warn(
+          `Could not determine token count for model ${this.model}. Skipping compression check.`,
+        );
+        return false;
+      }
+      const tokenCount = totalTokens; // Now guaranteed to be a number
 
-    const limit = tokenLimit(this.model);
-    if (!limit) {
-      // If no limit is defined for the model, we can't compress.
-      console.warn(
-        `No token limit defined for model ${this.model}. Skipping compression check.`,
-      );
-      return false;
+      const limit = tokenLimit(this.model);
+      if (!limit) {
+        // If no limit is defined for the model, we can't compress.
+        console.warn(
+          `No token limit defined for model ${this.model}. Skipping compression check.`,
+        );
+        return false;
+      }
+
+      if (tokenCount < 0.95 * limit) {
+        return false;
+      }
     }
 
-    if (tokenCount < 0.95 * limit) {
-      return false;
-    }
     const summarizationRequestMessage = {
       text: 'Summarize our conversation up to this point. The summary should be a concise yet comprehensive overview of all key topics, questions, answers, and important details discussed. This summary will replace the current chat history to conserve tokens, so it must capture everything essential to understand the context and continue our conversation effectively as if no information was lost.',
     };

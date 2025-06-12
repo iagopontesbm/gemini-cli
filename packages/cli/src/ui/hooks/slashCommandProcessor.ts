@@ -641,6 +641,31 @@ Add any other context about the problem here.
           }, 100);
         },
       },
+      {
+        name: 'compress',
+        description: 'force compress chat history',
+        action: async (_mainCommand, _subCommand, _args) => {
+          addMessage({
+            type: MessageType.INFO,
+            content: 'Attempting to compress chat history...',
+            timestamp: new Date(),
+          });
+          try {
+            await config!.getGeminiClient()!.tryCompressChat(true);
+            addMessage({
+              type: MessageType.INFO,
+              content: 'Chat history compressed!',
+              timestamp: new Date(),
+            });
+          } catch (e) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Failed to compress chat history: ${e instanceof Error ? e.message : String(e)}`,
+              timestamp: new Date(),
+            });
+          }
+        },
+      },
     ];
 
     if (config?.getCheckpointEnabled()) {
