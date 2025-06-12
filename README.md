@@ -81,7 +81,7 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
           echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc # Or your preferred shell config file
           source ~/.bashrc # Reload the config
 
-## Next Steps
+### Next Steps
 
 - Learn how to [contribute to or build from the source](./CONTRIBUTING.md).
 - Explore the available **[CLI Commands](./docs/cli/commands.md)**.
