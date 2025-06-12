@@ -971,7 +971,7 @@ Add any other context about the problem here.
         3,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Chat history compressed!'),
+          text: expect.stringContaining('Chat history compressed'),
         }),
         expect.any(Number),
       );

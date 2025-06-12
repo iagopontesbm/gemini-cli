@@ -651,12 +651,20 @@ Add any other context about the problem here.
             timestamp: new Date(),
           });
           try {
-            await config!.getGeminiClient()!.tryCompressChat(true);
-            addMessage({
-              type: MessageType.INFO,
-              content: 'Chat history compressed!',
-              timestamp: new Date(),
-            });
+            if (await config!.getGeminiClient()!.tryCompressChat(true)) {
+              addMessage({
+                type: MessageType.INFO,
+                content: 'Chat history compressed.',
+                timestamp: new Date(),
+              });
+            } else {
+              addMessage({
+                type: MessageType.ERROR,
+                content: 'Failed to compress chat history.',
+                timestamp: new Date(),
+              });
+
+            }
           } catch (e) {
             addMessage({
               type: MessageType.ERROR,

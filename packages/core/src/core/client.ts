@@ -526,6 +526,11 @@ export class GeminiClient {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
+    // Regardless of `force`, don't do anything if the history is empty.
+    if (history.length == 0) {
+      return false;
+    }
+
     // If not forced, check if we should compress based on context size.
     if (!force) {
       const cg = await this.contentGenerator;
