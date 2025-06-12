@@ -77,6 +77,16 @@ export class GeminiClient {
     return this.chat;
   }
 
+  async getHistory(): Promise<Content[]> {
+    const chat = await this.chat;
+    return chat.getHistory();
+  }
+
+  async setHistory(history: Content[]): Promise<void> {
+    const chat = await this.chat;
+    chat.setHistory(history);
+  }
+
   private async getEnvironment(): Promise<Part[]> {
     const cwd = process.cwd();
     const today = new Date().toLocaleDateString(undefined, {
@@ -250,6 +260,7 @@ export class GeminiClient {
         response.usageMetadata?.cachedContentTokenCount ?? 0,
       thoughts_token_count: response.usageMetadata?.thoughtsTokenCount ?? 0,
       tool_token_count: response.usageMetadata?.toolUsePromptTokenCount ?? 0,
+      response_text: getResponseText(response),
     });
   }
 
