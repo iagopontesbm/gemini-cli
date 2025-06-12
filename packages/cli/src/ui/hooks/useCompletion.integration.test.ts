@@ -249,4 +249,32 @@ describe('useCompletion git-aware filtering integration', () => {
       { label: 'src/index.ts', value: 'src/index.ts' },
     ]);
   });
+
+  it('should include dotfiles in glob search when input starts with a dot', async () => {
+    const globResults = [
+      `${testCwd}/.env`,
+      `${testCwd}/.gitignore`,
+      `${testCwd}/src/index.ts`,
+    ];
+    mockFileDiscoveryService.glob.mockResolvedValue(globResults);
+
+    const { result } = renderHook(() =>
+      useCompletion('@.', testCwd, true, slashCommands, mockConfig),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(mockFileDiscoveryService.glob).toHaveBeenCalledWith('**/.*', {
+      cwd: testCwd,
+      dot: true,
+    });
+    expect(fs.readdir).not.toHaveBeenCalled();
+    expect(result.current.suggestions).toEqual([
+      { label: '.env', value: '.env' },
+      { label: '.gitignore', value: '.gitignore' },
+      { label: 'src/index.ts', value: 'src/index.ts' },
+    ]);
+  });
 });
