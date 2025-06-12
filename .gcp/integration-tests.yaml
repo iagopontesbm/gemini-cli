@@ -20,7 +20,7 @@ steps:
   # Step 4: Authenticate for Docker and NPM
   - name: 'us-west1-docker.pkg.dev/gemini-code-dev/gemini-code-containers/gemini-code-builder'
     entrypoint: 'npm'
-    args: ['run', 'auth']
+    args: ['run', 'start', '-p', 'Only reply with Hello world!']
 
   # # Step 5: Run the master release script
   # - name: 'us-west1-docker.pkg.dev/gemini-code-dev/gemini-code-containers/gemini-code-builder'
