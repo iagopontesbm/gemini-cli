@@ -23,6 +23,8 @@ import { Readable } from 'stream';
 import * as readline from 'readline';
 import type { ReadableStream } from 'node:stream/web';
 import { ContentGenerator } from '../core/contentGenerator.js';
+import {toVertexRequest} from './converter.js';
+
 
 // TODO: Use production endpoint once it supports our methods.
 export const CCPA_ENDPOINT =
@@ -40,7 +42,7 @@ export class CcpaServer implements ContentGenerator {
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     return await this.streamEndpoint<GenerateContentResponse>(
       'streamGenerateContent',
-      req,
+      toVertexRequest(req),
     );
   }
 
@@ -49,7 +51,7 @@ export class CcpaServer implements ContentGenerator {
   ): Promise<GenerateContentResponse> {
     return await this.callEndpoint<GenerateContentResponse>(
       'generateContent',
-      req,
+      toVertexRequest(req),
     );
   }
 
