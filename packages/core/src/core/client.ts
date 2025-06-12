@@ -16,7 +16,12 @@ import {
 } from '@google/genai';
 import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
-import { Turn, ServerGeminiStreamEvent, GeminiEventType } from './turn.js';
+import {
+  Turn,
+  ServerGeminiStreamEvent,
+  GeminiEventType,
+  ChatCompressionInfo,
+} from './turn.js';
 import { Config } from '../config/config.js';
 import { getCoreSystemPrompt } from './prompts.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
@@ -203,7 +208,7 @@ export class GeminiClient {
 
     const compressed = await this.tryCompressChat();
     if (compressed) {
-      yield { type: GeminiEventType.ChatCompressed };
+      yield { type: GeminiEventType.ChatCompressed, value: compressed };
     }
     const chat = await this.chat;
     const turn = new Turn(chat);
@@ -522,31 +527,33 @@ export class GeminiClient {
     });
   }
 
-  async tryCompressChat(force: boolean = false): Promise<boolean> {
+  async tryCompressChat(
+    force: boolean = false,
+  ): Promise<ChatCompressionInfo | null> {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
     // Regardless of `force`, don't do anything if the history is empty.
     if (history.length == 0) {
-      return false;
+      return null;
     }
+
+    const cg = await this.contentGenerator;
+    const { totalTokens: originalTokenCount } = await cg.countTokens({
+      model: this.model,
+      contents: history,
+    });
 
     // If not forced, check if we should compress based on context size.
     if (!force) {
-      const cg = await this.contentGenerator;
-      const { totalTokens } = await cg.countTokens({
-        model: this.model,
-        contents: history,
-      });
-
-      if (totalTokens === undefined) {
+      if (originalTokenCount === undefined) {
         // If token count is undefined, we can't determine if we need to compress.
         console.warn(
           `Could not determine token count for model ${this.model}. Skipping compression check.`,
         );
-        return false;
+        return null;
       }
-      const tokenCount = totalTokens; // Now guaranteed to be a number
+      const tokenCount = originalTokenCount; // Now guaranteed to be a number
 
       const limit = tokenLimit(this.model);
       if (!limit) {
@@ -554,11 +561,11 @@ export class GeminiClient {
         console.warn(
           `No token limit defined for model ${this.model}. Skipping compression check.`,
         );
-        return false;
+        return null;
       }
 
       if (tokenCount < 0.95 * limit) {
-        return false;
+        return null;
       }
     }
 
@@ -568,7 +575,7 @@ export class GeminiClient {
     const response = await chat.sendMessage({
       message: summarizationRequestMessage,
     });
-    this.chat = this.startChat([
+    const newHistory = [
       {
         role: 'user',
         parts: [summarizationRequestMessage],
@@ -577,8 +584,15 @@ export class GeminiClient {
         role: 'model',
         parts: [{ text: response.text }],
       },
-    ]);
+    ];
+    this.chat = this.startChat(newHistory);
+    const newTokenCount = (
+      await cg.countTokens({ model: this.model, contents: newHistory })
+    ).totalTokens;
 
-    return true;
+    return {
+      originalTokenCount: originalTokenCount,
+      newTokenCount: newTokenCount,
+    };
   }
 }

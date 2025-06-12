@@ -118,7 +118,12 @@ describe('useSlashCommandProcessor', () => {
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
     mockGeminiClient = {
-      tryCompressChat: vi.fn().mockReturnValue(Promise.resolve(true)),
+      tryCompressChat: vi.fn().mockReturnValue(
+        Promise.resolve({
+          originalTokenCount: 100,
+          newTokenCount: 50,
+        }),
+      ),
     } as unknown as GeminiClient;
     mockConfig = {
       getDebugMode: vi.fn(() => false),
@@ -963,7 +968,7 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Attempting to compress chat history'),
+          text: expect.stringContaining('Compressing chat history'),
         }),
         expect.any(Number),
       );
@@ -971,7 +976,9 @@ Add any other context about the problem here.
         3,
         expect.objectContaining({
           type: MessageType.INFO,
-          text: expect.stringContaining('Chat history compressed'),
+          text: expect.stringContaining(
+            'Chat history compressed from 100 to 50 tokens',
+          ),
         }),
         expect.any(Number),
       );

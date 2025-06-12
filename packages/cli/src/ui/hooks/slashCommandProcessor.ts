@@ -647,14 +647,19 @@ Add any other context about the problem here.
         action: async (_mainCommand, _subCommand, _args) => {
           addMessage({
             type: MessageType.INFO,
-            content: 'Attempting to compress chat history...',
+            content: 'Compressing chat history...',
             timestamp: new Date(),
           });
           try {
-            if (await config!.getGeminiClient()!.tryCompressChat(true)) {
+            const compressed = await config!
+              .getGeminiClient()!
+              .tryCompressChat(true);
+            if (compressed) {
               addMessage({
                 type: MessageType.INFO,
-                content: 'Chat history compressed.',
+                content:
+                  'Chat history compressed from ' +
+                  `${compressed.originalTokenCount} to ${compressed.newTokenCount} tokens).`,
                 timestamp: new Date(),
               });
             } else {
