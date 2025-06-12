@@ -13,6 +13,7 @@ import {
   unescapePath,
   getErrorMessage,
   Config,
+  FileDiscoveryService,
 } from '@gemini-cli/core';
 import {
   MAX_SUGGESTIONS_TO_SHOW,
@@ -209,6 +210,11 @@ export function useCompletion(
             path.join(startDir, entry.name),
           );
 
+          // Conditionally ignore dotfiles
+          if (!searchPrefix.startsWith('.') && entry.name.startsWith('.')) {
+            continue;
+          }
+
           // Check if this entry should be ignored by git-aware filtering
           if (
             fileDiscovery &&
@@ -251,21 +257,53 @@ export function useCompletion(
       return foundSuggestions.slice(0, maxResults);
     };
 
+    const findFilesWithGlob = async (
+      searchPrefix: string,
+      fileDiscoveryService: FileDiscoveryService,
+      maxResults = 50,
+    ): Promise<Suggestion[]> => {
+      const globPattern = `**/${searchPrefix}*`;
+      const files = await fileDiscoveryService.glob(globPattern, {
+        cwd,
+        dot: searchPrefix.startsWith('.'),
+      });
+
+      const suggestions: Suggestion[] = files
+        .map((file: string) => {
+          const relativePath = path.relative(cwd, file);
+          return {
+            label: relativePath,
+            value: escapePath(relativePath),
+          };
+        })
+        .slice(0, maxResults);
+
+      return suggestions;
+    };
+
     const fetchSuggestions = async () => {
       setIsLoadingSuggestions(true);
       let fetchedSuggestions: Suggestion[] = [];
 
-      // Get centralized file discovery service if config is available
-      const fileDiscovery = config ? await config.getFileService() : null;
+      const fileDiscoveryService = config
+        ? await config.getFileService()
+        : null;
 
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
         if (partialPath.indexOf('/') === -1 && prefix) {
-          fetchedSuggestions = await findFilesRecursively(
-            cwd,
-            prefix,
-            fileDiscovery,
-          );
+          if (fileDiscoveryService) {
+            fetchedSuggestions = await findFilesWithGlob(
+              prefix,
+              fileDiscoveryService,
+            );
+          } else {
+            fetchedSuggestions = await findFilesRecursively(
+              cwd,
+              prefix,
+              fileDiscoveryService,
+            );
+          }
         } else {
           // Original behavior: list files in the specific directory
           const lowerPrefix = prefix.toLowerCase();
@@ -276,13 +314,20 @@ export function useCompletion(
           // Filter entries using git-aware filtering
           const filteredEntries = [];
           for (const entry of entries) {
+            // Conditionally ignore dotfiles
+            if (!prefix.startsWith('.') && entry.name.startsWith('.')) {
+              continue;
+            }
             if (!entry.name.toLowerCase().startsWith(lowerPrefix)) continue;
 
             const relativePath = path.relative(
               cwd,
               path.join(baseDirAbsolute, entry.name),
             );
-            if (fileDiscovery && fileDiscovery.shouldIgnoreFile(relativePath)) {
+            if (
+              fileDiscoveryService &&
+              fileDiscoveryService.shouldIgnoreFile(relativePath)
+            ) {
               continue;
             }
 
