@@ -660,7 +660,7 @@ Add any other context about the problem here.
                 type: MessageType.INFO,
                 content:
                   'Chat history compressed from ' +
-                  `${compressed.originalTokenCount} to ${compressed.newTokenCount} tokens).`,
+                  `${compressed.originalTokenCount} to ${compressed.newTokenCount} tokens.`,
                 timestamp: new Date(),
               });
             } else {
