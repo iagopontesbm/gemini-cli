@@ -11,7 +11,6 @@ import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
 import { cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
 import chalk from 'chalk';
-import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import stringWidth from 'string-width';
 import process from 'node:process';
 import { useCompletion } from '../hooks/useCompletion.js';
@@ -28,7 +27,7 @@ export interface InputPromptProps {
   slashCommands: SlashCommand[]; // Added slashCommands for useCompletion
   placeholder?: string;
   focus?: boolean;
-  widthFraction: number;
+  effectiveWidth: number;
   shellModeActive: boolean;
   setShellModeActive: (value: boolean) => void;
 }
@@ -42,18 +41,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   slashCommands,
   placeholder = '  Type your message or @path/to/file',
   focus = true,
-  widthFraction,
+  effectiveWidth,
   shellModeActive,
   setShellModeActive,
 }) => {
-  const terminalSize = useTerminalSize();
-  const padding = 3;
-  const effectiveWidth = Math.max(
-    20,
-    Math.round(terminalSize.columns * widthFraction) - padding,
-  );
-  const suggestionsWidth = Math.max(60, Math.floor(terminalSize.columns * 0.8));
-
   const [justNavigatedHistory, setJustNavigatedHistory] = useState(false);
 
   const completion = useCompletion(
@@ -394,7 +385,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             suggestions={completion.suggestions}
             activeIndex={completion.activeSuggestionIndex}
             isLoading={completion.isLoadingSuggestions}
-            width={suggestionsWidth}
+            width={effectiveWidth}
             scrollOffset={completion.visibleStartIndex}
             userInput={buffer.text}
           />

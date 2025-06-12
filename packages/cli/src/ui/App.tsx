@@ -196,9 +196,15 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, []);
 
+  const widthFraction = 0.9;
+  const effectiveWidth = Math.max(
+    20,
+    Math.round(terminalWidth * widthFraction) - 3,
+  );
+
   const buffer = useTextBuffer({
     initialText: '',
-    viewport: { height: 10, width: Math.round(terminalWidth * 0.9) - 3 },
+    viewport: { height: 10, width: effectiveWidth },
     stdin,
     setRawMode,
     isValidPath,
@@ -578,7 +584,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               {isInputActive && (
                 <InputPrompt
                   buffer={buffer}
-                  widthFraction={0.9}
+                  effectiveWidth={effectiveWidth}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
                   onClearScreen={handleClearScreen}
