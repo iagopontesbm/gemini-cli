@@ -241,7 +241,7 @@ describe('useCompletion git-aware filtering integration', () => {
 
     expect(mockFileDiscoveryService.glob).toHaveBeenCalledWith('**/s*', {
       cwd: testCwd,
-      dot: true,
+      dot: false,
     });
     expect(fs.readdir).not.toHaveBeenCalled(); // Ensure glob is used instead of readdir
     expect(result.current.suggestions).toEqual([
