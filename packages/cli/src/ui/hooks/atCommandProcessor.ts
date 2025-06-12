@@ -367,7 +367,7 @@ export async function handleAtCommand({
     };
 
     if (Array.isArray(result.llmContent)) {
-      const fileContentRegex = /^--- (.*?) ---\n\n([\s\S]*?)$/;
+      const fileContentRegex = /^--- (.*?) ---\n\n([\s\S]*?)\n\n$/;
       processedQueryParts.push({
         text: '\n--- Content from referenced files ---',
       });
