@@ -663,7 +663,6 @@ Add any other context about the problem here.
                 content: 'Failed to compress chat history.',
                 timestamp: new Date(),
               });
-
             }
           } catch (e) {
             addMessage({

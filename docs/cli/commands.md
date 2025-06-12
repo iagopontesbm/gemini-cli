@@ -58,6 +58,7 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Action:** Terminates the CLI process.
 
 - **`/tools`**
+
   - **Description:** Displays a list of all the tools that are currently available to the model.
   - **Action:** Outputs a list of the available tools.
 
