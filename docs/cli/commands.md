@@ -62,6 +62,7 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Action:** Outputs a list of the available tools.
 
 - **`/compress`**
+
   - **Description:** Compresses the current context. This will save on tokens used for future tasks while retaining a high level summary of what has happened.
   - **Action:** Replaces the entire chat context with a summary.
 
