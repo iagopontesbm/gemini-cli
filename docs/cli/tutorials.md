@@ -8,6 +8,9 @@ Master usage of Gemini CLI to automate development tasks.
 
 ### GitHub MCP Server
 
+> [!CAUTION]
+> The GitHub MCP Server has known security vulnerabilities, proceed with caution. We strongly recommend using fine grained access tokens that aren't shared between personal and public repositories, not broadly scoped access tokens.
+
 The [GitHub MCP server] provides tools for interacting with GitHub repositories, such as creating issues, commenting on pull requests, and more.
 
 [GitHub MCP server]: https://github.com/github/github-mcp-server
