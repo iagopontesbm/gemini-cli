@@ -10,7 +10,7 @@ steps:
     args:
       - -c # Use bash -c to allow for command substitution and string manipulation
       - |
-        echo 'Running Gemini CLI'
+        echo 'Running GEMINI CLI'
 
   # # Step 3: Run prerelease:dev to update workspace versions and dependencies
   # - name: 'us-west1-docker.pkg.dev/gemini-code-dev/gemini-code-containers/gemini-code-builder'
