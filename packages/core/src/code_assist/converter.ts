@@ -24,9 +24,8 @@ import {
 } from '@google/genai';
 
 declare interface VertexRequest {
-  model: string;
   contents: Content[];
-  systemInstructions?: Content;
+  systemInstruction?: Content;
   cachedContent?: string;
   tools?: ToolListUnion;
   toolConfig?: ToolConfig;
@@ -60,9 +59,8 @@ declare interface VertexGenerationConfig {
 
 export function toVertexRequest(req: GenerateContentParameters): VertexRequest {
   return {
-    model: req.model,
     contents: toVertexContents(req.contents),
-    systemInstructions: maybeToVertexContent(req.config?.systemInstruction),
+    systemInstruction: maybeToVertexContent(req.config?.systemInstruction),
     cachedContent: req.config?.cachedContent,
     tools: req.config?.tools,
     toolConfig: req.config?.toolConfig,

@@ -24,11 +24,13 @@ import * as readline from 'readline';
 import type { ReadableStream } from 'node:stream/web';
 import { ContentGenerator } from '../core/contentGenerator.js';
 import {toVertexRequest} from './converter.js';
+import { PassThrough } from 'node:stream';
 
 
 // TODO: Use production endpoint once it supports our methods.
 export const CCPA_ENDPOINT =
   'https://staging-cloudcode-pa.sandbox.googleapis.com';
+// export const CCPA_ENDPOINT =  'http://localhost:9999';
 export const CCPA_API_VERSION = 'v1internal';
 
 export class CcpaServer implements ContentGenerator {
@@ -42,7 +44,11 @@ export class CcpaServer implements ContentGenerator {
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     return await this.streamEndpoint<GenerateContentResponse>(
       'streamGenerateContent',
-      toVertexRequest(req),
+      {
+        model: req.model,
+        project: this.projectId,
+        request: toVertexRequest(req),
+      },
     );
   }
 
@@ -51,7 +57,11 @@ export class CcpaServer implements ContentGenerator {
   ): Promise<GenerateContentResponse> {
     return await this.callEndpoint<GenerateContentResponse>(
       'generateContent',
-      toVertexRequest(req),
+      {
+        model: req.model,
+        project: this.projectId,
+        request: toVertexRequest(req),
+      },
     );
   }
 
@@ -94,11 +104,6 @@ export class CcpaServer implements ContentGenerator {
       responseType: 'json',
       body: JSON.stringify(req),
     });
-    if (res.status !== 200) {
-      throw new Error(
-        `Failed to fetch from ${method}: ${res.status} ${res.data}`,
-      );
-    }
     return res.data as T;
   }
 
@@ -116,15 +121,10 @@ export class CcpaServer implements ContentGenerator {
       responseType: 'stream',
       body: JSON.stringify(req),
     });
-    if (res.status !== 200) {
-      throw new Error(
-        `Failed to fetch from ${method}: ${res.status} ${res.data}`,
-      );
-    }
 
     return (async function* (): AsyncGenerator<T> {
       const rl = readline.createInterface({
-        input: Readable.fromWeb(res.data as ReadableStream<Uint8Array>),
+        input: res.data as PassThrough,
         crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
       });
 
