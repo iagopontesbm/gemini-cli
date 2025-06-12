@@ -2,7 +2,7 @@
 
 This document describes how to run Gemini CLI and explains the deployment architecture that Gemini CLI uses.
 
-## Running the Gemini CLI
+## Running Gemini CLI
 
 There are several ways to run Gemini CLI. The option you choose depends on how you intend to use Gemini CLI.
 
