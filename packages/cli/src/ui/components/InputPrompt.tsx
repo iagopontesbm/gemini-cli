@@ -27,7 +27,7 @@ export interface InputPromptProps {
   slashCommands: SlashCommand[]; // Added slashCommands for useCompletion
   placeholder?: string;
   focus?: boolean;
-  effectiveWidth: number;
+  inputWidth: number;
   suggestionsWidth: number;
   shellModeActive: boolean;
   setShellModeActive: (value: boolean) => void;
@@ -42,7 +42,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   slashCommands,
   placeholder = '  Type your message or @path/to/file',
   focus = true,
-  effectiveWidth,
+  inputWidth,
   suggestionsWidth,
   shellModeActive,
   setShellModeActive,
@@ -344,11 +344,10 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           ) : (
             linesToRender.map((lineText, visualIdxInRenderedSet) => {
               const cursorVisualRow = cursorVisualRowAbsolute - scrollVisualRow;
-              let display = cpSlice(lineText, 0, effectiveWidth);
+              let display = cpSlice(lineText, 0, inputWidth);
               const currentVisualWidth = stringWidth(display);
-              if (currentVisualWidth < effectiveWidth) {
-                display =
-                  display + ' '.repeat(effectiveWidth - currentVisualWidth);
+              if (currentVisualWidth < inputWidth) {
+                display = display + ' '.repeat(inputWidth - currentVisualWidth);
               }
 
               if (visualIdxInRenderedSet === cursorVisualRow) {
@@ -368,7 +367,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
                       cpSlice(display, relativeVisualColForHighlight + 1);
                   } else if (
                     relativeVisualColForHighlight === cpLen(display) &&
-                    cpLen(display) === effectiveWidth
+                    cpLen(display) === inputWidth
                   ) {
                     display = display + chalk.inverse(' ');
                   }
