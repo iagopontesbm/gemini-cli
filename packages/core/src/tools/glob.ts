@@ -228,6 +228,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         withFileTypes: true,
         nodir: true,
         stat: true,
+        nocase: !params.case_sensitive,
         dot: true,
         ignore: ['**/node_modules/**', '**/.git/**'],
         follow: false,
