@@ -21,7 +21,7 @@ The Gemini CLI is primarily composed of two main packages, along with a suite of
     - **Purpose:** This acts as the backend for the Gemini CLI. It receives requests sent from `packages/cli`, orchestrates interactions with the Gemini API, and manages the execution of available tools.
     - **Key functions contained in the package:**
       - API client for communicating with the Google Gemini API
-      - Prompt construction and managemen
+      - Prompt construction and management
       - Tool registration and execution logic
       - State management for conversations or sessions
       - Server-side configuration
