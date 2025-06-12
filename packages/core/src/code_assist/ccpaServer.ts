@@ -25,15 +25,15 @@ import { CcpaResponse, toCcpaRequest, fromCcpaResponse } from './converter.js';
 import { PassThrough } from 'node:stream';
 
 // TODO: Use production endpoint once it supports our methods.
-export const CCPA_ENDPOINT =
-  'https://staging-cloudcode-pa.sandbox.googleapis.com';
-export const CCPA_API_VERSION = 'v1internal';
+export const CODE_ASSIST_ENDPOINT =
+  process.env.CODE_ASSIST_ENDPOINT ?? 'https://staging-cloudcode-pa.sandbox.googleapis.com';
+export const CODE_ASSIST_API_VERSION = 'v1internal';
 
-export class CcpaServer implements ContentGenerator {
+export class CodeAssistServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
     readonly projectId?: string,
-  ) {}
+  ) { }
 
   async generateContentStream(
     req: GenerateContentParameters,
@@ -89,7 +89,7 @@ export class CcpaServer implements ContentGenerator {
 
   async callEndpoint<T>(method: string, req: object): Promise<T> {
     const res = await this.auth.request({
-      url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export class CcpaServer implements ContentGenerator {
     req: object,
   ): Promise<AsyncGenerator<T>> {
     const res = await this.auth.request({
-      url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       params: {
         alt: 'sse',
