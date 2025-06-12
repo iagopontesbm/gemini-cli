@@ -6,16 +6,16 @@
 
 import fs from 'fs';
 import path from 'path';
-import { glob, Path } from 'glob';
+import { glob } from 'glob';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { BaseTool, ToolResult } from './tools.js';
 import { shortenPath, makeRelative } from '../utils/paths.js';
 import { Config } from '../config/config.js';
 
-// Type definition for file entries returned by fast-glob with stats: true
-export interface GlobFileEntry {
-  path: string;
-  stats?: fs.Stats;
+// Subset of 'Path' interface provided by 'glob' that we can implement for testing
+export interface GlobPath {
+  fullpath(): string;
+  mtimeMs?: number;
 }
 
 /**
@@ -24,14 +24,14 @@ export interface GlobFileEntry {
  * Older files are listed after recent ones, sorted alphabetically by path.
  */
 export function sortFileEntries(
-  entries: Path[],
+  entries: GlobPath[],
   nowTimestamp: number,
   recencyThresholdMs: number,
-): GlobFileEntry[] {
+): GlobPath[] {
   const sortedEntries = [...entries];
   sortedEntries.sort((a, b) => {
-    const mtimeA = a.mtime?.getTime() ?? 0;
-    const mtimeB = b.mtime?.getTime() ?? 0;
+    const mtimeA = a.mtimeMs ?? 0;
+    const mtimeB = b.mtimeMs ?? 0;
     const aIsRecent = nowTimestamp - mtimeA < recencyThresholdMs;
     const bIsRecent = nowTimestamp - mtimeB < recencyThresholdMs;
 
@@ -42,7 +42,7 @@ export function sortFileEntries(
     } else if (bIsRecent) {
       return 1;
     } else {
-      return a.path.localeCompare(b.path);
+      return a.fullpath().localeCompare(b.fullpath());
     }
   });
   return sortedEntries;
@@ -223,17 +223,16 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         this.config.getFileFilteringRespectGitIgnore();
       const fileDiscovery = await this.config.getFileService();
 
-      const entries = await glob(params.pattern, {
+      const entries = (await glob(params.pattern, {
         cwd: searchDirAbsolute,
         withFileTypes: true,
-        absolute: true,
         nodir: true,
         stat: true,
         dot: true,
         ignore: ['**/node_modules/**', '**/.git/**'],
         follow: false,
         signal,
-      }) as Path[];
+      })) as GlobPath[];
 
       // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
@@ -241,7 +240,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
 
       if (respectGitIgnore && fileDiscovery.isGitRepository()) {
         const relativePaths = entries.map((p) =>
-          path.relative(this.rootDirectory, p.path),
+          path.relative(this.rootDirectory, p.fullpath()),
         );
         const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths, {
           respectGitIgnore,
@@ -251,7 +250,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         );
 
         filteredEntries = entries.filter((entry) =>
-          filteredAbsolutePaths.has(entry.path),
+          filteredAbsolutePaths.has(entry.fullpath()),
         );
         gitIgnoredCount = entries.length - filteredEntries.length;
       }
@@ -278,7 +277,9 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         oneDayInMs,
       );
 
-      const sortedAbsolutePaths = sortedEntries.map((entry) => entry.path);
+      const sortedAbsolutePaths = sortedEntries.map((entry) =>
+        entry.fullpath(),
+      );
       const fileListDescription = sortedAbsolutePaths.join('\n');
       const fileCount = sortedAbsolutePaths.length;
 
