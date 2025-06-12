@@ -83,7 +83,6 @@ export interface ConfigParameters {
   telemetryLogUserPromptsEnabled?: boolean;
   fileFilteringRespectGitIgnore?: boolean;
   fileFilteringAllowBuildArtifacts?: boolean;
-  enableModifyWithExternalEditors?: boolean;
   checkpoint?: boolean;
 }
 
@@ -115,7 +114,6 @@ export class Config {
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
   private readonly fileFilteringAllowBuildArtifacts: boolean;
-  private readonly enableModifyWithExternalEditors: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
   private readonly checkpoint: boolean;
@@ -149,8 +147,6 @@ export class Config {
       params.fileFilteringRespectGitIgnore ?? true;
     this.fileFilteringAllowBuildArtifacts =
       params.fileFilteringAllowBuildArtifacts ?? false;
-    this.enableModifyWithExternalEditors =
-      params.enableModifyWithExternalEditors ?? false;
     this.checkpoint = params.checkpoint ?? false;
 
     if (params.contextFileName) {
@@ -297,10 +293,6 @@ export class Config {
 
   getFileFilteringAllowBuildArtifacts(): boolean {
     return this.fileFilteringAllowBuildArtifacts;
-  }
-
-  getEnableModifyWithExternalEditors(): boolean {
-    return this.enableModifyWithExternalEditors;
   }
 
   getCheckpointEnabled(): boolean {
