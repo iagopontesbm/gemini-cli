@@ -27,7 +27,6 @@ import { PassThrough } from 'node:stream';
 // TODO: Use production endpoint once it supports our methods.
 export const CCPA_ENDPOINT =
   'https://staging-cloudcode-pa.sandbox.googleapis.com';
-// export const CCPA_ENDPOINT = 'http://localhost:9999';
 export const CCPA_API_VERSION = 'v1internal';
 
 export class CcpaServer implements ContentGenerator {
