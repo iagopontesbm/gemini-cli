@@ -5,9 +5,6 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import * as fs from 'fs';
-import * as path from 'path';
-import { tmpdir } from 'os';
 
 import {
   Chat,
@@ -66,9 +63,7 @@ vi.mock('../telemetry/index.js', () => ({
 
 describe('Gemini Client (client.ts)', () => {
   let client: GeminiClient;
-  let tempDir: string;
   beforeEach(() => {
-    tempDir = fs.mkdtempSync(path.join(tmpdir(), 'gemini-cli-test-'));
     vi.resetAllMocks();
 
     // Set up the mock for GoogleGenAI constructor and its methods
@@ -130,10 +125,7 @@ describe('Gemini Client (client.ts)', () => {
     // We can instantiate the client here since Config is mocked
     // and the constructor will use the mocked GoogleGenAI
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const mockConfig = new Config({
-      cwd: tempDir,
-      contentGeneratorConfig: { apiKey: 'test-key', model: 'test-model' },
-    } as any);
+    const mockConfig = new Config({} as any);
     client = new GeminiClient(mockConfig);
   });
 

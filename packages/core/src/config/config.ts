@@ -153,7 +153,7 @@ export class Config {
       params.enableModifyWithExternalEditors ?? false;
     this.checkpoint = params.checkpoint ?? false;
     this.proxy = params.proxy;
-    this.cwd = params.cwd;
+    this.cwd = params.cwd ?? process.cwd();
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
