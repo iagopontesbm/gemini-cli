@@ -8,8 +8,8 @@ Master usage of Gemini CLI to automate development tasks.
 
 ### GitHub MCP Server
 
-> [!CAUTION]
-> The GitHub MCP Server has known security vulnerabilities, proceed with caution. We strongly recommend using fine grained access tokens that aren't shared between personal and public repositories, not broadly scoped access tokens.
+> [!WARNING]
+> The GitHub MCP Server has known security vulnerabilities, proceed with caution.
 
 The [GitHub MCP server] provides tools for interacting with GitHub repositories, such as creating issues, commenting on pull requests, and more.
 
@@ -54,6 +54,9 @@ In your project's root directory, create or open the `.gemini/settings.json` fil
 ```
 
 ##### Set Your GitHub Token
+
+> [!CAUTION]
+> Using a broadly scoped personal access token that has access to personal and private repositories can lead to information from the private repository leaked into the public repository. We recommend using a fine grained access token that doesn't share access to both public and private repositories.
 
 Use an environment variable to store your PAT.
 
