@@ -25,7 +25,7 @@ import {
 } from './types.js';
 import {
   recordApiErrorMetrics,
-  recordApiRequestMetrics,
+  recordTokenUsageMetrics,
   recordApiResponseMetrics,
   recordToolCallMetrics,
 } from './metrics.js';
@@ -34,23 +34,37 @@ import { isTelemetrySdkInitialized } from './sdk.js';
 const shouldLogUserPrompts = (config: Config): boolean =>
   config.getTelemetryLogUserPromptsEnabled() ?? false;
 
+function getCommonAttributes(config: Config): LogAttributes {
+  return {
+    'session.id': config.getSessionId(),
+  };
+}
+
 export function logCliConfiguration(config: Config): void {
   if (!isTelemetrySdkInitialized()) return;
 
+  const generatorConfig = config.getContentGeneratorConfig();
+  const mcpServers = config.getMcpServers();
   const attributes: LogAttributes = {
+    ...getCommonAttributes(config),
     'event.name': EVENT_CLI_CONFIG,
     'event.timestamp': new Date().toISOString(),
     model: config.getModel(),
+    embedding_model: config.getEmbeddingModel(),
     sandbox_enabled:
       typeof config.getSandbox() === 'string' ? true : config.getSandbox(),
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
-    vertex_ai_enabled: !!config.getContentGeneratorConfig().vertexai,
+    api_key_enabled: !!generatorConfig.apiKey,
+    vertex_ai_enabled: !!generatorConfig.vertexai,
+    code_assist_enabled: !!generatorConfig.codeAssist,
     log_user_prompts_enabled: config.getTelemetryLogUserPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),
     file_filtering_allow_build_artifacts:
       config.getFileFilteringAllowBuildArtifacts(),
+    debug_mode: config.getDebugMode(),
+    mcp_servers: mcpServers ? Object.keys(mcpServers).join(',') : '',
   };
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
@@ -67,28 +81,33 @@ export function logUserPrompt(
   },
 ): void {
   if (!isTelemetrySdkInitialized()) return;
-  const { prompt, ...restOfEventArgs } = event;
+
   const attributes: LogAttributes = {
-    ...restOfEventArgs,
+    ...getCommonAttributes(config),
     'event.name': EVENT_USER_PROMPT,
     'event.timestamp': new Date().toISOString(),
+    prompt_length: event.prompt_length,
   };
+
   if (shouldLogUserPrompts(config)) {
-    attributes.prompt = prompt;
+    attributes.prompt = event.prompt;
   }
+
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `User prompt. Length: ${event.prompt_char_count}`,
+    body: `User prompt. Length: ${event.prompt_length}`,
     attributes,
   };
   logger.emit(logRecord);
 }
 
 export function logToolCall(
+  config: Config,
   event: Omit<ToolCallEvent, 'event.name' | 'event.timestamp'>,
 ): void {
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
+    ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_TOOL_CALL,
     'event.timestamp': new Date().toISOString(),
@@ -106,32 +125,46 @@ export function logToolCall(
     attributes,
   };
   logger.emit(logRecord);
-  recordToolCallMetrics(event.function_name, event.duration_ms, event.success);
+  recordToolCallMetrics(
+    config,
+    event.function_name,
+    event.duration_ms,
+    event.success,
+  );
 }
 
 export function logApiRequest(
+  config: Config,
   event: Omit<ApiRequestEvent, 'event.name' | 'event.timestamp'>,
 ): void {
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
+    ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_API_REQUEST,
     'event.timestamp': new Date().toISOString(),
   };
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `API request to ${event.model}. Tokens: ${event.prompt_token_count}.`,
+    body: `API request to ${event.model}. Tokens: ${event.input_token_count}.`,
     attributes,
   };
   logger.emit(logRecord);
-  recordApiRequestMetrics(event.model, event.prompt_token_count);
+  recordTokenUsageMetrics(
+    config,
+    event.model,
+    event.input_token_count,
+    'input',
+  );
 }
 
 export function logApiError(
+  config: Config,
   event: Omit<ApiErrorEvent, 'event.name' | 'event.timestamp'>,
 ): void {
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
+    ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_API_ERROR,
     'event.timestamp': new Date().toISOString(),
@@ -152,6 +185,7 @@ export function logApiError(
   };
   logger.emit(logRecord);
   recordApiErrorMetrics(
+    config,
     event.model,
     event.duration_ms,
     event.status_code,
@@ -160,14 +194,19 @@ export function logApiError(
 }
 
 export function logApiResponse(
+  config: Config,
   event: Omit<ApiResponseEvent, 'event.name' | 'event.timestamp'>,
 ): void {
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
+    ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_API_RESPONSE,
     'event.timestamp': new Date().toISOString(),
   };
+  if (event.response_text) {
+    attributes.response_text = event.response_text;
+  }
   if (event.error) {
     attributes['error.message'] = event.error;
   } else if (event.status_code) {
@@ -183,9 +222,29 @@ export function logApiResponse(
   };
   logger.emit(logRecord);
   recordApiResponseMetrics(
+    config,
     event.model,
     event.duration_ms,
     event.status_code,
     event.error,
   );
+  recordTokenUsageMetrics(
+    config,
+    event.model,
+    event.output_token_count,
+    'output',
+  );
+  recordTokenUsageMetrics(
+    config,
+    event.model,
+    event.cached_content_token_count,
+    'cache',
+  );
+  recordTokenUsageMetrics(
+    config,
+    event.model,
+    event.thoughts_token_count,
+    'thought',
+  );
+  recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
 }
