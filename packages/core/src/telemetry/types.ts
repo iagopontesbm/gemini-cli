@@ -18,6 +18,7 @@ export interface ToolCallEvent {
   function_args: Record<string, unknown>;
   duration_ms: number;
   success: boolean;
+  decision?: 'accept' | 'reject' | 'modify';
   error?: string;
   error_type?: string;
 }

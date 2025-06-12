@@ -130,6 +130,7 @@ export function logToolCall(
     event.function_name,
     event.duration_ms,
     event.success,
+    event.decision,
   );
 }
 

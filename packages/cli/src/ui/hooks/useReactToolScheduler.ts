@@ -129,6 +129,7 @@ export function useReactToolScheduler(
           function_args: call.request.args,
           duration_ms: duration,
           success,
+          decision: call.decision,
           error: errorMessage,
         });
       });

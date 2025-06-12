@@ -25,6 +25,7 @@ export type ValidatingToolCall = {
   request: ToolCallRequestInfo;
   tool: Tool;
   startTime?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type ScheduledToolCall = {
@@ -32,6 +33,7 @@ export type ScheduledToolCall = {
   request: ToolCallRequestInfo;
   tool: Tool;
   startTime?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type ErroredToolCall = {
@@ -39,6 +41,7 @@ export type ErroredToolCall = {
   request: ToolCallRequestInfo;
   response: ToolCallResponseInfo;
   durationMs?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type SuccessfulToolCall = {
@@ -47,6 +50,7 @@ export type SuccessfulToolCall = {
   tool: Tool;
   response: ToolCallResponseInfo;
   durationMs?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type ExecutingToolCall = {
@@ -55,6 +59,7 @@ export type ExecutingToolCall = {
   tool: Tool;
   liveOutput?: string;
   startTime?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type CancelledToolCall = {
@@ -63,6 +68,7 @@ export type CancelledToolCall = {
   response: ToolCallResponseInfo;
   tool: Tool;
   durationMs?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type WaitingToolCall = {
@@ -71,6 +77,7 @@ export type WaitingToolCall = {
   tool: Tool;
   confirmationDetails: ToolCallConfirmationDetails;
   startTime?: number;
+  decision?: 'accept' | 'reject' | 'modify';
 };
 
 export type Status = ToolCall['status'];
@@ -273,6 +280,13 @@ export class CoreToolScheduler {
           | ExecutingToolCall
           | WaitingToolCall
       ).tool;
+      const decision = (
+        currentCall as
+          | ValidatingToolCall
+          | ScheduledToolCall
+          | ExecutingToolCall
+          | WaitingToolCall
+      ).decision;
 
       switch (newStatus) {
         case 'success': {
@@ -285,6 +299,7 @@ export class CoreToolScheduler {
             status: 'success',
             response: auxiliaryData as ToolCallResponseInfo,
             durationMs,
+            decision,
           } as SuccessfulToolCall;
         }
         case 'error': {
@@ -296,6 +311,7 @@ export class CoreToolScheduler {
             status: 'error',
             response: auxiliaryData as ToolCallResponseInfo,
             durationMs,
+            decision,
           } as ErroredToolCall;
         }
         case 'awaiting_approval':
@@ -305,6 +321,7 @@ export class CoreToolScheduler {
             status: 'awaiting_approval',
             confirmationDetails: auxiliaryData as ToolCallConfirmationDetails,
             startTime: existingStartTime,
+            decision,
           } as WaitingToolCall;
         case 'scheduled':
           return {
@@ -312,6 +329,7 @@ export class CoreToolScheduler {
             tool: toolInstance,
             status: 'scheduled',
             startTime: existingStartTime,
+            decision,
           } as ScheduledToolCall;
         case 'cancelled': {
           const durationMs = existingStartTime
@@ -336,6 +354,7 @@ export class CoreToolScheduler {
               error: undefined,
             },
             durationMs,
+            decision,
           } as CancelledToolCall;
         }
         case 'validating':
@@ -344,6 +363,7 @@ export class CoreToolScheduler {
             tool: toolInstance,
             status: 'validating',
             startTime: existingStartTime,
+            decision,
           } as ValidatingToolCall;
         case 'executing':
           return {
@@ -351,6 +371,7 @@ export class CoreToolScheduler {
             tool: toolInstance,
             status: 'executing',
             startTime: existingStartTime,
+            decision,
           } as ExecutingToolCall;
         default: {
           const exhaustiveCheck: never = newStatus;
@@ -468,6 +489,26 @@ export class CoreToolScheduler {
     this.checkAndNotifyCompletion();
   }
 
+  private getDecisionFromOutcome(
+    outcome: ToolConfirmationOutcome,
+  ): 'accept' | 'reject' | 'modify' {
+    switch (outcome) {
+      case ToolConfirmationOutcome.ProceedOnce:
+      case ToolConfirmationOutcome.ProceedAlways:
+      case ToolConfirmationOutcome.ProceedAlwaysServer:
+      case ToolConfirmationOutcome.ProceedAlwaysTool:
+        return 'accept';
+      case ToolConfirmationOutcome.ModifyVSCode:
+      case ToolConfirmationOutcome.ModifyWindsurf:
+      case ToolConfirmationOutcome.ModifyCursor:
+      case ToolConfirmationOutcome.ModifyVim:
+        return 'modify';
+      case ToolConfirmationOutcome.Cancel:
+      default:
+        return 'reject';
+    }
+  }
+
   async handleConfirmationResponse(
     callId: string,
     originalOnConfirm: (outcome: ToolConfirmationOutcome) => Promise<void>,
@@ -481,6 +522,16 @@ export class CoreToolScheduler {
     if (toolCall && toolCall.status === 'awaiting_approval') {
       await originalOnConfirm(outcome);
     }
+
+    const decision = this.getDecisionFromOutcome(outcome);
+
+    this.toolCalls = this.toolCalls.map((call) => {
+      if (call.request.callId !== callId) return call;
+      return {
+        ...call,
+        decision,
+      };
+    });
 
     if (outcome === ToolConfirmationOutcome.Cancel || signal.aborted) {
       this.setStatusInternal(

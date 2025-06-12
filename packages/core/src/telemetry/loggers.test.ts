@@ -262,6 +262,137 @@ describe('loggers', () => {
         },
         duration_ms: 100,
         success: true,
+        decision: 'accept' as const,
+      };
+
+      logToolCall(mockConfig, event);
+
+      expect(mockLogger.emit).toHaveBeenCalledWith({
+        body: 'Tool call: test-function. Success: true. Duration: 100ms.',
+        attributes: {
+          'session.id': 'test-session-id',
+          'event.name': 'gemini_cli.tool_call',
+          'event.timestamp': '2025-01-01T00:00:00.000Z',
+          function_name: 'test-function',
+          function_args: JSON.stringify(
+            {
+              arg1: 'value1',
+              arg2: 2,
+            },
+            null,
+            2,
+          ),
+          duration_ms: 100,
+          success: true,
+          decision: 'accept' as const,
+        },
+      });
+
+      expect(mockMetrics.recordToolCallMetrics).toHaveBeenCalledWith(
+        mockConfig,
+        'test-function',
+        100,
+        true,
+        'accept',
+      );
+    });
+    it('should log a tool call with a reject decision', () => {
+      const event = {
+        function_name: 'test-function',
+        function_args: {
+          arg1: 'value1',
+          arg2: 2,
+        },
+        duration_ms: 100,
+        success: false,
+        decision: 'reject' as const,
+      };
+
+      logToolCall(mockConfig, event);
+
+      expect(mockLogger.emit).toHaveBeenCalledWith({
+        body: 'Tool call: test-function. Success: false. Duration: 100ms.',
+        attributes: {
+          'session.id': 'test-session-id',
+          'event.name': 'gemini_cli.tool_call',
+          'event.timestamp': '2025-01-01T00:00:00.000Z',
+          function_name: 'test-function',
+          function_args: JSON.stringify(
+            {
+              arg1: 'value1',
+              arg2: 2,
+            },
+            null,
+            2,
+          ),
+          duration_ms: 100,
+          success: false,
+          decision: 'reject' as const,
+        },
+      });
+
+      expect(mockMetrics.recordToolCallMetrics).toHaveBeenCalledWith(
+        mockConfig,
+        'test-function',
+        100,
+        false,
+        'reject',
+      );
+    });
+
+    it('should log a tool call with a modify decision', () => {
+      const event = {
+        function_name: 'test-function',
+        function_args: {
+          arg1: 'value1',
+          arg2: 2,
+        },
+        duration_ms: 100,
+        success: true,
+        decision: 'modify' as const,
+      };
+
+      logToolCall(mockConfig, event);
+
+      expect(mockLogger.emit).toHaveBeenCalledWith({
+        body: 'Tool call: test-function. Success: true. Duration: 100ms.',
+        attributes: {
+          'session.id': 'test-session-id',
+          'event.name': 'gemini_cli.tool_call',
+          'event.timestamp': '2025-01-01T00:00:00.000Z',
+          function_name: 'test-function',
+          function_args: JSON.stringify(
+            {
+              arg1: 'value1',
+              arg2: 2,
+            },
+            null,
+            2,
+          ),
+          duration_ms: 100,
+          success: true,
+          decision: 'modify' as const,
+        },
+      });
+
+      expect(mockMetrics.recordToolCallMetrics).toHaveBeenCalledWith(
+        mockConfig,
+        'test-function',
+        100,
+        true,
+        'modify',
+      );
+    });
+
+    it('should log a tool call without a decision', () => {
+      const event = {
+        function_name: 'test-function',
+        function_args: {
+          arg1: 'value1',
+          arg2: 2,
+        },
+        duration_ms: 100,
+        success: true,
       };
 
       logToolCall(mockConfig, event);
@@ -291,6 +422,53 @@ describe('loggers', () => {
         'test-function',
         100,
         true,
+        undefined,
+      );
+    });
+
+    it('should log a failed tool call with an error', () => {
+      const event = {
+        function_name: 'test-function',
+        function_args: {
+          arg1: 'value1',
+          arg2: 2,
+        },
+        duration_ms: 100,
+        success: false,
+        error: 'test-error',
+        error_type: 'test-error-type',
+      };
+
+      logToolCall(mockConfig, event);
+
+      expect(mockLogger.emit).toHaveBeenCalledWith({
+        body: 'Tool call: test-function. Success: false. Duration: 100ms.',
+        attributes: {
+          'session.id': 'test-session-id',
+          'event.name': 'gemini_cli.tool_call',
+          'event.timestamp': '2025-01-01T00:00:00.000Z',
+          function_name: 'test-function',
+          function_args: JSON.stringify(
+            {
+              arg1: 'value1',
+              arg2: 2,
+            },
+            null,
+            2,
+          ),
+          duration_ms: 100,
+          success: false,
+          error: 'test-error',
+          error_type: 'test-error-type',
+        },
+      });
+
+      expect(mockMetrics.recordToolCallMetrics).toHaveBeenCalledWith(
+        mockConfig,
+        'test-function',
+        100,
+        false,
+        undefined,
       );
     });
   });
