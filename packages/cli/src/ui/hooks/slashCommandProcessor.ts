@@ -66,9 +66,11 @@ export const useSlashCommandProcessor = (
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
+  openEditorDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
+  setQuittingMessages: (message: HistoryItem[]) => void,
 ) => {
   const session = useSessionStats();
   const gitService = useMemo(() => {
@@ -178,6 +180,13 @@ export const useSlashCommandProcessor = (
         description: 'change the theme',
         action: (_mainCommand, _subCommand, _args) => {
           openThemeDialog();
+        },
+      },
+      {
+        name: 'editor',
+        description: 'open the editor',
+        action: (_mainCommand, _subCommand, _args) => {
+          openEditorDialog();
         },
       },
       {
@@ -608,17 +617,24 @@ Add any other context about the problem here.
         name: 'quit',
         altName: 'exit',
         description: 'exit the cli',
-        action: async (_mainCommand, _subCommand, _args) => {
+        action: async (mainCommand, _subCommand, _args) => {
           const now = new Date();
           const { sessionStartTime, cumulative } = session.stats;
           const wallDuration = now.getTime() - sessionStartTime.getTime();
 
-          addMessage({
-            type: MessageType.QUIT,
-            stats: cumulative,
-            duration: formatDuration(wallDuration),
-            timestamp: new Date(),
-          });
+          setQuittingMessages([
+            {
+              type: 'user',
+              text: `/${mainCommand}`,
+              id: now.getTime() - 1,
+            },
+            {
+              type: 'quit',
+              stats: cumulative,
+              duration: formatDuration(wallDuration),
+              id: now.getTime(),
+            },
+          ]);
 
           setTimeout(() => {
             process.exit(0);
@@ -737,6 +753,7 @@ Add any other context about the problem here.
     setShowHelp,
     refreshStatic,
     openThemeDialog,
+    openEditorDialog,
     clearItems,
     performMemoryRefresh,
     showMemoryAction,
@@ -749,6 +766,7 @@ Add any other context about the problem here.
     gitService,
     loadHistory,
     addItem,
+    setQuittingMessages,
   ]);
 
   const handleSlashCommand = useCallback(
@@ -763,7 +781,12 @@ Add any other context about the problem here.
         return false;
       }
       const userMessageTimestamp = Date.now();
-      addItem({ type: MessageType.USER, text: trimmed }, userMessageTimestamp);
+      if (trimmed !== '/quit' && trimmed !== '/exit') {
+        addItem(
+          { type: MessageType.USER, text: trimmed },
+          userMessageTimestamp,
+        );
+      }
 
       let subCommand: string | undefined;
       let args: string | undefined;
