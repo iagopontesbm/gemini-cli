@@ -21,9 +21,8 @@ import {
 } from '@google/genai';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
-import { toCcpaRequest, fromCcpaResponse } from './converter.js';
+import { CcpaResponse, toCcpaRequest, fromCcpaResponse } from './converter.js';
 import { PassThrough } from 'node:stream';
-
 
 // TODO: Use production endpoint once it supports our methods.
 export const CCPA_ENDPOINT =
@@ -35,26 +34,18 @@ export class CcpaServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
     readonly projectId?: string,
-  ) { }
+  ) {}
 
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    // const resp = await this.callEndpoint<GenerateContentResponse>(
-    //   'generateContent',
-    //   toCcpaRequest(req, this.projectId),
-    // );
-    // return (async function* (): AsyncGenerator<GenerateContentResponse> {
-    //   yield fromCcpaResponse(resp);
-    // })();
-
-    const values = await this.streamEndpoint(
+    const resps = await this.streamEndpoint<CcpaResponse>(
       'streamGenerateContent',
       toCcpaRequest(req, this.projectId),
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
-      for await (const value of values) {
-        yield fromCcpaResponse(value);
+      for await (const resp of resps) {
+        yield fromCcpaResponse(resp);
       }
     })();
   }
@@ -62,7 +53,7 @@ export class CcpaServer implements ContentGenerator {
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.callEndpoint<GenerateContentResponse>(
+    const resp = await this.callEndpoint<CcpaResponse>(
       'generateContent',
       toCcpaRequest(req, this.projectId),
     );
@@ -111,10 +102,10 @@ export class CcpaServer implements ContentGenerator {
     return res.data as T;
   }
 
-  async streamEndpoint(
+  async streamEndpoint<T>(
     method: string,
     req: object,
-  ): Promise<AsyncGenerator<Object>> {
+  ): Promise<AsyncGenerator<T>> {
     const res = await this.auth.request({
       url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
       method: 'POST',
@@ -126,7 +117,7 @@ export class CcpaServer implements ContentGenerator {
       body: JSON.stringify(req),
     });
 
-    return (async function* (): AsyncGenerator<Object> {
+    return (async function* (): AsyncGenerator<T> {
       const rl = readline.createInterface({
         input: res.data as PassThrough,
         crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
@@ -139,7 +130,7 @@ export class CcpaServer implements ContentGenerator {
           if (bufferedLines.length === 0) {
             continue; // no data to yield
           }
-          yield JSON.parse(bufferedLines.join('\n')) as Object;
+          yield JSON.parse(bufferedLines.join('\n')) as T;
           bufferedLines = []; // Reset the buffer after yielding
         } else if (line.startsWith('data: ')) {
           bufferedLines.push(line.slice(6).trim());

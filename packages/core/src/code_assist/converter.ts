@@ -27,18 +27,24 @@ import {
   ToolConfig,
 } from '@google/genai';
 
-declare interface VertexRequest {
+export interface CcpaRequest {
+  model: string;
+  project?: string;
+  request: CcpaGenerateContentRequest;
+}
+
+interface CcpaGenerateContentRequest {
   contents: Content[];
   systemInstruction?: Content;
   cachedContent?: string;
   tools?: ToolListUnion;
   toolConfig?: ToolConfig;
-  labels?: Record<string, string>
+  labels?: Record<string, string>;
   safetySettings?: SafetySetting[];
-  generationConfig: VertexGenerationConfig;
+  generationConfig?: CcpaGenerationConfig;
 }
 
-declare interface VertexGenerationConfig {
+interface CcpaGenerationConfig {
   temperature?: number;
   topP?: number;
   topK?: number;
@@ -61,75 +67,75 @@ declare interface VertexGenerationConfig {
   thinkingConfig?: ThinkingConfig;
 }
 
-declare interface VertexResponse {
+export interface CcpaResponse {
+  response: VertexResponse;
+}
+
+interface VertexResponse {
   candidates: Candidate[];
   automaticFunctionCallingHistory?: Content[];
   promptFeedback?: GenerateContentResponsePromptFeedback;
   usageMetadata?: GenerateContentResponseUsageMetadata;
 }
 
-export function toCcpaRequest(req: GenerateContentParameters, project?: string): Object {
+export function toCcpaRequest(
+  req: GenerateContentParameters,
+  project?: string,
+): CcpaRequest {
   return {
     model: req.model,
-    project: project,
-    request: toVertexRequest(req),
+    project,
+    request: toCcpaGenerateContentRequest(req),
   };
 }
 
-export function fromCcpaResponse(res: Object): GenerateContentResponse {
-  if ('response' in res) {
-    return fromVertexResponse(res.response as Object);
-  }
-  throw new Error("no response field in ccpa response");
+export function fromCcpaResponse(res: CcpaResponse): GenerateContentResponse {
+  const inres = res.response;
+  const out = new GenerateContentResponse();
+  out.candidates = inres.candidates;
+  out.automaticFunctionCallingHistory = inres.automaticFunctionCallingHistory;
+  out.promptFeedback = inres.promptFeedback;
+  out.usageMetadata = inres.usageMetadata;
+  return out;
 }
 
-
-export function fromVertexResponse(res: Object): GenerateContentResponse {
-  const vres = res as VertexResponse;
-  const resp = new GenerateContentResponse();
-  resp.candidates = vres.candidates;
-  resp.automaticFunctionCallingHistory = vres.automaticFunctionCallingHistory;
-  resp.promptFeedback = vres.promptFeedback;
-  resp.usageMetadata = vres.usageMetadata;
-  return resp;
-}
-
-
-export function toVertexRequest(req: GenerateContentParameters): VertexRequest {
+function toCcpaGenerateContentRequest(
+  req: GenerateContentParameters,
+): CcpaGenerateContentRequest {
   return {
-    contents: toVertexContents(req.contents),
-    systemInstruction: maybeToVertexContent(req.config?.systemInstruction),
+    contents: toContents(req.contents),
+    systemInstruction: maybeToContent(req.config?.systemInstruction),
     cachedContent: req.config?.cachedContent,
     tools: req.config?.tools,
     toolConfig: req.config?.toolConfig,
     labels: req.config?.labels,
     safetySettings: req.config?.safetySettings,
-    generationConfig: toVertexGenerationConfig(req.config),
+    generationConfig: toCcpaGenerationConfig(req.config),
   };
 }
 
-function toVertexContents(contents: ContentListUnion): Content[] {
+function toContents(contents: ContentListUnion): Content[] {
   if (Array.isArray(contents)) {
     // it's a Content[] or a PartsUnion[]
-    return contents.map(toVertexContent);
+    return contents.map(toContent);
   }
   // it's a Content or a PartsUnion
-  return [toVertexContent(contents)];
+  return [toContent(contents)];
 }
 
-function maybeToVertexContent(content?: ContentUnion): Content | undefined {
+function maybeToContent(content?: ContentUnion): Content | undefined {
   if (!content) {
     return undefined;
   }
-  return toVertexContent(content);
+  return toContent(content);
 }
 
-function toVertexContent(content: ContentUnion): Content {
+function toContent(content: ContentUnion): Content {
   if (Array.isArray(content)) {
     // it's a PartsUnion[]
     return {
       role: 'user',
-      parts: toVertexParts(content),
+      parts: toParts(content),
     };
   }
   if (typeof content === 'string') {
@@ -150,11 +156,11 @@ function toVertexContent(content: ContentUnion): Content {
   };
 }
 
-function toVertexParts(parts: PartUnion[]): Part[] {
-  return parts.map(toVertexPart);
+function toParts(parts: PartUnion[]): Part[] {
+  return parts.map(toPart);
 }
 
-function toVertexPart(part: PartUnion): Part {
+function toPart(part: PartUnion): Part {
   if (typeof part === 'string') {
     // it's a string
     return { text: part };
@@ -162,11 +168,11 @@ function toVertexPart(part: PartUnion): Part {
   return part;
 }
 
-function toVertexGenerationConfig(
+function toCcpaGenerationConfig(
   config?: GenerateContentConfig,
-): VertexGenerationConfig {
+): CcpaGenerationConfig | undefined {
   if (!config) {
-    return {};
+    return undefined;
   }
   return {
     temperature: config.temperature,
