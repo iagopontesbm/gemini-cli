@@ -275,7 +275,7 @@ These are timestamped records of specific events.
     - `debug_mode` (boolean)
     - `mcp_servers` (string)
 
-- `gemini_cli.user_prompt`: Fired when a user submits a prompt.
+- `gemini_cli.user_prompt`: Fired when a user submits a request.
 
   - **Attributes**:
     - `prompt_length`
