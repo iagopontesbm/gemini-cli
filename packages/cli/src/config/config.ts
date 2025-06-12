@@ -199,7 +199,6 @@ export async function loadCliConfig(
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
     fileFilteringAllowBuildArtifacts:
       settings.fileFiltering?.allowBuildArtifacts,
-    enableModifyWithExternalEditors: settings.enableModifyWithExternalEditors,
     checkpoint: argv.checkpoint,
     proxy:
       process.env.HTTPS_PROXY ||
