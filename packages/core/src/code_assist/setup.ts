@@ -56,7 +56,7 @@ export async function setupUser(
         await clearCachedCredentials();
         console.log(
           '\n\nEnterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-          'in your environment variables or .env file.\n\n',
+            'in your environment variables or .env file.\n\n',
         );
         process.exit(1);
       }

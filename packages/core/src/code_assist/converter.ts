@@ -89,7 +89,9 @@ export function toCodeAssistRequest(
   };
 }
 
-export function fromCodeAsistResponse(res: CodeAssistResponse): GenerateContentResponse {
+export function fromCodeAsistResponse(
+  res: CodeAssistResponse,
+): GenerateContentResponse {
   const inres = res.response;
   const out = new GenerateContentResponse();
   out.candidates = inres.candidates;

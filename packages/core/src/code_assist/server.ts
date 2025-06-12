@@ -21,19 +21,24 @@ import {
 } from '@google/genai';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
-import { CodeAssistResponse, toCodeAssistRequest, fromCodeAsistResponse } from './converter.js';
+import {
+  CodeAssistResponse,
+  toCodeAssistRequest,
+  fromCodeAsistResponse,
+} from './converter.js';
 import { PassThrough } from 'node:stream';
 
 // TODO: Use production endpoint once it supports our methods.
 export const CODE_ASSIST_ENDPOINT =
-  process.env.CODE_ASSIST_ENDPOINT ?? 'https://staging-cloudcode-pa.sandbox.googleapis.com';
+  process.env.CODE_ASSIST_ENDPOINT ??
+  'https://staging-cloudcode-pa.sandbox.googleapis.com';
 export const CODE_ASSIST_API_VERSION = 'v1internal';
 
 export class CodeAssistServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
     readonly projectId?: string,
-  ) { }
+  ) {}
 
   async generateContentStream(
     req: GenerateContentParameters,

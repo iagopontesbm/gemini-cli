@@ -5,7 +5,11 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { toCodeAssistRequest, fromCodeAsistResponse, CodeAssistResponse } from './converter.js';
+import {
+  toCodeAssistRequest,
+  fromCodeAsistResponse,
+  CodeAssistResponse,
+} from './converter.js';
 import {
   GenerateContentParameters,
   GenerateContentResponse,
@@ -188,8 +192,12 @@ describe('converter', () => {
         },
       };
       const genaiRes = fromCodeAsistResponse(codeAssistRes);
-      expect(genaiRes.promptFeedback).toEqual(codeAssistRes.response.promptFeedback);
-      expect(genaiRes.usageMetadata).toEqual(codeAssistRes.response.usageMetadata);
+      expect(genaiRes.promptFeedback).toEqual(
+        codeAssistRes.response.promptFeedback,
+      );
+      expect(genaiRes.usageMetadata).toEqual(
+        codeAssistRes.response.usageMetadata,
+      );
     });
 
     it('should handle automatic function calling history', () => {

@@ -245,16 +245,21 @@ async function createContentGeneratorConfig(
       'Both GEMINI_API_KEY and GOOGLE_API_KEY are set. Using GOOGLE_API_KEY.',
     );
   }
-  if (!hasCodeAssist && !hasGeminiApiKey && !hasGoogleApiKey && !hasVertexProjectLocationConfig) {
+  if (
+    !hasCodeAssist &&
+    !hasGeminiApiKey &&
+    !hasGoogleApiKey &&
+    !hasVertexProjectLocationConfig
+  ) {
     logger.error(
       'No valid API authentication configuration found. Please set ONE of the following combinations in your environment variables or .env file:\n' +
-      '1. GEMINI_CODE_ASSIST=true (for Code Assist access).\n' +
-      '2. GEMINI_API_KEY (for Gemini API access).\n' +
-      '3. GOOGLE_API_KEY (for Gemini API or Vertex AI Express Mode access).\n' +
-      '4. GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION (for Vertex AI access).\n\n' +
-      'For Gemini API keys, visit: https://ai.google.dev/gemini-api/docs/api-key\n' +
-      'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/start/authentication\n' +
-      'The GOOGLE_GENAI_USE_VERTEXAI environment variable can also be set to true/false to influence service selection when ambiguity exists.',
+        '1. GEMINI_CODE_ASSIST=true (for Code Assist access).\n' +
+        '2. GEMINI_API_KEY (for Gemini API access).\n' +
+        '3. GOOGLE_API_KEY (for Gemini API or Vertex AI Express Mode access).\n' +
+        '4. GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION (for Vertex AI access).\n\n' +
+        'For Gemini API keys, visit: https://ai.google.dev/gemini-api/docs/api-key\n' +
+        'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/start/authentication\n' +
+        'The GOOGLE_GENAI_USE_VERTEXAI environment variable can also be set to true/false to influence service selection when ambiguity exists.',
     );
     process.exit(1);
   }

@@ -34,7 +34,7 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
 
     - To enable this mode you only need set the GEMINI_CODE_ASSIST environment variable to true.
     - Enterprise users must also provide a GOOGLE_CLOUD_PROJECT environment variable specifying their Google Cloud project.
-    In the following methods, replace `GOOGLE_CLOUD_PROJECT` with the relevant values for your project:
+      In the following methods, replace `GOOGLE_CLOUD_PROJECT` with the relevant values for your project:
       - You can temporarily set the environment variable in your current shell session using the following command:
         ```bash
         export GEMINI_CODE_ASSIST="true"
