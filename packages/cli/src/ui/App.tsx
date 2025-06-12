@@ -201,6 +201,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     20,
     Math.round(terminalWidth * widthFraction) - 3,
   );
+  const suggestionsWidth = Math.max(60, Math.floor(terminalWidth * 0.8));
 
   const buffer = useTextBuffer({
     initialText: '',
@@ -585,6 +586,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 <InputPrompt
                   buffer={buffer}
                   effectiveWidth={effectiveWidth}
+                  suggestionsWidth={suggestionsWidth}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
                   onClearScreen={handleClearScreen}

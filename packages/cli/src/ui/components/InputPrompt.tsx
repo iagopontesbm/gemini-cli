@@ -28,6 +28,7 @@ export interface InputPromptProps {
   placeholder?: string;
   focus?: boolean;
   effectiveWidth: number;
+  suggestionsWidth: number;
   shellModeActive: boolean;
   setShellModeActive: (value: boolean) => void;
 }
@@ -42,6 +43,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   placeholder = '  Type your message or @path/to/file',
   focus = true,
   effectiveWidth,
+  suggestionsWidth,
   shellModeActive,
   setShellModeActive,
 }) => {
@@ -385,7 +387,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
             suggestions={completion.suggestions}
             activeIndex={completion.activeSuggestionIndex}
             isLoading={completion.isLoadingSuggestions}
-            width={effectiveWidth}
+            width={suggestionsWidth}
             scrollOffset={completion.visibleStartIndex}
             userInput={buffer.text}
           />
