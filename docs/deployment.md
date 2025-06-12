@@ -1,16 +1,16 @@
 # Gemini CLI Execution and Deployment
 
-This document describes how to run the Gemini CLI and explains the deployment architecture that the Gemini CLI uses.
+This document describes how to run Gemini CLI and explains the deployment architecture that Gemini CLI uses.
 
 ## Running the Gemini CLI
 
-There are several ways to run the Gemini CLI. The option you choose depends on how you intend to use the Gemini CLI.
+There are several ways to run Gemini CLI. The option you choose depends on how you intend to use Gemini CLI.
 
 ---
 
 ### 1. Standard installation (Recommended for typical users)
 
-This is the recommended way for end-users to install the Gemini CLI. It involves downloading the Gemini CLI package from the NPM registry.
+This is the recommended way for end-users to install Gemini CLI. It involves downloading the Gemini CLI package from the NPM registry.
 
 - **Global install:**
 
@@ -32,7 +32,7 @@ This is the recommended way for end-users to install the Gemini CLI. It involves
 
 ### 2. Running in a sandbox (Docker/Podman)
 
-For security and isolation, the Gemini CLI can be run inside a container. This is the default way that the CLI executes tools that might have side effects.
+For security and isolation, Gemini CLI can be run inside a container. This is the default way that the CLI executes tools that might have side effects.
 
 - **Directly from the Registry:**
   You can run the published sandbox image directly. This is useful for environments where you only have Docker and want to run the CLI.
@@ -41,7 +41,7 @@ For security and isolation, the Gemini CLI can be run inside a container. This i
   docker run --rm -it us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.0
   ```
 - **Using the `--sandbox` flag:**
-  If you have the Gemini CLI installed locally (using the standard installation described above), you can instruct it to run inside the sandbox container.
+  If you have Gemini CLI installed locally (using the standard installation described above), you can instruct it to run inside the sandbox container.
   ```bash
   gemini --sandbox "your prompt here"
   ```
@@ -71,9 +71,9 @@ Contributors to the project will want to run the CLI directly from the source co
 
 ---
 
-### 4. Running the latest early-access version from GitHub
+### 4. Running the latest Gemini CLI commit from GitHub
 
-You can run the latest, unreleased version of the Gemini CLI directly from the GitHub repository. This is useful for testing features still in developement.
+You can run the most recently committed version of Gemini CLI directly from the GitHub repository. This is useful for testing features still in developement.
 
 ```bash
 # Execute the CLI directly from the main branch on GitHub
@@ -86,12 +86,12 @@ The execution methods described above are made possible by the following archite
 
 **NPM packages**
 
-The Gemini CLI project is a monorepo that publishes two core packages to the NPM registry:
+Gemini CLI project is a monorepo that publishes two core packages to the NPM registry:
 
 - `@gemini-cli/core`: The backend, handling logic and tool execution.
 - `@gemini-cli/cli`: The user-facing frontend.
 
-These packages are used when performing the standard installation and when running the Gemini CLI from the source.
+These packages are used when performing the standard installation and when running Gemini CLI from the source.
 
 **Build and packaging processes**
 
@@ -99,11 +99,11 @@ There are two distinct build processes used, depending on the distribution chann
 
 - **NPM publication:** For publishing to the NPM registry, the TypeScript source code in `@gemini-cli/core` and `@gemini-cli/cli` is transpiled into standard JavaScript using the TypeScript Compiler (`tsc`). The resulting `dist/` directory is what gets published in the NPM package. This is a standard approach for TypeScript libraries.
 
-- **GitHub `npx` execution:** When running the latest early-access version of the Gemini CLI directly from GitHub, a different process is triggered by the `prepare` script in `package.json`. This script uses `esbuild` to bundle the entire application and its dependencies into a single, self-contained JavaScript file. This bundle is created on-the-fly on the user's machine and is not checked into the repository.
+- **GitHub `npx` execution:** When running the latest version of Gemini CLI directly from GitHub, a different process is triggered by the `prepare` script in `package.json`. This script uses `esbuild` to bundle the entire application and its dependencies into a single, self-contained JavaScript file. This bundle is created on-the-fly on the user's machine and is not checked into the repository.
 
 **Docker sandbox image**
 
-The Docker-based execution method is supported by the `gemini-cli-sandbox` container image. This image is published to a container registry and contains a pre-installed, global version of the Gemini CLI. The `scripts/prepare-cli-packagejson.js` script dynamically injects the URI of this image into the CLI's `package.json` before publishing, so the CLI knows which image to pull when the `--sandbox` flag is used.
+The Docker-based execution method is supported by the `gemini-cli-sandbox` container image. This image is published to a container registry and contains a pre-installed, global version of Gemini CLI. The `scripts/prepare-cli-packagejson.js` script dynamically injects the URI of this image into the CLI's `package.json` before publishing, so the CLI knows which image to pull when the `--sandbox` flag is used.
 
 ## Release process
 
