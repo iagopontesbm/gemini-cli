@@ -262,18 +262,23 @@ These are timestamped records of specific events.
 
   - **Attributes**:
     - `model` (string)
+    - `embedding_model` (string)
     - `sandbox_enabled` (boolean)
     - `core_tools_enabled` (string)
     - `approval_mode` (string)
+    - `api_key_enabled` (boolean)
     - `vertex_ai_enabled` (boolean)
+    - `code_assist_enabled` (boolean)
     - `log_user_prompts_enabled` (boolean)
     - `file_filtering_respect_git_ignore` (boolean)
     - `file_filtering_allow_build_artifacts` (boolean)
+    - `debug_mode` (boolean)
+    - `mcp_servers` (string)
 
 - `gemini_cli.user_prompt`: Fired when a user submits a prompt.
 
   - **Attributes**:
-    - `prompt_char_count`
+    - `prompt_length`
     - `prompt` (except if `log_user_prompts_enabled` is false)
 
 - `gemini_cli.tool_call`: Fired for every function call.

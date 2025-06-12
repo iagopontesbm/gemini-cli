@@ -29,6 +29,7 @@ export interface Settings {
   theme?: string;
   sandbox?: boolean | string;
   coreTools?: string[];
+  excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
   mcpServerCommand?: string;
@@ -38,6 +39,7 @@ export interface Settings {
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
   enableModifyWithExternalEditors?: boolean;
+  preferredEditor?: string;
 
   // Git-aware file filtering settings
   fileFiltering?: {
