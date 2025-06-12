@@ -1,18 +1,15 @@
 import WebSocket from 'ws';
-import { Transport, TransportSendOptions } from "@modelcontextprotocol/sdk/shared/transport.js"
+import { Transport, TransportSendOptions } from "@modelcontextprotocol/sdk/shared/transport.js";
 import { JSONRPCMessage } from "@modelcontextprotocol/sdk/types.js";
+import { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 
-export class WebSocketClientTransport
-  implements Transport
-{
+export class WebSocketClientTransport implements Transport {
   private socket: WebSocket | null = null;
-  public onclose?: (() => void) | undefined;
-  public onerror?: ((error: Error) => void) | undefined;
-  public onmessage?: ((message: JSONRPCMessage) => void) | undefined;
+  public onclose?: () => void;
+  public onerror?: (error: Error) => void;
+  public onmessage?: (message: JSONRPCMessage, extra?: { authInfo?: AuthInfo }) => void;
 
-  constructor(private readonly url: URL) {
-    this.url = typeof url === 'string' ? new URL(url) : url;
-  }
+  constructor(private readonly url: URL) {}
 
   async start(): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -28,53 +25,33 @@ export class WebSocketClientTransport
         }, handshakeTimeoutDuration);
 
         this.socket.on('open', () => {
-          if (connectionTimeout) {
-            clearTimeout(connectionTimeout);
-            connectionTimeout = null;
-          }
+          clearTimeout(connectionTimeout!);
           resolve();
         });
 
         this.socket.on('message', (data) => {
           try {
             const parsedMessage: JSONRPCMessage = JSON.parse(data.toString());
-            if (this.onmessage) {
-              this.onmessage(parsedMessage);
-            } 
-          } catch (parseError) {
-            if (this.onerror) {
-              this.onerror(parseError as Error);
-            }
+            this.onmessage?.(parsedMessage, { authInfo: undefined }); // Auth unsupported currently
+          } catch (error: unknown) {
+            this.onerror?.(error instanceof Error ? error : new Error(String(error)));
           }
         });
 
         this.socket.on('error', (error) => {
-          if (connectionTimeout) {
-            clearTimeout(connectionTimeout);
-            connectionTimeout = null;
-          }
-          if (this.onerror) {
-            this.onerror(error);
-          }
+          clearTimeout(connectionTimeout!);
+          this.onerror?.(error);
           reject(error);
         });
 
-        this.socket.on('close', (code, reason) => {
-          if (connectionTimeout) {
-            clearTimeout(connectionTimeout);
-            connectionTimeout = null;
-          }
-          if (this.onclose) {
-            this.onclose();
-          }
+        this.socket.on('close', () => {
+          clearTimeout(connectionTimeout!);
+          this.onclose?.();
           this.socket = null;
         });
-      } catch (error) {
-        if (connectionTimeout) {
-          clearTimeout(connectionTimeout);
-          connectionTimeout = null;
-        }
-        reject(error);
+      } catch (error: unknown) {
+        clearTimeout(connectionTimeout!);
+        reject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }
@@ -84,18 +61,12 @@ export class WebSocketClientTransport
       this.socket.close();
       this.socket = null;
     }
-    return Promise.resolve();
   }
 
-  async send(
-    message: JSONRPCMessage,
-    options?: TransportSendOptions,
-  ): Promise<void> {
+  async send(message: JSONRPCMessage, options?: TransportSendOptions): Promise<void> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket is not connected or not open. Cannot send message.');
     }
-    const messageString = JSON.stringify(message);
-    this.socket.send(messageString);
-    return Promise.resolve();
+    this.socket.send(JSON.stringify(message));
   }
 }
