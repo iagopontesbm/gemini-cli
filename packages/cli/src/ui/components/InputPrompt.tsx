@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from 'fs';
 import React, { useCallback, useEffect, useState } from 'react';
-import { Text, Box, useInput, useStdin } from 'ink';
+import { Text, Box, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
-import { useTextBuffer, cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
+import { cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
 import chalk from 'chalk';
 import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import stringWidth from 'string-width';
@@ -28,7 +27,6 @@ export interface InputPromptProps {
   config: Config; // Added config for useCompletion
   slashCommands: SlashCommand[]; // Added slashCommands for useCompletion
   placeholder?: string;
-  height?: number; // Visible height of the editor area
   focus?: boolean;
   widthFraction: number;
   shellModeActive: boolean;
@@ -43,7 +41,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   config,
   slashCommands,
   placeholder = '  Type your message or @path/to/file',
-  height = 10,
   focus = true,
   widthFraction,
   shellModeActive,
@@ -58,16 +55,6 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   const suggestionsWidth = Math.max(60, Math.floor(terminalSize.columns * 0.8));
 
   const [justNavigatedHistory, setJustNavigatedHistory] = useState(false);
-
-  const { stdin, setRawMode } = useStdin();
-
-  const isValidPath = useCallback((filePath: string): boolean => {
-    try {
-      return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
-    } catch (_e) {
-      return false;
-    }
-  }, []);
 
   const completion = useCompletion(
     buffer.text,
