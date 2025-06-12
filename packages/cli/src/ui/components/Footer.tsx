@@ -81,11 +81,11 @@ export const Footer: React.FC<FooterProps> = ({
 
       {/* Right Section: Gemini Label and Console Summary */}
       <Box alignItems="center">
-        <Text color={Colors.AccentBlue}> {model} </Text>
-        <Text>
-          <Text color={Colors.Gray}>| </Text>
+        <Text color={Colors.AccentBlue}>
+          {' '}
+          {model}{' '}
           <Text color={Colors.Gray}>
-            {((1 - percentage) * 100).toFixed(0)}% context left
+            ({((1 - percentage) * 100).toFixed(0)}% context left)
           </Text>
         </Text>
         {corgiMode && (
