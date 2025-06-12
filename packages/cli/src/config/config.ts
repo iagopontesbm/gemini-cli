@@ -116,6 +116,7 @@ async function parseArguments(): Promise<CliArgs> {
 export async function loadHierarchicalGeminiMemory(
   currentWorkingDirectory: string,
   debugMode: boolean,
+  extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode) {
     logger.debug(
@@ -124,7 +125,11 @@ export async function loadHierarchicalGeminiMemory(
   }
   // Directly call the server function.
   // The server function will use its own homedir() for the global path.
-  return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
+  return loadServerHierarchicalMemory(
+    currentWorkingDirectory,
+    debugMode,
+    extensionContextFilePaths,
+  );
 }
 
 export async function loadCliConfig(
@@ -149,10 +154,15 @@ export async function loadCliConfig(
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
+  const extensionContextFilePaths = extensions
+    .map((e) => e.contextFileName)
+    .filter((p): p is string => !!p);
+
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
     process.cwd(),
     debugMode,
+    extensionContextFilePaths,
   );
 
   const contentGeneratorConfig = await createContentGeneratorConfig(argv);
@@ -169,6 +179,7 @@ export async function loadCliConfig(
     question: argv.prompt || '',
     fullContext: argv.all_files || false,
     coreTools: settings.coreTools || undefined,
+    excludeTools: settings.excludeTools || undefined,
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
     toolCallCommand: settings.toolCallCommand,
     mcpServerCommand: settings.mcpServerCommand,
