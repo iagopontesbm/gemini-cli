@@ -4,7 +4,8 @@ Master usage of Gemini CLI to automate development tasks.
 
 ## Setting up Model Context Protocol (MCP) Servers
 
-> **A Note on Third-Party MCP Servers:** Before using a third-party MCP server, ensure you trust its source and understand the tools it provides. Your use of third-party servers is at your own risk.
+> [!NOTE]
+> Before using a third-party MCP server, ensure you trust its source and understand the tools it provides. Your use of third-party servers is at your own risk.
 
 ### GitHub MCP Server
 
