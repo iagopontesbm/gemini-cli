@@ -31,6 +31,52 @@ All submissions, including submissions by project members, require review. We
 use [GitHub pull requests](https://docs.github.com/articles/about-pull-requests)
 for this purpose.
 
+### Pull Request Guidelines
+
+To help us review and merge your PRs quickly, please follow these guidelines. PRs that do not meet these standards may be closed.
+
+#### 1. Link to an Existing Issue
+
+All PRs should be linked to an existing issue in our tracker. This ensures that every change has been discussed and is aligned with the project's goals before any code is written.
+
+- **For bug fixes:** The PR should be linked to the bug report issue.
+- **For features:** The PR should be linked to the feature request or proposal issue that has been approved by a maintainer.
+
+If an issue for your change doesn't exist, please **open one first** and wait for feedback before you start coding.
+
+#### 2. Keep It Small and Focused
+
+We favor small, atomic PRs that address a single issue or add a single, self-contained feature.
+
+- **Do:** Create a PR that fixes one specific bug or adds one specific feature.
+- **Don't:** Bundle multiple unrelated changes (e.g., a bug fix, a new feature, and a refactor) into a single PR.
+
+Large changes should be broken down into a series of smaller, logical PRs that can be reviewed and merged independently.
+
+#### 3. Use Draft PRs for Work in Progress
+
+If you'd like to get early feedback on your work, please use GitHub's **Draft Pull Request** feature. This signals to the maintainers that the PR is not yet ready for a formal review but is open for discussion and initial feedback.
+
+#### 4. Ensure All Checks Pass
+
+Before submitting your PR (and before marking a draft as "Ready for Review"), please ensure that all automated checks are passing. This includes:
+
+- **Tests:** All existing tests must pass, and new code should be accompanied by new tests. Run `npm run test`.
+- **Linting and Style:** Your code must adhere to our project's style guidelines. Run `npm run preflight` to check everything.
+
+#### 5. Update Documentation
+
+If your PR introduces a user-facing change (e.g., a new command, a modified flag, or a change in behavior), you must also update the relevant documentation in the `/docs` directory.
+
+#### 6. Write Clear Commit Messages and a Good PR Description
+
+Your PR should have a clear, descriptive title and a detailed description of the changes. Follow the [Conventional Commits](https://www.conventionalcommits.org/) standard for your commit messages.
+
+- **Good PR Title:** `feat(cli): Add --json flag to 'config get' command`
+- **Bad PR Title:** `Made some changes`
+
+In the PR description, explain the "why" behind your changes and link to the relevant issue (e.g., `Fixes #123`).
+
 ## Development Setup and Workflow
 
 This section guides contributors on how to build, modify, and understand the development setup of this project.
@@ -215,13 +261,17 @@ To debug the CLI's React-based UI, you can use React DevTools. Ink, the library 
 
 ### MacOS Seatbelt
 
-On MacOS, `gemini` uses Seatbelt (`sandbox-exec`) under a `minimal` profile (see `packages/cli/src/utils/sandbox-macos-minimal.sb`) that restricts writes to the project folder but otherwise allows all other operations by default. You can switch to a `strict` profile (see `.../sandbox-macos-strict.sb`) that declines operations by default by setting `SEATBELT_PROFILE=strict` in your environment or `.env` file. You can also switch to a custom profile `SEATBELT_PROFILE=<profile>` if you also create a file `.gemini/sandbox-macos-<profile>.sb` under your project settings directory `.gemini`.
+On MacOS, `gemini` uses Seatbelt (`sandbox-exec`) under a `permissive-open` profile (see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) that restricts writes to the project folder but otherwise allows all other operations and outbound network traffic ("open") by default. You can switch to a `restrictive-closed` profile (see `.../sandbox-macos-strict.sb`) that declines all operations and outbound network traffic ("closed") by default by setting `SEATBELT_PROFILE=restrictive-closed` in your environment or `.env` file. Available built-in profiles are `{permissive,restrictive}-{open,closed,proxied}` (see below for proxied networking). You can also switch to a custom profile `SEATBELT_PROFILE=<profile>` if you also create a file `.gemini/sandbox-macos-<profile>.sb` under your project settings directory `.gemini`.
 
 ### Container-based Sandboxing (All Platforms)
 
 For stronger container-based sandboxing on MacOS or other platforms, you can set `GEMINI_SANDBOX=true|docker|podman|<command>` in your environment or `.env` file. The specified command (or if `true` then either `docker` or `podman`) must be installed on the host machine. Once enabled, `npm run build:all` will build a minimal container ("sandbox") image and `npm start` will launch inside a fresh instance of that container. The first build can take 20-30s (mostly due to downloading of the base image) but after that both build and start overhead should be minimal. Default builds (`npm run build`) will not rebuild the sandbox.
 
 Container-based sandboxing mounts the project directory (and system temp directory) with read-write access and is started/stopped/removed automatically as you start/stop Gemini CLI. Files created within the sandbox should be automatically mapped to your user/group on host machine. You can easily specify additional mounts, ports, or environment variables by setting `SANDBOX_{MOUNTS,PORTS,ENV}` as needed. You can also fully customize the sandbox for your projects by creating the files `.gemini/sandbox.Dockerfile` and/or `.gemini/sandbox.bashrc` under your project settings directory (`.gemini`) and running `gemini` with `BUILD_SANDBOX=1` to trigger building of your custom sandbox.
+
+#### Proxied Networking
+
+All sandboxing methods, including MacOS Seatbelt using `*-proxied` profiles, support restricting outbound network traffic through a custom proxy server that can be specified as `GEMINI_SANDBOX_PROXY_COMMAND=<command>`, where `<command>` must start a proxy server that listens on `:::8877` for relevant requests. See `scripts/example-proxy.js` for a minimal proxy that only allows `HTTPS` connections to `example.com:443` (e.g. `curl https://example.com`) and declines all other requests. The proxy is started and stopped automatically alongside the sandbox.
 
 ## Manual Publish
 

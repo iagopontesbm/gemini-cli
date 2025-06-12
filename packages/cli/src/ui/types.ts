@@ -8,6 +8,7 @@ import {
   ToolCallConfirmationDetails,
   ToolResultDisplay,
 } from '@gemini-cli/core';
+import { CumulativeStats } from './contexts/SessionContext.js';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -89,6 +90,19 @@ export type HistoryItemAbout = HistoryItemBase & {
   modelVersion: string;
 };
 
+export type HistoryItemStats = HistoryItemBase & {
+  type: 'stats';
+  stats: CumulativeStats;
+  lastTurnStats: CumulativeStats;
+  duration: string;
+};
+
+export type HistoryItemQuit = HistoryItemBase & {
+  type: 'quit';
+  stats: CumulativeStats;
+  duration: string;
+};
+
 export type HistoryItemToolGroup = HistoryItemBase & {
   type: 'tool_group';
   tools: IndividualToolCallDisplay[];
@@ -111,7 +125,9 @@ export type HistoryItemWithoutId =
   | HistoryItemInfo
   | HistoryItemError
   | HistoryItemAbout
-  | HistoryItemToolGroup;
+  | HistoryItemToolGroup
+  | HistoryItemStats
+  | HistoryItemQuit;
 
 export type HistoryItem = HistoryItemWithoutId & { id: number };
 
@@ -121,7 +137,9 @@ export enum MessageType {
   ERROR = 'error',
   USER = 'user',
   ABOUT = 'about',
-  // Add GEMINI if needed by other commands
+  STATS = 'stats',
+  QUIT = 'quit',
+  GEMINI = 'gemini',
 }
 
 // Simplified message structure for internal feedback
@@ -139,6 +157,21 @@ export type Message =
       sandboxEnv: string;
       modelVersion: string;
       content?: string; // Optional content, not really used for ABOUT
+    }
+  | {
+      type: MessageType.STATS;
+      timestamp: Date;
+      stats: CumulativeStats;
+      lastTurnStats: CumulativeStats;
+      duration: string;
+      content?: string;
+    }
+  | {
+      type: MessageType.QUIT;
+      timestamp: Date;
+      stats: CumulativeStats;
+      duration: string;
+      content?: string;
     };
 
 export interface ConsoleMessageItem {

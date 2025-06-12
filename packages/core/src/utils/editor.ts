@@ -6,7 +6,11 @@
 
 import { execSync, spawn } from 'child_process';
 
-type EditorType = 'vscode' | 'vim';
+export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim';
+
+function isValidEditorType(editor: string): editor is EditorType {
+  return ['vscode', 'windsurf', 'cursor', 'vim'].includes(editor);
+}
 
 interface DiffCommand {
   command: string;
@@ -25,13 +29,38 @@ function commandExists(cmd: string): boolean {
   }
 }
 
-export function checkHasEditor(editor: EditorType): boolean {
-  if (editor === 'vscode') {
-    return process.platform === 'win32'
-      ? commandExists('code.cmd')
-      : commandExists('code');
-  } else if (editor === 'vim') {
-    return commandExists('vim');
+const editorCommands: Record<EditorType, { win32: string; default: string }> = {
+  vscode: { win32: 'code.cmd', default: 'code' },
+  windsurf: { win32: 'windsurf', default: 'windsurf' },
+  cursor: { win32: 'cursor', default: 'cursor' },
+  vim: { win32: 'vim', default: 'vim' },
+};
+
+export function checkHasEditorType(editor: EditorType): boolean {
+  const commandConfig = editorCommands[editor];
+  const command =
+    process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
+  return commandExists(command);
+}
+
+export function allowEditorTypeInSandbox(editor: EditorType): boolean {
+  const notUsingSandbox = !process.env.SANDBOX;
+  if (['vscode', 'windsurf', 'cursor'].includes(editor)) {
+    return notUsingSandbox;
+  }
+  return true;
+}
+
+/**
+ * Check if the editor is valid and can be used.
+ * Returns false if preferred editor is not set / invalid / not available / not allowed in sandbox.
+ */
+export function isEditorAvailable(editor: string | undefined): boolean {
+  if (editor && isValidEditorType(editor)) {
+    return (
+      checkHasEditorType(editor as EditorType) &&
+      allowEditorTypeInSandbox(editor as EditorType)
+    );
   }
   return false;
 }
@@ -48,6 +77,16 @@ export function getDiffCommand(
     case 'vscode':
       return {
         command: 'code',
+        args: ['--wait', '--diff', oldPath, newPath],
+      };
+    case 'windsurf':
+      return {
+        command: 'windsurf',
+        args: ['--wait', '--diff', oldPath, newPath],
+      };
+    case 'cursor':
+      return {
+        command: 'cursor',
         args: ['--wait', '--diff', oldPath, newPath],
       };
     case 'vim':

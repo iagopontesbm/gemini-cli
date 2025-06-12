@@ -232,7 +232,6 @@ export enum ToolConfirmationOutcome {
   ProceedAlways = 'proceed_always',
   ProceedAlwaysServer = 'proceed_always_server',
   ProceedAlwaysTool = 'proceed_always_tool',
-  ModifyVSCode = 'modify_vscode',
-  ModifyVim = 'modify_vim',
+  ModifyWithEditor = 'modify_with_editor',
   Cancel = 'cancel',
 }

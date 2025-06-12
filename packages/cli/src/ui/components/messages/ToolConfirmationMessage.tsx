@@ -13,7 +13,6 @@ import {
   ToolConfirmationOutcome,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
-  checkHasEditor,
   Config,
 } from '@gemini-cli/core';
 import {
@@ -24,14 +23,16 @@ import {
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
   config?: Config;
+  isFocused?: boolean;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails, config }) => {
+> = ({ confirmationDetails, isFocused = true }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
+    if (!isFocused) return;
     if (key.escape) {
       onConfirm(ToolConfirmationOutcome.Cancel);
     }
@@ -84,28 +85,12 @@ export const ToolConfirmationMessage: React.FC<
         label: 'Yes, allow always',
         value: ToolConfirmationOutcome.ProceedAlways,
       },
+      {
+        label: 'Modify with external editor',
+        value: ToolConfirmationOutcome.ModifyWithEditor,
+      },
+      { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
-
-    // Conditionally add editor options if editors are installed
-    const notUsingSandbox = !process.env.SANDBOX;
-    const externalEditorsEnabled =
-      config?.getEnableModifyWithExternalEditors() ?? false;
-
-    if (checkHasEditor('vscode') && notUsingSandbox && externalEditorsEnabled) {
-      options.push({
-        label: 'Modify with VS Code',
-        value: ToolConfirmationOutcome.ModifyVSCode,
-      });
-    }
-
-    if (checkHasEditor('vim') && externalEditorsEnabled) {
-      options.push({
-        label: 'Modify with vim',
-        value: ToolConfirmationOutcome.ModifyVim,
-      });
-    }
-
-    options.push({ label: 'No (esc)', value: ToolConfirmationOutcome.Cancel });
   } else if (confirmationDetails.type === 'exec') {
     const executionProps =
       confirmationDetails as ToolExecuteConfirmationDetails;
@@ -174,7 +159,11 @@ export const ToolConfirmationMessage: React.FC<
 
       {/* Select Input for Options */}
       <Box flexShrink={0}>
-        <RadioButtonSelect items={options} onSelect={handleSelect} />
+        <RadioButtonSelect
+          items={options}
+          onSelect={handleSelect}
+          isFocused={isFocused}
+        />
       </Box>
     </Box>
   );

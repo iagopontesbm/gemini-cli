@@ -29,6 +29,7 @@ export interface Settings {
   theme?: string;
   sandbox?: boolean | string;
   coreTools?: string[];
+  excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
   mcpServerCommand?: string;
@@ -37,13 +38,16 @@ export interface Settings {
   contextFileName?: string;
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
-  enableModifyWithExternalEditors?: boolean;
+  preferredEditor?: string;
 
   // Git-aware file filtering settings
   fileFiltering?: {
     respectGitIgnore?: boolean;
     allowBuildArtifacts?: boolean;
   };
+
+  // UI setting. Does not display the ANSI-controlled terminal title.
+  hideWindowTitle?: boolean;
 
   // Add other settings here.
 }

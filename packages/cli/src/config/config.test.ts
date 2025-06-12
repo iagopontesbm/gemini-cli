@@ -44,6 +44,7 @@ vi.mock('@gemini-cli/core', async () => {
       getQuestion: () => params.question,
       getFullContext: () => params.fullContext,
       getCoreTools: () => params.coreTools,
+      getExcludeTools: () => params.excludeTools,
       getToolDiscoveryCommand: () => params.toolDiscoveryCommand,
       getToolCallCommand: () => params.toolCallCommand,
       getMcpServerCommand: () => params.mcpServerCommand,
@@ -58,8 +59,11 @@ vi.mock('@gemini-cli/core', async () => {
       setUserMemory: vi.fn(),
       setGeminiMdFileCount: vi.fn(),
     })),
-    loadServerHierarchicalMemory: vi.fn(() =>
-      Promise.resolve({ memoryContent: '', fileCount: 0 }),
+    loadServerHierarchicalMemory: vi.fn((cwd, debug, extensionPaths) =>
+      Promise.resolve({
+        memoryContent: extensionPaths?.join(',') || '',
+        fileCount: extensionPaths?.length || 0,
+      }),
     ),
   };
 });
@@ -214,8 +218,6 @@ describe('API Key Handling', () => {
       'Both GEMINI_API_KEY and GOOGLE_API_KEY are set. Using GOOGLE_API_KEY.',
     );
     expect(result.getApiKey()).toBe('google-key');
-
-    consoleWarnSpy.mockRestore();
   });
 });
 
@@ -230,15 +232,31 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
     vi.restoreAllMocks();
   });
 
-  it('should have a placeholder test to ensure test file validity', () => {
-    // This test suite is currently a placeholder.
-    // Tests for loadHierarchicalGeminiMemory were removed due to persistent
-    // and complex mocking issues with Node.js built-in modules (like 'os')
-    // in the Vitest environment. These issues prevented consistent and reliable
-    // testing of file system interactions dependent on os.homedir().
-    // The core logic was implemented as per specification, but the tests
-    // could not be stabilized.
-    expect(true).toBe(true);
+  it('should pass extension context file paths to loadServerHierarchicalMemory', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = {};
+    const extensions = [
+      {
+        name: 'ext1',
+        version: '1.0.0',
+        contextFileName: '/path/to/ext1/gemini.md',
+      },
+      {
+        name: 'ext2',
+        version: '1.0.0',
+      },
+      {
+        name: 'ext3',
+        version: '1.0.0',
+        contextFileName: '/path/to/ext3/gemini.md',
+      },
+    ];
+    await loadCliConfig(settings, extensions, [], 'session-id');
+    expect(ServerConfig.loadServerHierarchicalMemory).toHaveBeenCalledWith(
+      expect.any(String),
+      false,
+      ['/path/to/ext1/gemini.md', '/path/to/ext3/gemini.md'],
+    );
   });
 
   // NOTE TO FUTURE DEVELOPERS:

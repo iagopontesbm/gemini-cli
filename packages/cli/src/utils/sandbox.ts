@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { execSync, spawnSync, spawn } from 'node:child_process';
+import { exec, execSync, spawn, type ChildProcess } from 'node:child_process';
 import os from 'node:os';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -16,6 +16,9 @@ import {
   USER_SETTINGS_DIR,
   SETTINGS_DIRECTORY_NAME,
 } from '../config/settings.js';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 function getContainerPath(hostPath: string): string {
   if (os.platform() !== 'win32') {
@@ -30,6 +33,16 @@ function getContainerPath(hostPath: string): string {
 }
 
 const LOCAL_DEV_SANDBOX_IMAGE_NAME = 'gemini-cli-sandbox';
+const SANDBOX_NETWORK_NAME = 'gemini-cli-sandbox';
+const SANDBOX_PROXY_NAME = 'gemini-cli-sandbox-proxy';
+const BUILTIN_SEATBELT_PROFILES = [
+  'permissive-open',
+  'permissive-closed',
+  'permissive-proxied',
+  'restrictive-open',
+  'restrictive-closed',
+  'restrictive-proxied',
+];
 
 /**
  * Determines whether the sandbox container should be run with the current user's UID and GID.
@@ -102,49 +115,47 @@ async function getSandboxImageName(
   );
 }
 
-// node.js equivalent of scripts/sandbox_command.sh
 export function sandbox_command(sandbox?: string | boolean): string {
   // note environment variable takes precedence over argument (from command line or settings)
   sandbox = process.env.GEMINI_SANDBOX?.toLowerCase().trim() ?? sandbox;
   if (sandbox === '1' || sandbox === 'true') sandbox = true;
   else if (sandbox === '0' || sandbox === 'false') sandbox = false;
 
-  if (sandbox === true) {
-    // look for docker or podman, in that order
-    if (commandExists.sync('docker')) {
-      return 'docker'; // Set sandbox to 'docker' if found
-    } else if (commandExists.sync('podman')) {
-      return 'podman'; // Set sandbox to 'podman' if found
-    } else {
-      console.error(
-        'ERROR: failed to determine command for sandbox; ' +
-          'install docker or podman or specify command in GEMINI_SANDBOX',
-      );
-      process.exit(1);
-    }
-  } else if (sandbox) {
+  if (sandbox === false) {
+    return '';
+  }
+
+  if (typeof sandbox === 'string' && sandbox !== '') {
     // confirm that specfied command exists
     if (commandExists.sync(sandbox)) {
       return sandbox;
-    } else {
-      console.error(
-        `ERROR: missing sandbox command '${sandbox}' (from GEMINI_SANDBOX)`,
-      );
-      process.exit(1);
     }
-  } else {
-    // if we are on macOS (Darwin) and sandbox-exec is available, use that for minimal sandboxing
-    // unless SEATBELT_PROFILE is set to 'none', which we allow as an escape hatch
-    if (
-      os.platform() === 'darwin' &&
-      commandExists.sync('sandbox-exec') &&
-      process.env.SEATBELT_PROFILE !== 'none'
-    ) {
-      return 'sandbox-exec';
-    }
-
-    return ''; // no sandbox
+    console.error(
+      `ERROR: missing sandbox command '${sandbox}' (from GEMINI_SANDBOX)`,
+    );
+    process.exit(1);
   }
+
+  // look for seatbelt, docker, or podman, in that order
+  // for container-based sandboxing, require sandbox to be enabled explicitly
+  if (os.platform() === 'darwin' && commandExists.sync('sandbox-exec')) {
+    return 'sandbox-exec';
+  } else if (commandExists.sync('docker') && sandbox === true) {
+    return 'docker';
+  } else if (commandExists.sync('podman') && sandbox === true) {
+    return 'podman';
+  }
+
+  // throw an error if user requested sandbox but no command was found
+  if (sandbox === true) {
+    console.error(
+      'ERROR: GEMINI_SANDBOX is true but failed to determine command for sandbox; ' +
+        'install docker or podman or specify command in GEMINI_SANDBOX',
+    );
+    process.exit(1);
+  }
+
+  return '';
 }
 
 // docker does not allow container names to contain ':' or '/', so we
@@ -233,14 +244,14 @@ export async function start_sandbox(sandbox: string) {
   if (sandbox === 'sandbox-exec') {
     // disallow BUILD_SANDBOX
     if (process.env.BUILD_SANDBOX) {
-      console.error('ERROR: cannot BUILD_SANDBOX when using MacOC Seatbelt');
+      console.error('ERROR: cannot BUILD_SANDBOX when using MacOS Seatbelt');
       process.exit(1);
     }
-    const profile = (process.env.SEATBELT_PROFILE ??= 'minimal');
+    const profile = (process.env.SEATBELT_PROFILE ??= 'permissive-open');
     let profileFile = new URL(`sandbox-macos-${profile}.sb`, import.meta.url)
       .pathname;
-    // if profile is anything other than 'minimal' or 'strict', then look for the profile file under the project settings directory
-    if (profile !== 'minimal' && profile !== 'strict') {
+    // if profile name is not recognized, then look for file under project settings directory
+    if (!BUILTIN_SEATBELT_PROFILES.includes(profile)) {
       profileFile = path.join(
         SETTINGS_DIRECTORY_NAME,
         `sandbox-macos-${profile}.sb`,
@@ -254,10 +265,6 @@ export async function start_sandbox(sandbox: string) {
     }
     console.error(`using macos seatbelt (profile: ${profile}) ...`);
     // if DEBUG is set, convert to --inspect-brk in NODE_OPTIONS
-    if (process.env.DEBUG) {
-      process.env.NODE_OPTIONS ??= '';
-      process.env.NODE_OPTIONS += ` --inspect-brk`;
-    }
     const args = [
       '-D',
       `TARGET_DIR=${fs.realpathSync(process.cwd())}`,
@@ -273,11 +280,74 @@ export async function start_sandbox(sandbox: string) {
       '-c',
       [
         `SANDBOX=sandbox-exec`,
-        `NODE_OPTIONS="${process.env.NODE_OPTIONS}"`,
+        `NODE_OPTIONS="${process.env.DEBUG ? `--inspect-brk` : ''}"`,
         ...process.argv.map((arg) => quote([arg])),
       ].join(' '),
     ];
-    spawnSync(sandbox, args, { stdio: 'inherit' });
+    // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
+    const proxyCommand = process.env.GEMINI_SANDBOX_PROXY_COMMAND;
+    let proxyProcess: ChildProcess | undefined = undefined;
+    let sandboxProcess: ChildProcess | undefined = undefined;
+    const sandboxEnv = { ...process.env };
+    if (proxyCommand) {
+      const proxy =
+        process.env.HTTPS_PROXY ||
+        process.env.https_proxy ||
+        process.env.HTTP_PROXY ||
+        process.env.http_proxy ||
+        'http://localhost:8877';
+      sandboxEnv['HTTPS_PROXY'] = proxy;
+      sandboxEnv['https_proxy'] = proxy; // lower-case can be required, e.g. for curl
+      sandboxEnv['HTTP_PROXY'] = proxy;
+      sandboxEnv['http_proxy'] = proxy;
+      const noProxy = process.env.NO_PROXY || process.env.no_proxy;
+      if (noProxy) {
+        sandboxEnv['NO_PROXY'] = noProxy;
+        sandboxEnv['no_proxy'] = noProxy;
+      }
+      proxyProcess = spawn(proxyCommand, {
+        stdio: ['ignore', 'pipe', 'pipe'],
+        shell: true,
+        detached: true,
+      });
+      // install handlers to stop proxy on exit/signal
+      const stopProxy = () => {
+        console.log('stopping proxy ...');
+        if (proxyProcess?.pid) {
+          process.kill(-proxyProcess.pid, 'SIGTERM');
+        }
+      };
+      process.on('exit', stopProxy);
+      process.on('SIGINT', stopProxy);
+      process.on('SIGTERM', stopProxy);
+
+      // commented out as it disrupts ink rendering
+      // proxyProcess.stdout?.on('data', (data) => {
+      //   console.info(data.toString());
+      // });
+      proxyProcess.stderr?.on('data', (data) => {
+        console.error(data.toString());
+      });
+      proxyProcess.on('close', (code, signal) => {
+        console.error(
+          `ERROR: proxy command '${proxyCommand}' exited with code ${code}, signal ${signal}`,
+        );
+        if (sandboxProcess?.pid) {
+          process.kill(-sandboxProcess.pid, 'SIGTERM');
+        }
+        process.exit(1);
+      });
+      console.log('waiting for proxy to start ...');
+      await execAsync(
+        `until timeout 0.25 curl -s http://localhost:8877; do sleep 0.25; done`,
+      );
+    }
+    // spawn child and let it inherit stdio
+    sandboxProcess = spawn(sandbox, args, {
+      stdio: 'inherit',
+      env: sandboxEnv,
+    });
+    await new Promise((resolve) => sandboxProcess?.on('close', resolve));
     return;
   }
 
@@ -296,7 +366,7 @@ export async function start_sandbox(sandbox: string) {
   const workdir = path.resolve(process.cwd());
   const containerWorkdir = getContainerPath(workdir);
 
-  // if BUILD_SANDBOX is set, then call scripts/build_sandbox.sh under gemini-cli repo
+  // if BUILD_SANDBOX is set, then call scripts/build_sandbox.js under gemini-cli repo
   //
   // note this can only be done with binary linked from gemini-cli repo
   if (process.env.BUILD_SANDBOX) {
@@ -319,13 +389,16 @@ export async function start_sandbox(sandbox: string) {
         console.error(`using ${projectSandboxDockerfile} for sandbox`);
         buildArgs += `-f ${path.resolve(projectSandboxDockerfile)} -i ${image}`;
       }
-      execSync(`cd ${gcRoot} && scripts/build_sandbox.sh -s ${buildArgs}`, {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          GEMINI_SANDBOX: sandbox, // in case sandbox is enabled via flags (see config.ts under cli package)
+      execSync(
+        `cd ${gcRoot} && node scripts/build_sandbox.js -s ${buildArgs}`,
+        {
+          stdio: 'inherit',
+          env: {
+            ...process.env,
+            GEMINI_SANDBOX: sandbox, // in case sandbox is enabled via flags (see config.ts under cli package)
+          },
         },
-      });
+      );
     }
   }
 
@@ -356,7 +429,9 @@ export async function start_sandbox(sandbox: string) {
   // mount user settings directory inside container, after creating if missing
   // note user/home changes inside sandbox and we mount at BOTH paths for consistency
   const userSettingsDirOnHost = USER_SETTINGS_DIR;
-  const userSettingsDirInSandbox = getContainerPath(userSettingsDirOnHost);
+  const userSettingsDirInSandbox = getContainerPath(
+    `/home/node/${SETTINGS_DIRECTORY_NAME}`,
+  );
   if (!fs.existsSync(userSettingsDirOnHost)) {
     fs.mkdirSync(userSettingsDirOnHost);
   }
@@ -407,6 +482,45 @@ export async function start_sandbox(sandbox: string) {
   if (process.env.DEBUG) {
     const debugPort = process.env.DEBUG_PORT || '9229';
     args.push(`--publish`, `${debugPort}:${debugPort}`);
+  }
+
+  // copy proxy environment variables, replacing localhost with SANDBOX_PROXY_NAME
+  // copy as both upper-case and lower-case as is required by some utilities
+  // GEMINI_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
+  const proxyCommand = process.env.GEMINI_SANDBOX_PROXY_COMMAND;
+  let proxy =
+    process.env.HTTPS_PROXY ||
+    process.env.https_proxy ||
+    process.env.HTTP_PROXY ||
+    process.env.http_proxy ||
+    'http://localhost:8877';
+  proxy = proxy.replace('localhost', SANDBOX_PROXY_NAME);
+  if (proxy) {
+    args.push('--env', `HTTPS_PROXY=${proxy}`);
+    args.push('--env', `https_proxy=${proxy}`); // lower-case can be required, e.g. for curl
+    args.push('--env', `HTTP_PROXY=${proxy}`);
+    args.push('--env', `http_proxy=${proxy}`);
+  }
+  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
+  if (noProxy) {
+    args.push('--env', `NO_PROXY=${noProxy}`);
+    args.push('--env', `no_proxy=${noProxy}`);
+  }
+
+  // if using proxy, switch to internal networking through proxy
+  if (proxy) {
+    execSync(
+      `${sandbox} network inspect ${SANDBOX_NETWORK_NAME} || ${sandbox} network create --internal ${SANDBOX_NETWORK_NAME}`,
+    );
+    args.push('--network', SANDBOX_NETWORK_NAME);
+    // if proxy command is set, create a separate network w/ host access (i.e. non-internal)
+    // we will run proxy in its own container connected to both host network and internal network
+    // this allows proxy to work even on rootless podman on macos with host<->vm<->container isolation
+    if (proxyCommand) {
+      execSync(
+        `${sandbox} network inspect ${SANDBOX_PROXY_NAME} || ${sandbox} network create ${SANDBOX_PROXY_NAME}`,
+      );
+    }
   }
 
   // name container after image, plus numeric suffix to avoid conflicts
@@ -497,10 +611,12 @@ export async function start_sandbox(sandbox: string) {
 
   // Determine if the current user's UID/GID should be passed to the sandbox.
   // See shouldUseCurrentUserInSandbox for more details.
+  let userFlag = '';
   if (await shouldUseCurrentUserInSandbox()) {
     const uid = execSync('id -u').toString().trim();
     const gid = execSync('id -g').toString().trim();
     args.push('--user', `${uid}:${gid}`);
+    userFlag = `--user ${uid}:${gid}`;
     // when forcing a UID in the sandbox, $HOME can be reset to '/', so we copy $HOME as well
     args.push('--env', `HOME=${os.homedir()}`);
   }
@@ -511,20 +627,64 @@ export async function start_sandbox(sandbox: string) {
   // push container entrypoint (including args)
   args.push(...entrypoint(workdir));
 
+  // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
+  let proxyProcess: ChildProcess | undefined = undefined;
+  let sandboxProcess: ChildProcess | undefined = undefined;
+  if (proxyCommand) {
+    // run proxyCommand in its own container
+    const proxyContainerCommand = `${sandbox} run --rm --init ${userFlag} --name ${SANDBOX_PROXY_NAME} --network ${SANDBOX_PROXY_NAME} -p 8877:8877 -v ${process.cwd()}:${workdir} --workdir ${workdir} ${image} ${proxyCommand}`;
+    proxyProcess = spawn(proxyContainerCommand, {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      shell: true,
+      detached: true,
+    });
+    // install handlers to stop proxy on exit/signal
+    const stopProxy = () => {
+      console.log('stopping proxy container ...');
+      execSync(`${sandbox} rm -f ${SANDBOX_PROXY_NAME}`);
+    };
+    process.on('exit', stopProxy);
+    process.on('SIGINT', stopProxy);
+    process.on('SIGTERM', stopProxy);
+
+    // commented out as it disrupts ink rendering
+    // proxyProcess.stdout?.on('data', (data) => {
+    //   console.info(data.toString());
+    // });
+    proxyProcess.stderr?.on('data', (data) => {
+      console.error(data.toString().trim());
+    });
+    proxyProcess.on('close', (code, signal) => {
+      console.error(
+        `ERROR: proxy container command '${proxyContainerCommand}' exited with code ${code}, signal ${signal}`,
+      );
+      if (sandboxProcess?.pid) {
+        process.kill(-sandboxProcess.pid, 'SIGTERM');
+      }
+      process.exit(1);
+    });
+    console.log('waiting for proxy to start ...');
+    await execAsync(
+      `until timeout 0.25 curl -s http://localhost:8877; do sleep 0.25; done`,
+    );
+    // connect proxy container to sandbox network
+    // (workaround for older versions of docker that don't support multiple --network args)
+    await execAsync(
+      `${sandbox} network connect ${SANDBOX_NETWORK_NAME} ${SANDBOX_PROXY_NAME}`,
+    );
+  }
+
   // spawn child and let it inherit stdio
-  const child = spawn(sandbox, args, {
+  sandboxProcess = spawn(sandbox, args, {
     stdio: 'inherit',
-    detached: os.platform() !== 'win32',
   });
 
-  child.on('error', (err) => {
+  sandboxProcess.on('error', (err) => {
     console.error('Sandbox process error:', err);
   });
 
-  // uncomment this line (and comment the await on following line) to let parent exit
-  // child.unref();
   await new Promise<void>((resolve) => {
-    child.on('close', (code, signal) => {
+    sandboxProcess?.on('close', (code, signal) => {
       if (code !== 0) {
         console.log(
           `Sandbox process exited with code: ${code}, signal: ${signal}`,

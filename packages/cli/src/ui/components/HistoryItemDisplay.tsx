@@ -15,6 +15,8 @@ import { ToolGroupMessage } from './messages/ToolGroupMessage.js';
 import { GeminiMessageContent } from './messages/GeminiMessageContent.js';
 import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
+import { StatsDisplay } from './StatsDisplay.js';
+import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Config } from '@gemini-cli/core';
 
 interface HistoryItemDisplayProps {
@@ -22,6 +24,7 @@ interface HistoryItemDisplayProps {
   availableTerminalHeight: number;
   isPending: boolean;
   config?: Config;
+  isFocused?: boolean;
 }
 
 export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
@@ -29,6 +32,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   availableTerminalHeight,
   isPending,
   config,
+  isFocused = true,
 }) => (
   <Box flexDirection="column" key={item.id}>
     {/* Render standard message types */}
@@ -58,12 +62,23 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         modelVersion={item.modelVersion}
       />
     )}
+    {item.type === 'stats' && (
+      <StatsDisplay
+        stats={item.stats}
+        lastTurnStats={item.lastTurnStats}
+        duration={item.duration}
+      />
+    )}
+    {item.type === 'quit' && (
+      <SessionSummaryDisplay stats={item.stats} duration={item.duration} />
+    )}
     {item.type === 'tool_group' && (
       <ToolGroupMessage
         toolCalls={item.tools}
         groupId={item.id}
         availableTerminalHeight={availableTerminalHeight}
         config={config}
+        isFocused={isFocused}
       />
     )}
   </Box>
