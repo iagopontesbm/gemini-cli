@@ -103,17 +103,9 @@ export const Footer: React.FC<FooterProps> = ({
       <Box alignItems="center">
         <Text color={Colors.AccentBlue}> {model} </Text>
         <Text>
+          <Text color={Colors.Gray}>| </Text>
           <Text color={Colors.Gray}>
-            {renderProgressBar(percentage * 100, 4)}{' '}
-            {(percentage * 100).toFixed(1)}%
-          </Text>
-          <Text color={Colors.AccentYellow}>
-            {' '}
-            ⬆︎ {formatTokenCount(promptTokenCount)}
-          </Text>
-          <Text color={Colors.LightBlue}>
-            {' '}
-            ⬇ {formatTokenCount(candidatesTokenCount)}{' '}
+            {((1 - percentage) * 100).toFixed(0)}% context left
           </Text>
         </Text>
         {corgiMode && (
