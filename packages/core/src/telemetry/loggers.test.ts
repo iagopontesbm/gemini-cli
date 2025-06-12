@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ToolConfirmationOutcome } from '../index.js';
 import { logs } from '@opentelemetry/api-logs';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { Config } from '../config/config.js';
@@ -13,6 +14,7 @@ import {
   logCliConfiguration,
   logUserPrompt,
   logToolCall,
+  ToolCallDecision,
 } from './loggers.js';
 import * as metrics from './metrics.js';
 import * as sdk from './sdk.js';
@@ -263,10 +265,9 @@ describe('loggers', () => {
         },
         duration_ms: 100,
         success: true,
-        decision: 'accept' as const,
       };
 
-      logToolCall(mockConfig, event);
+      logToolCall(mockConfig, event, ToolConfirmationOutcome.ProceedOnce);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
         body: 'Tool call: test-function. Decision: accept. Success: true. Duration: 100ms.',
@@ -285,7 +286,7 @@ describe('loggers', () => {
           ),
           duration_ms: 100,
           success: true,
-          decision: 'accept' as const,
+          decision: ToolCallDecision.ACCEPT,
         },
       });
 
@@ -294,7 +295,7 @@ describe('loggers', () => {
         'test-function',
         100,
         true,
-        'accept',
+        ToolCallDecision.ACCEPT,
       );
     });
     it('should log a tool call with a reject decision', () => {
@@ -306,10 +307,9 @@ describe('loggers', () => {
         },
         duration_ms: 100,
         success: false,
-        decision: 'reject' as const,
       };
 
-      logToolCall(mockConfig, event);
+      logToolCall(mockConfig, event, ToolConfirmationOutcome.Cancel);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
         body: 'Tool call: test-function. Decision: reject. Success: false. Duration: 100ms.',
@@ -328,7 +328,7 @@ describe('loggers', () => {
           ),
           duration_ms: 100,
           success: false,
-          decision: 'reject' as const,
+          decision: ToolCallDecision.REJECT,
         },
       });
 
@@ -337,7 +337,7 @@ describe('loggers', () => {
         'test-function',
         100,
         false,
-        'reject',
+        ToolCallDecision.REJECT,
       );
     });
 
@@ -350,10 +350,9 @@ describe('loggers', () => {
         },
         duration_ms: 100,
         success: true,
-        decision: 'modify' as const,
       };
 
-      logToolCall(mockConfig, event);
+      logToolCall(mockConfig, event, ToolConfirmationOutcome.ModifyWithEditor);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
         body: 'Tool call: test-function. Decision: modify. Success: true. Duration: 100ms.',
@@ -372,7 +371,7 @@ describe('loggers', () => {
           ),
           duration_ms: 100,
           success: true,
-          decision: 'modify' as const,
+          decision: ToolCallDecision.MODIFY,
         },
       });
 
@@ -381,7 +380,7 @@ describe('loggers', () => {
         'test-function',
         100,
         true,
-        'modify',
+        ToolCallDecision.MODIFY,
       );
     });
 

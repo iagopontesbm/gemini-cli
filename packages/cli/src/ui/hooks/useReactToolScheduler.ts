@@ -140,6 +140,7 @@ export function useReactToolScheduler(
         onToolCallsUpdate: toolCallsUpdateHandler,
         approvalMode: config.getApprovalMode(),
         getPreferredEditor,
+        config,
       }),
     [
       config,
