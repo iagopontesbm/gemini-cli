@@ -45,6 +45,7 @@ export enum GeminiEventType {
   Error = 'error',
   ChatCompressed = 'chat_compressed',
   UsageMetadata = 'usage_metadata',
+  Thought = 'thought',
 }
 
 export interface GeminiErrorEventValue {
@@ -71,6 +72,11 @@ export interface ServerToolCallConfirmationDetails {
 
 export type ServerGeminiContentEvent = {
   type: GeminiEventType.Content;
+  value: string;
+};
+
+export type ServerGeminiThoughtEvent = {
+  type: GeminiEventType.Thought;
   value: string;
 };
 
@@ -116,7 +122,8 @@ export type ServerGeminiStreamEvent =
   | ServerGeminiUserCancelledEvent
   | ServerGeminiErrorEvent
   | ServerGeminiChatCompressedEvent
-  | ServerGeminiUsageMetadataEvent;
+  | ServerGeminiUsageMetadataEvent
+  | ServerGeminiThoughtEvent;
 
 // A turn manages the agentic loop turn within the server context.
 export class Turn {
@@ -153,6 +160,15 @@ export class Turn {
           return;
         }
         this.debugResponses.push(resp);
+
+        const thought = resp.candidates?.[0]?.content?.parts?.[0]?.thought;
+        if (thought) {
+          yield {
+            type: GeminiEventType.Thought,
+            value: resp.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+          };
+          continue;
+        }
 
         const text = getResponseText(resp);
         if (text) {

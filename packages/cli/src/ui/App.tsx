@@ -250,18 +250,23 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     return editorType as EditorType;
   }, [settings, openEditorDialog]);
 
-  const { streamingState, submitQuery, initError, pendingHistoryItems } =
-    useGeminiStream(
-      config.getGeminiClient(),
-      history,
-      addItem,
-      setShowHelp,
-      config,
-      setDebugMessage,
-      handleSlashCommand,
-      shellModeActive,
-      getPreferredEditor,
-    );
+  const {
+    streamingState,
+    submitQuery,
+    initError,
+    pendingHistoryItems,
+    thought,
+  } = useGeminiStream(
+    config.getGeminiClient(),
+    history,
+    addItem,
+    setShowHelp,
+    config,
+    setDebugMessage,
+    handleSlashCommand,
+    shellModeActive,
+    getPreferredEditor,
+  );
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
   const showAutoAcceptIndicator = useAutoAcceptIndicator({ config });
@@ -485,6 +490,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           ) : (
             <>
               <LoadingIndicator
+                thought={thought}
                 currentLoadingPhrase={
                   config.getAccessibility()?.disableLoadingPhrases
                     ? undefined

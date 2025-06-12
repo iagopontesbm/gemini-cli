@@ -89,6 +89,7 @@ export const useGeminiStream = (
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
+  const [thought, setThought] = useState<string | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
   const logger = useLogger();
@@ -389,6 +390,9 @@ export const useGeminiStream = (
       const toolCallRequests: ToolCallRequestInfo[] = [];
       for await (const event of stream) {
         switch (event.type) {
+          case ServerGeminiEventType.Thought:
+            setThought(event.value);
+            break;
           case ServerGeminiEventType.Content:
             geminiMessageBuffer = handleContentEvent(
               event.value,
@@ -726,5 +730,6 @@ export const useGeminiStream = (
     submitQuery,
     initError,
     pendingHistoryItems,
+    thought,
   };
 };
