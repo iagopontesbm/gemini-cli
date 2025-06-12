@@ -221,7 +221,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         if (timerRef.current) {
           clearTimeout(timerRef.current);
         }
-        process.exit(0);
+        const quitCommand = slashCommands.find(
+          (cmd) => cmd.name === 'quit' || cmd.altName === 'exit',
+        );
+        if (quitCommand) {
+          quitCommand.action('quit', '', '');
+        } else {
+          process.exit(0);
+        }
       } else {
         setPressedOnce(true);
         timerRef.current = setTimeout(() => {
@@ -230,7 +237,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         }, CTRL_C_PROMPT_DURATION_MS);
       }
     },
-    [],
+    [slashCommands],
   );
 
   useInput((input: string, key: InkKeyType) => {
@@ -247,25 +254,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
       }
     } else if (key.ctrl && (input === 'c' || input === 'C')) {
-      if (ctrlCPressedOnce) {
-        if (ctrlCTimerRef.current) {
-          clearTimeout(ctrlCTimerRef.current);
-        }
-        const quitCommand = slashCommands.find(
-          (cmd) => cmd.name === 'quit' || cmd.altName === 'exit',
-        );
-        if (quitCommand) {
-          quitCommand.action('quit', '', '');
-        } else {
-          process.exit(0);
-        }
-      } else {
-        setCtrlCPressedOnce(true);
-        ctrlCTimerRef.current = setTimeout(() => {
-          setCtrlCPressedOnce(false);
-          ctrlCTimerRef.current = null;
-        }, CTRL_C_PROMPT_DURATION_MS);
-      }
+      handleExit(ctrlCPressedOnce, setCtrlCPressedOnce, ctrlCTimerRef);
     } else if (key.ctrl && (input === 'd' || input === 'D')) {
       if (buffer.text.length > 0) {
         // Do nothing if there is text in the input.
