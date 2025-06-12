@@ -27,24 +27,6 @@ interface FooterProps {
   totalTokenCount: number;
 }
 
-const renderProgressBar = (percentage: number, length: number) => {
-  const filledLength = Math.round((percentage / 100) * length);
-  const emptyLength = length - filledLength;
-  const filled = '▰'.repeat(filledLength);
-  const empty = '▱'.repeat(emptyLength);
-  return `${filled}${empty}`;
-};
-
-const formatTokenCount = (count: number): string => {
-  if (count >= 1_000_000) {
-    return `${(count / 1_000_000).toFixed(1)}M`;
-  }
-  if (count > 1000) {
-    return `${Math.round(count / 1000)}k`;
-  }
-  return count.toLocaleString();
-};
-
 export const Footer: React.FC<FooterProps> = ({
   model,
   targetDir,
@@ -55,8 +37,6 @@ export const Footer: React.FC<FooterProps> = ({
   errorCount,
   showErrorDetails,
   showMemoryUsage,
-  promptTokenCount,
-  candidatesTokenCount,
   totalTokenCount,
 }) => {
   const limit = tokenLimit(model);
