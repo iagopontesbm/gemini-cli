@@ -14,6 +14,9 @@ import {
   afterEach,
   Mocked,
 } from 'vitest';
+import * as fs from 'fs';
+import * as path from 'path';
+import { tmpdir } from 'os';
 import { ToolRegistry, DiscoveredTool } from './tool-registry.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 import {
@@ -123,27 +126,30 @@ class MockTool extends BaseTool<{ param: string }, ToolResult> {
   }
 }
 
-const baseConfigParams: ConfigParameters = {
-  contentGeneratorConfig: {
-    model: 'test-model',
-    apiKey: 'test-api-key',
-    vertexai: false,
-  },
-  embeddingModel: 'test-embedding-model',
-  sandbox: false,
-  targetDir: '/test/dir',
-  debugMode: false,
-  userMemory: '',
-  geminiMdFileCount: 0,
-  approvalMode: ApprovalMode.DEFAULT,
-  sessionId: 'test-session-id',
-};
-
 describe('ToolRegistry', () => {
   let config: Config;
   let toolRegistry: ToolRegistry;
+  let tempDir: string;
+  let baseConfigParams: ConfigParameters;
 
   beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(tmpdir(), 'gemini-cli-test-'));
+    baseConfigParams = {
+      cwd: tempDir,
+      contentGeneratorConfig: {
+        model: 'test-model',
+        apiKey: 'test-api-key',
+        vertexai: false,
+      },
+      embeddingModel: 'test-embedding-model',
+      sandbox: false,
+      targetDir: '/test/dir',
+      debugMode: false,
+      userMemory: '',
+      geminiMdFileCount: 0,
+      approvalMode: ApprovalMode.DEFAULT,
+      sessionId: 'test-session-id',
+    };
     config = new Config(baseConfigParams);
     toolRegistry = new ToolRegistry(config);
     vi.spyOn(console, 'warn').mockImplementation(() => {});

@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { Config, ConfigParameters } from './config.js';
 import * as path from 'path';
+import * as fs from 'fs';
+import { tmpdir } from 'os';
 import { setGeminiMdFilename as mockSetGeminiMdFilename } from '../tools/memoryTool.js';
 
 // Mock dependencies that might be called during Config construction or createServerConfig
@@ -39,6 +41,8 @@ vi.mock('../tools/memoryTool', () => ({
 }));
 
 describe('Server Config (config.ts)', () => {
+  let tempDir: string;
+  let baseParams: ConfigParameters;
   const API_KEY = 'server-api-key';
   const MODEL = 'gemini-pro';
   const SANDBOX = false;
@@ -50,25 +54,33 @@ describe('Server Config (config.ts)', () => {
   const TELEMETRY = false;
   const EMBEDDING_MODEL = 'gemini-embedding';
   const SESSION_ID = 'test-session-id';
-  const baseParams: ConfigParameters = {
-    contentGeneratorConfig: {
-      apiKey: API_KEY,
-      model: MODEL,
-    },
-    embeddingModel: EMBEDDING_MODEL,
-    sandbox: SANDBOX,
-    targetDir: TARGET_DIR,
-    debugMode: DEBUG_MODE,
-    question: QUESTION,
-    fullContext: FULL_CONTEXT,
-    userMemory: USER_MEMORY,
-    telemetry: TELEMETRY,
-    sessionId: SESSION_ID,
-  };
 
   beforeEach(() => {
+    tempDir = fs.mkdtempSync(path.join(tmpdir(), 'gemini-cli-test-'));
+    baseParams = {
+      cwd: tempDir,
+      contentGeneratorConfig: {
+        apiKey: API_KEY,
+        model: MODEL,
+      },
+      embeddingModel: EMBEDDING_MODEL,
+      sandbox: SANDBOX,
+      targetDir: TARGET_DIR,
+      debugMode: DEBUG_MODE,
+      question: QUESTION,
+      fullContext: FULL_CONTEXT,
+      userMemory: USER_MEMORY,
+      telemetry: TELEMETRY,
+      sessionId: SESSION_ID,
+    };
     // Reset mocks if necessary
     vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true });
+    }
   });
 
   it('Config constructor should store userMemory correctly', () => {
