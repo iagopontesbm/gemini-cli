@@ -6,9 +6,7 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import ignore from 'ignore';
-
-type Ignore = ReturnType<typeof ignore>;
+import ignore, { type Ignore } from 'ignore';
 import { isGitRepository } from './gitUtils.js';
 
 export interface GitIgnoreFilter {
