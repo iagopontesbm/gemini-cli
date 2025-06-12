@@ -534,7 +534,7 @@ export class GeminiClient {
     const history = chat.getHistory(true); // Get curated history
 
     // Regardless of `force`, don't do anything if the history is empty.
-    if (history.length == 0) {
+    if (history.length === 0) {
       return null;
     }
 
@@ -591,8 +591,8 @@ export class GeminiClient {
     ).totalTokens;
 
     return {
-      originalTokenCount: originalTokenCount,
-      newTokenCount: newTokenCount,
+      originalTokenCount,
+      newTokenCount,
     };
   }
 }

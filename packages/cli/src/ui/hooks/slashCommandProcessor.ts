@@ -643,6 +643,7 @@ Add any other context about the problem here.
       },
       {
         name: 'compress',
+        altName: 'summarize',
         description: 'Compresses the context by replacing it with a summary.',
         action: async (_mainCommand, _subCommand, _args) => {
           addMessage({
