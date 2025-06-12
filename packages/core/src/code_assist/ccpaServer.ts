@@ -19,50 +19,54 @@ import {
   CountTokensResponse,
   EmbedContentParameters,
 } from '@google/genai';
-import { Readable } from 'stream';
 import * as readline from 'readline';
-import type { ReadableStream } from 'node:stream/web';
 import { ContentGenerator } from '../core/contentGenerator.js';
-import {toVertexRequest} from './converter.js';
+import { toCcpaRequest, fromCcpaResponse } from './converter.js';
 import { PassThrough } from 'node:stream';
 
 
 // TODO: Use production endpoint once it supports our methods.
 export const CCPA_ENDPOINT =
   'https://staging-cloudcode-pa.sandbox.googleapis.com';
-// export const CCPA_ENDPOINT =  'http://localhost:9999';
+// export const CCPA_ENDPOINT = 'http://localhost:9999';
 export const CCPA_API_VERSION = 'v1internal';
 
 export class CcpaServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
     readonly projectId?: string,
-  ) {}
+  ) { }
 
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    return await this.streamEndpoint<GenerateContentResponse>(
+    // const resp = await this.callEndpoint<GenerateContentResponse>(
+    //   'generateContent',
+    //   toCcpaRequest(req, this.projectId),
+    // );
+    // return (async function* (): AsyncGenerator<GenerateContentResponse> {
+    //   yield fromCcpaResponse(resp);
+    // })();
+
+    const values = await this.streamEndpoint(
       'streamGenerateContent',
-      {
-        model: req.model,
-        project: this.projectId,
-        request: toVertexRequest(req),
-      },
+      toCcpaRequest(req, this.projectId),
     );
+    return (async function* (): AsyncGenerator<GenerateContentResponse> {
+      for await (const value of values) {
+        yield fromCcpaResponse(value);
+      }
+    })();
   }
 
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    return await this.callEndpoint<GenerateContentResponse>(
+    const resp = await this.callEndpoint<GenerateContentResponse>(
       'generateContent',
-      {
-        model: req.model,
-        project: this.projectId,
-        request: toVertexRequest(req),
-      },
+      toCcpaRequest(req, this.projectId),
     );
+    return fromCcpaResponse(resp);
   }
 
   async onboardUser(
@@ -107,10 +111,10 @@ export class CcpaServer implements ContentGenerator {
     return res.data as T;
   }
 
-  async streamEndpoint<T>(
+  async streamEndpoint(
     method: string,
     req: object,
-  ): Promise<AsyncGenerator<T>> {
+  ): Promise<AsyncGenerator<Object>> {
     const res = await this.auth.request({
       url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
       method: 'POST',
@@ -122,7 +126,7 @@ export class CcpaServer implements ContentGenerator {
       body: JSON.stringify(req),
     });
 
-    return (async function* (): AsyncGenerator<T> {
+    return (async function* (): AsyncGenerator<Object> {
       const rl = readline.createInterface({
         input: res.data as PassThrough,
         crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
@@ -135,7 +139,7 @@ export class CcpaServer implements ContentGenerator {
           if (bufferedLines.length === 0) {
             continue; // no data to yield
           }
-          yield JSON.parse(bufferedLines.join('\n')) as T;
+          yield JSON.parse(bufferedLines.join('\n')) as Object;
           bufferedLines = []; // Reset the buffer after yielding
         } else if (line.startsWith('data: ')) {
           bufferedLines.push(line.slice(6).trim());

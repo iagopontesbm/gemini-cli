@@ -10,9 +10,13 @@ import {
   ContentUnion,
   GenerateContentConfig,
   GenerateContentParameters,
+  GenerateContentResponse,
   GenerationConfigRoutingConfig,
   MediaResolution,
+  Candidate,
   ModelSelectionConfig,
+  GenerateContentResponsePromptFeedback,
+  GenerateContentResponseUsageMetadata,
   Part,
   SafetySetting,
   PartUnion,
@@ -56,6 +60,40 @@ declare interface VertexGenerationConfig {
   audioTimestamp?: boolean;
   thinkingConfig?: ThinkingConfig;
 }
+
+declare interface VertexResponse {
+  candidates: Candidate[];
+  automaticFunctionCallingHistory?: Content[];
+  promptFeedback?: GenerateContentResponsePromptFeedback;
+  usageMetadata?: GenerateContentResponseUsageMetadata;
+}
+
+export function toCcpaRequest(req: GenerateContentParameters, project?: string): Object {
+  return {
+    model: req.model,
+    project: project,
+    request: toVertexRequest(req),
+  };
+}
+
+export function fromCcpaResponse(res: Object): GenerateContentResponse {
+  if ('response' in res) {
+    return fromVertexResponse(res.response as Object);
+  }
+  throw new Error("no response field in ccpa response");
+}
+
+
+export function fromVertexResponse(res: Object): GenerateContentResponse {
+  const vres = res as VertexResponse;
+  const resp = new GenerateContentResponse();
+  resp.candidates = vres.candidates;
+  resp.automaticFunctionCallingHistory = vres.automaticFunctionCallingHistory;
+  resp.promptFeedback = vres.promptFeedback;
+  resp.usageMetadata = vres.usageMetadata;
+  return resp;
+}
+
 
 export function toVertexRequest(req: GenerateContentParameters): VertexRequest {
   return {
