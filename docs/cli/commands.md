@@ -61,6 +61,10 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Description:** Displays a list of all the tools that are currently available to the model.
   - **Action:** Outputs a list of the available tools.
 
+- **`/compress`**
+  - **Description:** Forces a compression of the current context. This will save on tokens used for future tasks while retaining a high level summary of what has happened.
+  - **Action:** Replaces the entire chat context with a summary.
+
 ## At Commands (`@`)
 
 At commands are used to quickly include the content of files or directories as part of your prompt to Gemini. These commands now feature git-aware filtering.

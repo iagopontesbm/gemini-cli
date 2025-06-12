@@ -643,7 +643,7 @@ Add any other context about the problem here.
       },
       {
         name: 'compress',
-        description: 'force compress chat history',
+        description: 'Force compresses the context by replacing it with a summary.',
         action: async (_mainCommand, _subCommand, _args) => {
           addMessage({
             type: MessageType.INFO,

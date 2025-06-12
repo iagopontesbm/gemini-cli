@@ -62,6 +62,7 @@ import {
   getMCPServerStatus,
   MCPDiscoveryState,
   getMCPDiscoveryState,
+  GeminiClient,
 } from '@gemini-cli/core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 
@@ -100,6 +101,7 @@ describe('useSlashCommandProcessor', () => {
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
+  let mockGeminiClient: GeminiClient;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
   const mockUseSessionStats = useSessionStats as Mock;
@@ -115,8 +117,12 @@ describe('useSlashCommandProcessor', () => {
     mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
+    mockGeminiClient = {
+      tryCompressChat: vi.fn().mockReturnValue(Promise.resolve(true))
+    } as unknown as GeminiClient;
     mockConfig = {
       getDebugMode: vi.fn(() => false),
+      getGeminiClient: () => mockGeminiClient,
       getSandbox: vi.fn(() => 'test-sandbox'),
       getModel: vi.fn(() => 'test-model'),
       getProjectRoot: vi.fn(() => '/test/dir'),
@@ -943,5 +949,33 @@ Add any other context about the problem here.
 
       expect(commandResult).toBe(true);
     });
+  });
+
+  describe('/compress command', () => {
+    it('should call tryCompressChat(true)', async () => {
+        const { handleSlashCommand } = getProcessor();
+
+        await act(async () => {
+          handleSlashCommand('/compress');
+        });
+        expect(mockGeminiClient.tryCompressChat).toHaveBeenCalledWith(true);
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: MessageType.INFO,
+            text: expect.stringContaining('Attempting to compress chat history'),
+          }),
+          expect.any(Number),
+        );
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          3,
+          expect.objectContaining({
+            type: MessageType.INFO,
+            text: expect.stringContaining('Chat history compressed!'),
+          }),
+          expect.any(Number),
+        );
+      },
+    );
   });
 });
