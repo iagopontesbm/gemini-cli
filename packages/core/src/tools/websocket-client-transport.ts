@@ -92,8 +92,7 @@ export class WebSocketClientTransport
     options?: TransportSendOptions,
   ): Promise<void> {
     if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
-      const errorMessage = 'WebSocket is not connected or not open. Cannot send message.';
-      throw new Error(errorMessage);
+      throw new Error('WebSocket is not connected or not open. Cannot send message.');
     }
     const messageString = JSON.stringify(message);
     this.socket.send(messageString);
