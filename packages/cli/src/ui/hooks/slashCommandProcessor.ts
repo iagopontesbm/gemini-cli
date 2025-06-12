@@ -11,14 +11,22 @@ import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import {
   Config,
+  GitService,
   Logger,
   MCPDiscoveryState,
   MCPServerStatus,
   getMCPDiscoveryState,
   getMCPServerStatus,
 } from '@gemini-cli/core';
-import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
+import {
+  Message,
+  MessageType,
+  HistoryItemWithoutId,
+  HistoryItem,
+} from '../types.js';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
@@ -39,7 +47,10 @@ export interface SlashCommand {
     mainCommand: string,
     subCommand?: string,
     args?: string,
-  ) => void | SlashCommandActionReturn; // Action can now return this object
+  ) =>
+    | void
+    | SlashCommandActionReturn
+    | Promise<void | SlashCommandActionReturn>; // Action can now return this object
 }
 
 /**
@@ -47,17 +58,28 @@ export interface SlashCommand {
  */
 export const useSlashCommandProcessor = (
   config: Config | null,
+  history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
+  loadHistory: UseHistoryManagerReturn['loadHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
+  openEditorDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
+  setQuittingMessages: (message: HistoryItem[]) => void,
 ) => {
   const session = useSessionStats();
+  const gitService = useMemo(() => {
+    if (!config?.getProjectRoot()) {
+      return;
+    }
+    return new GitService(config.getProjectRoot());
+  }, [config]);
+
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -75,6 +97,12 @@ export const useSlashCommandProcessor = (
           type: 'stats',
           stats: message.stats,
           lastTurnStats: message.lastTurnStats,
+          duration: message.duration,
+        };
+      } else if (message.type === MessageType.QUIT) {
+        historyItemContent = {
+          type: 'quit',
+          stats: message.stats,
           duration: message.duration,
         };
       } else {
@@ -126,8 +154,8 @@ export const useSlashCommandProcessor = (
     [addMessage],
   );
 
-  const slashCommands: SlashCommand[] = useMemo(
-    () => [
+  const slashCommands: SlashCommand[] = useMemo(() => {
+    const commands: SlashCommand[] = [
       {
         name: 'help',
         altName: '?',
@@ -152,6 +180,13 @@ export const useSlashCommandProcessor = (
         description: 'change the theme',
         action: (_mainCommand, _subCommand, _args) => {
           openThemeDialog();
+        },
+      },
+      {
+        name: 'editor',
+        description: 'open the editor',
+        action: (_mainCommand, _subCommand, _args) => {
+          openEditorDialog();
         },
       },
       {
@@ -408,7 +443,9 @@ export const useSlashCommandProcessor = (
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX;
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
+            sandboxEnv = `sandbox-exec (${
+              process.env.SEATBELT_PROFILE || 'unknown'
+            })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = getCliVersion();
@@ -437,7 +474,9 @@ export const useSlashCommandProcessor = (
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX.replace(/^gemini-(?:code-)?/, '');
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
+            sandboxEnv = `sandbox-exec (${
+              process.env.SEATBELT_PROFILE || 'unknown'
+            })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const memoryUsage = formatMemoryUsage(process.memoryUsage().rss);
@@ -531,12 +570,21 @@ Add any other context about the problem here.
             return;
           }
           const chat = await config?.getGeminiClient()?.getChat();
+          if (!chat) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'No chat client available to resume conversation.',
+              timestamp: new Date(),
+            });
+            return;
+          }
           clearItems();
-          let i = 0;
+          chat.clearHistory();
           const rolemap: { [key: string]: MessageType } = {
             user: MessageType.USER,
             model: MessageType.GEMINI,
           };
+          let i = 0;
           for (const item of conversation) {
             i += 1;
             const text =
@@ -559,7 +607,7 @@ Add any other context about the problem here.
               } as HistoryItemWithoutId,
               i,
             );
-            chat?.addHistory(item);
+            chat.addHistory(item);
           }
           console.clear();
           refreshStatic();
@@ -569,31 +617,162 @@ Add any other context about the problem here.
         name: 'quit',
         altName: 'exit',
         description: 'exit the cli',
-        action: (_mainCommand, _subCommand, _args) => {
-          onDebugMessage('Quitting. Good-bye.');
-          process.exit(0);
+        action: async (mainCommand, _subCommand, _args) => {
+          const now = new Date();
+          const { sessionStartTime, cumulative } = session.stats;
+          const wallDuration = now.getTime() - sessionStartTime.getTime();
+
+          setQuittingMessages([
+            {
+              type: 'user',
+              text: `/${mainCommand}`,
+              id: now.getTime() - 1,
+            },
+            {
+              type: 'quit',
+              stats: cumulative,
+              duration: formatDuration(wallDuration),
+              id: now.getTime(),
+            },
+          ]);
+
+          setTimeout(() => {
+            process.exit(0);
+          }, 100);
         },
       },
-    ],
-    [
-      onDebugMessage,
-      setShowHelp,
-      refreshStatic,
-      openThemeDialog,
-      clearItems,
-      performMemoryRefresh,
-      showMemoryAction,
-      addMemoryAction,
-      addMessage,
-      toggleCorgiMode,
-      config,
-      showToolDescriptions,
-      session,
-    ],
-  );
+    ];
+
+    if (config?.getCheckpointEnabled()) {
+      commands.push({
+        name: 'restore',
+        description:
+          'restore a tool call. This will reset the conversation and file history to the state it was in when the tool call was suggested',
+        action: async (_mainCommand, subCommand, _args) => {
+          const checkpointDir = config?.getGeminiDir()
+            ? path.join(config.getGeminiDir(), 'checkpoints')
+            : undefined;
+
+          if (!checkpointDir) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Could not determine the .gemini directory path.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          try {
+            // Ensure the directory exists before trying to read it.
+            await fs.mkdir(checkpointDir, { recursive: true });
+            const files = await fs.readdir(checkpointDir);
+            const jsonFiles = files.filter((file) => file.endsWith('.json'));
+
+            if (!subCommand) {
+              if (jsonFiles.length === 0) {
+                addMessage({
+                  type: MessageType.INFO,
+                  content: 'No restorable tool calls found.',
+                  timestamp: new Date(),
+                });
+                return;
+              }
+              const truncatedFiles = jsonFiles.map((file) => {
+                const components = file.split('.');
+                if (components.length <= 1) {
+                  return file;
+                }
+                components.pop();
+                return components.join('.');
+              });
+              const fileList = truncatedFiles.join('\n');
+              addMessage({
+                type: MessageType.INFO,
+                content: `Available tool calls to restore:\n\n${fileList}`,
+                timestamp: new Date(),
+              });
+              return;
+            }
+
+            const selectedFile = subCommand.endsWith('.json')
+              ? subCommand
+              : `${subCommand}.json`;
+
+            if (!jsonFiles.includes(selectedFile)) {
+              addMessage({
+                type: MessageType.ERROR,
+                content: `File not found: ${selectedFile}`,
+                timestamp: new Date(),
+              });
+              return;
+            }
+
+            const filePath = path.join(checkpointDir, selectedFile);
+            const data = await fs.readFile(filePath, 'utf-8');
+            const toolCallData = JSON.parse(data);
+
+            if (toolCallData.history) {
+              loadHistory(toolCallData.history);
+            }
+
+            if (toolCallData.clientHistory) {
+              await config
+                ?.getGeminiClient()
+                ?.setHistory(toolCallData.clientHistory);
+            }
+
+            if (toolCallData.commitHash) {
+              await gitService?.restoreProjectFromSnapshot(
+                toolCallData.commitHash,
+              );
+              addMessage({
+                type: MessageType.INFO,
+                content: `Restored project to the state before the tool call.`,
+                timestamp: new Date(),
+              });
+            }
+
+            return {
+              shouldScheduleTool: true,
+              toolName: toolCallData.toolCall.name,
+              toolArgs: toolCallData.toolCall.args,
+            };
+          } catch (error) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Could not read restorable tool calls. This is the error: ${error}`,
+              timestamp: new Date(),
+            });
+          }
+        },
+      });
+    }
+    return commands;
+  }, [
+    onDebugMessage,
+    setShowHelp,
+    refreshStatic,
+    openThemeDialog,
+    openEditorDialog,
+    clearItems,
+    performMemoryRefresh,
+    showMemoryAction,
+    addMemoryAction,
+    addMessage,
+    toggleCorgiMode,
+    config,
+    showToolDescriptions,
+    session,
+    gitService,
+    loadHistory,
+    addItem,
+    setQuittingMessages,
+  ]);
 
   const handleSlashCommand = useCallback(
-    (rawQuery: PartListUnion): SlashCommandActionReturn | boolean => {
+    async (
+      rawQuery: PartListUnion,
+    ): Promise<SlashCommandActionReturn | boolean> => {
       if (typeof rawQuery !== 'string') {
         return false;
       }
@@ -602,7 +781,12 @@ Add any other context about the problem here.
         return false;
       }
       const userMessageTimestamp = Date.now();
-      addItem({ type: MessageType.USER, text: trimmed }, userMessageTimestamp);
+      if (trimmed !== '/quit' && trimmed !== '/exit') {
+        addItem(
+          { type: MessageType.USER, text: trimmed },
+          userMessageTimestamp,
+        );
+      }
 
       let subCommand: string | undefined;
       let args: string | undefined;
@@ -625,7 +809,7 @@ Add any other context about the problem here.
 
       for (const cmd of slashCommands) {
         if (mainCommand === cmd.name || mainCommand === cmd.altName) {
-          const actionResult = cmd.action(mainCommand, subCommand, args);
+          const actionResult = await cmd.action(mainCommand, subCommand, args);
           if (
             typeof actionResult === 'object' &&
             actionResult?.shouldScheduleTool

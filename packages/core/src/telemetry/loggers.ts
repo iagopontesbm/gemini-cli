@@ -43,21 +43,28 @@ function getCommonAttributes(config: Config): LogAttributes {
 export function logCliConfiguration(config: Config): void {
   if (!isTelemetrySdkInitialized()) return;
 
+  const generatorConfig = config.getContentGeneratorConfig();
+  const mcpServers = config.getMcpServers();
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
     'event.name': EVENT_CLI_CONFIG,
     'event.timestamp': new Date().toISOString(),
     model: config.getModel(),
+    embedding_model: config.getEmbeddingModel(),
     sandbox_enabled:
       typeof config.getSandbox() === 'string' ? true : config.getSandbox(),
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
-    vertex_ai_enabled: !!config.getContentGeneratorConfig().vertexai,
+    api_key_enabled: !!generatorConfig.apiKey,
+    vertex_ai_enabled: !!generatorConfig.vertexai,
+    code_assist_enabled: !!generatorConfig.codeAssist,
     log_user_prompts_enabled: config.getTelemetryLogUserPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),
     file_filtering_allow_build_artifacts:
       config.getFileFilteringAllowBuildArtifacts(),
+    debug_mode: config.getDebugMode(),
+    mcp_servers: mcpServers ? Object.keys(mcpServers).join(',') : '',
   };
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
@@ -74,19 +81,21 @@ export function logUserPrompt(
   },
 ): void {
   if (!isTelemetrySdkInitialized()) return;
-  const { prompt, ...restOfEventArgs } = event;
+
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
-    ...restOfEventArgs,
     'event.name': EVENT_USER_PROMPT,
     'event.timestamp': new Date().toISOString(),
+    prompt_length: event.prompt_length,
   };
+
   if (shouldLogUserPrompts(config)) {
-    attributes.prompt = prompt;
+    attributes.prompt = event.prompt;
   }
+
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `User prompt. Length: ${event.prompt_char_count}`,
+    body: `User prompt. Length: ${event.prompt_length}`,
     attributes,
   };
   logger.emit(logRecord);
