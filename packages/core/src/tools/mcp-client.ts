@@ -124,8 +124,13 @@ export async function discoverMcpTools(
   ideMode?: boolean,
 ): Promise<void> {
   if (ideMode) {
-    return discoverIdeMcpTools(toolRegistry);
+    // If the user sets the ideMode setting, automatically attempt to connect
+    // to the GCA VS Code MCP server.
+    mcpServers['vscode'] = {
+      httpUrl: 'http://localhost:3000/mcp',
+    };
   }
+
   // Set discovery state to in progress
   mcpDiscoveryState = MCPDiscoveryState.IN_PROGRESS;
   try {
@@ -155,14 +160,6 @@ export async function discoverMcpTools(
     mcpDiscoveryState = MCPDiscoveryState.COMPLETED;
     throw error;
   }
-}
-
-async function discoverIdeMcpTools(toolRegistry: ToolRegistry): Promise<void> {
-  const mcpServerName = 'vscode';
-  const mcpServerConfig: MCPServerConfig = {
-    httpUrl: 'http://localhost:3000/mcp',
-  };
-  return connectAndDiscover(mcpServerName, mcpServerConfig, toolRegistry);
 }
 
 async function connectAndDiscover(
@@ -234,6 +231,10 @@ async function connectAndDiscover(
       // Exclude args and env which may contain sensitive data
     };
 
+    if (mcpServerName == "vscode") {
+      console.log('ERROR: Could not start up in IDE Mode. Please make sure you have only a single VS Code window open with the Gemini Code Assist extension installed or set ideMode = false in your settings.')
+      process.exit(1)
+    }
     console.error(
       `failed to start or connect to MCP server '${mcpServerName}' ` +
         `${JSON.stringify(safeConfig)}; \n${error}`,
