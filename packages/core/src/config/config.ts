@@ -71,7 +71,7 @@ export interface ConfigParameters {
   geminiMdFileCount?: number;
   approvalMode?: ApprovalMode;
   showMemoryUsage?: boolean;
-  contextFileName?: string;
+  contextFileName?: string | string[];
   geminiIgnorePatterns?: string[];
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
