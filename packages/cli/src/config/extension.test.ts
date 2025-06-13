@@ -55,9 +55,9 @@ describe('loadExtensions', () => {
     expect(extensions).toHaveLength(2);
     const ext1 = extensions.find((e) => e.config.name === 'ext1');
     const ext2 = extensions.find((e) => e.config.name === 'ext2');
-    expect(ext1?.contextFiles).toEqual(
-      [path.join(workspaceExtensionsDir, 'ext1', 'GEMINI.md')],
-    );
+    expect(ext1?.contextFiles).toEqual([
+      path.join(workspaceExtensionsDir, 'ext1', 'GEMINI.md'),
+    ]);
     expect(ext2?.contextFiles).toEqual([]);
   });
 
@@ -79,9 +79,9 @@ describe('loadExtensions', () => {
 
     expect(extensions).toHaveLength(1);
     const ext1 = extensions.find((e) => e.config.name === 'ext1');
-    expect(ext1?.contextFiles).toEqual(
-      [path.join(workspaceExtensionsDir, 'ext1', 'my-context.md')],
-    );
+    expect(ext1?.contextFiles).toEqual([
+      path.join(workspaceExtensionsDir, 'ext1', 'my-context.md'),
+    ]);
   });
 });
 

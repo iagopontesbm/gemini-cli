@@ -4,12 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as os from 'os';
 import { loadCliConfig } from './config.js';
 import { Settings } from './settings.js';
-import { Extension} from './extension.js';
+import { Extension } from './extension.js';
 import * as ServerConfig from '@gemini-cli/core';
 
 const MOCK_HOME_DIR = '/mock/home/user';
@@ -180,7 +179,7 @@ describe('API Key Handling', () => {
   it('should use GOOGLE_API_KEY and warn when both GOOGLE_API_KEY and GEMINI_API_KEY are set', async () => {
     const consoleWarnSpy = vi
       .spyOn(console, 'warn')
-      .mockImplementation(() => { });
+      .mockImplementation(() => {});
 
     process.env.GEMINI_API_KEY = 'gemini-key';
     process.env.GOOGLE_API_KEY = 'google-key';
@@ -230,14 +229,21 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
           name: 'ext3',
           version: '1.0.0',
         },
-        contextFiles: ['/path/to/ext3/context1.md', '/path/to/ext3/context2.md'],
+        contextFiles: [
+          '/path/to/ext3/context1.md',
+          '/path/to/ext3/context2.md',
+        ],
       },
     ];
     await loadCliConfig(settings, extensions, [], 'session-id');
     expect(ServerConfig.loadServerHierarchicalMemory).toHaveBeenCalledWith(
       expect.any(String),
       false,
-      ['/path/to/ext1/GEMINI.md', '/path/to/ext3/context1.md', '/path/to/ext3/context2.md'],
+      [
+        '/path/to/ext1/GEMINI.md',
+        '/path/to/ext3/context1.md',
+        '/path/to/ext3/context2.md',
+      ],
     );
   });
 

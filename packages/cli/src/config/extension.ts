@@ -79,31 +79,37 @@ function loadExtension(extensionDir: string): Extension | null {
     return null;
   }
 
-  const configContent = fs.readFileSync(configFilePath, 'utf-8');
-  const config = JSON.parse(configContent) as ExtensionConfig;
-  if (!config.name || !config.version) {
+  try {
+    const configContent = fs.readFileSync(configFilePath, 'utf-8');
+    const config = JSON.parse(configContent) as ExtensionConfig;
+    if (!config.name || !config.version) {
+      console.error(
+        `Invalid extension config in ${configFilePath}: missing name or version.`,
+      );
+      return null;
+    }
+
+    const contextFiles = getContextFileNames(config)
+      .map((contextFileName) => path.join(extensionDir, contextFileName))
+      .filter((contextFilePath) => fs.existsSync(contextFilePath));
+
+    return {
+      config,
+      contextFiles,
+    };
+  } catch (e) {
     console.error(
-      `Invalid extension config in ${configFilePath}: missing name or version.`,
+      `Warning: error parsing extension config in ${configFilePath}: ${e}`,
     );
     return null;
   }
-
-  const contextFiles = getContextFileNames(config)
-    .map((contextFileName) => path.join(extensionDir, contextFileName))
-    .filter((contextFilePath) => fs.existsSync(contextFilePath));
-
-  return {
-    config,
-    contextFiles,
-  };
 }
 
 function getContextFileNames(config: ExtensionConfig): string[] {
   if (!config.contextFileName) {
-    return ["GEMINI.md", "gemini.md", "Gemini.md"];
+    return ['GEMINI.md', 'gemini.md', 'Gemini.md'];
   } else if (!Array.isArray(config.contextFileName)) {
-    return [config.contextFileName]
+    return [config.contextFileName];
   }
   return config.contextFileName;
 }
-
