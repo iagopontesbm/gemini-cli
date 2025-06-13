@@ -9,6 +9,7 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
+import { useStateAndRef } from './useStateAndRef.js';
 import {
   Config,
   GitService,
@@ -62,9 +63,6 @@ export const useSlashCommandProcessor = (
   addItem: UseHistoryManagerReturn['addItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
   loadHistory: UseHistoryManagerReturn['loadHistory'],
-  setPendingHistoryItem: React.Dispatch<
-    React.SetStateAction<HistoryItemWithoutId | null>
-  >,
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
@@ -82,6 +80,13 @@ export const useSlashCommandProcessor = (
     }
     return new GitService(config.getProjectRoot());
   }, [config]);
+
+  const pendingHistoryItems: HistoryItemWithoutId[] = [];
+  const [pendingCompressionItemRef, setPendingCompressionItem] =
+    useStateAndRef<HistoryItemWithoutId | null>(null);
+  if (pendingCompressionItemRef.current != null) {
+    pendingHistoryItems.push(pendingCompressionItemRef.current);
+  }
 
   const addMessage = useCallback(
     (message: Message) => {
@@ -654,7 +659,15 @@ Add any other context about the problem here.
         altName: 'summarize',
         description: 'Compresses the context by replacing it with a summary.',
         action: async (_mainCommand, _subCommand, _args) => {
-          setPendingHistoryItem({
+          if (pendingCompressionItemRef.current !== null) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Already compressing, wait for previous request to complete',
+              timestamp: new Date(),
+            });
+            return;
+          }
+          setPendingCompressionItem({
             type: MessageType.COMPRESSION,
             compression: {
               isPending: true,
@@ -688,7 +701,7 @@ Add any other context about the problem here.
               timestamp: new Date(),
             });
           }
-          setPendingHistoryItem(null);
+          setPendingCompressionItem(null);
         },
       },
     ];
@@ -880,5 +893,5 @@ Add any other context about the problem here.
     [addItem, slashCommands, addMessage],
   );
 
-  return { handleSlashCommand, slashCommands };
+  return { handleSlashCommand, slashCommands, pendingHistoryItems};
 };

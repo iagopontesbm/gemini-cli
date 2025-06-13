@@ -165,20 +165,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [config, addItem]);
 
-  const [pendingSlashCommandItemRef, setPendingSlashCommandItem] =
-    useStateAndRef<HistoryItemWithoutId | null>(null);
-  const pendingHistoryItems = [];
-  if (pendingSlashCommandItemRef.current != null) {
-    pendingHistoryItems.push(pendingSlashCommandItemRef.current);
-  }
-
-  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
+  const { handleSlashCommand, slashCommands, pendingHistoryItems: pendingSlashCommandHistoryItems } = useSlashCommandProcessor(
     config,
     history,
     addItem,
     clearItems,
     loadHistory,
-    setPendingSlashCommandItem,
     refreshStatic,
     setShowHelp,
     setDebugMessage,
@@ -189,6 +181,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     showToolDescriptions,
     setQuittingMessages,
   );
+  const pendingHistoryItems  = [...pendingSlashCommandHistoryItems];
 
   useInput((input: string, key: InkKeyType) => {
     if (key.ctrl && input === 'o') {
