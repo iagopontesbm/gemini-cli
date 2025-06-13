@@ -87,6 +87,7 @@ export interface ConfigParameters {
   checkpoint?: boolean;
   proxy?: string;
   cwd: string;
+  ideMode?: boolean;
 }
 
 export class Config {
@@ -122,6 +123,7 @@ export class Config {
   private readonly checkpoint: boolean;
   private readonly proxy: string | undefined;
   private readonly cwd: string;
+  private readonly ideMode: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -155,6 +157,7 @@ export class Config {
     this.checkpoint = params.checkpoint ?? false;
     this.proxy = params.proxy;
     this.cwd = params.cwd ?? process.cwd();
+    this.ideMode = params.ideMode ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -312,6 +315,10 @@ export class Config {
 
   getWorkingDir(): string {
     return this.cwd;
+  }
+
+  getIdeMode(): boolean {
+    return this.ideMode;
   }
 
   async getFileService(): Promise<FileDiscoveryService> {

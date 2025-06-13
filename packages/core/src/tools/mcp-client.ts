@@ -121,10 +121,13 @@ export async function discoverMcpTools(
   mcpServers: Record<string, MCPServerConfig>,
   mcpServerCommand: string | undefined,
   toolRegistry: ToolRegistry,
+  ideMode?: boolean,
 ): Promise<void> {
+  if (ideMode) {
+    return discoverIdeMcpTools(toolRegistry);
+  }
   // Set discovery state to in progress
   mcpDiscoveryState = MCPDiscoveryState.IN_PROGRESS;
-
   try {
     if (mcpServerCommand) {
       const cmd = mcpServerCommand;
@@ -152,6 +155,14 @@ export async function discoverMcpTools(
     mcpDiscoveryState = MCPDiscoveryState.COMPLETED;
     throw error;
   }
+}
+
+async function discoverIdeMcpTools(toolRegistry: ToolRegistry): Promise<void> {
+  const mcpServerName = 'vscode';
+  const mcpServerConfig: MCPServerConfig = {
+    httpUrl: 'http://localhost:3000/mcp',
+  };
+  return connectAndDiscover(mcpServerName, mcpServerConfig, toolRegistry);
 }
 
 async function connectAndDiscover(

@@ -49,6 +49,9 @@ export interface Settings {
   // UI setting. Does not display the ANSI-controlled terminal title.
   hideWindowTitle?: boolean;
 
+  // True if the user wants to run in IDE mode.
+  ideMode?: boolean;
+
   // Add other settings here.
 }
 

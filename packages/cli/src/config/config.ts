@@ -205,6 +205,7 @@ export async function loadCliConfig(
       process.env.http_proxy,
     cwd: process.cwd(),
     telemetryOtlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    ideMode: settings.ideMode,
   });
 }
 
