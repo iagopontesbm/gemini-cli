@@ -9,7 +9,7 @@ Within Gemini CLI, `packages/cli` is the frontend for users to send and receive 
 - **[Themes](./themes.md)**: A guide to customizing the CLI's appearance with different themes.
 - **[Tutorials](tutorials.md)**: A tutorial showing how to use Gemini CLI to automate a development task.
 
-## Non-interactive ,ode
+## Non-interactive mode
 
 Gemini CLI can be run in a non-interactive mode, which is useful for scripting and automation. In this mode, you pipe input to the CLI, it executes the command, and then it exits.
 
