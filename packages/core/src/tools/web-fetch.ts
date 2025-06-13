@@ -116,7 +116,13 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
       }).substring(0, MAX_CONTENT_LENGTH);
 
       const geminiClient = this.config.getGeminiClient();
-      const fallbackPrompt = `${params.prompt}\n\nHere is the content I was able to fetch from ${url}:\n\n${textContent}`;
+      const fallbackPrompt = `The user requested the following: "${params.prompt}".
+
+I was unable to access the URL directly. Instead, I have fetched the raw content of the page. Please use the following content to answer the user's request. Do not attempt to access the URL again.
+
+---
+${textContent}
+---`;
       const result = await geminiClient.generateContent(
         [{ role: 'user', parts: [{ text: fallbackPrompt }] }],
         {},
