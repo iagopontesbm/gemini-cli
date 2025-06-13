@@ -14,12 +14,7 @@ import {
   useInput,
   type Key as InkKeyType,
 } from 'ink';
-import {
-  StreamingState,
-  type HistoryItem,
-  HistoryItemWithoutId,
-  MessageType,
-} from './types.js';
+import { StreamingState, type HistoryItem, MessageType } from './types.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -46,7 +41,6 @@ import { DetailedMessagesDisplay } from './components/DetailedMessagesDisplay.js
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
 import { useHistory } from './hooks/useHistoryManager.js';
-import { useStateAndRef } from './hooks/useStateAndRef.js';
 import process from 'node:process';
 import {
   getErrorMessage,
@@ -343,7 +337,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const { rows: terminalHeight } = useTerminalSize();
   const mainControlsRef = useRef<DOMElement>(null);
   const pendingHistoryItemRef = useRef<DOMElement>(null);
-  const compressingRef = useRef<DOMElement>(null);
 
   useEffect(() => {
     if (mainControlsRef.current) {
