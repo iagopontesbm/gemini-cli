@@ -26,8 +26,6 @@ describe('GlobTool', () => {
       return service;
     },
     getFileFilteringRespectGitIgnore: () => true,
-    getFileFilteringCustomIgnorePatterns: () => [],
-    getFileFilteringAllowBuildArtifacts: () => false,
   } as Partial<Config> as Config;
 
   beforeEach(async () => {
