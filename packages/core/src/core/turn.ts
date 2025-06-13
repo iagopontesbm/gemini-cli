@@ -170,12 +170,14 @@ export class Turn {
         if (thought) {
           const rawText = resp.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
           const subjectStringMatches = rawText.match(/\*\*(.*?)\*\*/s);
-          const subject = subjectStringMatches ? subjectStringMatches[1].trim() : "";
-          const description = rawText.replace(/\*\*(.*?)\*\*/s, '').trim()
+          const subject = subjectStringMatches
+            ? subjectStringMatches[1].trim()
+            : '';
+          const description = rawText.replace(/\*\*(.*?)\*\*/s, '').trim();
           const thought: ThoughtSummary = {
             subject,
             description,
-          }
+          };
 
           yield {
             type: GeminiEventType.Thought,
