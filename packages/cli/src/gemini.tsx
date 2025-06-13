@@ -34,8 +34,15 @@ import {
   WriteFileTool,
   sessionId,
 } from '@gemini-cli/core';
+import updateNotifier from 'update-notifier';
+import { readPackageUp } from 'read-package-up';
 
 export async function main() {
+  const pkg = await readPackageUp({ cwd: import.meta.url });
+  if (pkg) {
+    updateNotifier({ pkg: pkg.packageJson }).notify();
+  }
+
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
   setWindowTitle(basename(workspaceRoot), settings);
