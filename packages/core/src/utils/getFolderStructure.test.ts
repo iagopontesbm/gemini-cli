@@ -38,7 +38,6 @@ const createDirent = (name: string, type: 'file' | 'dir'): FSDirent => ({
   isFIFO: () => false,
   isSocket: () => false,
   parentPath: '',
-  path: '',
 });
 
 describe('getFolderStructure', () => {
