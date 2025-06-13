@@ -50,10 +50,44 @@ Learn more about OTEL exporter standard configuration in [documentation][otel-co
 mkdir .gemini/otel
 ```
 
-### Local
+### Local (Automated Script)
 
-This is the simplest way to inspect events, metrics, and traces without any external tools.
-This setup prints all telemetry from the Gemini CLI to your terminal using a local collector.
+For the most straightforward local setup, use the `scripts/local_telemetry.js` script. This script automates the entire process of setting up a local telemetry pipeline, including configuring the necessary settings in your `.gemini/settings.json` file.
+
+**1. Prerequisites**
+
+Before running the script, ensure you have the following binaries installed and available in your system's `PATH`:
+
+- `otelcol-contrib`: The OpenTelemetry Collector.
+- `jaeger`: The Jaeger UI for viewing traces (version 2.7.0+ recommended).
+
+**2. How to Use It**
+
+1.  **Run the Script**:
+    Execute the script from the root of the repository:
+
+    ```bash
+    ./scripts/local_telemetry.js
+    ```
+
+    The script will:
+
+    - Start a local Jaeger instance.
+    - Start an OTEL collector configured to receive data from the Gemini CLI.
+    - Automatically enable telemetry in your workspace settings.
+
+2.  **View Traces**:
+    Open your web browser and navigate to **http://localhost:16686** to access the Jaeger UI. Here you can inspect detailed traces of Gemini CLI operations.
+
+3.  **Inspect Logs and Metrics**:
+    The script redirects the OTEL collector's output (which includes logs and metrics) to `.gemini/otel/collector.log`. You can monitor this file to see the raw telemetry data:
+    ```bash
+    tail -f .gemini/otel/collector.log
+    ```
+4.  **Stop the Services**:
+    Press `Ctrl+C` in the terminal where the script is running to stop the OTEL Collector and Jaeger services.
+
+### Local (Manual Setup)
 
 **1. Create a Configuration File**
 
