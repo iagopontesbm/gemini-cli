@@ -392,7 +392,6 @@ These are timestamped records of specific events.
 
   - **Attributes**:
     - `model`
-    - `input_token_count`
     - `request_text` (optional)
 
 - `gemini_cli.api_error`: Fired if the API request fails.
