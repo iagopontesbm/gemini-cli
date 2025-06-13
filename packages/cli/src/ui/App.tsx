@@ -14,7 +14,12 @@ import {
   useInput,
   type Key as InkKeyType,
 } from 'ink';
-import { StreamingState, type HistoryItem, HistoryItemWithoutId, MessageType } from './types.js';
+import {
+  StreamingState,
+  type HistoryItem,
+  HistoryItemWithoutId,
+  MessageType,
+} from './types.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -165,7 +170,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [config, addItem]);
 
-  const { handleSlashCommand, slashCommands, pendingHistoryItems: pendingSlashCommandHistoryItems } = useSlashCommandProcessor(
+  const {
+    handleSlashCommand,
+    slashCommands,
+    pendingHistoryItems: pendingSlashCommandHistoryItems,
+  } = useSlashCommandProcessor(
     config,
     history,
     addItem,
@@ -181,7 +190,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     showToolDescriptions,
     setQuittingMessages,
   );
-  const pendingHistoryItems  = [...pendingSlashCommandHistoryItems];
+  const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
   useInput((input: string, key: InkKeyType) => {
     if (key.ctrl && input === 'o') {
@@ -252,18 +261,22 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     return editorType as EditorType;
   }, [settings, openEditorDialog]);
 
-  const { streamingState, submitQuery, initError, pendingHistoryItems: pendingGeminiHistoryItems } =
-    useGeminiStream(
-      config.getGeminiClient(),
-      history,
-      addItem,
-      setShowHelp,
-      config,
-      setDebugMessage,
-      handleSlashCommand,
-      shellModeActive,
-      getPreferredEditor,
-    );
+  const {
+    streamingState,
+    submitQuery,
+    initError,
+    pendingHistoryItems: pendingGeminiHistoryItems,
+  } = useGeminiStream(
+    config.getGeminiClient(),
+    history,
+    addItem,
+    setShowHelp,
+    config,
+    setDebugMessage,
+    handleSlashCommand,
+    shellModeActive,
+    getPreferredEditor,
+  );
   pendingHistoryItems.push(...pendingGeminiHistoryItems);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);

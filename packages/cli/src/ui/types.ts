@@ -122,7 +122,7 @@ export type HistoryItemUserShell = HistoryItemBase & {
 export type HistoryItemCompression = HistoryItemBase & {
   type: 'compression';
   compression: CompressionProps;
-}
+};
 
 // Using Omit<HistoryItem, 'id'> seems to have some issues with typescript's
 // type inference e.g. historyItem.type === 'tool_group' isn't auto-inferring that

@@ -82,7 +82,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         isFocused={isFocused}
       />
     )}
-    {item.type === 'compression'  && (
+    {item.type === 'compression' && (
       <CompressionMessage compression={item.compression} />
     )}
   </Box>

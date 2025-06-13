@@ -117,7 +117,7 @@ export const useSlashCommandProcessor = (
         historyItemContent = {
           type: 'compression',
           compression: message.compression,
-        }
+        };
       } else {
         historyItemContent = {
           type: message.type as
@@ -662,7 +662,8 @@ Add any other context about the problem here.
           if (pendingCompressionItemRef.current !== null) {
             addMessage({
               type: MessageType.ERROR,
-              content: 'Already compressing, wait for previous request to complete',
+              content:
+                'Already compressing, wait for previous request to complete',
               timestamp: new Date(),
             });
             return;
@@ -671,7 +672,7 @@ Add any other context about the problem here.
             type: MessageType.COMPRESSION,
             compression: {
               isPending: true,
-            }
+            },
           });
           try {
             const compressed = await config!
@@ -893,5 +894,5 @@ Add any other context about the problem here.
     [addItem, slashCommands, addMessage],
   );
 
-  return { handleSlashCommand, slashCommands, pendingHistoryItems};
+  return { handleSlashCommand, slashCommands, pendingHistoryItems };
 };
