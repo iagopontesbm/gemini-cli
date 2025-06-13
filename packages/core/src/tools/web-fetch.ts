@@ -6,9 +6,14 @@
 
 import { GroundingMetadata } from '@google/genai';
 import { SchemaValidator } from '../utils/schemaValidator.js';
-import { BaseTool, ToolResult } from './tools.js';
+import {
+  BaseTool,
+  ToolResult,
+  ToolCallConfirmationDetails,
+  ToolConfirmationOutcome,
+} from './tools.js';
 import { getErrorMessage } from '../utils/errors.js';
-import { Config } from '../config/config.js';
+import { Config, ApprovalMode } from '../config/config.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { fetchWithTimeout, isPrivateIp } from '../utils/fetch.js';
 import { convert } from 'html-to-text';
@@ -173,6 +178,31 @@ ${textContent}
     return `Processing URLs and instructions from prompt: "${displayPrompt}"`;
   }
 
+  async shouldConfirmExecute(
+    params: WebFetchToolParams,
+  ): Promise<ToolCallConfirmationDetails | false> {
+    if (this.config.getApprovalMode() === ApprovalMode.AUTO_EDIT) {
+      return false;
+    }
+
+    const validationError = this.validateParams(params);
+    if (validationError) {
+      return false;
+    }
+
+    const confirmationDetails: ToolCallConfirmationDetails = {
+      type: 'info',
+      title: `Confirm Web Fetch`,
+      prompt: params.prompt,
+      onConfirm: async (outcome: ToolConfirmationOutcome) => {
+        if (outcome === ToolConfirmationOutcome.ProceedAlways) {
+          this.config.setApprovalMode(ApprovalMode.AUTO_EDIT);
+        }
+      },
+    };
+    return confirmationDetails;
+  }
+
   async execute(
     params: WebFetchToolParams,
     signal: AbortSignal,
@@ -225,7 +255,6 @@ ${textContent}
 
       // Error Handling
       let processingError = false;
-      let errorDetail = 'An unknown error occurred during content processing.';
 
       if (
         urlContextMeta?.urlMetadata &&
@@ -236,15 +265,10 @@ ${textContent}
         );
         if (allStatuses.every((s) => s !== 'URL_RETRIEVAL_STATUS_SUCCESS')) {
           processingError = true;
-          errorDetail = `All URL retrieval attempts failed. Statuses: ${allStatuses.join(
-            ', ',
-          )}. API reported: "${responseText || 'No additional detail.'}"`;
         }
       } else if (!responseText.trim() && !sources?.length) {
         // No URL metadata and no content/sources
         processingError = true;
-        errorDetail =
-          'No content was returned and no URL metadata was available to determine fetch status.';
       }
 
       if (
@@ -254,8 +278,6 @@ ${textContent}
       ) {
         // Successfully retrieved some URL (or no specific error from urlContextMeta), but no usable text or grounding data.
         processingError = true;
-        errorDetail =
-          'URL(s) processed, but no substantive content or grounding information was found.';
       }
 
       if (processingError) {

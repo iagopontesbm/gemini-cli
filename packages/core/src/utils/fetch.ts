@@ -4,68 +4,54 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ClientRequest } from 'http';
+import { getErrorMessage, isNodeError } from './errors.js';
+import { URL } from 'url';
+
+const PRIVATE_IP_RANGES = [
+  /^10\./,
+  /^127\./,
+  /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+  /^192\.168\./,
+  /^::1$/,
+  /^fc00:/,
+  /^fe80:/,
+];
 
 export class FetchError extends Error {
   constructor(
     message: string,
-    public readonly code?: string,
+    public code?: string,
   ) {
     super(message);
     this.name = 'FetchError';
   }
 }
 
-export async function fetchWithTimeout(
-  url: string,
-  timeoutMs: number,
-): Promise<Response> {
-  const controller = new AbortController();
-  const signal = controller.signal;
-
-  const timeout = setTimeout(() => {
-    controller.abort();
-  }, timeoutMs);
-
+export function isPrivateIp(url: string): boolean {
   try {
-    const response = await fetch(url, {
-      signal,
-      headers: {
-        'User-Agent': 'Gemini-CLI/1.0',
-      },
-    });
-    return response;
-  } catch (e) {
-    if (e instanceof Error && e.name === 'AbortError') {
-      throw new FetchError(`Request timed out after ${timeoutMs}ms`, 'TIMEOUT');
-    }
-    // Re-throw other errors as FetchError
-    const err = e as Error;
-    throw new FetchError(
-      `Failed to fetch URL: ${err.message}`,
-      (err as NodeJS.ErrnoException).code,
-    );
-  } finally {
-    clearTimeout(timeout);
+    const hostname = new URL(url).hostname;
+    return PRIVATE_IP_RANGES.some((range) => range.test(hostname));
+  } catch (_e) {
+    return false;
   }
 }
 
-export function isPrivateIp(url: string): boolean {
+export async function fetchWithTimeout(
+  url: string,
+  timeout: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
   try {
-    const ip = new URL(url).hostname;
-    // Super basic check for private IP ranges.
-    // This is not exhaustive but covers the most common cases.
-    return (
-      ip === 'localhost' ||
-      ip.startsWith('127.') ||
-      ip.startsWith('10.') ||
-      ip.startsWith('192.168.') ||
-      (ip.startsWith('172.') &&
-        parseInt(ip.split('.')[1], 10) >= 16 &&
-        parseInt(ip.split('.')[1], 10) <= 31)
-    );
-  } catch (e) {
-    // If it's not a valid URL, it's not a private IP we can access.
-    return false;
+    const response = await fetch(url, { signal: controller.signal });
+    return response;
+  } catch (error) {
+    if (isNodeError(error) && error.code === 'ABORT_ERR') {
+      throw new FetchError(`Request timed out after ${timeout}ms`, 'ETIMEDOUT');
+    }
+    throw new FetchError(getErrorMessage(error));
+  } finally {
+    clearTimeout(timeoutId);
   }
 }

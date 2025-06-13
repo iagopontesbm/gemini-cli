@@ -115,6 +115,27 @@ export const ToolConfirmationMessage: React.FC<
       },
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
+  } else if (confirmationDetails.type === 'info') {
+    const infoProps = confirmationDetails;
+
+    bodyContent = (
+      <Box flexDirection="column" paddingX={1} marginLeft={1}>
+        <Text color={Colors.AccentCyan}>{infoProps.prompt}</Text>
+      </Box>
+    );
+
+    question = `Do you want to proceed?`;
+    options.push(
+      {
+        label: 'Yes, allow once',
+        value: ToolConfirmationOutcome.ProceedOnce,
+      },
+      {
+        label: 'Yes, allow always',
+        value: ToolConfirmationOutcome.ProceedAlways,
+      },
+      { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
+    );
   } else {
     // mcp tool confirmation
     const mcpProps = confirmationDetails as ToolMcpConfirmationDetails;
