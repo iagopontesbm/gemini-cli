@@ -68,7 +68,7 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
     super(
       WebFetchTool.Name,
       'WebFetch',
-      "Processes content from URL(s) embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
+      "Processes content from URL(s), including local and private network addresses (e.g., localhost), embedded in a prompt. Include up to 20 URLs and instructions (e.g., summarize, extract specific data) directly in the 'prompt' parameter.",
       {
         properties: {
           prompt: {
