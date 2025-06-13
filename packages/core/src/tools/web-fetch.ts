@@ -90,7 +90,14 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
       };
     }
     // For now, we only support one URL for fallback
-    const url = urls[0];
+    let url = urls[0];
+
+    // Convert GitHub blob URL to raw URL
+    if (url.includes('github.com') && url.includes('/blob/')) {
+      url = url
+        .replace('github.com', 'raw.githubusercontent.com')
+        .replace('/blob/', '/');
+    }
 
     try {
       const response = await fetchWithTimeout(url, URL_FETCH_TIMEOUT_MS);
