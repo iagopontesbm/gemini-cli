@@ -135,13 +135,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -345,14 +344,13 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
-I can commit this now with the message "refactor(auth): migrate from urllib to requests". Sound good?
+Would you like me to write a commit message and commit these changes?
 </example>
 
 <example>
@@ -535,13 +533,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -725,13 +722,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -915,13 +911,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -1105,13 +1100,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -1295,13 +1289,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -1485,13 +1478,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 
@@ -1675,13 +1667,12 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: write_file or replace to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: run_shell_command for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 
 </example>
 

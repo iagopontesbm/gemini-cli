@@ -214,16 +214,15 @@ Here's the plan:
 
 Should I proceed?
 user: Yes
+model:
 [tool_call: ${WriteFileTool.Name} or ${EditTool.Name} to apply the refactoring to 'src/auth.py']
 Refactoring complete. Running verification...
 [tool_call: ${ShellTool.Name} for 'ruff check src/auth.py && pytest']
 (After verification passes)
 All checks passed. This is a stable checkpoint.
-</example>
-
 ${(function () {
   if (isGitRepository(process.cwd())) {
-    return `I can commit this now with the message "refactor(auth): migrate from urllib to requests". Sound good?`;
+    return `Would you like me to write a commit message and commit these changes?`;
   }
   return '';
 })()}
