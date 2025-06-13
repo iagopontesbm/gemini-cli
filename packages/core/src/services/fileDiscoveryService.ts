@@ -7,6 +7,7 @@
 import { GitIgnoreParser, GitIgnoreFilter } from '../utils/gitIgnoreParser.js';
 import { isGitRepository } from '../utils/gitUtils.js';
 import * as path from 'path';
+import { glob, type GlobOptions } from 'glob';
 
 export interface FileDiscoveryOptions {
   respectGitIgnore?: boolean;
@@ -30,6 +31,17 @@ export class FileDiscoveryService {
       await parser.initialize();
       this.gitIgnoreFilter = parser;
     }
+  }
+
+  async glob(
+    pattern: string | string[],
+    options: GlobOptions = {},
+  ): Promise<string[]> {
+    const files = (await glob(pattern, {
+      ...options,
+      nocase: true,
+    })) as string[];
+    return this.filterFiles(files);
   }
 
   /**
