@@ -498,7 +498,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           ) : (
             <>
               <LoadingIndicator
-                thought={thought}
+                thought={config.getAccessibility()?.disableLoadingPhrases
+                  ? undefined
+                  : thought}
                 currentLoadingPhrase={
                   config.getAccessibility()?.disableLoadingPhrases
                     ? undefined
