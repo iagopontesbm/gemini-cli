@@ -56,7 +56,7 @@ let currentGeminiMdFilename: string | string[] = DEFAULT_CONTEXT_FILENAME;
 export function setGeminiMdFilename(newFilename: string | string[]): void {
   if (Array.isArray(newFilename)) {
     if (newFilename.length > 0) {
-      currentGeminiMdFilename = newFilename.map(name => name.trim());
+      currentGeminiMdFilename = newFilename.map((name) => name.trim());
     }
   } else if (newFilename && newFilename.trim() !== '') {
     currentGeminiMdFilename = newFilename.trim();
