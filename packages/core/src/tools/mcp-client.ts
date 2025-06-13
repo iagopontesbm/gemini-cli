@@ -124,8 +124,8 @@ export async function discoverMcpTools(
   ideMode?: boolean,
 ): Promise<void> {
   if (ideMode) {
-    // If the user sets the ideMode setting, automatically attempt to connect
-    // to the GCA VS Code MCP server.
+    // Attempt to connect to the MCP server running in the Gemini Code Assist
+    // VS Code extension.
     mcpServers['vscode'] = {
       httpUrl: 'http://localhost:3000/mcp',
     };
