@@ -35,7 +35,7 @@ export async function setupUser(
     metadata: clientMetadata,
   });
 
-  let onboardTier: string =
+  const onboardTier: string =
     loadRes.allowedTiers?.find((tier) => tier.isDefault)?.id ?? 'legacy-tier';
 
   const onboardReq: OnboardUserRequest = {
