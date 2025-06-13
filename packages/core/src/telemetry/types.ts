@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ToolCallDecision } from './loggers.js';
+
 export interface UserPromptEvent {
   'event.name': 'user_prompt';
   'event.timestamp': string; // ISO 8601
@@ -18,6 +20,7 @@ export interface ToolCallEvent {
   function_args: Record<string, unknown>;
   duration_ms: number;
   success: boolean;
+  decision?: ToolCallDecision;
   error?: string;
   error_type?: string;
 }
@@ -26,8 +29,7 @@ export interface ApiRequestEvent {
   'event.name': 'api_request';
   'event.timestamp': string; // ISO 8601
   model: string;
-  duration_ms: number;
-  input_token_count: number;
+  request_text?: string;
 }
 
 export interface ApiErrorEvent {
@@ -38,7 +40,6 @@ export interface ApiErrorEvent {
   error_type?: string;
   status_code?: number | string;
   duration_ms: number;
-  attempt: number;
 }
 
 export interface ApiResponseEvent {
@@ -48,7 +49,7 @@ export interface ApiResponseEvent {
   status_code?: number | string;
   duration_ms: number;
   error?: string;
-  attempt: number;
+  input_token_count: number;
   output_token_count: number;
   cached_content_token_count: number;
   thoughts_token_count: number;
@@ -66,7 +67,6 @@ export interface CliConfigEvent {
   vertex_ai_enabled: boolean;
   log_user_prompts_enabled: boolean;
   file_filtering_respect_git_ignore: boolean;
-  file_filtering_allow_build_artifacts: boolean;
 }
 
 export type TelemetryEvent =

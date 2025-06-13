@@ -21,7 +21,6 @@ const mockConfig = {
   isSandboxed: vi.fn(() => false),
   getFileService: vi.fn(),
   getFileFilteringRespectGitIgnore: vi.fn(() => true),
-  getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
 } as unknown as Config;
 
 const mockReadManyFilesExecute = vi.fn();
@@ -92,7 +91,7 @@ describe('handleAtCommand', () => {
       initialize: vi.fn(),
       shouldIgnoreFile: vi.fn(() => false),
       filterFiles: vi.fn((files) => files),
-      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [] })),
       isGitRepository: vi.fn(() => true),
     };
     vi.mocked(FileDiscoveryService).mockImplementation(
@@ -154,9 +153,7 @@ describe('handleAtCommand', () => {
     const query = `@${filePath}`;
     const fileContent = 'This is the file content.';
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${filePath} ---
-${fileContent}`,
+      llmContent: [`--- ${filePath} ---\n\n${fileContent}\n\n`],
       returnDisplay: 'Read 1 file.',
     });
 
@@ -202,9 +199,7 @@ ${fileContent}`,
       isDirectory: () => true,
     } as Stats);
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${resolvedGlob} ---
-${fileContent}`,
+      llmContent: [`--- ${resolvedGlob} ---\n\n${fileContent}\n\n`],
       returnDisplay: 'Read directory contents.',
     });
 
@@ -244,10 +239,12 @@ ${fileContent}`,
     // If it were to return actual image Part, the test and handling would be different.
     // Current implementation of read_many_files for images returns base64 in text.
     const imageFileTextContent = '[base64 image data for path/to/image.png]';
+    const imagePart = {
+      mimeType: 'image/png',
+      inlineData: imageFileTextContent,
+    };
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${imagePath} ---
-${imageFileTextContent}`,
+      llmContent: [imagePart],
       returnDisplay: 'Read 1 image.',
     });
 
@@ -262,8 +259,7 @@ ${imageFileTextContent}`,
     expect(result.processedQuery).toEqual([
       { text: `@${imagePath}` },
       { text: '\n--- Content from referenced files ---' },
-      { text: `\nContent from @${imagePath}:\n` },
-      { text: imageFileTextContent },
+      imagePart,
       { text: '\n--- End of content ---' },
     ]);
     expect(result.shouldProceed).toBe(true);
@@ -276,9 +272,7 @@ ${imageFileTextContent}`,
     const query = `${textBefore}@${filePath}${textAfter}`;
     const fileContent = 'Markdown content.';
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${filePath} ---
-${fileContent}`,
+      llmContent: [`--- ${filePath} ---\n\n${fileContent}\n\n`],
       returnDisplay: 'Read 1 doc.',
     });
 
@@ -310,9 +304,7 @@ ${fileContent}`,
     const query = `@${rawPath}`;
     const fileContent = 'Content of file with space.';
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${unescapedPath} ---
-${fileContent}`,
+      llmContent: [`--- ${unescapedPath} ---\n\n${fileContent}\n\n`],
       returnDisplay: 'Read 1 file.',
     });
 
@@ -338,11 +330,10 @@ ${fileContent}`,
     const query = `@${file1} @${file2}`;
 
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${file1} ---
-${content1}
---- ${file2} ---
-${content2}`,
+      llmContent: [
+        `--- ${file1} ---\n\n${content1}\n\n`,
+        `--- ${file2} ---\n\n${content2}\n\n`,
+      ],
       returnDisplay: 'Read 2 files.',
     });
 
@@ -381,11 +372,10 @@ ${content2}`,
     const query = `${text1}@${file1}${text2}@${file2}${text3}`;
 
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${file1} ---
-${content1}
---- ${file2} ---
-${content2}`,
+      llmContent: [
+        `--- ${file1} ---\n\n${content1}\n\n`,
+        `--- ${file2} ---\n\n${content2}\n\n`,
+      ],
       returnDisplay: 'Read 2 files.',
     });
 
@@ -446,11 +436,10 @@ ${content2}`,
     });
 
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${file1} ---
-${content1}
---- ${resolvedFile2} ---
-${content2}`,
+      llmContent: [
+        `--- ${file1} ---\n\n${content1}\n\n`,
+        `--- ${resolvedFile2} ---\n\n${content2}\n\n`,
+      ],
       returnDisplay: 'Read 2 files.',
     });
 
@@ -537,9 +526,7 @@ ${content2}`,
     });
 
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: `
---- ${queryPath} ---
-${fileContent}`,
+      llmContent: [`--- ${queryPath} ---\n\n${fileContent}\n\n`],
       returnDisplay: 'Read 1 file.',
     });
 
@@ -628,9 +615,7 @@ ${fileContent}`,
 
       mockFileDiscoveryService.shouldIgnoreFile.mockReturnValue(false);
       mockReadManyFilesExecute.mockResolvedValue({
-        llmContent: `
---- ${validFile} ---
-${fileContent}`,
+        llmContent: [`--- ${validFile} ---\n\n${fileContent}\n\n`],
         returnDisplay: 'Read 1 file.',
       });
 
@@ -670,9 +655,7 @@ ${fileContent}`,
         (path: string) => path === gitIgnoredFile,
       );
       mockReadManyFilesExecute.mockResolvedValue({
-        llmContent: `
---- ${validFile} ---
-${fileContent}`,
+        llmContent: [`--- ${validFile} ---\n\n${fileContent}\n\n`],
         returnDisplay: 'Read 1 file.',
       });
 
