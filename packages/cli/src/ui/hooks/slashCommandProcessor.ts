@@ -62,6 +62,9 @@ export const useSlashCommandProcessor = (
   addItem: UseHistoryManagerReturn['addItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
   loadHistory: UseHistoryManagerReturn['loadHistory'],
+  setPendingHistoryItem: React.Dispatch<
+    React.SetStateAction<HistoryItemWithoutId | null>
+  >,
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
@@ -105,6 +108,11 @@ export const useSlashCommandProcessor = (
           stats: message.stats,
           duration: message.duration,
         };
+      } else if (message.type === MessageType.COMPRESSION) {
+        historyItemContent = {
+          type: 'compression',
+          compression: message.compression,
+        }
       } else {
         historyItemContent = {
           type: message.type as
@@ -646,10 +654,11 @@ Add any other context about the problem here.
         altName: 'summarize',
         description: 'Compresses the context by replacing it with a summary.',
         action: async (_mainCommand, _subCommand, _args) => {
-          addMessage({
-            type: MessageType.INFO,
-            content: 'Compressing chat history...',
-            timestamp: new Date(),
+          setPendingHistoryItem({
+            type: MessageType.COMPRESSION,
+            compression: {
+              isPending: true,
+            }
           });
           try {
             const compressed = await config!
@@ -657,10 +666,12 @@ Add any other context about the problem here.
               .tryCompressChat(true);
             if (compressed) {
               addMessage({
-                type: MessageType.INFO,
-                content:
-                  'Chat history compressed from ' +
-                  `${compressed.originalTokenCount} to ${compressed.newTokenCount} tokens.`,
+                type: MessageType.COMPRESSION,
+                compression: {
+                  isPending: false,
+                  originalTokenCount: compressed.originalTokenCount,
+                  newTokenCount: compressed.newTokenCount,
+                },
                 timestamp: new Date(),
               });
             } else {
@@ -677,6 +688,7 @@ Add any other context about the problem here.
               timestamp: new Date(),
             });
           }
+          setPendingHistoryItem(null);
         },
       },
     ];
