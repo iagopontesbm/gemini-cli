@@ -35,18 +35,7 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return match ? match[1].trim() : '';
   };
 
-  const getRestOfText = (text: string): string => {
-    const LENGTH_LIMIT = 80;
-    const rest = text.replace(/\*\*(.*?)\*\*/s, '').trim();
-    if (rest.length > LENGTH_LIMIT) {
-      return rest.slice(0, LENGTH_LIMIT) + '...';
-    }
-    return rest;
-  };
-
   const boldedText = thought ? getBoldedText(thought) : '';
-  const restOfText = thought ? getRestOfText(thought) : '';
-
   const primaryText = boldedText || currentLoadingPhrase;
 
   return (
@@ -71,13 +60,6 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
         <Box flexGrow={1}>{/* Spacer */}</Box>
         {rightContent && <Box>{rightContent}</Box>}
       </Box>
-
-      {/* Secondary thought line */}
-      {restOfText && (
-        <Box marginLeft={2}>
-          <Text color={Colors.Gray}>{restOfText}</Text>
-        </Box>
-      )}
     </Box>
   );
 };
