@@ -38,9 +38,9 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
 
 ### Available Settings in `settings.json`:
 
-- **`contextFileName`** (string, optional):
+- **`contextFileName`** (string or array of strings, optional):
 
-  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`).
+  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`). May be a single filename or a list of accepted filenames.
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
 
@@ -49,14 +49,10 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
   - **Properties:**
     - **`respectGitIgnore`** (boolean, default: `true`): Whether to respect .gitignore patterns when discovering files. When enabled, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
-    - **`customIgnorePatterns`** (array of strings, default: `[]`): Additional patterns to ignore beyond git-ignored files. Useful for excluding specific directories or file types.
-    - **`allowBuildArtifacts`** (boolean, default: `false`): Whether to include build artifacts and generated files in file discovery operations.
   - **Example:**
     ```json
     "fileFiltering": {
       "respectGitIgnore": true,
-      "customIgnorePatterns": ["temp/", "*.log"],
-      "allowBuildArtifacts": false
     }
     ```
 
@@ -215,6 +211,9 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Set to any value to disable all color output in the CLI.
 - **`CLI_TITLE`**:
   - Set to a string to customize the title of the CLI.
+- **`CODE_ASSIST_ENDPOINT`**:
+  - Specifies the endpoint for the code assist server.
+  - This is useful for development and testing.
 
 ## 3. Command-Line Arguments
 
