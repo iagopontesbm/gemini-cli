@@ -227,6 +227,7 @@ export interface ToolInfoConfirmationDetails {
   title: string;
   onConfirm: (outcome: ToolConfirmationOutcome) => Promise<void>;
   prompt: string;
+  urls?: string[];
 }
 
 export type ToolCallConfirmationDetails =

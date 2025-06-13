@@ -190,10 +190,22 @@ ${textContent}
       return false;
     }
 
+    // Perform GitHub URL conversion here to differentiate between user-provided
+    // URL and the actual URL to be fetched.
+    const urls = extractUrls(params.prompt).map((url) => {
+      if (url.includes('github.com') && url.includes('/blob/')) {
+        return url
+          .replace('github.com', 'raw.githubusercontent.com')
+          .replace('/blob/', '/');
+      }
+      return url;
+    });
+
     const confirmationDetails: ToolCallConfirmationDetails = {
       type: 'info',
       title: `Confirm Web Fetch`,
       prompt: params.prompt,
+      urls,
       onConfirm: async (outcome: ToolConfirmationOutcome) => {
         if (outcome === ToolConfirmationOutcome.ProceedAlways) {
           this.config.setApprovalMode(ApprovalMode.AUTO_EDIT);

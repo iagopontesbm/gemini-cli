@@ -117,10 +117,21 @@ export const ToolConfirmationMessage: React.FC<
     );
   } else if (confirmationDetails.type === 'info') {
     const infoProps = confirmationDetails;
+    const displayUrls =
+      infoProps.urls &&
+      !(infoProps.urls.length === 1 && infoProps.urls[0] === infoProps.prompt);
 
     bodyContent = (
       <Box flexDirection="column" paddingX={1} marginLeft={1}>
         <Text color={Colors.AccentCyan}>{infoProps.prompt}</Text>
+        {displayUrls && infoProps.urls && infoProps.urls.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text>URLs to fetch:</Text>
+            {infoProps.urls.map((url) => (
+              <Text key={url}> - {url}</Text>
+            ))}
+          </Box>
+        )}
       </Box>
     );
 
