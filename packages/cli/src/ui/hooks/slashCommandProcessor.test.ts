@@ -101,6 +101,7 @@ describe('useSlashCommandProcessor', () => {
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
+  let mockTryCompressChat: ReturnType<typeof vi.fn>;
   let mockGeminiClient: GeminiClient;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
@@ -117,13 +118,9 @@ describe('useSlashCommandProcessor', () => {
     mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
+    mockTryCompressChat = vi.fn();
     mockGeminiClient = {
-      tryCompressChat: vi.fn().mockReturnValue(
-        Promise.resolve({
-          originalTokenCount: 100,
-          newTokenCount: 50,
-        }),
-      ),
+      tryCompressChat: mockTryCompressChat,
     } as unknown as GeminiClient;
     mockConfig = {
       getDebugMode: vi.fn(() => false),
@@ -959,6 +956,14 @@ Add any other context about the problem here.
   describe('/compress command', () => {
     it('should call tryCompressChat(true)', async () => {
       const { handleSlashCommand } = getProcessor();
+      mockTryCompressChat.mockImplementationOnce(async (force?: boolean) => {
+        // TODO: Check that we have a pending compression item in the history.
+        expect(force).toBe(true);
+        return {
+          originalTokenCount: 100,
+          newTokenCount: 50,
+        };
+      });
 
       await act(async () => {
         handleSlashCommand('/compress');
@@ -967,18 +972,12 @@ Add any other context about the problem here.
       expect(mockAddItem).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
-          type: MessageType.INFO,
-          text: expect.stringContaining('Compressing chat history'),
-        }),
-        expect.any(Number),
-      );
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        3,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: expect.stringContaining(
-            'Chat history compressed from 100 to 50 tokens',
-          ),
+          type: MessageType.COMPRESSION,
+          compression: {
+            isPending: false,
+            originalTokenCount: 100,
+            newTokenCount: 50,
+          },
         }),
         expect.any(Number),
       );
