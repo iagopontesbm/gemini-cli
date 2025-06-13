@@ -231,7 +231,7 @@ async function connectAndDiscover(
       // Exclude args and env which may contain sensitive data
     };
 
-    if (mcpServerName == "vscode") {
+    if (mcpServerName === "vscode") {
       console.log('ERROR: Could not start up in IDE Mode. Please make sure you have only a single VS Code window open with the Gemini Code Assist extension installed or set ideMode = false in your settings.')
       process.exit(1)
     }
