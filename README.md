@@ -25,16 +25,23 @@ With the Gemini CLI you can:
 
 ## Examples
 
-Once the CLI is running, you can start interacting with Gemini from your shell. Try a simple query:
+Once the CLI is running, you can start interacting with Gemini from your shell.
 
-```
-> How can I build a web app?
+You can start a project from a new directory:
+
+```sh
+$ cd projects/
+$ gemini --yolo  # Auto-accept everything!
+> Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
 ```
 
-Or ask it to perform a task using its tools:
+Or work with an existing project:
 
-```
-> List files in the current directory.
+```sh
+$ git clone https://github.com/google-gemini/gemini-cli
+$ cd gemini-cli
+$ gemini
+> What issues have been filed on GitHub recently for this project?
 ```
 
 ## API Key Setup
