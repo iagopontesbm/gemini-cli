@@ -831,6 +831,8 @@ Add any other context about the problem here.
     loadHistory,
     addItem,
     setQuittingMessages,
+    pendingCompressionItemRef,
+    setPendingCompressionItem,
   ]);
 
   const handleSlashCommand = useCallback(
