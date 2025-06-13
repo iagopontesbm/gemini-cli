@@ -58,7 +58,7 @@ import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
 
-const CTRL_C_PROMPT_DURATION_MS = 1000;
+const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
 interface AppProps {
   config: Config;
@@ -234,7 +234,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         timerRef.current = setTimeout(() => {
           setPressedOnce(false);
           timerRef.current = null;
-        }, CTRL_C_PROMPT_DURATION_MS);
+        }, CTRL_EXIT_PROMPT_DURATION_MS);
       }
     },
     [slashCommands],
