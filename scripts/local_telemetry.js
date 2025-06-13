@@ -1,4 +1,11 @@
 #!/usr/bin/env node
+
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import path from 'path';
 import fs from 'fs';
 import net from 'net';
@@ -16,11 +23,6 @@ const OTEL_LOG_FILE = path.join(OTEL_DIR, 'collector.log');
 const JAEGER_LOG_FILE = path.join(OTEL_DIR, 'jaeger.log');
 const JAEGER_PORT = 16686;
 const WORKSPACE_SETTINGS_FILE = path.join(GEMINI_DIR, 'settings.json');
-const USER_SETTINGS_FILE = path.join(
-  process.env.HOME,
-  '.gemini',
-  'settings.json',
-);
 
 // This configuration is for the primary otelcol-contrib instance.
 // It receives from the CLI on 4317, exports traces to Jaeger on 14317,
@@ -82,7 +84,7 @@ function checkForBinary(binaryName) {
   try {
     execSync(`which ${binaryName}`, { stdio: 'ignore' });
     return true;
-  } catch (error) {
+  } catch (_) {
     console.error(
       `🛑 Error: ${binaryName} not found in your PATH. Please install it.`,
     );
@@ -99,7 +101,7 @@ function waitForPort(port, timeout = 5000) {
         socket.end();
         resolve();
       });
-      socket.once('error', (err) => {
+      socket.once('error', (_) => {
         if (Date.now() - startTime > timeout) {
           reject(new Error(`Timeout waiting for port ${port} to open.`));
         } else {
@@ -122,11 +124,11 @@ async function main() {
   try {
     execSync('pkill -f "otelcol-contrib"');
     console.log('✅ Stopped existing otelcol-contrib process.');
-  } catch (e) {} // eslint-disable-line no-empty
+  } catch (_e) {} // eslint-disable-line no-empty
   try {
     execSync('pkill -f "jaeger"');
     console.log('✅ Stopped existing jaeger process.');
-  } catch (e) {} // eslint-disable-line no-empty
+  } catch (_e) {} // eslint-disable-line no-empty
   try {
     fs.unlinkSync(OTEL_LOG_FILE);
     console.log('✅ Deleted old collector log.');
@@ -163,7 +165,7 @@ async function main() {
       if (fd)
         try {
           fs.closeSync(fd);
-        } catch (e) {} // eslint-disable-line no-empty
+        } catch (_) {} // eslint-disable-line no-empty
     });
   };
 
@@ -223,7 +225,7 @@ async function main() {
     console.log(
       `✅ Jaeger started successfully. UI: http://localhost:${JAEGER_PORT}`,
     );
-  } catch (error) {
+  } catch (_) {
     console.error(`🛑 Error: Jaeger failed to start on port ${JAEGER_PORT}.`);
     if (jaegerProcess && jaegerProcess.pid) {
       process.kill(jaegerProcess.pid, 'SIGKILL');
@@ -248,7 +250,7 @@ async function main() {
   try {
     await waitForPort(4317);
     console.log(`✅ OTEL collector started successfully.`);
-  } catch (error) {
+  } catch (_) {
     console.error(`🛑 Error: OTEL collector failed to start on port 4317.`);
     if (collectorProcess && collectorProcess.pid) {
       process.kill(collectorProcess.pid, 'SIGKILL');
