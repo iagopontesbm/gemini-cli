@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ThoughtSummary } from '@gemini-cli/core';
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
@@ -15,7 +16,7 @@ interface LoadingIndicatorProps {
   currentLoadingPhrase?: string;
   elapsedTime: number;
   rightContent?: React.ReactNode;
-  thought?: string | null;
+  thought?: ThoughtSummary | null;
 }
 
 export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
@@ -30,13 +31,8 @@ export const LoadingIndicator: React.FC<LoadingIndicatorProps> = ({
     return null;
   }
 
-  const getBoldedText = (text: string): string => {
-    const match = text.match(/\*\*(.*?)\*\*/s);
-    return match ? match[1].trim() : '';
-  };
+  const primaryText = thought?.subject || currentLoadingPhrase;
 
-  const boldedText = thought ? getBoldedText(thought) : '';
-  const primaryText = boldedText || currentLoadingPhrase;
 
   return (
     <Box marginTop={1} paddingLeft={0} flexDirection="column">

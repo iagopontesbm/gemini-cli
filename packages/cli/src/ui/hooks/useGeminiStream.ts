@@ -20,6 +20,7 @@ import {
   logUserPrompt,
   GitService,
   EditorType,
+  ThoughtSummary,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -89,7 +90,7 @@ export const useGeminiStream = (
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
-  const [thought, setThought] = useState<string | null>(null);
+  const [thought, setThought] = useState<ThoughtSummary | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
   const logger = useLogger();

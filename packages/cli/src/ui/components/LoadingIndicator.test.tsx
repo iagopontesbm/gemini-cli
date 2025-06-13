@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ThoughtSummary } from '@gemini-cli/core';
 import React from 'react';
 import { render } from 'ink-testing-library';
 import { Text } from 'ink';
@@ -158,5 +159,39 @@ describe('<LoadingIndicator />', () => {
       </StreamingContext.Provider>,
     );
     expect(lastFrame()).toBe('');
+  });
+
+  it('should display fallback phrase if thought is empty', () => {
+    const props = {
+      thought: null,
+      currentLoadingPhrase: 'Loading...',
+      elapsedTime: 5,
+    };
+    const { lastFrame } = renderWithContext(
+      <LoadingIndicator {...props} />,
+      StreamingState.Responding,
+    );
+    const output = lastFrame();
+    expect(output).toContain('Loading...');
+  });
+
+  it('should display the subject of a thought', () => {
+    const props = {
+      thought: {
+        subject: 'Thinking about something...',
+        description: 'and other stuff.',
+      },
+      elapsedTime: 5,
+    };
+    const { lastFrame } = renderWithContext(
+      <LoadingIndicator {...props} />,
+      StreamingState.Responding,
+    );
+    const output = lastFrame();
+    expect(output).toBeDefined();
+    if (output) {
+      expect(output).toContain('Thinking about something...');
+      expect(output).not.toContain('and other stuff.');
+    }
   });
 });

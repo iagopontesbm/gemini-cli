@@ -70,6 +70,11 @@ export interface ServerToolCallConfirmationDetails {
   details: ToolCallConfirmationDetails;
 }
 
+export type ThoughtSummary = {
+  subject: string;
+  description: string;
+};
+
 export type ServerGeminiContentEvent = {
   type: GeminiEventType.Content;
   value: string;
@@ -77,7 +82,7 @@ export type ServerGeminiContentEvent = {
 
 export type ServerGeminiThoughtEvent = {
   type: GeminiEventType.Thought;
-  value: string;
+  value: ThoughtSummary;
 };
 
 export type ServerGeminiToolCallRequestEvent = {
@@ -163,9 +168,18 @@ export class Turn {
 
         const thought = resp.candidates?.[0]?.content?.parts?.[0]?.thought;
         if (thought) {
+          const rawText = resp.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+          const subjectStringMatches = rawText.match(/\*\*(.*?)\*\*/s);
+          const subject = subjectStringMatches ? subjectStringMatches[1].trim() : "";
+          const description = rawText.replace(/\*\*(.*?)\*\*/s, '').trim()
+          const thought: ThoughtSummary = {
+            subject,
+            description,
+          }
+
           yield {
             type: GeminiEventType.Thought,
-            value: resp.candidates?.[0]?.content?.parts?.[0]?.text ?? '',
+            value: thought,
           };
           continue;
         }
