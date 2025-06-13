@@ -159,7 +159,7 @@ export class GeminiChat {
     }
 
     const shouldLogUserPrompts = (config: Config): boolean =>
-      config.getTelemetryLogUserPromptsEnabled ?? false;
+      config.getTelemetryLogUserPromptsEnabled() ?? false;
 
     const requestText = getRequestTextFromContents(contents);
     logApiRequest(this.config, {
