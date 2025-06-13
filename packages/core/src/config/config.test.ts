@@ -51,6 +51,7 @@ describe('Server Config (config.ts)', () => {
   const EMBEDDING_MODEL = 'gemini-embedding';
   const SESSION_ID = 'test-session-id';
   const baseParams: ConfigParameters = {
+    cwd: '/tmp',
     contentGeneratorConfig: {
       apiKey: API_KEY,
       model: MODEL,
@@ -105,18 +106,15 @@ describe('Server Config (config.ts)', () => {
   it('should set default file filtering settings when not provided', () => {
     const config = new Config(baseParams);
     expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-    expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
   });
 
   it('should set custom file filtering settings when provided', () => {
     const paramsWithFileFiltering: ConfigParameters = {
       ...baseParams,
       fileFilteringRespectGitIgnore: false,
-      fileFilteringAllowBuildArtifacts: true,
     };
     const config = new Config(paramsWithFileFiltering);
     expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-    expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
   });
 
   it('Config constructor should set telemetry to true when provided as true', () => {
