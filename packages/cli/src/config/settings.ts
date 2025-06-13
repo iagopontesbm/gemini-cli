@@ -35,7 +35,7 @@ export interface Settings {
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
-  contextFileName?: string;
+  contextFileName?: string | string[];
   accessibility?: AccessibilitySettings;
   telemetry?: boolean;
   preferredEditor?: string;
@@ -43,7 +43,6 @@ export interface Settings {
   // Git-aware file filtering settings
   fileFiltering?: {
     respectGitIgnore?: boolean;
-    allowBuildArtifacts?: boolean;
   };
 
   // UI setting. Does not display the ANSI-controlled terminal title.
