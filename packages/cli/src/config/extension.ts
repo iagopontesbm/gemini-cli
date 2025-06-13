@@ -87,7 +87,7 @@ function loadExtensionsFromDir(dir: string): ExtensionConfig[] {
             resolvedPaths.length === 1 ? resolvedPaths[0] : resolvedPaths;
         }
       } else {
-        const contextFilePath = path.join(extensionDir, 'gemini.md');
+        const contextFilePath = path.join(extensionDir, 'GEMINI.md');
         if (fs.existsSync(contextFilePath)) {
           extensionConfig.contextFileName = contextFilePath;
         }

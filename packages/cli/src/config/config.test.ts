@@ -214,7 +214,7 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
       {
         name: 'ext1',
         version: '1.0.0',
-        contextFileName: '/path/to/ext1/gemini.md',
+        contextFileName: '/path/to/ext1/GEMINI.md',
       },
       {
         name: 'ext2',
@@ -223,14 +223,14 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
       {
         name: 'ext3',
         version: '1.0.0',
-        contextFileName: '/path/to/ext3/gemini.md',
+        contextFileName: '/path/to/ext3/GEMINI.md',
       },
     ];
     await loadCliConfig(settings, extensions, [], 'session-id');
     expect(ServerConfig.loadServerHierarchicalMemory).toHaveBeenCalledWith(
       expect.any(String),
       false,
-      ['/path/to/ext1/gemini.md', '/path/to/ext3/gemini.md'],
+      ['/path/to/ext1/GEMINI.md', '/path/to/ext3/GEMINI.md'],
     );
   });
 

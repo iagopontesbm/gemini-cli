@@ -41,7 +41,7 @@ describe('loadExtensions', () => {
     fs.rmSync(tempHomeDir, { recursive: true, force: true });
   });
 
-  it('should load context file path when gemini.md is present', () => {
+  it('should load context file path when GEMINI.md is present', () => {
     const workspaceExtensionsDir = path.join(
       tempWorkspaceDir,
       EXTENSIONS_DIRECTORY_NAME,
@@ -56,7 +56,7 @@ describe('loadExtensions', () => {
     const ext1 = extensions.find((e) => e.name === 'ext1');
     const ext2 = extensions.find((e) => e.name === 'ext2');
     expect(ext1?.contextFileName).toBe(
-      path.join(workspaceExtensionsDir, 'ext1', 'gemini.md'),
+      path.join(workspaceExtensionsDir, 'ext1', 'GEMINI.md'),
     );
     expect(ext2?.contextFileName).toBeUndefined();
   });
@@ -100,7 +100,7 @@ function createExtension(
   );
 
   if (addContextFile) {
-    fs.writeFileSync(path.join(extDir, 'gemini.md'), 'context');
+    fs.writeFileSync(path.join(extDir, 'GEMINI.md'), 'context');
   }
 
   if (contextFileName) {
