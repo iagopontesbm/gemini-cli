@@ -24,6 +24,7 @@ import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import { initializeTelemetry } from '../telemetry/index.js';
+import { DEFAULT_GEMINI_EMBEDDING_MODEL } from './models.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -44,6 +45,8 @@ export class MCPServerConfig {
     readonly cwd?: string,
     // For sse transport
     readonly url?: string,
+    // For websocket transport
+    readonly tcp?: string,
     // Common
     readonly timeout?: number,
     readonly trust?: boolean,
@@ -55,7 +58,7 @@ export class MCPServerConfig {
 export interface ConfigParameters {
   sessionId: string;
   contentGeneratorConfig: ContentGeneratorConfig;
-  embeddingModel: string;
+  embeddingModel?: string;
   sandbox?: boolean | string;
   targetDir: string;
   debugMode: boolean;
@@ -78,7 +81,6 @@ export interface ConfigParameters {
   telemetryLogUserPromptsEnabled?: boolean;
   telemetryOtlpEndpoint?: string;
   fileFilteringRespectGitIgnore?: boolean;
-  fileFilteringAllowBuildArtifacts?: boolean;
   checkpoint?: boolean;
   proxy?: string;
   cwd: string;
@@ -111,7 +113,6 @@ export class Config {
   private readonly geminiClient: GeminiClient;
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
-  private readonly fileFilteringAllowBuildArtifacts: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
   private readonly checkpoint: boolean;
@@ -121,7 +122,8 @@ export class Config {
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
     this.contentGeneratorConfig = params.contentGeneratorConfig;
-    this.embeddingModel = params.embeddingModel;
+    this.embeddingModel =
+      params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
     this.targetDir = path.resolve(params.targetDir);
     this.debugMode = params.debugMode;
@@ -141,12 +143,9 @@ export class Config {
     this.telemetry = params.telemetry ?? false;
     this.telemetryLogUserPromptsEnabled =
       params.telemetryLogUserPromptsEnabled ?? true;
-    this.telemetryOtlpEndpoint =
-      params.telemetryOtlpEndpoint ?? 'http://localhost:4317';
+    this.telemetryOtlpEndpoint = params.telemetryOtlpEndpoint ?? '';
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringAllowBuildArtifacts =
-      params.fileFilteringAllowBuildArtifacts ?? false;
     this.checkpoint = params.checkpoint ?? false;
     this.proxy = params.proxy;
     this.cwd = params.cwd ?? process.cwd();
@@ -293,10 +292,6 @@ export class Config {
     return this.fileFilteringRespectGitIgnore;
   }
 
-  getFileFilteringAllowBuildArtifacts(): boolean {
-    return this.fileFilteringAllowBuildArtifacts;
-  }
-
   getCheckpointEnabled(): boolean {
     return this.checkpoint;
   }
@@ -314,7 +309,6 @@ export class Config {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
       await this.fileDiscoveryService.initialize({
         respectGitIgnore: this.fileFilteringRespectGitIgnore,
-        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
       });
     }
     return this.fileDiscoveryService;
