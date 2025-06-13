@@ -37,10 +37,10 @@ export class FileDiscoveryService {
     pattern: string | string[],
     options: GlobOptions = {},
   ): Promise<string[]> {
-    const files = await glob(pattern, {
+    const files = (await glob(pattern, {
       ...options,
       nocase: true,
-    }) as string[];
+    })) as string[];
     return this.filterFiles(files);
   }
 
