@@ -21,7 +21,6 @@ const mockConfig = {
   isSandboxed: vi.fn(() => false),
   getFileService: vi.fn(),
   getFileFilteringRespectGitIgnore: vi.fn(() => true),
-  getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
 } as unknown as Config;
 
 const mockReadManyFilesExecute = vi.fn();
@@ -92,7 +91,7 @@ describe('handleAtCommand', () => {
       initialize: vi.fn(),
       shouldIgnoreFile: vi.fn(() => false),
       filterFiles: vi.fn((files) => files),
-      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [] })),
       isGitRepository: vi.fn(() => true),
     };
     vi.mocked(FileDiscoveryService).mockImplementation(

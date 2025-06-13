@@ -46,7 +46,7 @@ import process from 'node:process';
 import {
   getErrorMessage,
   type Config,
-  getCurrentGeminiMdFilename,
+  getAllGeminiMdFilenames,
   ApprovalMode,
   isEditorAvailable,
   EditorType,
@@ -407,6 +407,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
   const branchName = useGitBranchName(config.getTargetDir());
 
+  const contextFileNames = useMemo(() => {
+    const fromSettings = settings.merged.contextFileName;
+    if (fromSettings) {
+      return Array.isArray(fromSettings) ? fromSettings : [fromSettings];
+    }
+    return getAllGeminiMdFilenames();
+  }, [settings.merged.contextFileName]);
+
   if (quittingMessages) {
     return (
       <Box flexDirection="column" marginBottom={1}>
@@ -441,7 +449,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           key={staticKey}
           items={[
             <Box flexDirection="column" key="header">
-              <Header title={process.env.GEMINI_CLI_TITLE} />
+              <Header terminalWidth={terminalWidth} />
               <Tips config={config} />
             </Box>,
             ...history.map((h) => (
@@ -547,10 +555,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                   ) : (
                     <ContextSummaryDisplay
                       geminiMdFileCount={geminiMdFileCount}
-                      contextFileName={
-                        settings.merged.contextFileName ||
-                        getCurrentGeminiMdFilename()
-                      }
+                      contextFileNames={contextFileNames}
                       mcpServers={config.getMcpServers()}
                       showToolDescriptions={showToolDescriptions}
                     />
