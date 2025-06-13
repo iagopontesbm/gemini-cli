@@ -2,7 +2,18 @@
 
 [![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
 
-This repository contains the Gemini CLI tool.
+This repository contains the Gemini CLI, a command-line AI workflow tool that connects to your
+tools, understands your code and accelerates your workflows.
+
+With the Gemini CLI you can:
+
+ * Query and edit large codebases in and beyond Gemini's 1M token context window.
+ * Generate new apps from PDFs or sketches, using Gemini's multimodal capabilities.
+ * Automate operational tasks, like querying pull requests or handling complex rebases.
+ * Use tools and MCP servers to connect new capabilities, including [media generation with Imagen,
+   Veo or Lyria](https://github.com/GoogleCloudPlatform/vertex-ai-creative-studio/tree/main/experiments/mcp-genmedia).
+ * Ground your queries with [Google Search](https://ai.google.dev/gemini-api/docs/grounding).
+
 
 ## Quickstart
 
@@ -10,7 +21,7 @@ This repository contains the Gemini CLI tool.
 2. [Get an API key from Google AI Studio](https://aistudio.google.com/apikey).
 3. Set the API key in your shell using the following command, replacing `YOUR_API_KEY` with the API key you obtained: `export GEMINI_API_KEY="YOUR_API_KEY"`.
 4. Run the Gemini CLI from your shell using the following command: `npx https://github.com/google-gemini/gemini-cli#early-access`
-5. Enjoy.
+5. Enjoy!
 
 ## Examples
 
