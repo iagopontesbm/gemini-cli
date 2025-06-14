@@ -540,7 +540,7 @@ export class CoreToolScheduler {
           isModifying: true,
         } as ToolCallConfirmationDetails);
 
-        const modifyResults = await modifyWithEditor<
+        const { updatedParams, updatedDiff } = await modifyWithEditor<
           typeof waitingToolCall.request.args
         >(
           waitingToolCall.request.args,
@@ -548,10 +548,10 @@ export class CoreToolScheduler {
           editorType,
           signal,
         );
-        this.setArgsInternal(callId, modifyResults.updatedParams);
+        this.setArgsInternal(callId, updatedParams);
         this.setStatusInternal(callId, 'awaiting_approval', {
           ...waitingToolCall.confirmationDetails,
-          fileDiff: modifyResults.updatedDiff,
+          fileDiff: updatedDiff,
           isModifying: false,
         } as ToolCallConfirmationDetails);
       }
