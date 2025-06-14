@@ -11,6 +11,7 @@ import { MCPServerConfig, getErrorMessage } from '@gemini-cli/core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
 import { DefaultDark } from '../ui/themes/default.js';
+import { UserTool, loadMergedUserTools } from '../utils/userToolsLoader.js';
 
 export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
@@ -66,21 +67,33 @@ export class LoadedSettings {
     user: SettingsFile,
     workspace: SettingsFile,
     errors: SettingsError[],
+    userTools: Map<string, UserTool>,
+    workspaceTools: Map<string, UserTool>,
   ) {
     this.user = user;
     this.workspace = workspace;
     this.errors = errors;
+    this.userTools = userTools;
+    this.workspaceTools = workspaceTools;
     this._merged = this.computeMergedSettings();
+    this._mergedTools = this.computeMergedTools();
   }
 
   readonly user: SettingsFile;
   readonly workspace: SettingsFile;
   readonly errors: SettingsError[];
+  readonly userTools: Map<string, UserTool>;
+  readonly workspaceTools: Map<string, UserTool>;
 
   private _merged: Settings;
+  private _mergedTools: Map<string, UserTool>;
 
   get merged(): Settings {
     return this._merged;
+  }
+
+  get mergedTools(): Map<string, UserTool> {
+    return this._mergedTools;
   }
 
   private computeMergedSettings(): Settings {
@@ -88,6 +101,22 @@ export class LoadedSettings {
       ...this.user.settings,
       ...this.workspace.settings,
     };
+  }
+
+  private computeMergedTools(): Map<string, UserTool> {
+    const merged = new Map<string, UserTool>();
+
+    // Add all user tools
+    for (const [name, tool] of this.userTools) {
+      merged.set(name, tool);
+    }
+
+    // Override with workspace tools
+    for (const [name, tool] of this.workspaceTools) {
+      merged.set(name, tool);
+    }
+
+    return merged;
   }
 
   forScope(scope: SettingScope): SettingsFile {
@@ -217,6 +246,14 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
     });
   }
 
+  // Load user tools from both directories
+  const {
+    globalTools,
+    workspaceTools,
+    errors: toolErrors,
+  } = loadMergedUserTools(workspaceDir);
+  settingsErrors.push(...toolErrors);
+
   return new LoadedSettings(
     {
       path: USER_SETTINGS_PATH,
@@ -227,6 +264,8 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
       settings: workspaceSettings,
     },
     settingsErrors,
+    globalTools,
+    workspaceTools,
   );
 }
 

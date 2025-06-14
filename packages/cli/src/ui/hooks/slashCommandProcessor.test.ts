@@ -4,8 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-const { mockProcessExit } = vi.hoisted(() => ({
+const { mockProcessExit, MockGitService } = vi.hoisted(() => ({
   mockProcessExit: vi.fn((_code?: number): never => undefined as never),
+  MockGitService: vi.fn().mockImplementation(() => ({
+    restoreProjectFromSnapshot: vi.fn(),
+  })),
 }));
 
 vi.mock('node:process', () => ({
@@ -46,10 +49,22 @@ vi.mock('node:fs/promises', () => ({
   readFile: vi.fn(),
   writeFile: vi.fn(),
   mkdir: vi.fn(),
+  readdir: vi.fn(),
 }));
 
+vi.mock('@gemini-cli/core', async (importOriginal) => {
+  const actualCoreModule =
+    await importOriginal<typeof import('@gemini-cli/core')>();
+  return {
+    ...actualCoreModule,
+    GitService: MockGitService,
+    getMCPServerStatus: vi.fn().mockReturnValue('disconnected'),
+    getMCPDiscoveryState: vi.fn().mockReturnValue('completed'),
+  };
+});
+
 import { act, renderHook } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
+import { vi, describe, it, expect, beforeEach, Mock } from 'vitest';
 import open from 'open';
 import {
   useSlashCommandProcessor,
@@ -65,16 +80,12 @@ import {
 } from '@gemini-cli/core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 
-vi.mock('@gemini-code/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@gemini-code/core')>();
-  return {
-    ...actual,
-    GitService: vi.fn(),
-  };
-});
-
 import * as ShowMemoryCommandModule from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
+import {
+  loadMergedUserTools,
+  type UserTool,
+} from '../../utils/userToolsLoader.js';
 
 vi.mock('../contexts/SessionContext.js', () => ({
   useSessionStats: vi.fn(),
@@ -87,6 +98,19 @@ vi.mock('./useShowMemoryCommand.js', () => ({
 
 vi.mock('open', () => ({
   default: vi.fn(),
+}));
+
+vi.mock('../../utils/userToolsLoader.js', () => ({
+  UserToolsLoader: vi.fn().mockImplementation(() => ({
+    loadUserTools: vi.fn().mockResolvedValue(new Map()),
+    reloadUserTools: vi.fn().mockResolvedValue(new Map()),
+  })),
+  loadMergedUserTools: vi.fn().mockReturnValue({
+    globalTools: new Map(),
+    workspaceTools: new Map(),
+    mergedTools: new Map(),
+    errors: [],
+  }),
 }));
 
 describe('useSlashCommandProcessor', () => {
@@ -121,6 +145,7 @@ describe('useSlashCommandProcessor', () => {
       getModel: vi.fn(() => 'test-model'),
       getProjectRoot: vi.fn(() => '/test/dir'),
       getCheckpointEnabled: vi.fn(() => true),
+      getTargetDir: vi.fn(() => '/mock/cwd'),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
     mockUseSessionStats.mockReturnValue({
@@ -145,7 +170,10 @@ describe('useSlashCommandProcessor', () => {
     process.env = { ...globalThis.process.env };
   });
 
-  const getProcessor = (showToolDescriptions: boolean = false) => {
+  const getProcessor = (
+    showToolDescriptions: boolean = false,
+    userTools: Map<string, UserTool> = new Map(),
+  ) => {
     const { result } = renderHook(() =>
       useSlashCommandProcessor(
         mockConfig,
@@ -162,6 +190,7 @@ describe('useSlashCommandProcessor', () => {
         mockCorgiMode,
         showToolDescriptions,
         mockSetQuittingMessages,
+        userTools,
       ),
     );
     return result.current;
@@ -214,7 +243,7 @@ describe('useSlashCommandProcessor', () => {
         2, // After user message
         expect.objectContaining({
           type: MessageType.ERROR,
-          text: 'Usage: /memory add <text to remember>',
+          text: 'Usage: /memory add <text to remember>.',
         }),
         expect.any(Number),
       );
@@ -467,7 +496,7 @@ Add any other context about the problem here.
         2,
         expect.objectContaining({
           type: MessageType.ERROR,
-          text: 'Unknown command: /unknowncommand',
+          text: 'Unknown command: /unknowncommand.',
         }),
         expect.any(Number),
       );
@@ -585,6 +614,314 @@ Add any other context about the problem here.
         expect.any(Number),
       );
       expect(commandResult).toBe(true);
+    });
+  });
+
+  describe('User Tools', () => {
+    let mockUserTools: Map<
+      string,
+      {
+        name: string;
+        description: string;
+        content: string;
+        filePath: string;
+      }
+    >;
+
+    beforeEach(() => {
+      mockUserTools = new Map([
+        [
+          'git-log',
+          {
+            name: 'git-log',
+            description: 'Show git commit history',
+            content: 'Please show the git commit history.',
+            filePath: '/test/git-log.md',
+          },
+        ],
+        [
+          'find-math-book',
+          {
+            name: 'find-math-book',
+            description: 'Get a random math book recommendation',
+            content: 'Please recommend a mathematics book.',
+            filePath: '/test/find-math-book.md',
+          },
+        ],
+      ]);
+    });
+
+    describe('/reload-user-tools command', () => {
+      it('should reload user tools and show success message', async () => {
+        const newTools = new Map([
+          [
+            'new-tool',
+            {
+              name: 'new-tool',
+              description: 'A newly loaded tool',
+              content: 'New tool content',
+              filePath: '/test/new-tool.md',
+            },
+          ],
+        ]);
+
+        // Mock loadMergedUserTools to return the new tools
+        vi.mocked(loadMergedUserTools).mockReturnValue({
+          globalTools: new Map(),
+          workspaceTools: newTools,
+          mergedTools: newTools,
+          errors: [],
+        });
+
+        const { handleSlashCommand } = getProcessor();
+        let commandResult: SlashCommandActionReturn | boolean = false;
+
+        await act(async () => {
+          commandResult = await handleSlashCommand('/reload-user-tools');
+        });
+
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          1,
+          expect.objectContaining({
+            type: MessageType.USER,
+            text: '/reload-user-tools',
+          }),
+          expect.any(Number),
+        );
+
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: MessageType.INFO,
+            text: 'Reloading user tools...',
+          }),
+          expect.any(Number),
+        );
+
+        expect(mockAddItem).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: MessageType.INFO,
+            text: 'Loaded 1 user tool(s):\n/user-new-tool',
+          }),
+          expect.any(Number),
+        );
+        expect(commandResult).toBe(true);
+      });
+
+      it('should show message when no user tools are found', async () => {
+        const emptyTools = new Map();
+
+        // Mock loadMergedUserTools to return empty tools
+        vi.mocked(loadMergedUserTools).mockReturnValue({
+          globalTools: new Map(),
+          workspaceTools: new Map(),
+          mergedTools: emptyTools,
+          errors: [],
+        });
+
+        const { handleSlashCommand } = getProcessor();
+
+        await act(async () => {
+          await handleSlashCommand('/reload-user-tools');
+        });
+
+        expect(mockAddItem).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: MessageType.INFO,
+            text: 'No user tools found in .gemini/user-tools directory',
+          }),
+          expect.any(Number),
+        );
+      });
+
+      it('should handle reload errors gracefully', async () => {
+        const mockError = new Error('Failed to read directory');
+
+        // Mock loadMergedUserTools to throw an error
+        vi.mocked(loadMergedUserTools).mockImplementation(() => {
+          throw mockError;
+        });
+
+        const { handleSlashCommand } = getProcessor();
+
+        await act(async () => {
+          await handleSlashCommand('/reload-user-tools');
+        });
+
+        expect(mockAddItem).toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: MessageType.ERROR,
+            text: 'Error reloading user tools: Failed to read directory',
+          }),
+          expect.any(Number),
+        );
+      });
+    });
+
+    describe('/user-* commands', () => {
+      it('should handle user tool command and return processed query', async () => {
+        const { result } = renderHook(() =>
+          useSlashCommandProcessor(
+            mockConfig,
+            [],
+            mockAddItem,
+            mockClearItems,
+            mockLoadHistory,
+            mockRefreshStatic,
+            mockSetShowHelp,
+            mockOnDebugMessage,
+            mockOpenThemeDialog,
+            mockOpenEditorDialog,
+            mockPerformMemoryRefresh,
+            mockCorgiMode,
+            false,
+            mockSetQuittingMessages,
+            mockUserTools,
+          ),
+        );
+
+        const { handleSlashCommand } = result.current;
+        let commandResult: SlashCommandActionReturn | boolean = false;
+
+        await act(async () => {
+          commandResult = await handleSlashCommand('/user-git-log');
+        });
+
+        expect(commandResult).toEqual({
+          processedQuery: expect.stringContaining(
+            '[This is the expanded content of the user-defined command',
+          ),
+          isUserTool: true,
+        });
+        expect(commandResult).toEqual({
+          processedQuery: expect.stringContaining(
+            'Please show the git commit history.',
+          ),
+          isUserTool: true,
+        });
+      });
+
+      it('should handle user tool with additional instructions', async () => {
+        const { result } = renderHook(() =>
+          useSlashCommandProcessor(
+            mockConfig,
+            [],
+            mockAddItem,
+            mockClearItems,
+            mockLoadHistory,
+            mockRefreshStatic,
+            mockSetShowHelp,
+            mockOnDebugMessage,
+            mockOpenThemeDialog,
+            mockOpenEditorDialog,
+            mockPerformMemoryRefresh,
+            mockCorgiMode,
+            false,
+            mockSetQuittingMessages,
+            mockUserTools,
+          ),
+        );
+
+        const { handleSlashCommand } = result.current;
+        let commandResult: SlashCommandActionReturn | boolean = false;
+
+        await act(async () => {
+          commandResult = await handleSlashCommand(
+            '/user-git-log --since="1 week ago" --author="John"',
+          );
+        });
+
+        const processedQuery = (
+          commandResult as {
+            processedQuery: string;
+            isUserTool: boolean;
+          }
+        ).processedQuery;
+        expect(processedQuery).toContain('Please show the git commit history.');
+        expect(processedQuery).toContain(
+          'At the time of invoking this tool, the user provided these additional instructions:',
+        );
+        expect(processedQuery).toContain(
+          '--since="1 week ago" --author="John"',
+        );
+      });
+
+      it('should show error for unknown user tool', async () => {
+        const { result } = renderHook(() =>
+          useSlashCommandProcessor(
+            mockConfig,
+            [],
+            mockAddItem,
+            mockClearItems,
+            mockLoadHistory,
+            mockRefreshStatic,
+            mockSetShowHelp,
+            mockOnDebugMessage,
+            mockOpenThemeDialog,
+            mockOpenEditorDialog,
+            mockPerformMemoryRefresh,
+            mockCorgiMode,
+            false,
+            mockSetQuittingMessages,
+            mockUserTools,
+          ),
+        );
+
+        const { handleSlashCommand } = result.current;
+        let commandResult: SlashCommandActionReturn | boolean = false;
+
+        await act(async () => {
+          commandResult = await handleSlashCommand('/user-unknown-tool');
+        });
+
+        expect(mockAddItem).toHaveBeenNthCalledWith(
+          2,
+          expect.objectContaining({
+            type: MessageType.ERROR,
+            text: 'Unknown user tool: unknown-tool. Use /reload-user-tools to see available tools.',
+          }),
+          expect.any(Number),
+        );
+        expect(commandResult).toBe(true);
+      });
+
+      it('should not add user tool query to history directly', async () => {
+        const { result } = renderHook(() =>
+          useSlashCommandProcessor(
+            mockConfig,
+            [],
+            mockAddItem,
+            mockClearItems,
+            mockLoadHistory,
+            mockRefreshStatic,
+            mockSetShowHelp,
+            mockOnDebugMessage,
+            mockOpenThemeDialog,
+            mockOpenEditorDialog,
+            mockPerformMemoryRefresh,
+            mockCorgiMode,
+            false,
+            mockSetQuittingMessages,
+            mockUserTools,
+          ),
+        );
+
+        const { handleSlashCommand } = result.current;
+
+        await act(async () => {
+          await handleSlashCommand('/user-git-log');
+        });
+
+        // For user tools, only the original command should be added to history when it fails
+        // The processed query is returned to be handled by useGeminiStream
+        expect(mockAddItem).not.toHaveBeenCalledWith(
+          expect.objectContaining({
+            type: MessageType.USER,
+            text: expect.stringContaining('[This is the expanded content'),
+          }),
+          expect.any(Number),
+        );
+      });
     });
   });
 

@@ -97,6 +97,9 @@ describe('Settings Loading and Merging', () => {
       expect(settings.workspace.settings).toEqual({});
       expect(settings.merged).toEqual({});
       expect(settings.errors.length).toBe(0);
+      expect(settings.userTools.size).toBe(0);
+      expect(settings.workspaceTools.size).toBe(0);
+      expect(settings.mergedTools.size).toBe(0);
     });
 
     it('should load user settings if only user file exists', () => {

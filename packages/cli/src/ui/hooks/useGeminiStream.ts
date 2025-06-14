@@ -198,21 +198,41 @@ export const useGeminiStream = (
         if (typeof slashCommandResult === 'boolean' && slashCommandResult) {
           // Command was handled, and it doesn't require a tool call from here
           return { queryToSend: null, shouldProceed: false };
-        } else if (
-          typeof slashCommandResult === 'object' &&
-          slashCommandResult.shouldScheduleTool
-        ) {
-          // Slash command wants to schedule a tool call (e.g., /memory add)
-          const { toolName, toolArgs } = slashCommandResult;
-          if (toolName && toolArgs) {
-            const toolCallRequest: ToolCallRequestInfo = {
-              callId: `${toolName}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
-              name: toolName,
-              args: toolArgs,
-            };
-            scheduleToolCalls([toolCallRequest], abortSignal);
+        } else if (slashCommandResult) {
+          if (typeof slashCommandResult !== 'object') {
+            logger?.logMessage(
+              MessageSenderType.USER,
+              `Unexpected slashCommandResult type: ${typeof slashCommandResult}`,
+            );
+            return { queryToSend: null, shouldProceed: false };
           }
-          return { queryToSend: null, shouldProceed: false }; // Handled by scheduling the tool
+
+          if (
+            slashCommandResult.processedQuery &&
+            slashCommandResult.isUserTool
+          ) {
+            // User tool - add the processed query to history instead of the command
+            addItem(
+              {
+                type: MessageType.USER,
+                text: slashCommandResult.processedQuery,
+              },
+              userMessageTimestamp,
+            );
+            localQueryToSendToGemini = slashCommandResult.processedQuery;
+          } else if (slashCommandResult.shouldScheduleTool) {
+            // Slash command wants to schedule a tool call (e.g., /memory add)
+            const { toolName, toolArgs } = slashCommandResult;
+            if (toolName && toolArgs) {
+              const toolCallRequest: ToolCallRequestInfo = {
+                callId: `${toolName}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                name: toolName,
+                args: toolArgs,
+              };
+              scheduleToolCalls([toolCallRequest], abortSignal);
+            }
+            return { queryToSend: null, shouldProceed: false }; // Handled by scheduling the tool
+          }
         }
 
         if (shellModeActive && handleShellCommand(trimmedQuery, abortSignal)) {

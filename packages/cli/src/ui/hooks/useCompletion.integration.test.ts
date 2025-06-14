@@ -90,8 +90,8 @@ describe('useCompletion git-aware filtering integration', () => {
     expect(result.current.suggestions).toHaveLength(2);
     expect(result.current.suggestions).toEqual(
       expect.arrayContaining([
-        { label: 'src/', value: 'src/' },
-        { label: 'README.md', value: 'README.md' },
+        { label: 'src/', value: 'src/', autoSubmit: true },
+        { label: 'README.md', value: 'README.md', autoSubmit: true },
       ]),
     );
     expect(result.current.showSuggestions).toBe(true);
@@ -165,9 +165,9 @@ describe('useCompletion git-aware filtering integration', () => {
     expect(result.current.suggestions).toHaveLength(3);
     expect(result.current.suggestions).toEqual(
       expect.arrayContaining([
-        { label: 'src/', value: 'src/' },
-        { label: 'node_modules/', value: 'node_modules/' },
-        { label: 'README.md', value: 'README.md' },
+        { label: 'src/', value: 'src/', autoSubmit: true },
+        { label: 'node_modules/', value: 'node_modules/', autoSubmit: true },
+        { label: 'README.md', value: 'README.md', autoSubmit: true },
       ]),
     );
   });
@@ -201,6 +201,181 @@ describe('useCompletion git-aware filtering integration', () => {
     consoleSpy.mockRestore();
   });
 
+  describe('User Tools Completion', () => {
+    const mockUserTools = new Map([
+      [
+        'git-log',
+        {
+          name: 'git-log',
+          description: 'Show git commit history',
+          content: 'Show git log',
+          filePath: '/test/git-log.md',
+        },
+      ],
+      [
+        'find-math-book',
+        {
+          name: 'find-math-book',
+          description: 'Get a random math book recommendation',
+          content: 'Recommend a book',
+          filePath: '/test/find-math-book.md',
+        },
+      ],
+      [
+        'largest-files',
+        {
+          name: 'largest-files',
+          description: 'Find the largest files in the project',
+          content: 'Find large files',
+          filePath: '/test/largest-files.md',
+        },
+      ],
+    ]);
+
+    it('should suggest user tools when typing /user-', async () => {
+      const { result } = renderHook(() =>
+        useCompletion(
+          '/user-',
+          testCwd,
+          true,
+          slashCommands,
+          mockConfig,
+          mockUserTools,
+        ),
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+
+      expect(result.current.suggestions).toContainEqual(
+        expect.objectContaining({
+          label: 'user-git-log',
+          value: 'user-git-log',
+          description: 'Show git commit history',
+        }),
+      );
+      expect(result.current.suggestions).toContainEqual(
+        expect.objectContaining({
+          label: 'user-find-math-book',
+          value: 'user-find-math-book',
+          description: 'Get a random math book recommendation',
+        }),
+      );
+      expect(result.current.suggestions).toContainEqual(
+        expect.objectContaining({
+          label: 'user-largest-files',
+          value: 'user-largest-files',
+          description: 'Find the largest files in the project',
+        }),
+      );
+    });
+
+    it('should filter user tools based on partial match', async () => {
+      const { result } = renderHook(() =>
+        useCompletion(
+          '/user-git',
+          testCwd,
+          true,
+          slashCommands,
+          mockConfig,
+          mockUserTools,
+        ),
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+
+      expect(result.current.suggestions).toHaveLength(1);
+      expect(result.current.suggestions[0]).toEqual({
+        label: 'user-git-log',
+        value: 'user-git-log',
+        description: 'Show git commit history',
+        autoSubmit: false,
+      });
+    });
+
+    it('should suggest all matching user tools for partial command', async () => {
+      const { result } = renderHook(() =>
+        useCompletion(
+          '/use',
+          testCwd,
+          true,
+          slashCommands,
+          mockConfig,
+          mockUserTools,
+        ),
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+
+      // Should suggest all user tools that start with 'user-'
+      const userToolSuggestions = result.current.suggestions.filter((s) =>
+        s.value.startsWith('user-'),
+      );
+      expect(userToolSuggestions).toHaveLength(3);
+    });
+
+    it('should show no user tool suggestions when no tools match', async () => {
+      const { result } = renderHook(() =>
+        useCompletion(
+          '/user-xyz',
+          testCwd,
+          true,
+          slashCommands,
+          mockConfig,
+          mockUserTools,
+        ),
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+
+      expect(result.current.suggestions).toHaveLength(0);
+    });
+
+    it('should provide default description for tools without description', async () => {
+      const toolsWithoutDesc = new Map([
+        [
+          'no-desc',
+          {
+            name: 'no-desc',
+            description: '',
+            content: 'Content',
+            filePath: '/test/no-desc.md',
+          },
+        ],
+      ]);
+
+      const { result } = renderHook(() =>
+        useCompletion(
+          '/user-no',
+          testCwd,
+          true,
+          slashCommands,
+          mockConfig,
+          toolsWithoutDesc,
+        ),
+      );
+
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 150));
+      });
+
+      expect(result.current.suggestions).toContainEqual(
+        expect.objectContaining({
+          label: 'user-no-desc',
+          value: 'user-no-desc',
+          description: 'User-defined tool: no-desc',
+        }),
+      );
+    });
+  });
+
   it('should handle directory-specific completions with git filtering', async () => {
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'component.tsx', isDirectory: () => false },
@@ -222,7 +397,7 @@ describe('useCompletion git-aware filtering integration', () => {
 
     // Should filter out .log files but include matching .tsx files
     expect(result.current.suggestions).toEqual([
-      { label: 'component.tsx', value: 'component.tsx' },
+      { label: 'component.tsx', value: 'component.tsx', autoSubmit: true },
     ]);
   });
 

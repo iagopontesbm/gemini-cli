@@ -110,6 +110,8 @@ describe('gemini.tsx main function', () => {
       userSettingsFile,
       workspaceSettingsFile,
       [settingsError],
+      new Map(),
+      new Map(),
     );
 
     loadSettingsMock.mockReturnValue(mockLoadedSettings);

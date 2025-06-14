@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
@@ -31,12 +31,19 @@ import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
+import {
+  loadMergedUserTools,
+  type UserTool,
+} from '../../utils/userToolsLoader.js';
+import { UserToolProcessor } from '../../utils/userToolProcessor.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
   toolName?: string;
   toolArgs?: Record<string, unknown>;
   message?: string; // For simple messages or errors
+  processedQuery?: string; // For user tools that return a processed query
+  isUserTool?: boolean; // Flag to indicate this is a user tool
 }
 
 export interface SlashCommand {
@@ -69,8 +76,9 @@ export const useSlashCommandProcessor = (
   openEditorDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
-  showToolDescriptions: boolean = false,
+  showToolDescriptions: boolean,
   setQuittingMessages: (message: HistoryItem[]) => void,
+  userTools: Map<string, UserTool>,
 ) => {
   const session = useSessionStats();
   const gitService = useMemo(() => {
@@ -80,6 +88,8 @@ export const useSlashCommandProcessor = (
     return new GitService(config.getProjectRoot());
   }, [config]);
 
+  const [userToolsState, setUserTools] =
+    useState<Map<string, UserTool>>(userTools);
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -133,7 +143,7 @@ export const useSlashCommandProcessor = (
       if (!args || args.trim() === '') {
         addMessage({
           type: MessageType.ERROR,
-          content: 'Usage: /memory add <text to remember>',
+          content: 'Usage: /memory add <text to remember>.',
           timestamp: new Date(),
         });
         return;
@@ -614,6 +624,69 @@ Add any other context about the problem here.
         },
       },
       {
+        name: 'reload-user-tools',
+        description:
+          'reload user-defined tools from .gemini/user-tools directory',
+        action: (_mainCommand, _subCommand, _args) => {
+          if (!config) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'User tools loader not initialized.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          addMessage({
+            type: MessageType.INFO,
+            content: 'Reloading user tools...',
+            timestamp: new Date(),
+          });
+
+          try {
+            // Reload user tools from both global and workspace directories
+            const { mergedTools, errors } = loadMergedUserTools(
+              config.getTargetDir(),
+            );
+
+            // Report any errors
+            for (const error of errors) {
+              addMessage({
+                type: MessageType.ERROR,
+                content: error.message,
+                timestamp: new Date(),
+              });
+            }
+
+            setUserTools(mergedTools);
+            const toolCount = mergedTools.size;
+
+            if (toolCount === 0) {
+              addMessage({
+                type: MessageType.INFO,
+                content: 'No user tools found in .gemini/user-tools directory',
+                timestamp: new Date(),
+              });
+            } else {
+              const toolNames = Array.from(mergedTools.keys()).map(
+                (name) => `/user-${name}`,
+              );
+              addMessage({
+                type: MessageType.INFO,
+                content: `Loaded ${toolCount} user tool(s):\n${toolNames.join('\n')}`,
+                timestamp: new Date(),
+              });
+            }
+          } catch (error) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Error reloading user tools: ${error instanceof Error ? error.message : String(error)}`,
+              timestamp: new Date(),
+            });
+          }
+        },
+      },
+      {
         name: 'quit',
         altName: 'exit',
         description: 'exit the cli',
@@ -767,7 +840,47 @@ Add any other context about the problem here.
     loadHistory,
     addItem,
     setQuittingMessages,
+    setUserTools,
   ]);
+
+  // Handle user tool commands (/user-*)
+  const handleUserToolCommand = useCallback(
+    (subCommand: string, args: string, userMessageTimestamp: number) => {
+      const userTool = userToolsState.get(subCommand);
+      if (userTool) {
+        const toolArgs = args ? args.split(/\s+/) : [];
+
+        const processedPrompt = UserToolProcessor.processUserToolCommand(
+          userTool,
+          toolArgs,
+        );
+
+        // Return the processed prompt as if it was a regular user query
+        // This will be handled by useGeminiStream
+        // DON'T add to history here - it will be added in prepareQueryForGemini
+        return {
+          processedQuery: processedPrompt,
+          isUserTool: true,
+        };
+      } else {
+        // For unknown user tools, add the command to history before showing error
+        addItem(
+          {
+            type: MessageType.USER,
+            text: `/user-${subCommand}${args ? ' ' + args : ''}`,
+          },
+          userMessageTimestamp,
+        );
+        addMessage({
+          type: MessageType.ERROR,
+          content: `Unknown user tool: ${subCommand}. Use /reload-user-tools to see available tools.`,
+          timestamp: new Date(),
+        });
+        return true;
+      }
+    },
+    [userToolsState, addItem, addMessage],
+  );
 
   const handleSlashCommand = useCallback(
     async (
@@ -781,31 +894,65 @@ Add any other context about the problem here.
         return false;
       }
       const userMessageTimestamp = Date.now();
-      if (trimmed !== '/quit' && trimmed !== '/exit') {
-        addItem(
-          { type: MessageType.USER, text: trimmed },
-          userMessageTimestamp,
-        );
-      }
 
+      let mainCommand: string;
       let subCommand: string | undefined;
       let args: string | undefined;
 
-      const commandToMatch = (() => {
+      (() => {
         if (trimmed.startsWith('?')) {
-          return 'help';
+          mainCommand = 'help';
+          return;
         }
-        const parts = trimmed.substring(1).trim().split(/\s+/);
+        const fullCommand = trimmed.substring(1).trim();
+
+        // Special handling for /user-* commands
+        if (fullCommand.startsWith('user-')) {
+          const parts = fullCommand.split(/\s+/);
+          const userCommand = parts[0]; // This will be "user-toolname"
+          const toolNameMatch = userCommand.match(/^user-(.+)$/);
+          if (toolNameMatch) {
+            mainCommand = 'user';
+            subCommand = toolNameMatch[1]; // Extract toolname after "user-"
+            if (parts.length > 1) {
+              args = parts.slice(1).join(' ');
+            }
+            return;
+          }
+          // If no match, fall through to regular command parsing
+        }
+
+        // Regular command parsing
+        const parts = fullCommand.split(/\s+/);
+        mainCommand = parts[0];
         if (parts.length > 1) {
           subCommand = parts[1];
         }
         if (parts.length > 2) {
           args = parts.slice(2).join(' ');
         }
-        return parts[0];
       })();
 
-      const mainCommand = commandToMatch;
+      // Check if this is a user tool command (/user-*)
+      if (mainCommand === 'user' && subCommand) {
+        return handleUserToolCommand(
+          subCommand,
+          args || '',
+          userMessageTimestamp,
+        );
+      }
+
+      // For all other slash commands (except quit/exit and user commands), add to history immediately
+      if (
+        trimmed !== '/quit' &&
+        trimmed !== '/exit' &&
+        mainCommand !== 'user'
+      ) {
+        addItem(
+          { type: MessageType.USER, text: trimmed },
+          userMessageTimestamp,
+        );
+      }
 
       for (const cmd of slashCommands) {
         if (mainCommand === cmd.name || mainCommand === cmd.altName) {
@@ -822,13 +969,13 @@ Add any other context about the problem here.
 
       addMessage({
         type: MessageType.ERROR,
-        content: `Unknown command: ${trimmed}`,
+        content: `Unknown command: ${trimmed}.`,
         timestamp: new Date(),
       });
       return true; // Indicate command was processed (even if unknown)
     },
-    [addItem, slashCommands, addMessage],
+    [addItem, slashCommands, addMessage, handleUserToolCommand],
   );
 
-  return { handleSlashCommand, slashCommands };
+  return { handleSlashCommand, slashCommands, userTools: userToolsState };
 };
