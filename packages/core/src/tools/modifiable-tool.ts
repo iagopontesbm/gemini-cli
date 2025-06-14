@@ -129,13 +129,7 @@ function deleteTempFiles(oldPath: string, newPath: string): void {
 
 /**
  * Triggers an external editor for the user to modify the proposed content,
- * and returns the updated tool parameters and the diff.
- *
- * @param originalParams - The tool parameters to modify.
- * @param modifyContext - The configuration for the modify operation.
- * @param editorType - The type of editor to use.
- * @param _abortSignal - The abort signal to cancel the operation.
- * @returns The updated tool parameters and the diff.
+ * and returns the updated tool parameters and the diff after the user has modified the proposed content.
  */
 export async function modifyWithEditor<ToolParams>(
   originalParams: ToolParams,
