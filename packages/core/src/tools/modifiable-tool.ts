@@ -50,9 +50,8 @@ function createTempFilesForModify(
   proposedContent: string,
   file_path: string,
 ): { oldPath: string; newPath: string } {
-  // const tempDir = os.tmpdir();
-
-  const diffDir = path.join('.gemini/', 'gemini-cli-tool-modify-diffs');
+  const tempDir = os.tmpdir();
+  const diffDir = path.join(tempDir, 'gemini-cli-tool-modify-diffs');
 
   if (!fs.existsSync(diffDir)) {
     fs.mkdirSync(diffDir, { recursive: true });
