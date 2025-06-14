@@ -103,10 +103,10 @@ describe('editCorrector', () => {
         'First line\nSecond line',
       );
     });
-    it('should handle multiple backslashes before an escapable character', () => {
-      expect(unescapeStringForGeminiBug('\\\\n')).toBe('\\n');
-      expect(unescapeStringForGeminiBug('\\\\\\t')).toBe('\\\t');
-      expect(unescapeStringForGeminiBug('\\\\\\\\`')).toBe('\\\\`');
+    it('should handle multiple backslashes before an escapable character (aggressive unescaping)', () => {
+      expect(unescapeStringForGeminiBug('\\\\n')).toBe('\n');
+      expect(unescapeStringForGeminiBug('\\\\\\t')).toBe('\t');
+      expect(unescapeStringForGeminiBug('\\\\\\\\`')).toBe('`');
     });
     it('should return empty string for empty input', () => {
       expect(unescapeStringForGeminiBug('')).toBe('');
@@ -125,21 +125,21 @@ describe('editCorrector', () => {
     it('should handle complex cases with mixed slashes and characters', () => {
       expect(
         unescapeStringForGeminiBug('\\\\\\\nLine1\\\nLine2\\tTab\\\\`Tick\\"'),
-      ).toBe('\\\nLine1\nLine2\tTab\\`Tick"');
+      ).toBe('\nLine1\nLine2\tTab`Tick"');
     });
     it('should handle escaped backslashes', () => {
       expect(unescapeStringForGeminiBug('\\\\')).toBe('\\');
       expect(unescapeStringForGeminiBug('C:\\\\Users')).toBe('C:\\Users');
       expect(unescapeStringForGeminiBug('path\\\\to\\\\file')).toBe(
-        'path\\to\\file',
+        'path\to\\file',
       );
     });
-    it('should handle escaped backslashes mixed with other escapes', () => {
+    it('should handle escaped backslashes mixed with other escapes (aggressive unescaping)', () => {
       expect(unescapeStringForGeminiBug('line1\\\\\\nline2')).toBe(
-        'line1\\\nline2',
+        'line1\nline2',
       );
       expect(unescapeStringForGeminiBug('quote\\\\"text\\\\nline')).toBe(
-        'quote\\"text\\nline',
+        'quote"text\nline',
       );
     });
   });
