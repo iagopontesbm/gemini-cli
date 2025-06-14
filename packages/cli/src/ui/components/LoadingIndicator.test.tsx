@@ -193,4 +193,22 @@ describe('<LoadingIndicator />', () => {
       expect(output).not.toContain('and other stuff.');
     }
   });
+
+  it('should prioritize thought.subject over currentLoadingPhrase', () => {
+    const props = {
+      thought: {
+        subject: 'This should be displayed',
+        description: 'A description',
+      },
+      currentLoadingPhrase: 'This should not be displayed',
+      elapsedTime: 5,
+    };
+    const { lastFrame } = renderWithContext(
+      <LoadingIndicator {...props} />,
+      StreamingState.Responding,
+    );
+    const output = lastFrame();
+    expect(output).toContain('This should be displayed');
+    expect(output).not.toContain('This should not be displayed');
+  });
 });
