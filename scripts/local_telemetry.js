@@ -347,6 +347,15 @@ async function main() {
 
   const cleanup = () => {
     console.log('\n👋 Shutting down...');
+
+    // Restore original settings
+    const finalSettings = readJsonFile(WORKSPACE_SETTINGS_FILE);
+    delete finalSettings.telemetry;
+    delete finalSettings.telemetryOtlpEndpoint;
+    finalSettings.sandbox = originalSandboxSetting;
+    writeJsonFile(WORKSPACE_SETTINGS_FILE, finalSettings);
+    console.log('✅ Restored original telemetry and sandbox settings.');
+
     [jaegerProcess, collectorProcess].forEach((proc) => {
       if (proc && proc.pid) {
         try {
@@ -382,6 +391,7 @@ async function main() {
   console.log('📄 Wrote OTEL collector config.');
 
   const workspaceSettings = readJsonFile(WORKSPACE_SETTINGS_FILE);
+  const originalSandboxSetting = workspaceSettings.sandbox;
   let settingsModified = false;
 
   if (workspaceSettings.telemetry !== true) {
@@ -393,7 +403,7 @@ async function main() {
   if (workspaceSettings.sandbox !== false) {
     workspaceSettings.sandbox = false;
     settingsModified = true;
-    console.log('✅ Disabled sandbox mode for telemetry.');
+    console.log('✅ Disabled sandbox mode for local telemetry.');
   }
 
   if (workspaceSettings.telemetryOtlpEndpoint !== 'http://localhost:4317') {
