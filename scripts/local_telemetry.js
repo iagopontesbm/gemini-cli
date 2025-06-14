@@ -358,15 +358,16 @@ async function main() {
 
     [jaegerProcess, collectorProcess].forEach((proc) => {
       if (proc && proc.pid) {
+        const name = path.basename(proc.spawnfile);
         try {
-          console.log(`🛑 Stopping ${proc.spawnargs[0]} (PID: ${proc.pid})...`);
+          console.log(`🛑 Stopping ${name} (PID: ${proc.pid})...`);
           // Use SIGTERM for a graceful shutdown
           process.kill(proc.pid, 'SIGTERM');
-          console.log(`✅ ${proc.spawnargs[0]} stopped.`);
+          console.log(`✅ ${name} stopped.`);
         } catch (e) {
           // It's okay if the process is already gone.
           if (e.code !== 'ESRCH')
-            console.error(`Error stopping ${proc.spawnargs[0]}: ${e.message}`);
+            console.error(`Error stopping ${name}: ${e.message}`);
         }
       }
     });
