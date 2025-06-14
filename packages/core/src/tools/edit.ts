@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 import * as Diff from 'diff';
 import {
   BaseTool,
@@ -18,11 +19,13 @@ import {
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { isNodeError } from '../utils/errors.js';
-import { ReadFileTool } from './read-file.js';
 import { GeminiClient } from '../core/client.js';
 import { Config, ApprovalMode } from '../config/config.js';
 import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
+import { openDiff } from '../utils/editor.js';
+import { ReadFileTool } from './read-file.js';
+import { EditorType } from '../utils/editor.js';
 
 /**
  * Parameters for the Edit tool
@@ -66,6 +69,8 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
   private readonly config: Config;
   private readonly rootDirectory: string;
   private readonly client: GeminiClient;
+  private tempOldDiffPath?: string;
+  private tempNewDiffPath?: string;
 
   /**
    * Creates a new instance of the EditLogic
@@ -75,14 +80,14 @@ export class EditTool extends BaseTool<EditToolParams, ToolResult> {
     super(
       EditTool.Name,
       'Edit',
-      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when \`expected_replacements\` is specified. This tool requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool} tool to examine the file's current content before attempting a text replacement.
+      `Replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when \`expected_replacements\` is specified. This tool requires providing significant context around the change to ensure precise targeting. Always use the ${ReadFileTool.Name} tool to examine the file's current content before attempting a text replacement.
 
 Expectation for required parameters:
 1. \`file_path\` MUST be an absolute path; otherwise an error will be thrown.
 2. \`old_string\` MUST be the exact literal text to replace (including all whitespace, indentation, newlines, and surrounding code etc.).
 3. \`new_string\` MUST be the exact literal text to replace \`old_string\` with (also including all whitespace, indentation, newlines, and surrounding code etc.). Ensure the resulting code is correct and idiomatic.
 4. NEVER escape \`old_string\` or \`new_string\`, that would break the exact literal text requirement.
-**Important:** If ANY of the above are not satisfied, the tool will fail. CRITICAL for \`old_string\`: Must uniquely identify the single instance to change. Include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. If this string matches multiple locations, or does not match exactly, the tool will fail.,
+**Important:** If ANY of the above are not satisfied, the tool will fail. CRITICAL for \`old_string\`: Must uniquely identify the single instance to change. Include at least 3 lines of context BEFORE and AFTER the target text, matching whitespace and indentation precisely. If this string matches multiple locations, or does not match exactly, the tool will fail.
 **Multiple replacements:** Set \`expected_replacements\` to the number of occurrences you want to replace. The tool will replace ALL occurrences that match \`old_string\` exactly. Ensure the number of replacements matches your expectation.`,
       {
         properties: {
@@ -202,6 +207,8 @@ Expectation for required parameters:
 
     try {
       currentContent = fs.readFileSync(params.file_path, 'utf8');
+      // Normalize line endings to LF for consistent processing.
+      currentContent = currentContent.replace(/\r\n/g, '\n');
       fileExists = true;
     } catch (err: unknown) {
       if (!isNodeError(err) || err.code !== 'ENOENT') {
@@ -291,60 +298,26 @@ Expectation for required parameters:
       );
       return false;
     }
-    let currentContent: string | null = null;
-    let fileExists = false;
-    let finalNewString = params.new_string;
-    let finalOldString = params.old_string;
-    let occurrences = 0;
 
+    let editData: CalculatedEdit;
     try {
-      currentContent = fs.readFileSync(params.file_path, 'utf8');
-      fileExists = true;
-    } catch (err: unknown) {
-      if (isNodeError(err) && err.code === 'ENOENT') {
-        fileExists = false;
-      } else {
-        console.error(`Error reading file for confirmation diff: ${err}`);
-        return false;
-      }
+      editData = await this.calculateEdit(params, abortSignal);
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.log(`Error preparing edit: ${errorMsg}`);
+      return false;
     }
 
-    if (params.old_string === '' && !fileExists) {
-      // Creating new file, newContent is just params.new_string
-    } else if (!fileExists) {
-      return false; // Cannot edit non-existent file if old_string is not empty
-    } else if (currentContent !== null) {
-      const correctedEdit = await ensureCorrectEdit(
-        currentContent,
-        params,
-        this.client,
-        abortSignal,
-      );
-      finalOldString = correctedEdit.params.old_string;
-      finalNewString = correctedEdit.params.new_string;
-      occurrences = correctedEdit.occurrences;
-
-      const expectedReplacements = params.expected_replacements ?? 1;
-      if (occurrences === 0 || occurrences !== expectedReplacements) {
-        return false;
-      }
-    } else {
-      return false; // Should not happen
+    if (editData.error) {
+      console.log(`Error: ${editData.error.display}`);
+      return false;
     }
-
-    const isNewFileScenario = params.old_string === '' && !fileExists;
-    const newContent = this._applyReplacement(
-      currentContent,
-      finalOldString,
-      finalNewString,
-      isNewFileScenario,
-    );
 
     const fileName = path.basename(params.file_path);
     const fileDiff = Diff.createPatch(
       fileName,
-      currentContent ?? '',
-      newContent,
+      editData.currentContent ?? '',
+      editData.newContent,
       'Current',
       'Proposed',
       DEFAULT_DIFF_OPTIONS,
@@ -392,7 +365,7 @@ Expectation for required parameters:
    */
   async execute(
     params: EditToolParams,
-    _signal: AbortSignal,
+    signal: AbortSignal,
   ): Promise<ToolResult> {
     const validationError = this.validateToolParams(params);
     if (validationError) {
@@ -404,7 +377,7 @@ Expectation for required parameters:
 
     let editData: CalculatedEdit;
     try {
-      editData = await this.calculateEdit(params, _signal);
+      editData = await this.calculateEdit(params, signal);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       return {
@@ -456,6 +429,132 @@ Expectation for required parameters:
         llmContent: `Error executing edit: ${errorMsg}`,
         returnDisplay: `Error writing file: ${errorMsg}`,
       };
+    }
+  }
+
+  /**
+   * Creates temp files for the current and proposed file contents and opens a diff tool.
+   * When the diff tool is closed, the tool will check if the file has been modified and provide the updated params.
+   * @returns Updated params and diff if the file has been modified, undefined otherwise.
+   */
+  async onModify(
+    params: EditToolParams,
+    _abortSignal: AbortSignal,
+    editorType: EditorType,
+  ): Promise<
+    { updatedParams: EditToolParams; updatedDiff: string } | undefined
+  > {
+    const { oldPath, newPath } = this.createTempFiles(params);
+    this.tempOldDiffPath = oldPath;
+    this.tempNewDiffPath = newPath;
+
+    await openDiff(this.tempOldDiffPath, this.tempNewDiffPath, editorType);
+    return await this.getUpdatedParamsIfModified(params, _abortSignal);
+  }
+
+  private async getUpdatedParamsIfModified(
+    params: EditToolParams,
+    _abortSignal: AbortSignal,
+  ): Promise<
+    { updatedParams: EditToolParams; updatedDiff: string } | undefined
+  > {
+    if (!this.tempOldDiffPath || !this.tempNewDiffPath) return undefined;
+    let oldContent = '';
+    let newContent = '';
+    try {
+      oldContent = fs.readFileSync(this.tempOldDiffPath, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      oldContent = '';
+    }
+    try {
+      newContent = fs.readFileSync(this.tempNewDiffPath, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      newContent = '';
+    }
+
+    // Combine the edits into a single edit
+    const updatedParams: EditToolParams = {
+      ...params,
+      old_string: oldContent,
+      new_string: newContent,
+    };
+
+    const updatedDiff = Diff.createPatch(
+      path.basename(params.file_path),
+      oldContent,
+      newContent,
+      'Current',
+      'Proposed',
+      DEFAULT_DIFF_OPTIONS,
+    );
+
+    this.deleteTempFiles();
+    return { updatedParams, updatedDiff };
+  }
+
+  private createTempFiles(params: EditToolParams): Record<string, string> {
+    this.deleteTempFiles();
+
+    const tempDir = os.tmpdir();
+    const diffDir = path.join(tempDir, 'gemini-cli-edit-tool-diffs');
+
+    if (!fs.existsSync(diffDir)) {
+      fs.mkdirSync(diffDir, { recursive: true });
+    }
+
+    const fileName = path.basename(params.file_path);
+    const timestamp = Date.now();
+    const tempOldPath = path.join(
+      diffDir,
+      `gemini-cli-edit-${fileName}-old-${timestamp}`,
+    );
+    const tempNewPath = path.join(
+      diffDir,
+      `gemini-cli-edit-${fileName}-new-${timestamp}`,
+    );
+
+    let currentContent = '';
+    try {
+      currentContent = fs.readFileSync(params.file_path, 'utf8');
+    } catch (err) {
+      if (!isNodeError(err) || err.code !== 'ENOENT') throw err;
+      currentContent = '';
+    }
+
+    let proposedContent = currentContent;
+    proposedContent = this._applyReplacement(
+      proposedContent,
+      params.old_string,
+      params.new_string,
+      params.old_string === '' && currentContent === '',
+    );
+
+    fs.writeFileSync(tempOldPath, currentContent, 'utf8');
+    fs.writeFileSync(tempNewPath, proposedContent, 'utf8');
+    return {
+      oldPath: tempOldPath,
+      newPath: tempNewPath,
+    };
+  }
+
+  private deleteTempFiles(): void {
+    try {
+      if (this.tempOldDiffPath) {
+        fs.unlinkSync(this.tempOldDiffPath);
+        this.tempOldDiffPath = undefined;
+      }
+    } catch {
+      console.error(`Error deleting temp diff file: `, this.tempOldDiffPath);
+    }
+    try {
+      if (this.tempNewDiffPath) {
+        fs.unlinkSync(this.tempNewDiffPath);
+        this.tempNewDiffPath = undefined;
+      }
+    } catch {
+      console.error(`Error deleting temp diff file: `, this.tempNewDiffPath);
     }
   }
 

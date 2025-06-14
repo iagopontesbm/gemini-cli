@@ -10,15 +10,26 @@
 import {
   GenerateContentResponse,
   Content,
-  Models,
   GenerateContentConfig,
   SendMessageParameters,
-  GoogleGenAI,
   createUserContent,
   Part,
+  GenerateContentResponseUsageMetadata,
 } from '@google/genai';
 import { retryWithBackoff } from '../utils/retry.js';
 import { isFunctionResponse } from '../utils/messageInspectors.js';
+import { ContentGenerator } from './contentGenerator.js';
+import { Config } from '../config/config.js';
+import {
+  logApiRequest,
+  logApiResponse,
+  logApiError,
+  combinedUsageMetadata,
+} from '../telemetry/loggers.js';
+import {
+  getResponseText,
+  getResponseTextFromParts,
+} from '../utils/generateContentResponseUtilities.js';
 
 /**
  * Returns true if the response is valid, false otherwise.
@@ -120,13 +131,67 @@ export class GeminiChat {
   private sendPromise: Promise<void> = Promise.resolve();
 
   constructor(
-    private readonly apiClient: GoogleGenAI,
-    private readonly modelsModule: Models,
+    private readonly config: Config,
+    private readonly contentGenerator: ContentGenerator,
     private readonly model: string,
-    private readonly config: GenerateContentConfig = {},
+    private readonly generationConfig: GenerateContentConfig = {},
     private history: Content[] = [],
   ) {
     validateHistory(history);
+  }
+
+  private _getRequestTextFromContents(contents: Content[]): string {
+    return contents
+      .flatMap((content) => content.parts ?? [])
+      .map((part) => part.text)
+      .filter(Boolean)
+      .join('');
+  }
+
+  private async _logApiRequest(
+    contents: Content[],
+    model: string,
+  ): Promise<void> {
+    const shouldLogUserPrompts = (config: Config): boolean =>
+      config.getTelemetryLogUserPromptsEnabled() ?? false;
+
+    const requestText = this._getRequestTextFromContents(contents);
+    logApiRequest(this.config, {
+      model,
+      request_text: shouldLogUserPrompts(this.config) ? requestText : undefined,
+    });
+  }
+
+  private async _logApiResponse(
+    durationMs: number,
+    usageMetadata?: GenerateContentResponseUsageMetadata,
+    responseText?: string,
+  ): Promise<void> {
+    logApiResponse(this.config, {
+      model: this.model,
+      duration_ms: durationMs,
+      status_code: 200, // Assuming 200 for success
+      input_token_count: usageMetadata?.promptTokenCount ?? 0,
+      output_token_count: usageMetadata?.candidatesTokenCount ?? 0,
+      cached_content_token_count: usageMetadata?.cachedContentTokenCount ?? 0,
+      thoughts_token_count: usageMetadata?.thoughtsTokenCount ?? 0,
+      tool_token_count: usageMetadata?.toolUsePromptTokenCount ?? 0,
+      response_text: responseText,
+    });
+  }
+
+  private _logApiError(durationMs: number, error: unknown): void {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorType = error instanceof Error ? error.name : 'unknown';
+    const statusCode = 'unknown';
+
+    logApiError(this.config, {
+      model: this.model,
+      error: errorMessage,
+      status_code: statusCode,
+      error_type: errorType,
+      duration_ms: durationMs,
+    });
   }
 
   /**
@@ -154,46 +219,60 @@ export class GeminiChat {
   ): Promise<GenerateContentResponse> {
     await this.sendPromise;
     const userContent = createUserContent(params.message);
+    const requestContents = this.getHistory(true).concat(userContent);
 
-    const apiCall = () =>
-      this.modelsModule.generateContent({
-        model: this.model,
-        contents: this.getHistory(true).concat(userContent),
-        config: { ...this.config, ...params.config },
-      });
+    this._logApiRequest(requestContents, this.model);
 
-    const responsePromise = retryWithBackoff(apiCall);
+    const startTime = Date.now();
+    let response: GenerateContentResponse;
 
-    this.sendPromise = (async () => {
-      const response = await responsePromise;
-      const outputContent = response.candidates?.[0]?.content;
+    try {
+      const apiCall = () =>
+        this.contentGenerator.generateContent({
+          model: this.model,
+          contents: requestContents,
+          config: { ...this.generationConfig, ...params.config },
+        });
 
-      // Because the AFC input contains the entire curated chat history in
-      // addition to the new user input, we need to truncate the AFC history
-      // to deduplicate the existing chat history.
-      const fullAutomaticFunctionCallingHistory =
-        response.automaticFunctionCallingHistory;
-      const index = this.getHistory(true).length;
-
-      let automaticFunctionCallingHistory: Content[] = [];
-      if (fullAutomaticFunctionCallingHistory != null) {
-        automaticFunctionCallingHistory =
-          fullAutomaticFunctionCallingHistory.slice(index) ?? [];
-      }
-
-      const modelOutput = outputContent ? [outputContent] : [];
-      this.recordHistory(
-        userContent,
-        modelOutput,
-        automaticFunctionCallingHistory,
+      response = await retryWithBackoff(apiCall);
+      const durationMs = Date.now() - startTime;
+      await this._logApiResponse(
+        durationMs,
+        response.usageMetadata,
+        getResponseText(response),
       );
-      return;
-    })();
-    await this.sendPromise.catch(() => {
-      // Resets sendPromise to avoid subsequent calls failing
+
+      this.sendPromise = (async () => {
+        const outputContent = response.candidates?.[0]?.content;
+        // Because the AFC input contains the entire curated chat history in
+        // addition to the new user input, we need to truncate the AFC history
+        // to deduplicate the existing chat history.
+        const fullAutomaticFunctionCallingHistory =
+          response.automaticFunctionCallingHistory;
+        const index = this.getHistory(true).length;
+        let automaticFunctionCallingHistory: Content[] = [];
+        if (fullAutomaticFunctionCallingHistory != null) {
+          automaticFunctionCallingHistory =
+            fullAutomaticFunctionCallingHistory.slice(index) ?? [];
+        }
+        const modelOutput = outputContent ? [outputContent] : [];
+        this.recordHistory(
+          userContent,
+          modelOutput,
+          automaticFunctionCallingHistory,
+        );
+      })();
+      await this.sendPromise.catch(() => {
+        // Resets sendPromise to avoid subsequent calls failing
+        this.sendPromise = Promise.resolve();
+      });
+      return response;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      this._logApiError(durationMs, error);
       this.sendPromise = Promise.resolve();
-    });
-    return responsePromise;
+      throw error;
+    }
   }
 
   /**
@@ -223,38 +302,53 @@ export class GeminiChat {
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     await this.sendPromise;
     const userContent = createUserContent(params.message);
+    const requestContents = this.getHistory(true).concat(userContent);
+    this._logApiRequest(requestContents, this.model);
 
-    const apiCall = () =>
-      this.modelsModule.generateContentStream({
-        model: this.model,
-        contents: this.getHistory(true).concat(userContent),
-        config: { ...this.config, ...params.config },
+    const startTime = Date.now();
+
+    try {
+      const apiCall = () =>
+        this.contentGenerator.generateContentStream({
+          model: this.model,
+          contents: requestContents,
+          config: { ...this.generationConfig, ...params.config },
+        });
+
+      // Note: Retrying streams can be complex. If generateContentStream itself doesn't handle retries
+      // for transient issues internally before yielding the async generator, this retry will re-initiate
+      // the stream. For simple 429/500 errors on initial call, this is fine.
+      // If errors occur mid-stream, this setup won't resume the stream; it will restart it.
+      const streamResponse = await retryWithBackoff(apiCall, {
+        shouldRetry: (error: Error) => {
+          // Check error messages for status codes, or specific error names if known
+          if (error && error.message) {
+            if (error.message.includes('429')) return true;
+            if (error.message.match(/5\d{2}/)) return true;
+          }
+          return false; // Don't retry other errors by default
+        },
       });
 
-    // Note: Retrying streams can be complex. If generateContentStream itself doesn't handle retries
-    // for transient issues internally before yielding the async generator, this retry will re-initiate
-    // the stream. For simple 429/500 errors on initial call, this is fine.
-    // If errors occur mid-stream, this setup won't resume the stream; it will restart it.
-    const streamResponse = await retryWithBackoff(apiCall, {
-      shouldRetry: (error: Error) => {
-        // Check error messages for status codes, or specific error names if known
-        if (error && error.message) {
-          if (error.message.includes('429')) return true;
-          if (error.message.match(/5\d{2}/)) return true;
-        }
-        return false; // Don't retry other errors by default
-      },
-    });
+      // Resolve the internal tracking of send completion promise - `sendPromise`
+      // for both success and failure response. The actual failure is still
+      // propagated by the `await streamResponse`.
+      this.sendPromise = Promise.resolve(streamResponse)
+        .then(() => undefined)
+        .catch(() => undefined);
 
-    // Resolve the internal tracking of send completion promise - `sendPromise`
-    // for both success and failure response. The actual failure is still
-    // propagated by the `await streamResponse`.
-    this.sendPromise = Promise.resolve(streamResponse)
-      .then(() => undefined)
-      .catch(() => undefined);
-
-    const result = this.processStreamResponse(streamResponse, userContent);
-    return result;
+      const result = this.processStreamResponse(
+        streamResponse,
+        userContent,
+        startTime,
+      );
+      return result;
+    } catch (error) {
+      const durationMs = Date.now() - startTime;
+      this._logApiError(durationMs, error);
+      this.sendPromise = Promise.resolve();
+      throw error;
+    }
   }
 
   /**
@@ -289,19 +383,66 @@ export class GeminiChat {
     return structuredClone(history);
   }
 
+  /**
+   * Clears the chat history.
+   */
+  clearHistory(): void {
+    this.history = [];
+  }
+
+  /**
+   * Adds a new entry to the chat history.
+   *
+   * @param content - The content to add to the history.
+   */
+  addHistory(content: Content): void {
+    this.history.push(content);
+  }
+  setHistory(history: Content[]): void {
+    this.history = history;
+  }
+
   private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,
     inputContent: Content,
+    startTime: number,
   ) {
     const outputContent: Content[] = [];
-    for await (const chunk of streamResponse) {
-      if (isValidResponse(chunk)) {
-        const content = chunk.candidates?.[0]?.content;
-        if (content !== undefined) {
-          outputContent.push(content);
+    const chunks: GenerateContentResponse[] = [];
+    let errorOccurred = false;
+
+    try {
+      for await (const chunk of streamResponse) {
+        if (isValidResponse(chunk)) {
+          chunks.push(chunk);
+          const content = chunk.candidates?.[0]?.content;
+          if (content !== undefined) {
+            outputContent.push(content);
+          }
+        }
+        yield chunk;
+      }
+    } catch (error) {
+      errorOccurred = true;
+      const durationMs = Date.now() - startTime;
+      this._logApiError(durationMs, error);
+      throw error;
+    }
+
+    if (!errorOccurred) {
+      const durationMs = Date.now() - startTime;
+      const allParts: Part[] = [];
+      for (const content of outputContent) {
+        if (content.parts) {
+          allParts.push(...content.parts);
         }
       }
-      yield chunk;
+      const fullText = getResponseTextFromParts(allParts);
+      await this._logApiResponse(
+        durationMs,
+        combinedUsageMetadata(chunks),
+        fullText,
+      );
     }
     this.recordHistory(inputContent, outputContent);
   }

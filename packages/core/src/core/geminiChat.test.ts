@@ -7,12 +7,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
   Content,
-  GoogleGenAI,
   Models,
   GenerateContentConfig,
   Part,
+  GenerateContentResponse,
 } from '@google/genai';
 import { GeminiChat } from './geminiChat.js';
+import { Config } from '../config/config.js';
 
 // Mocks
 const mockModelsModule = {
@@ -23,9 +24,10 @@ const mockModelsModule = {
   batchEmbedContents: vi.fn(),
 } as unknown as Models;
 
-const mockGoogleGenAI = {
-  getGenerativeModel: vi.fn().mockReturnValue(mockModelsModule),
-} as unknown as GoogleGenAI;
+const mockConfig = {
+  getSessionId: () => 'test-session-id',
+  getTelemetryLogUserPromptsEnabled: () => true,
+} as unknown as Config;
 
 describe('GeminiChat', () => {
   let chat: GeminiChat;
@@ -35,11 +37,71 @@ describe('GeminiChat', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset history for each test by creating a new instance
-    chat = new GeminiChat(mockGoogleGenAI, mockModelsModule, model, config, []);
+    chat = new GeminiChat(mockConfig, mockModelsModule, model, config, []);
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+  });
+
+  describe('sendMessage', () => {
+    it('should call generateContent with the correct parameters', async () => {
+      const response = {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: [],
+          },
+        ],
+        text: () => 'response',
+      } as unknown as GenerateContentResponse;
+      vi.mocked(mockModelsModule.generateContent).mockResolvedValue(response);
+
+      await chat.sendMessage({ message: 'hello' });
+
+      expect(mockModelsModule.generateContent).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: {},
+      });
+    });
+  });
+
+  describe('sendMessageStream', () => {
+    it('should call generateContentStream with the correct parameters', async () => {
+      const response = (async function* () {
+        yield {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: [],
+            },
+          ],
+          text: () => 'response',
+        } as unknown as GenerateContentResponse;
+      })();
+      vi.mocked(mockModelsModule.generateContentStream).mockResolvedValue(
+        response,
+      );
+
+      await chat.sendMessageStream({ message: 'hello' });
+
+      expect(mockModelsModule.generateContentStream).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: {},
+      });
+    });
   });
 
   describe('recordHistory', () => {
@@ -129,19 +191,8 @@ describe('GeminiChat', () => {
       // @ts-expect-error Accessing private method for testing purposes
       chat.recordHistory(userInput, newModelOutput); // userInput here is for the *next* turn, but history is already primed
 
-      // const history = chat.getHistory(); // Removed unused variable to satisfy linter
-      // The recordHistory will push the *new* userInput first, then the consolidated newModelOutput.
-      // However, the consolidation logic for *outputContents* itself should run, and then the merge with *existing* history.
-      // Let's adjust the test to reflect how recordHistory is used: it adds the current userInput, then the model's response to it.
-
       // Reset and set up a more realistic scenario for merging with existing history
-      chat = new GeminiChat(
-        mockGoogleGenAI,
-        mockModelsModule,
-        model,
-        config,
-        [],
-      );
+      chat = new GeminiChat(mockConfig, mockModelsModule, model, config, []);
       const firstUserInput: Content = {
         role: 'user',
         parts: [{ text: 'First user input' }],
@@ -184,7 +235,7 @@ describe('GeminiChat', () => {
         role: 'model',
         parts: [{ text: 'Initial model answer.' }],
       };
-      chat = new GeminiChat(mockGoogleGenAI, mockModelsModule, model, config, [
+      chat = new GeminiChat(mockConfig, mockModelsModule, model, config, [
         initialUser,
         initialModel,
       ]);
@@ -371,6 +422,36 @@ describe('GeminiChat', () => {
       expect(history[0]).toEqual(userInput);
       expect(history[1].role).toBe('model');
       expect(history[1].parts).toEqual([{ text: 'Visible text' }]);
+    });
+  });
+
+  describe('addHistory', () => {
+    it('should add a new content item to the history', () => {
+      const newContent: Content = {
+        role: 'user',
+        parts: [{ text: 'A new message' }],
+      };
+      chat.addHistory(newContent);
+      const history = chat.getHistory();
+      expect(history.length).toBe(1);
+      expect(history[0]).toEqual(newContent);
+    });
+
+    it('should add multiple items correctly', () => {
+      const content1: Content = {
+        role: 'user',
+        parts: [{ text: 'Message 1' }],
+      };
+      const content2: Content = {
+        role: 'model',
+        parts: [{ text: 'Message 2' }],
+      };
+      chat.addHistory(content1);
+      chat.addHistory(content2);
+      const history = chat.getHistory();
+      expect(history.length).toBe(2);
+      expect(history[0]).toEqual(content1);
+      expect(history[1]).toEqual(content2);
     });
   });
 });

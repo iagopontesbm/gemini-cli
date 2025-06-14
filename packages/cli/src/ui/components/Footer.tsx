@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { shortenPath, tildeifyPath } from '@gemini-code/core';
+import { shortenPath, tildeifyPath } from '@gemini-cli/core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
 import process from 'node:process';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -18,7 +18,6 @@ interface FooterProps {
   branchName?: string;
   debugMode: boolean;
   debugMessage: string;
-  cliVersion: string;
   corgiMode: boolean;
   errorCount: number;
   showErrorDetails: boolean;
@@ -40,9 +39,7 @@ export const Footer: React.FC<FooterProps> = ({
     <Box>
       <Text color={Colors.LightBlue}>
         {shortenPath(tildeifyPath(targetDir), 70)}
-        {branchName && (
-          <Text color={Colors.SubtleComment}> ({branchName}*)</Text>
-        )}
+        {branchName && <Text color={Colors.Gray}> ({branchName}*)</Text>}
       </Text>
       {debugMode && (
         <Text color={Colors.AccentRed}>
@@ -64,14 +61,12 @@ export const Footer: React.FC<FooterProps> = ({
         </Text>
       ) : process.env.SANDBOX === 'sandbox-exec' ? (
         <Text color={Colors.AccentYellow}>
-          sandbox-exec{' '}
-          <Text color={Colors.SubtleComment}>
-            ({process.env.SEATBELT_PROFILE})
-          </Text>
+          MacOS Seatbelt{' '}
+          <Text color={Colors.Gray}>({process.env.SEATBELT_PROFILE})</Text>
         </Text>
       ) : (
         <Text color={Colors.AccentRed}>
-          no sandbox <Text color={Colors.SubtleComment}>(see README)</Text>
+          no sandbox <Text color={Colors.Gray}>(see docs)</Text>
         </Text>
       )}
     </Box>
@@ -81,7 +76,7 @@ export const Footer: React.FC<FooterProps> = ({
       <Text color={Colors.AccentBlue}> {model} </Text>
       {corgiMode && (
         <Text>
-          <Text color={Colors.SubtleComment}>| </Text>
+          <Text color={Colors.Gray}>| </Text>
           <Text color={Colors.AccentRed}>▼</Text>
           <Text color={Colors.Foreground}>(´</Text>
           <Text color={Colors.AccentRed}>ᴥ</Text>
@@ -91,7 +86,7 @@ export const Footer: React.FC<FooterProps> = ({
       )}
       {!showErrorDetails && errorCount > 0 && (
         <Box>
-          <Text color={Colors.SubtleComment}>| </Text>
+          <Text color={Colors.Gray}>| </Text>
           <ConsoleSummaryDisplay errorCount={errorCount} />
         </Box>
       )}

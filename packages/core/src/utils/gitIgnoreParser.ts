@@ -6,111 +6,84 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { minimatch } from 'minimatch';
+import ignore, { type Ignore } from 'ignore';
 import { isGitRepository } from './gitUtils.js';
 
 export interface GitIgnoreFilter {
   isIgnored(filePath: string): boolean;
-  getIgnoredPatterns(): string[];
 }
 
 export class GitIgnoreParser implements GitIgnoreFilter {
-  private ignorePatterns: string[] = [];
   private projectRoot: string;
   private isGitRepo: boolean = false;
+  private ig: Ignore = ignore();
+  private patterns: string[] = [];
 
   constructor(projectRoot: string) {
     this.projectRoot = path.resolve(projectRoot);
   }
 
-  async initialize(): Promise<void> {
+  async initialize(patternsFileName?: string): Promise<void> {
+    const patternFiles = [];
+    if (patternsFileName && patternsFileName !== '') {
+      patternFiles.push(patternsFileName);
+    }
+
     this.isGitRepo = isGitRepository(this.projectRoot);
     if (this.isGitRepo) {
-      const gitIgnoreFiles = [
-        path.join(this.projectRoot, '.gitignore'),
-        path.join(this.projectRoot, '.git', 'info', 'exclude'),
-      ];
+      patternFiles.push('.gitignore');
+      patternFiles.push(path.join('.git', 'info', 'exclude'));
 
       // Always ignore .git directory regardless of .gitignore content
-      this.ignorePatterns = ['.git/**', '.git'];
-
-      for (const gitIgnoreFile of gitIgnoreFiles) {
-        try {
-          const content = await fs.readFile(gitIgnoreFile, 'utf-8');
-          const patterns = this.parseGitIgnoreContent(content);
-          this.ignorePatterns.push(...patterns);
-        } catch (_error) {
-          // File doesn't exist or can't be read, continue silently
-        }
+      this.addPatterns(['.git']);
+    }
+    for (const pf of patternFiles) {
+      try {
+        await this.loadPatterns(pf);
+      } catch (_error) {
+        // File doesn't exist or can't be read, continue silently
       }
     }
   }
 
-  private parseGitIgnoreContent(content: string): string[] {
-    return content
+  async loadPatterns(patternsFileName: string): Promise<void> {
+    const patternsFilePath = path.join(this.projectRoot, patternsFileName);
+    const content = await fs.readFile(patternsFilePath, 'utf-8');
+    const patterns = content
       .split('\n')
-      .map((line) => line.trim())
-      .filter((line) => line && !line.startsWith('#'))
-      .map((pattern) => {
-        // Handle negation patterns (!) - for now we'll skip them
-        if (pattern.startsWith('!')) {
-          return null;
-        }
+      .map((p) => p.trim())
+      .filter((p) => p !== '' && !p.startsWith('#'));
+    if (patterns.length > 0) {
+      console.log(
+        `Loaded ${patterns.length} patterns from ${patternsFilePath}`,
+      );
+    }
+    this.addPatterns(patterns);
+  }
 
-        // Convert gitignore patterns to minimatch-compatible patterns
-        if (pattern.endsWith('/')) {
-          // Directory pattern - match directory and all contents
-          const dirPattern = pattern.slice(0, -1); // Remove trailing slash
-          return [dirPattern, dirPattern + '/**'];
-        }
-
-        // If pattern doesn't contain /, it should match at any level
-        if (!pattern.includes('/') && !pattern.startsWith('**/')) {
-          return '**/' + pattern;
-        }
-
-        return pattern;
-      })
-      .filter((pattern) => pattern !== null)
-      .flat() as string[];
+  private addPatterns(patterns: string[]) {
+    this.ig.add(patterns);
+    this.patterns.push(...patterns);
   }
 
   isIgnored(filePath: string): boolean {
-    // If not a git repository, nothing is ignored
-    if (!this.isGitRepo) {
+    const relativePath = path.isAbsolute(filePath)
+      ? path.relative(this.projectRoot, filePath)
+      : filePath;
+
+    if (relativePath === '' || relativePath.startsWith('..')) {
       return false;
     }
 
-    // Normalize the input path (handle ./ prefixes)
-    let cleanPath = filePath;
-    if (cleanPath.startsWith('./')) {
-      cleanPath = cleanPath.slice(2);
+    let normalizedPath = relativePath.replace(/\\/g, '/');
+    if (normalizedPath.startsWith('./')) {
+      normalizedPath = normalizedPath.substring(2);
     }
 
-    // Convert to relative path from project root
-    const relativePath = path.relative(
-      this.projectRoot,
-      path.resolve(this.projectRoot, cleanPath),
-    );
-
-    // Handle paths that go outside project root
-    if (relativePath.startsWith('..')) {
-      return false;
-    }
-
-    // Normalize path separators for cross-platform compatibility
-    const normalizedPath = relativePath.replace(/\\/g, '/');
-
-    return this.ignorePatterns.some((pattern) =>
-      minimatch(normalizedPath, pattern, {
-        dot: true,
-        matchBase: false,
-        flipNegate: false,
-      }),
-    );
+    return this.ig.ignores(normalizedPath);
   }
 
-  getIgnoredPatterns(): string[] {
-    return [...this.ignorePatterns];
+  getPatterns(): string[] {
+    return this.patterns;
   }
 }

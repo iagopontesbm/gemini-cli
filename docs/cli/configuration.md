@@ -23,6 +23,8 @@ The Gemini CLI uses `settings.json` files for persistent configuration. There ar
   - **Location:** `.gemini/settings.json` within your project's root directory.
   - **Scope:** Applies only when running Gemini CLI from that specific project. Project settings override User settings.
 
+**Note on Environment Variables in Settings:** String values within your `settings.json` files can reference environment variables using either `$VAR_NAME` or `${VAR_NAME}` syntax. These variables will be automatically resolved when the settings are loaded. For example, if you have an environment variable `MY_API_TOKEN`, you could use it in `settings.json` like this: `"apiKey": "$MY_API_TOKEN"`.
+
 ### The `.gemini` Directory in Your Project
 
 When you create a `.gemini/settings.json` file for project-specific settings, or when the system needs to store project-specific information, this `.gemini` directory is used.
@@ -36,9 +38,9 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
 
 ### Available Settings in `settings.json`:
 
-- **`contextFileName`** (string, optional):
+- **`contextFileName`** (string or array of strings, optional):
 
-  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`).
+  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`). May be a single filename or a list of accepted filenames.
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
 
@@ -47,14 +49,10 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
   - **Properties:**
     - **`respectGitIgnore`** (boolean, default: `true`): Whether to respect .gitignore patterns when discovering files. When enabled, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
-    - **`customIgnorePatterns`** (array of strings, default: `[]`): Additional patterns to ignore beyond git-ignored files. Useful for excluding specific directories or file types.
-    - **`allowBuildArtifacts`** (boolean, default: `false`): Whether to include build artifacts and generated files in file discovery operations.
   - **Example:**
     ```json
     "fileFiltering": {
       "respectGitIgnore": true,
-      "customIgnorePatterns": ["temp/", "*.log"],
-      "allowBuildArtifacts": false
     }
     ```
 
@@ -62,13 +60,16 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
   - **Description:** Allows you to specify a list of core tool names that should be made available to the model. This can be used to restrict or customize the set of built-in tools.
   - **Example:** `"coreTools": ["ReadFileTool", "GlobTool", "SearchText"]`.
   - **Behavior:** If this setting is provided, only the listed tools will be available for the model to use. If omitted, all default core tools are available. See [Built-in Tools](../core/tools-api.md#built-in-tools) for a list of core tools. You can also specify the alternative internal tool names used by the model, e.g. `read_file`, and you can get a full listing for that by simply asking the model "what tools do you have?".
+- **`excludeTools`** (array of strings, optional):
+  - **Description:** Allows you to specify a list of core tool names that should be excluded from the model.
+  - **Example:** `"excludeTools": ["run_shell_command", "glob"]`.
 - **`autoAccept`** (boolean, optional):
 
   - **Description:** Controls whether the CLI automatically accepts and executes tool calls that are considered safe (e.g., read-only operations) without explicit user confirmation.
   - **Default:** `false` (users will be prompted for most tool calls).
   - **Behavior:**
     - If set to `true`, the CLI will bypass the confirmation prompt for tools deemed safe. An indicator may be shown in the UI when auto-accept is active.
-    - Potentially destructive or system-modifying tools (like `execute_bash_command` or `write_file`) will likely still require confirmation regardless of this setting.
+    - Potentially destructive or system-modifying tools (like `run_shell_command` or `write_file`) will likely still require confirmation regardless of this setting.
   - **Example:** `"autoAccept": true`
 
 - **`theme`** (string):
@@ -145,7 +146,14 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
         "command": "node",
         "args": ["mcp_server.js"],
         "cwd": "./mcp_tools/node"
-      }
+      },
+      "myDockerServer": {
+        "command": "docker",
+        "args": ["run", "i", "--rm", "-e", "API_KEY", "ghcr.io/foo/bar"],
+        "env": {
+          "API_KEY": "$MY_API_TOKEN"
+        }
+      },
     }
     ```
   - **`mcpServerCommand`** (string, advanced, **deprecated**):
@@ -194,11 +202,18 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
 - **`SEATBELT_PROFILE`** (macOS specific):
   - Switches the Seatbelt (`sandbox-exec`) profile on macOS.
-  - `minimal`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-minimal.sb`) but allows other operations.
+  - `permissive-open`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) but allows other operations.
   - `strict`: Uses a strict profile that declines operations by default.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
+- **`NO_COLOR`**:
+  - Set to any value to disable all color output in the CLI.
+- **`CLI_TITLE`**:
+  - Set to a string to customize the title of the CLI.
+- **`CODE_ASSIST_ENDPOINT`**:
+  - Specifies the endpoint for the code assist server.
+  - This is useful for development and testing.
 
 ## 3. Command-Line Arguments
 

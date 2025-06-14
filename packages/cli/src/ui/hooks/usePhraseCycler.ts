@@ -7,6 +7,9 @@
 import { useState, useEffect, useRef } from 'react';
 
 export const WITTY_LOADING_PHRASES = [
+  "I'm Feeling Lucky",
+  'Painting the serifs back on...',
+  'Navigating the slime mold...',
   'Consulting the digital spirits...',
   'Reticulating splines...',
   'Warming up the AI hamsters...',
@@ -84,6 +87,13 @@ export const WITTY_LOADING_PHRASES = [
   'Giving Cloudy a pat on the head...',
   'Petting the cat...',
   'Rickrolling my boss...',
+  'Never gonna give you up, never gonna let you down...',
+  'Slapping the bass...',
+  'Tasting the snozberries...',
+  "I'm going the distance, I'm going for speed...",
+  'Is this the real life? Is this just fantasy?...',
+  "I've got a good feeling about this...",
+  'Poking the bear...',
   'Doing research on the latest memes...',
   'Figuring out how to make this more witty...',
   'Hmmm... let me think...',

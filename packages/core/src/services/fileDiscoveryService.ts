@@ -7,6 +7,7 @@
 import { GitIgnoreParser, GitIgnoreFilter } from '../utils/gitIgnoreParser.js';
 import { isGitRepository } from '../utils/gitUtils.js';
 import * as path from 'path';
+import { glob, type GlobOptions } from 'glob';
 
 export interface FileDiscoveryOptions {
   respectGitIgnore?: boolean;
@@ -32,6 +33,17 @@ export class FileDiscoveryService {
     }
   }
 
+  async glob(
+    pattern: string | string[],
+    options: GlobOptions = {},
+  ): Promise<string[]> {
+    const files = (await glob(pattern, {
+      ...options,
+      nocase: true,
+    })) as string[];
+    return this.filterFiles(files);
+  }
+
   /**
    * Filters a list of file paths based on git ignore rules
    */
@@ -49,15 +61,6 @@ export class FileDiscoveryService {
 
       return true;
     });
-  }
-
-  /**
-   * Gets patterns that would be ignored for debugging/transparency
-   */
-  getIgnoreInfo(): { gitIgnored: string[] } {
-    return {
-      gitIgnored: this.gitIgnoreFilter?.getIgnoredPatterns() || [],
-    };
   }
 
   /**

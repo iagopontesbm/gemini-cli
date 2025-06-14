@@ -24,7 +24,7 @@ import {
   ToolCall, // Import from core
   Status as ToolCallStatusType,
   ApprovalMode, // Import from core
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import {
   HistoryItemWithoutId,
   ToolCallStatus,
@@ -32,8 +32,8 @@ import {
 } from '../types.js';
 
 // Mocks
-vi.mock('@gemini-code/core', async () => {
-  const actual = await vi.importActual('@gemini-code/core');
+vi.mock('@gemini-cli/core', async () => {
+  const actual = await vi.importActual('@gemini-cli/core');
   return {
     ...actual,
     ToolRegistry: vi.fn(),
@@ -137,7 +137,7 @@ describe('useReactToolScheduler in YOLO Mode', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
 
     await act(async () => {
@@ -290,7 +290,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -337,7 +337,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -374,7 +374,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -410,7 +410,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -451,7 +451,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -507,7 +507,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -579,7 +579,7 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request);
+      schedule(request, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -634,102 +634,6 @@ describe('useReactToolScheduler', () => {
     expect(result.current[0]).toEqual([]);
   });
 
-  it.skip('should cancel tool calls before execution (e.g. when status is scheduled)', async () => {
-    mockToolRegistry.getTool.mockReturnValue(mockTool);
-    (mockTool.shouldConfirmExecute as Mock).mockResolvedValue(null);
-    (mockTool.execute as Mock).mockReturnValue(new Promise(() => {}));
-
-    const { result } = renderScheduler();
-    const schedule = result.current[1];
-    const cancel = result.current[2];
-    const request: ToolCallRequestInfo = {
-      callId: 'cancelCall',
-      name: 'mockTool',
-      args: {},
-    };
-
-    act(() => {
-      schedule(request);
-    });
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    act(() => {
-      cancel();
-    });
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    expect(onComplete).toHaveBeenCalledWith([
-      expect.objectContaining({
-        status: 'cancelled',
-        request,
-        response: expect.objectContaining({
-          responseParts: expect.arrayContaining([
-            expect.objectContaining({
-              functionResponse: expect.objectContaining({
-                response: expect.objectContaining({
-                  error:
-                    '[Operation Cancelled] Reason: User cancelled before execution',
-                }),
-              }),
-            }),
-          ]),
-        }),
-      }),
-    ]);
-    expect(mockTool.execute).not.toHaveBeenCalled();
-    expect(result.current[0]).toEqual([]);
-  });
-
-  it.skip('should cancel tool calls that are awaiting approval', async () => {
-    mockToolRegistry.getTool.mockReturnValue(mockToolRequiresConfirmation);
-    const { result } = renderScheduler();
-    const schedule = result.current[1];
-    const cancelFn = result.current[2];
-    const request: ToolCallRequestInfo = {
-      callId: 'cancelApprovalCall',
-      name: 'mockToolRequiresConfirmation',
-      args: {},
-    };
-
-    act(() => {
-      schedule(request);
-    });
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    act(() => {
-      cancelFn();
-    });
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    expect(onComplete).toHaveBeenCalledWith([
-      expect.objectContaining({
-        status: 'cancelled',
-        request,
-        response: expect.objectContaining({
-          responseParts: expect.arrayContaining([
-            expect.objectContaining({
-              functionResponse: expect.objectContaining({
-                response: expect.objectContaining({
-                  error:
-                    '[Operation Cancelled] Reason: User cancelled during approval',
-                }),
-              }),
-            }),
-          ]),
-        }),
-      }),
-    ]);
-    expect(result.current[0]).toEqual([]);
-  });
-
   it('should schedule and execute multiple tool calls', async () => {
     const tool1 = {
       ...mockTool,
@@ -766,7 +670,7 @@ describe('useReactToolScheduler', () => {
     ];
 
     act(() => {
-      schedule(requests);
+      schedule(requests, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
@@ -848,13 +752,13 @@ describe('useReactToolScheduler', () => {
     };
 
     act(() => {
-      schedule(request1);
+      schedule(request1, new AbortController().signal);
     });
     await act(async () => {
       await vi.runAllTimersAsync();
     });
 
-    expect(() => schedule(request2)).toThrow(
+    expect(() => schedule(request2, new AbortController().signal)).toThrow(
       'Cannot schedule tool calls while other tool calls are running',
     );
 
@@ -1020,7 +924,7 @@ describe('mapToDisplay', () => {
       expectedStatus: ToolCallStatus.Error,
       expectedResultDisplay: 'Error display tool not found',
       expectedName: baseRequest.name,
-      expectedDescription: '',
+      expectedDescription: JSON.stringify(baseRequest.args),
     },
     {
       name: 'error tool execution failed',
@@ -1036,7 +940,7 @@ describe('mapToDisplay', () => {
       expectedStatus: ToolCallStatus.Error,
       expectedResultDisplay: 'Execution failed display',
       expectedName: baseTool.displayName, // Changed from baseTool.name
-      expectedDescription: '',
+      expectedDescription: baseTool.getDescription(baseRequest.args),
     },
     {
       name: 'cancelled',
@@ -1082,14 +986,7 @@ describe('mapToDisplay', () => {
         expect(toolDisplay.resultDisplay).toBe(expectedResultDisplay);
 
         expect(toolDisplay.name).toBe(expectedName);
-
-        if (status === 'error' && !extraProps?.tool) {
-          expect(toolDisplay.description).toBe('');
-        } else {
-          expect(toolDisplay.description).toBe(
-            expectedDescription ?? baseTool.getDescription(baseRequest.args),
-          );
-        }
+        expect(toolDisplay.description).toBe(expectedDescription);
 
         expect(toolDisplay.renderOutputAsMarkdown).toBe(
           extraProps?.tool?.isOutputMarkdown ?? false,

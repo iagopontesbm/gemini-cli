@@ -9,7 +9,9 @@ import {
   ToolCallRequestInfo,
   executeToolCall,
   ToolRegistry,
-} from '@gemini-code/core';
+  shutdownTelemetry,
+  isTelemetrySdkInitialized,
+} from '@gemini-cli/core';
 import {
   Content,
   Part,
@@ -85,6 +87,7 @@ export async function runNonInteractive(
           };
 
           const toolResponse = await executeToolCall(
+            config,
             requestInfo,
             toolRegistry,
             abortController.signal,
@@ -118,5 +121,9 @@ export async function runNonInteractive(
   } catch (error) {
     console.error('Error processing input:', error);
     process.exit(1);
+  } finally {
+    if (isTelemetrySdkInitialized()) {
+      await shutdownTelemetry();
+    }
   }
 }

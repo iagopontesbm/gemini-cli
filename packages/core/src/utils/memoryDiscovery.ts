@@ -8,10 +8,12 @@ import * as fs from 'fs/promises';
 import * as fsSync from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
+import { bfsFileSearch } from './bfsFileSearch.js';
 import {
   GEMINI_CONFIG_DIR,
-  getCurrentGeminiMdFilename,
+  getAllGeminiMdFilenames,
 } from '../tools/memoryTool.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts
 // TODO: Integrate with a more robust server-side logger if available/appropriate.
@@ -25,19 +27,6 @@ const logger = {
   error: (...args: any[]) =>
     console.error('[ERROR] [MemoryDiscovery]', ...args),
 };
-
-// TODO(adh): Refactor to use a shared ignore list with other tools like glob and read-many-files.
-const DEFAULT_IGNORE_DIRECTORIES = [
-  'node_modules',
-  '.git',
-  'dist',
-  'build',
-  'out',
-  'coverage',
-  '.vscode',
-  '.idea',
-  '.DS_Store',
-];
 
 const MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY = 200;
 
@@ -56,17 +45,29 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
         return currentDir;
       }
     } catch (error: unknown) {
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const fsError = error as { code: string; message: string };
-        if (fsError.code !== 'ENOENT') {
+      // Don't log ENOENT errors as they're expected when .git doesn't exist
+      // Also don't log errors in test environments, which often have mocked fs
+      const isENOENT =
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        (error as { code: string }).code === 'ENOENT';
+
+      // Only log unexpected errors in non-test environments
+      // process.env.NODE_ENV === 'test' or VITEST are common test indicators
+      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
+
+      if (!isENOENT && !isTestEnv) {
+        if (typeof error === 'object' && error !== null && 'code' in error) {
+          const fsError = error as { code: string; message: string };
           logger.warn(
             `Error checking for .git directory at ${gitPath}: ${fsError.message}`,
           );
+        } else {
+          logger.warn(
+            `Non-standard error checking for .git directory at ${gitPath}: ${String(error)}`,
+          );
         }
-      } else {
-        logger.warn(
-          `Non-standard error checking for .git directory at ${gitPath}: ${String(error)}`,
-        );
       }
     }
     const parentDir = path.dirname(currentDir);
@@ -77,196 +78,141 @@ async function findProjectRoot(startDir: string): Promise<string | null> {
   }
 }
 
-async function collectDownwardGeminiFiles(
-  directory: string,
-  debugMode: boolean,
-  ignoreDirs: string[],
-  scannedDirCount: { count: number },
-  maxScanDirs: number,
-): Promise<string[]> {
-  if (scannedDirCount.count >= maxScanDirs) {
-    if (debugMode)
-      logger.debug(
-        `Max directory scan limit (${maxScanDirs}) reached. Stopping downward scan at: ${directory}`,
-      );
-    return [];
-  }
-  scannedDirCount.count++;
-
-  if (debugMode)
-    logger.debug(
-      `Scanning downward for ${getCurrentGeminiMdFilename()} files in: ${directory} (scanned: ${scannedDirCount.count}/${maxScanDirs})`,
-    );
-  const collectedPaths: string[] = [];
-  try {
-    const entries = await fs.readdir(directory, { withFileTypes: true });
-    for (const entry of entries) {
-      const fullPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        if (ignoreDirs.includes(entry.name)) {
-          if (debugMode)
-            logger.debug(`Skipping ignored directory: ${fullPath}`);
-          continue;
-        }
-        const subDirPaths = await collectDownwardGeminiFiles(
-          fullPath,
-          debugMode,
-          ignoreDirs,
-          scannedDirCount,
-          maxScanDirs,
-        );
-        collectedPaths.push(...subDirPaths);
-      } else if (
-        entry.isFile() &&
-        entry.name === getCurrentGeminiMdFilename()
-      ) {
-        try {
-          await fs.access(fullPath, fsSync.constants.R_OK);
-          collectedPaths.push(fullPath);
-          if (debugMode)
-            logger.debug(
-              `Found readable downward ${getCurrentGeminiMdFilename()}: ${fullPath}`,
-            );
-        } catch {
-          if (debugMode)
-            logger.debug(
-              `Downward ${getCurrentGeminiMdFilename()} not readable, skipping: ${fullPath}`,
-            );
-        }
-      }
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(`Error scanning directory ${directory}: ${message}`);
-    if (debugMode) logger.debug(`Failed to scan directory: ${directory}`);
-  }
-  return collectedPaths;
-}
-
 async function getGeminiMdFilePathsInternal(
   currentWorkingDirectory: string,
   userHomePath: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
+  extensionContextFilePaths: string[] = [],
 ): Promise<string[]> {
-  const resolvedCwd = path.resolve(currentWorkingDirectory);
-  const resolvedHome = path.resolve(userHomePath);
-  const globalMemoryPath = path.join(
-    resolvedHome,
-    GEMINI_CONFIG_DIR,
-    getCurrentGeminiMdFilename(),
-  );
-  const paths: string[] = [];
+  const allPaths = new Set<string>();
+  const geminiMdFilenames = getAllGeminiMdFilenames();
 
-  if (debugMode)
-    logger.debug(
-      `Searching for ${getCurrentGeminiMdFilename()} starting from CWD: ${resolvedCwd}`,
+  for (const geminiMdFilename of geminiMdFilenames) {
+    const resolvedCwd = path.resolve(currentWorkingDirectory);
+    const resolvedHome = path.resolve(userHomePath);
+    const globalMemoryPath = path.join(
+      resolvedHome,
+      GEMINI_CONFIG_DIR,
+      geminiMdFilename,
     );
-  if (debugMode) logger.debug(`User home directory: ${resolvedHome}`);
 
-  try {
-    await fs.access(globalMemoryPath, fsSync.constants.R_OK);
-    paths.push(globalMemoryPath);
     if (debugMode)
       logger.debug(
-        `Found readable global ${getCurrentGeminiMdFilename()}: ${globalMemoryPath}`,
+        `Searching for ${geminiMdFilename} starting from CWD: ${resolvedCwd}`,
       );
-  } catch {
-    if (debugMode)
-      logger.debug(
-        `Global ${getCurrentGeminiMdFilename()} not found or not readable: ${globalMemoryPath}`,
-      );
-  }
+    if (debugMode) logger.debug(`User home directory: ${resolvedHome}`);
 
-  const projectRoot = await findProjectRoot(resolvedCwd);
-  if (debugMode)
-    logger.debug(`Determined project root: ${projectRoot ?? 'None'}`);
-
-  const upwardPaths: string[] = [];
-  let currentDir = resolvedCwd;
-  // Determine the directory that signifies the top of the project or user-specific space.
-  const ultimateStopDir = projectRoot
-    ? path.dirname(projectRoot)
-    : path.dirname(resolvedHome);
-
-  while (currentDir && currentDir !== path.dirname(currentDir)) {
-    // Loop until filesystem root or currentDir is empty
-    if (debugMode) {
-      logger.debug(
-        `Checking for ${getCurrentGeminiMdFilename()} in (upward scan): ${currentDir}`,
-      );
+    try {
+      await fs.access(globalMemoryPath, fsSync.constants.R_OK);
+      allPaths.add(globalMemoryPath);
+      if (debugMode)
+        logger.debug(
+          `Found readable global ${geminiMdFilename}: ${globalMemoryPath}`,
+        );
+    } catch {
+      if (debugMode)
+        logger.debug(
+          `Global ${geminiMdFilename} not found or not readable: ${globalMemoryPath}`,
+        );
     }
 
-    // Skip the global .gemini directory itself during upward scan from CWD,
-    // as global is handled separately and explicitly first.
-    if (currentDir === path.join(resolvedHome, GEMINI_CONFIG_DIR)) {
+    const projectRoot = await findProjectRoot(resolvedCwd);
+    if (debugMode)
+      logger.debug(`Determined project root: ${projectRoot ?? 'None'}`);
+
+    const upwardPaths: string[] = [];
+    let currentDir = resolvedCwd;
+    // Determine the directory that signifies the top of the project or user-specific space.
+    const ultimateStopDir = projectRoot
+      ? path.dirname(projectRoot)
+      : path.dirname(resolvedHome);
+
+    while (currentDir && currentDir !== path.dirname(currentDir)) {
+      // Loop until filesystem root or currentDir is empty
       if (debugMode) {
         logger.debug(
-          `Upward scan reached global config dir path, stopping upward search here: ${currentDir}`,
+          `Checking for ${geminiMdFilename} in (upward scan): ${currentDir}`,
         );
       }
-      break;
-    }
 
-    const potentialPath = path.join(currentDir, getCurrentGeminiMdFilename());
-    try {
-      await fs.access(potentialPath, fsSync.constants.R_OK);
-      // Add to upwardPaths only if it's not the already added globalMemoryPath
-      if (potentialPath !== globalMemoryPath) {
-        upwardPaths.unshift(potentialPath);
+      // Skip the global .gemini directory itself during upward scan from CWD,
+      // as global is handled separately and explicitly first.
+      if (currentDir === path.join(resolvedHome, GEMINI_CONFIG_DIR)) {
         if (debugMode) {
           logger.debug(
-            `Found readable upward ${getCurrentGeminiMdFilename()}: ${potentialPath}`,
+            `Upward scan reached global config dir path, stopping upward search here: ${currentDir}`,
+          );
+        }
+        break;
+      }
+
+      const potentialPath = path.join(currentDir, geminiMdFilename);
+      try {
+        await fs.access(potentialPath, fsSync.constants.R_OK);
+        // Add to upwardPaths only if it's not the already added globalMemoryPath
+        if (potentialPath !== globalMemoryPath) {
+          upwardPaths.unshift(potentialPath);
+          if (debugMode) {
+            logger.debug(
+              `Found readable upward ${geminiMdFilename}: ${potentialPath}`,
+            );
+          }
+        }
+      } catch {
+        if (debugMode) {
+          logger.debug(
+            `Upward ${geminiMdFilename} not found or not readable in: ${currentDir}`,
           );
         }
       }
-    } catch {
-      if (debugMode) {
-        logger.debug(
-          `Upward ${getCurrentGeminiMdFilename()} not found or not readable in: ${currentDir}`,
-        );
+
+      // Stop condition: if currentDir is the ultimateStopDir, break after this iteration.
+      if (currentDir === ultimateStopDir) {
+        if (debugMode)
+          logger.debug(
+            `Reached ultimate stop directory for upward scan: ${currentDir}`,
+          );
+        break;
       }
+
+      currentDir = path.dirname(currentDir);
     }
+    upwardPaths.forEach((p) => allPaths.add(p));
 
-    // Stop condition: if currentDir is the ultimateStopDir, break after this iteration.
-    if (currentDir === ultimateStopDir) {
-      if (debugMode)
-        logger.debug(
-          `Reached ultimate stop directory for upward scan: ${currentDir}`,
-        );
-      break;
-    }
-
-    currentDir = path.dirname(currentDir);
-  }
-  paths.push(...upwardPaths);
-
-  if (debugMode)
-    logger.debug(`Starting downward scan from CWD: ${resolvedCwd}`);
-  const scannedDirCount = { count: 0 };
-  const downwardPaths = await collectDownwardGeminiFiles(
-    resolvedCwd,
-    debugMode,
-    DEFAULT_IGNORE_DIRECTORIES,
-    scannedDirCount,
-    MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
-  );
-  downwardPaths.sort(); // Sort for consistent ordering, though hierarchy might be more complex
-  if (debugMode && downwardPaths.length > 0)
-    logger.debug(
-      `Found downward ${getCurrentGeminiMdFilename()} files (sorted): ${JSON.stringify(downwardPaths)}`,
-    );
-  // Add downward paths only if they haven't been included already (e.g. from upward scan)
-  for (const dPath of downwardPaths) {
-    if (!paths.includes(dPath)) {
-      paths.push(dPath);
+    const downwardPaths = await bfsFileSearch(resolvedCwd, {
+      fileName: geminiMdFilename,
+      maxDirs: MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
+      debug: debugMode,
+      fileService,
+    });
+    downwardPaths.sort(); // Sort for consistent ordering, though hierarchy might be more complex
+    if (debugMode && downwardPaths.length > 0)
+      logger.debug(
+        `Found downward ${geminiMdFilename} files (sorted): ${JSON.stringify(
+          downwardPaths,
+        )}`,
+      );
+    // Add downward paths only if they haven't been included already (e.g. from upward scan)
+    for (const dPath of downwardPaths) {
+      allPaths.add(dPath);
     }
   }
 
+  // Add extension context file paths
+  for (const extensionPath of extensionContextFilePaths) {
+    allPaths.add(extensionPath);
+  }
+
+  const finalPaths = Array.from(allPaths);
+
   if (debugMode)
     logger.debug(
-      `Final ordered ${getCurrentGeminiMdFilename()} paths to read: ${JSON.stringify(paths)}`,
+      `Final ordered ${getAllGeminiMdFilenames()} paths to read: ${JSON.stringify(
+        finalPaths,
+      )}`,
     );
-  return paths;
+  return finalPaths;
 }
 
 async function readGeminiMdFiles(
@@ -283,10 +229,13 @@ async function readGeminiMdFiles(
           `Successfully read: ${filePath} (Length: ${content.length})`,
         );
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : String(error);
-      logger.warn(
-        `Warning: Could not read ${getCurrentGeminiMdFilename()} file at ${filePath}. Error: ${message}`,
-      );
+      const isTestEnv = process.env.NODE_ENV === 'test' || process.env.VITEST;
+      if (!isTestEnv) {
+        const message = error instanceof Error ? error.message : String(error);
+        logger.warn(
+          `Warning: Could not read ${getAllGeminiMdFilenames()} file at ${filePath}. Error: ${message}`,
+        );
+      }
       results.push({ filePath, content: null }); // Still include it with null content
       if (debugMode) logger.debug(`Failed to read: ${filePath}`);
     }
@@ -322,6 +271,8 @@ function concatenateInstructions(
 export async function loadServerHierarchicalMemory(
   currentWorkingDirectory: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
+  extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode)
     logger.debug(
@@ -334,6 +285,8 @@ export async function loadServerHierarchicalMemory(
     currentWorkingDirectory,
     userHomePath,
     debugMode,
+    fileService,
+    extensionContextFilePaths,
   );
   if (filePaths.length === 0) {
     if (debugMode) logger.debug('No GEMINI.md files found in hierarchy.');

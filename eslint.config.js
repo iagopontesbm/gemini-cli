@@ -32,6 +32,7 @@ export default tseslint.config(
       'eslint.config.js',
       'packages/cli/dist/**',
       'packages/core/dist/**',
+      'packages/server/dist/**',
       'eslint-rules/*',
       'bundle/**',
     ],
@@ -155,12 +156,23 @@ export default tseslint.config(
   },
   // extra settings for scripts that we run directly with node
   {
-    files: ['./scripts/**/*.js'],
+    files: ['./scripts/**/*.js', 'esbuild.config.js'],
     languageOptions: {
       globals: {
+        ...globals.node,
         process: 'readonly',
         console: 'readonly',
       },
+    },
+    rules: {
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
     },
   },
   // Prettier config must be last

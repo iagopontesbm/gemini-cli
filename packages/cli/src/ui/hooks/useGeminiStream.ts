@@ -7,6 +7,7 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useInput } from 'ink';
 import {
+  Config,
   GeminiClient,
   GeminiEventType as ServerGeminiEventType,
   ServerGeminiStreamEvent as GeminiEvent,
@@ -14,25 +15,31 @@ import {
   ServerGeminiErrorEvent as ErrorEvent,
   getErrorMessage,
   isNodeError,
-  Config,
   MessageSenderType,
   ToolCallRequestInfo,
-} from '@gemini-code/core';
-import { type PartListUnion } from '@google/genai';
+  logUserPrompt,
+  GitService,
+  EditorType,
+} from '@gemini-cli/core';
+import { type Part, type PartListUnion } from '@google/genai';
 import {
   StreamingState,
+  HistoryItem,
   HistoryItemWithoutId,
   HistoryItemToolGroup,
   MessageType,
   ToolCallStatus,
 } from '../types.js';
 import { isAtCommand } from '../utils/commandUtils.js';
+import { parseAndFormatApiError } from '../utils/errorParsing.js';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
 import { handleAtCommand } from './atCommandProcessor.js';
 import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { useLogger } from './useLogger.js';
+import { promises as fs } from 'fs';
+import path from 'path';
 import {
   useReactToolScheduler,
   mapToDisplay as mapTrackedToolCallsToDisplay,
@@ -40,6 +47,7 @@ import {
   TrackedCompletedToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
+import { useSessionStats } from '../contexts/SessionContext.js';
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   const resultParts: PartListUnion = [];
@@ -64,45 +72,53 @@ enum StreamProcessingStatus {
  * API interaction, and tool call lifecycle.
  */
 export const useGeminiStream = (
+  geminiClient: GeminiClient | null,
+  history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   config: Config,
   onDebugMessage: (message: string) => void,
   handleSlashCommand: (
     cmd: PartListUnion,
-  ) => import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean,
+  ) => Promise<
+    import('./slashCommandProcessor.js').SlashCommandActionReturn | boolean
+  >,
   shellModeActive: boolean,
+  getPreferredEditor: () => EditorType | undefined,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const geminiClientRef = useRef<GeminiClient | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
   const logger = useLogger();
+  const { startNewTurn, addUsage } = useSessionStats();
+  const gitService = useMemo(() => {
+    if (!config.getProjectRoot()) {
+      return;
+    }
+    return new GitService(config.getProjectRoot());
+  }, [config]);
 
-  const [
-    toolCalls,
-    scheduleToolCalls,
-    cancelAllToolCalls,
-    markToolsAsSubmitted,
-  ] = useReactToolScheduler(
-    (completedToolCallsFromScheduler) => {
-      // This onComplete is called when ALL scheduled tools for a given batch are done.
-      if (completedToolCallsFromScheduler.length > 0) {
-        // Add the final state of these tools to the history for display.
-        // The new useEffect will handle submitting their responses.
-        addItem(
-          mapTrackedToolCallsToDisplay(
-            completedToolCallsFromScheduler as TrackedToolCall[],
-          ),
-          Date.now(),
-        );
-      }
-    },
-    config,
-    setPendingHistoryItem,
-  );
+  const [toolCalls, scheduleToolCalls, markToolsAsSubmitted] =
+    useReactToolScheduler(
+      (completedToolCallsFromScheduler) => {
+        // This onComplete is called when ALL scheduled tools for a given batch are done.
+        if (completedToolCallsFromScheduler.length > 0) {
+          // Add the final state of these tools to the history for display.
+          // The new useEffect will handle submitting their responses.
+          addItem(
+            mapTrackedToolCallsToDisplay(
+              completedToolCallsFromScheduler as TrackedToolCall[],
+            ),
+            Date.now(),
+          );
+        }
+      },
+      config,
+      setPendingHistoryItem,
+      getPreferredEditor,
+    );
 
   const pendingToolCallGroupDisplay = useMemo(
     () =>
@@ -142,22 +158,14 @@ export const useGeminiStream = (
   }, [isResponding, toolCalls]);
 
   useEffect(() => {
-    setInitError(null);
-    if (!geminiClientRef.current) {
-      try {
-        geminiClientRef.current = config.getGeminiClient();
-      } catch (error: unknown) {
-        const errorMsg = `Failed to initialize client: ${getErrorMessage(error) || 'Unknown error'}`;
-        setInitError(errorMsg);
-        addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
-      }
+    if (streamingState === StreamingState.Idle) {
+      abortControllerRef.current = null;
     }
-  }, [config, addItem]);
+  }, [streamingState]);
 
   useInput((_input, key) => {
     if (streamingState !== StreamingState.Idle && key.escape) {
       abortControllerRef.current?.abort();
-      cancelAllToolCalls(); // Also cancel any pending/executing tool calls
     }
   });
 
@@ -178,11 +186,15 @@ export const useGeminiStream = (
 
       if (typeof query === 'string') {
         const trimmedQuery = query.trim();
+        logUserPrompt(config, {
+          prompt: trimmedQuery,
+          prompt_length: trimmedQuery.length,
+        });
         onDebugMessage(`User query: '${trimmedQuery}'`);
         await logger?.logMessage(MessageSenderType.USER, trimmedQuery);
 
         // Handle UI-only commands first
-        const slashCommandResult = handleSlashCommand(trimmedQuery);
+        const slashCommandResult = await handleSlashCommand(trimmedQuery);
         if (typeof slashCommandResult === 'boolean' && slashCommandResult) {
           // Command was handled, and it doesn't require a tool call from here
           return { queryToSend: null, shouldProceed: false };
@@ -198,7 +210,7 @@ export const useGeminiStream = (
               name: toolName,
               args: toolArgs,
             };
-            scheduleToolCalls([toolCallRequest]);
+            scheduleToolCalls([toolCallRequest], abortSignal);
           }
           return { queryToSend: null, shouldProceed: false }; // Handled by scheduling the tool
         }
@@ -337,9 +349,8 @@ export const useGeminiStream = (
         userMessageTimestamp,
       );
       setIsResponding(false);
-      cancelAllToolCalls();
     },
-    [addItem, pendingHistoryItemRef, setPendingHistoryItem, cancelAllToolCalls],
+    [addItem, pendingHistoryItemRef, setPendingHistoryItem],
   );
 
   const handleErrorEvent = useCallback(
@@ -372,6 +383,7 @@ export const useGeminiStream = (
     async (
       stream: AsyncIterable<GeminiEvent>,
       userMessageTimestamp: number,
+      signal: AbortSignal,
     ): Promise<StreamProcessingStatus> => {
       let geminiMessageBuffer = '';
       const toolCallRequests: ToolCallRequestInfo[] = [];
@@ -396,6 +408,9 @@ export const useGeminiStream = (
           case ServerGeminiEventType.ChatCompressed:
             handleChatCompressionEvent();
             break;
+          case ServerGeminiEventType.UsageMetadata:
+            addUsage(event.value);
+            break;
           case ServerGeminiEventType.ToolCallConfirmation:
           case ServerGeminiEventType.ToolCallResponse:
             // do nothing
@@ -408,7 +423,7 @@ export const useGeminiStream = (
         }
       }
       if (toolCallRequests.length > 0) {
-        scheduleToolCalls(toolCallRequests);
+        scheduleToolCalls(toolCallRequests, signal);
       }
       return StreamProcessingStatus.Completed;
     },
@@ -418,11 +433,12 @@ export const useGeminiStream = (
       handleErrorEvent,
       scheduleToolCalls,
       handleChatCompressionEvent,
+      addUsage,
     ],
   );
 
   const submitQuery = useCallback(
-    async (query: PartListUnion) => {
+    async (query: PartListUnion, options?: { isContinuation: boolean }) => {
       if (
         streamingState === StreamingState.Responding ||
         streamingState === StreamingState.WaitingForConfirmation
@@ -445,9 +461,11 @@ export const useGeminiStream = (
         return;
       }
 
-      const client = geminiClientRef.current;
+      if (!options?.isContinuation) {
+        startNewTurn();
+      }
 
-      if (!client) {
+      if (!geminiClient) {
         const errorMsg = 'Gemini client is not available.';
         setInitError(errorMsg);
         addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
@@ -458,10 +476,11 @@ export const useGeminiStream = (
       setInitError(null);
 
       try {
-        const stream = client.sendMessageStream(queryToSend, abortSignal);
+        const stream = geminiClient.sendMessageStream(queryToSend, abortSignal);
         const processingStatus = await processGeminiStreamEvents(
           stream,
           userMessageTimestamp,
+          abortSignal,
         );
 
         if (processingStatus === StreamProcessingStatus.UserCancelled) {
@@ -477,13 +496,14 @@ export const useGeminiStream = (
           addItem(
             {
               type: MessageType.ERROR,
-              text: `[Stream Error: ${getErrorMessage(error) || 'Unknown error'}]`,
+              text: parseAndFormatApiError(
+                getErrorMessage(error) || 'Unknown error',
+              ),
             },
             userMessageTimestamp,
           );
         }
       } finally {
-        abortControllerRef.current = null; // Always reset
         setIsResponding(false);
       }
     },
@@ -496,6 +516,8 @@ export const useGeminiStream = (
       addItem,
       setPendingHistoryItem,
       setInitError,
+      geminiClient,
+      startNewTurn,
     ],
   );
 
@@ -537,6 +559,41 @@ export const useGeminiStream = (
       completedAndReadyToSubmitTools.length > 0 &&
       completedAndReadyToSubmitTools.length === toolCalls.length
     ) {
+      // If all the tools were cancelled, don't submit a response to Gemini.
+      const allToolsCancelled = completedAndReadyToSubmitTools.every(
+        (tc) => tc.status === 'cancelled',
+      );
+
+      if (allToolsCancelled) {
+        if (geminiClient) {
+          // We need to manually add the function responses to the history
+          // so the model knows the tools were cancelled.
+          const responsesToAdd = completedAndReadyToSubmitTools.flatMap(
+            (toolCall) => toolCall.response.responseParts,
+          );
+          for (const response of responsesToAdd) {
+            let parts: Part[];
+            if (Array.isArray(response)) {
+              parts = response;
+            } else if (typeof response === 'string') {
+              parts = [{ text: response }];
+            } else {
+              parts = [response];
+            }
+            geminiClient.addHistory({
+              role: 'user',
+              parts,
+            });
+          }
+        }
+
+        const callIdsToMarkAsSubmitted = completedAndReadyToSubmitTools.map(
+          (toolCall) => toolCall.request.callId,
+        );
+        markToolsAsSubmitted(callIdsToMarkAsSubmitted);
+        return;
+      }
+
       const responsesToSend: PartListUnion[] =
         completedAndReadyToSubmitTools.map(
           (toolCall) => toolCall.response.responseParts,
@@ -546,14 +603,123 @@ export const useGeminiStream = (
       );
 
       markToolsAsSubmitted(callIdsToMarkAsSubmitted);
-      submitQuery(mergePartListUnions(responsesToSend));
+      submitQuery(mergePartListUnions(responsesToSend), {
+        isContinuation: true,
+      });
     }
-  }, [toolCalls, isResponding, submitQuery, markToolsAsSubmitted, addItem]);
+  }, [
+    toolCalls,
+    isResponding,
+    submitQuery,
+    markToolsAsSubmitted,
+    addItem,
+    geminiClient,
+  ]);
 
   const pendingHistoryItems = [
     pendingHistoryItemRef.current,
     pendingToolCallGroupDisplay,
   ].filter((i) => i !== undefined && i !== null);
+
+  useEffect(() => {
+    const saveRestorableToolCalls = async () => {
+      if (!config.getCheckpointEnabled()) {
+        return;
+      }
+      const restorableToolCalls = toolCalls.filter(
+        (toolCall) =>
+          (toolCall.request.name === 'replace' ||
+            toolCall.request.name === 'write_file') &&
+          toolCall.status === 'awaiting_approval',
+      );
+
+      if (restorableToolCalls.length > 0) {
+        const checkpointDir = config.getGeminiDir()
+          ? path.join(config.getGeminiDir(), 'checkpoints')
+          : undefined;
+
+        if (!checkpointDir) {
+          return;
+        }
+
+        try {
+          await fs.mkdir(checkpointDir, { recursive: true });
+        } catch (error) {
+          if (!isNodeError(error) || error.code !== 'EEXIST') {
+            onDebugMessage(
+              `Failed to create checkpoint directory: ${getErrorMessage(error)}`,
+            );
+            return;
+          }
+        }
+
+        for (const toolCall of restorableToolCalls) {
+          const filePath = toolCall.request.args['file_path'] as string;
+          if (!filePath) {
+            onDebugMessage(
+              `Skipping restorable tool call due to missing file_path: ${toolCall.request.name}`,
+            );
+            continue;
+          }
+
+          try {
+            let commitHash = await gitService?.createFileSnapshot(
+              `Snapshot for ${toolCall.request.name}`,
+            );
+
+            if (!commitHash) {
+              commitHash = await gitService?.getCurrentCommitHash();
+            }
+
+            if (!commitHash) {
+              onDebugMessage(
+                `Failed to create snapshot for ${filePath}. Skipping restorable tool call.`,
+              );
+              continue;
+            }
+
+            const timestamp = new Date()
+              .toISOString()
+              .replace(/:/g, '-')
+              .replace(/\./g, '_');
+            const toolName = toolCall.request.name;
+            const fileName = path.basename(filePath);
+            const toolCallWithSnapshotFileName = `${timestamp}-${fileName}-${toolName}.json`;
+            const clientHistory = await geminiClient?.getHistory();
+            const toolCallWithSnapshotFilePath = path.join(
+              checkpointDir,
+              toolCallWithSnapshotFileName,
+            );
+
+            await fs.writeFile(
+              toolCallWithSnapshotFilePath,
+              JSON.stringify(
+                {
+                  history,
+                  clientHistory,
+                  toolCall: {
+                    name: toolCall.request.name,
+                    args: toolCall.request.args,
+                  },
+                  commitHash,
+                  filePath,
+                },
+                null,
+                2,
+              ),
+            );
+          } catch (error) {
+            onDebugMessage(
+              `Failed to write restorable tool call file: ${getErrorMessage(
+                error,
+              )}`,
+            );
+          }
+        }
+      }
+    };
+    saveRestorableToolCalls();
+  }, [toolCalls, config, onDebugMessage, gitService, history, geminiClient]);
 
   return {
     streamingState,

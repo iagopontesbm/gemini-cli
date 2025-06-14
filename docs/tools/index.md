@@ -11,7 +11,7 @@ The core component (`packages/core`) manages these tools, presents their definit
 ## Why are Tools Important?
 
 - **Access to Local Information:** Tools allow Gemini to access your local file system, read file contents, list directories, etc.
-- **Execution of Commands:** With tools like `execute_bash_command`, Gemini can run shell commands (with appropriate safety measures and user confirmation).
+- **Execution of Commands:** With tools like `run_shell_command`, Gemini can run shell commands (with appropriate safety measures and user confirmation).
 - **Interaction with the Web:** Tools can fetch content from URLs.
 - **Action Taking:** Tools can modify files, write new files, or perform other actions on your system (again, typically with safeguards).
 - **Grounding Responses:** By using tools to fetch real-time or specific local data, Gemini's responses can be more accurate, relevant, and grounded in your actual context.
@@ -30,10 +30,10 @@ You will typically see messages in the CLI indicating when a tool is being calle
 
 ## Security and Confirmation
 
-Many tools, especially those that can modify your file system or execute commands (`write_file`, `edit`, `execute_bash_command`), are designed with safety in mind. The Gemini CLI will typically:
+Many tools, especially those that can modify your file system or execute commands (`write_file`, `edit`, `run_shell_command`), are designed with safety in mind. The Gemini CLI will typically:
 
 - **Require Confirmation:** Prompt you before executing potentially sensitive operations, showing you what action is about to be taken.
-- **Utilize Sandboxing:** All tools are subject to restrictions enforced by sandboxing (see [README](../../README.md#sandboxing)).
+- **Utilize Sandboxing:** All tools are subject to restrictions enforced by sandboxing (see [README](../../README.md#sandboxing)). This means that when operating in a sandbox, any tools (including MCP servers) you wish to use must be available _inside_ the sandbox environment. For example, to run an MCP server through `npx`, the `npx` executable must be installed within the sandbox's Docker image or be available in the `sandbox-exec` environment.
 
 It's important to always review confirmation prompts carefully before allowing a tool to proceed.
 
@@ -43,7 +43,9 @@ The built-in tools can be broadly categorized as follows:
 
 - **[File System Tools](./file-system.md):** For interacting with files and directories (reading, writing, listing, searching, etc.).
 - **[Shell Tool](./shell.md):** For executing shell commands.
-- **[Web Fetch Tool](./web.md):** For retrieving content from URLs.
+- **[Web Fetch Tool](./web-fetch.md):** For retrieving content from URLs.
+- **[Web Search Tool](./web-search.md):** For searching the web.
 - **[Multi-File Read Tool](./multi-file.md):** A specialized tool for reading content from multiple files or directories, often used by the `@` command.
+- **[Memory Tool](./memory.md):** For saving and recalling information across sessions.
 
 Understanding the available tools and how they work will help you make the most effective use of the Gemini CLI.

@@ -7,7 +7,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { homedir } from 'os';
-import { MCPServerConfig } from '@gemini-code/core';
+import { MCPServerConfig, getErrorMessage } from '@gemini-cli/core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
 import { DefaultDark } from '../ui/themes/default.js';
@@ -29,21 +29,32 @@ export interface Settings {
   theme?: string;
   sandbox?: boolean | string;
   coreTools?: string[];
+  excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   showMemoryUsage?: boolean;
-  contextFileName?: string;
+  contextFileName?: string | string[];
   accessibility?: AccessibilitySettings;
+  telemetry?: boolean;
+  telemetryOtlpEndpoint?: string;
+  preferredEditor?: string;
 
   // Git-aware file filtering settings
   fileFiltering?: {
     respectGitIgnore?: boolean;
-    allowBuildArtifacts?: boolean;
   };
 
+  // UI setting. Does not display the ANSI-controlled terminal title.
+  hideWindowTitle?: boolean;
+
   // Add other settings here.
+}
+
+export interface SettingsError {
+  message: string;
+  path: string;
 }
 
 export interface SettingsFile {
@@ -51,14 +62,20 @@ export interface SettingsFile {
   path: string;
 }
 export class LoadedSettings {
-  constructor(user: SettingsFile, workspace: SettingsFile) {
+  constructor(
+    user: SettingsFile,
+    workspace: SettingsFile,
+    errors: SettingsError[],
+  ) {
     this.user = user;
     this.workspace = workspace;
+    this.errors = errors;
     this._merged = this.computeMergedSettings();
   }
 
   readonly user: SettingsFile;
   readonly workspace: SettingsFile;
+  readonly errors: SettingsError[];
 
   private _merged: Settings;
 
@@ -97,6 +114,48 @@ export class LoadedSettings {
   }
 }
 
+function resolveEnvVarsInString(value: string): string {
+  const envVarRegex = /\$(?:(\w+)|{([^}]+)})/g; // Find $VAR_NAME or ${VAR_NAME}
+  return value.replace(envVarRegex, (match, varName1, varName2) => {
+    const varName = varName1 || varName2;
+    if (process && process.env && typeof process.env[varName] === 'string') {
+      return process.env[varName]!;
+    }
+    return match;
+  });
+}
+
+function resolveEnvVarsInObject<T>(obj: T): T {
+  if (
+    obj === null ||
+    obj === undefined ||
+    typeof obj === 'boolean' ||
+    typeof obj === 'number'
+  ) {
+    return obj;
+  }
+
+  if (typeof obj === 'string') {
+    return resolveEnvVarsInString(obj) as unknown as T;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => resolveEnvVarsInObject(item)) as unknown as T;
+  }
+
+  if (typeof obj === 'object') {
+    const newObj = { ...obj } as T;
+    for (const key in newObj) {
+      if (Object.prototype.hasOwnProperty.call(newObj, key)) {
+        newObj[key] = resolveEnvVarsInObject(newObj[key]);
+      }
+    }
+    return newObj;
+  }
+
+  return obj;
+}
+
 /**
  * Loads settings from user and workspace directories.
  * Project settings override user settings.
@@ -104,12 +163,16 @@ export class LoadedSettings {
 export function loadSettings(workspaceDir: string): LoadedSettings {
   let userSettings: Settings = {};
   let workspaceSettings: Settings = {};
+  const settingsErrors: SettingsError[] = [];
 
   // Load user settings
   try {
     if (fs.existsSync(USER_SETTINGS_PATH)) {
       const userContent = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
-      userSettings = JSON.parse(stripJsonComments(userContent)) as Settings;
+      const parsedUserSettings = JSON.parse(
+        stripJsonComments(userContent),
+      ) as Settings;
+      userSettings = resolveEnvVarsInObject(parsedUserSettings);
       // Support legacy theme names
       if (userSettings.theme && userSettings.theme === 'VS') {
         userSettings.theme = DefaultLight.name;
@@ -117,8 +180,11 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
         userSettings.theme = DefaultDark.name;
       }
     }
-  } catch (error) {
-    console.error('Error reading user settings file:', error);
+  } catch (error: unknown) {
+    settingsErrors.push({
+      message: getErrorMessage(error),
+      path: USER_SETTINGS_PATH,
+    });
   }
 
   const workspaceSettingsPath = path.join(
@@ -131,9 +197,10 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
   try {
     if (fs.existsSync(workspaceSettingsPath)) {
       const projectContent = fs.readFileSync(workspaceSettingsPath, 'utf-8');
-      workspaceSettings = JSON.parse(
+      const parsedWorkspaceSettings = JSON.parse(
         stripJsonComments(projectContent),
       ) as Settings;
+      workspaceSettings = resolveEnvVarsInObject(parsedWorkspaceSettings);
       if (workspaceSettings.theme && workspaceSettings.theme === 'VS') {
         workspaceSettings.theme = DefaultLight.name;
       } else if (
@@ -143,13 +210,23 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
         workspaceSettings.theme = DefaultDark.name;
       }
     }
-  } catch (error) {
-    console.error('Error reading workspace settings file:', error);
+  } catch (error: unknown) {
+    settingsErrors.push({
+      message: getErrorMessage(error),
+      path: workspaceSettingsPath,
+    });
   }
 
   return new LoadedSettings(
-    { path: USER_SETTINGS_PATH, settings: userSettings },
-    { path: workspaceSettingsPath, settings: workspaceSettings },
+    {
+      path: USER_SETTINGS_PATH,
+      settings: userSettings,
+    },
+    {
+      path: workspaceSettingsPath,
+      settings: workspaceSettings,
+    },
+    settingsErrors,
   );
 }
 

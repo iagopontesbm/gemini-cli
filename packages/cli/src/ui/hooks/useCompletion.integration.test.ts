@@ -9,12 +9,12 @@ import type { Mocked } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
-import { FileDiscoveryService } from '@gemini-code/core';
+import { FileDiscoveryService } from '@gemini-cli/core';
 
 // Mock dependencies
 vi.mock('fs/promises');
-vi.mock('@gemini-code/core', async () => {
-  const actual = await vi.importActual('@gemini-code/core');
+vi.mock('@gemini-cli/core', async () => {
+  const actual = await vi.importActual('@gemini-cli/core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn(),
@@ -41,12 +41,12 @@ describe('useCompletion git-aware filtering integration', () => {
       initialize: vi.fn(),
       shouldIgnoreFile: vi.fn(),
       filterFiles: vi.fn(),
-      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [] })),
+      glob: vi.fn().mockResolvedValue([]),
     };
 
     mockConfig = {
       getFileFilteringRespectGitIgnore: vi.fn(() => true),
-      getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
       getFileService: vi.fn().mockResolvedValue(mockFileDiscoveryService),
     };
 
@@ -223,6 +223,57 @@ describe('useCompletion git-aware filtering integration', () => {
     // Should filter out .log files but include matching .tsx files
     expect(result.current.suggestions).toEqual([
       { label: 'component.tsx', value: 'component.tsx' },
+    ]);
+  });
+
+  it('should use glob for top-level @ completions when available', async () => {
+    const globResults = [`${testCwd}/src/index.ts`, `${testCwd}/README.md`];
+    mockFileDiscoveryService.glob.mockResolvedValue(globResults);
+
+    const { result } = renderHook(() =>
+      useCompletion('@s', testCwd, true, slashCommands, mockConfig),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(mockFileDiscoveryService.glob).toHaveBeenCalledWith('**/s*', {
+      cwd: testCwd,
+      dot: false,
+    });
+    expect(fs.readdir).not.toHaveBeenCalled(); // Ensure glob is used instead of readdir
+    expect(result.current.suggestions).toEqual([
+      { label: 'README.md', value: 'README.md' },
+      { label: 'src/index.ts', value: 'src/index.ts' },
+    ]);
+  });
+
+  it('should include dotfiles in glob search when input starts with a dot', async () => {
+    const globResults = [
+      `${testCwd}/.env`,
+      `${testCwd}/.gitignore`,
+      `${testCwd}/src/index.ts`,
+    ];
+    mockFileDiscoveryService.glob.mockResolvedValue(globResults);
+
+    const { result } = renderHook(() =>
+      useCompletion('@.', testCwd, true, slashCommands, mockConfig),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(mockFileDiscoveryService.glob).toHaveBeenCalledWith('**/.*', {
+      cwd: testCwd,
+      dot: true,
+    });
+    expect(fs.readdir).not.toHaveBeenCalled();
+    expect(result.current.suggestions).toEqual([
+      { label: '.env', value: '.env' },
+      { label: '.gitignore', value: '.gitignore' },
+      { label: 'src/index.ts', value: 'src/index.ts' },
     ]);
   });
 });

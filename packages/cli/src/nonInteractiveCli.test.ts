@@ -7,14 +7,14 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { runNonInteractive } from './nonInteractiveCli.js';
-import { Config, GeminiClient, ToolRegistry } from '@gemini-code/core';
+import { Config, GeminiClient, ToolRegistry } from '@gemini-cli/core';
 import { GenerateContentResponse, Part, FunctionCall } from '@google/genai';
 
 // Mock dependencies
-vi.mock('@gemini-code/core', async () => {
+vi.mock('@gemini-cli/core', async () => {
   const actualCore =
-    await vi.importActual<typeof import('@gemini-code/core')>(
-      '@gemini-code/core',
+    await vi.importActual<typeof import('@gemini-cli/core')>(
+      '@gemini-cli/core',
     );
   return {
     ...actualCore,
@@ -35,6 +35,7 @@ describe('runNonInteractive', () => {
   let mockProcessExit: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
+    vi.resetAllMocks();
     mockChat = {
       sendMessageStream: vi.fn(),
     };
@@ -108,7 +109,7 @@ describe('runNonInteractive', () => {
     };
 
     const { executeToolCall: mockCoreExecuteToolCall } = await import(
-      '@gemini-code/core'
+      '@gemini-cli/core'
     );
     vi.mocked(mockCoreExecuteToolCall).mockResolvedValue({
       callId: 'fc1',
@@ -133,6 +134,7 @@ describe('runNonInteractive', () => {
 
     expect(mockChat.sendMessageStream).toHaveBeenCalledTimes(2);
     expect(mockCoreExecuteToolCall).toHaveBeenCalledWith(
+      mockConfig,
       expect.objectContaining({ callId: 'fc1', name: 'testTool' }),
       mockToolRegistry,
       expect.any(AbortSignal),
@@ -160,7 +162,7 @@ describe('runNonInteractive', () => {
     };
 
     const { executeToolCall: mockCoreExecuteToolCall } = await import(
-      '@gemini-code/core'
+      '@gemini-cli/core'
     );
     vi.mocked(mockCoreExecuteToolCall).mockResolvedValue({
       callId: 'fcError',
@@ -201,7 +203,6 @@ describe('runNonInteractive', () => {
     expect(mockProcessStdoutWrite).toHaveBeenCalledWith(
       'Could not complete request.',
     );
-    consoleErrorSpy.mockRestore();
   });
 
   it('should exit with error if sendMessageStream throws initially', async () => {
@@ -217,6 +218,5 @@ describe('runNonInteractive', () => {
       'Error processing input:',
       apiError,
     );
-    consoleErrorSpy.mockRestore();
   });
 });

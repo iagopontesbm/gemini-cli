@@ -2,8 +2,9 @@
 .env
 .env~
 
-# gemini-code settings
+# gemini-cli settings
 .gemini/
+!gemini/config.yaml
 
 # Dependency directory
 node_modules

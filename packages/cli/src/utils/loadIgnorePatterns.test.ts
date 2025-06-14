@@ -42,9 +42,6 @@ describe('loadGeminiIgnorePatterns', () => {
   let consoleLogSpy: Mock<
     (message?: unknown, ...optionalParams: unknown[]) => void
   >;
-  let consoleWarnSpy: Mock<
-    (message?: unknown, ...optionalParams: unknown[]) => void
-  >;
 
   beforeAll(async () => {
     actualFs = await vi.importActual<typeof import('node:fs')>('node:fs');
@@ -62,11 +59,6 @@ describe('loadGeminiIgnorePatterns', () => {
       .mockImplementation(() => {}) as Mock<
       (message?: unknown, ...optionalParams: unknown[]) => void
     >;
-    consoleWarnSpy = vi
-      .spyOn(console, 'warn')
-      .mockImplementation(() => {}) as Mock<
-      (message?: unknown, ...optionalParams: unknown[]) => void
-    >;
     mockedFsReadFileSync.mockReset();
   });
 
@@ -74,11 +66,10 @@ describe('loadGeminiIgnorePatterns', () => {
     if (actualFs.existsSync(tempDir)) {
       actualFs.rmSync(tempDir, { recursive: true, force: true });
     }
-    consoleLogSpy.mockRestore();
-    consoleWarnSpy.mockRestore();
+    vi.restoreAllMocks();
   });
 
-  it('should load and parse patterns from .geminiignore, ignoring comments and empty lines', () => {
+  it('should load and parse patterns from .geminiignore, ignoring comments and empty lines', async () => {
     const ignoreContent = [
       '# This is a comment',
       'pattern1',
@@ -91,14 +82,7 @@ describe('loadGeminiIgnorePatterns', () => {
     const ignoreFilePath = path.join(tempDir, '.geminiignore');
     actualFs.writeFileSync(ignoreFilePath, ignoreContent);
 
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') return ignoreContent;
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
-
-    const patterns = loadGeminiIgnorePatterns(tempDir);
+    const patterns = await loadGeminiIgnorePatterns(tempDir);
 
     expect(patterns).toEqual([
       'pattern1',
@@ -110,41 +94,19 @@ describe('loadGeminiIgnorePatterns', () => {
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loaded 5 patterns from .geminiignore'),
     );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
   });
 
-  it('should return an empty array and log info if .geminiignore is not found', () => {
-    const ignoreFilePath = path.join(tempDir, '.geminiignore');
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') {
-        const error = new Error('File not found') as NodeJS.ErrnoException;
-        error.code = 'ENOENT';
-        throw error;
-      }
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
-
-    const patterns = loadGeminiIgnorePatterns(tempDir);
+  it('should return an empty array and log info if .geminiignore is not found', async () => {
+    const patterns = await loadGeminiIgnorePatterns(tempDir);
     expect(patterns).toEqual([]);
-    expect(consoleLogSpy).toHaveBeenCalledWith(
-      '[INFO] No .geminiignore file found. Proceeding without custom ignore patterns.',
-    );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
+    expect(consoleLogSpy).not.toHaveBeenCalled();
   });
 
-  it('should return an empty array if .geminiignore is empty', () => {
+  it('should return an empty array if .geminiignore is empty', async () => {
     const ignoreFilePath = path.join(tempDir, '.geminiignore');
     actualFs.writeFileSync(ignoreFilePath, '');
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') return ''; // Return string for empty file
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
 
-    const patterns = loadGeminiIgnorePatterns(tempDir);
+    const patterns = await loadGeminiIgnorePatterns(tempDir);
     expect(patterns).toEqual([]);
     expect(consoleLogSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('Loaded 0 patterns from .geminiignore'),
@@ -152,10 +114,9 @@ describe('loadGeminiIgnorePatterns', () => {
     expect(consoleLogSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('No .geminiignore file found'),
     );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
   });
 
-  it('should return an empty array if .geminiignore contains only comments and empty lines', () => {
+  it('should return an empty array if .geminiignore contains only comments and empty lines', async () => {
     const ignoreContent = [
       '# Comment 1',
       '  # Comment 2 with leading spaces',
@@ -164,14 +125,8 @@ describe('loadGeminiIgnorePatterns', () => {
     ].join('\n');
     const ignoreFilePath = path.join(tempDir, '.geminiignore');
     actualFs.writeFileSync(ignoreFilePath, ignoreContent);
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') return ignoreContent;
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
 
-    const patterns = loadGeminiIgnorePatterns(tempDir);
+    const patterns = await loadGeminiIgnorePatterns(tempDir);
     expect(patterns).toEqual([]);
     expect(consoleLogSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('Loaded 0 patterns from .geminiignore'),
@@ -179,48 +134,17 @@ describe('loadGeminiIgnorePatterns', () => {
     expect(consoleLogSpy).not.toHaveBeenCalledWith(
       expect.stringContaining('No .geminiignore file found'),
     );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
   });
 
-  it('should handle read errors (other than ENOENT) and log a warning', () => {
-    const ignoreFilePath = path.join(tempDir, '.geminiignore');
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') {
-        const error = new Error('Test read error') as NodeJS.ErrnoException;
-        error.code = 'EACCES';
-        throw error;
-      }
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
-
-    const patterns = loadGeminiIgnorePatterns(tempDir);
-    expect(patterns).toEqual([]);
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      expect.stringContaining(
-        `[WARN] Could not read .geminiignore file at ${ignoreFilePath}: Test read error`,
-      ),
-    );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
-  });
-
-  it('should correctly handle patterns with inline comments if not starting with #', () => {
+  it('should correctly handle patterns with inline comments if not starting with #', async () => {
     const ignoreContent = 'src/important # but not this part';
     const ignoreFilePath = path.join(tempDir, '.geminiignore');
     actualFs.writeFileSync(ignoreFilePath, ignoreContent);
-    mockedFsReadFileSync.mockImplementation((p: string, encoding: string) => {
-      if (p === ignoreFilePath && encoding === 'utf-8') return ignoreContent;
-      throw new Error(
-        `Mock fs.readFileSync: Unexpected call with path: ${p}, encoding: ${encoding}`,
-      );
-    });
 
-    const patterns = loadGeminiIgnorePatterns(tempDir);
+    const patterns = await loadGeminiIgnorePatterns(tempDir);
     expect(patterns).toEqual(['src/important # but not this part']);
     expect(consoleLogSpy).toHaveBeenCalledWith(
       expect.stringContaining('Loaded 1 patterns from .geminiignore'),
     );
-    expect(mockedFsReadFileSync).toHaveBeenCalledWith(ignoreFilePath, 'utf-8');
   });
 });

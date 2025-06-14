@@ -20,8 +20,9 @@ import {
   Tool,
   ToolCall,
   Status as CoreStatus,
-} from '@gemini-code/core';
-import { useCallback, useEffect, useState, useRef } from 'react';
+  EditorType,
+} from '@gemini-cli/core';
+import { useCallback, useState, useMemo } from 'react';
 import {
   HistoryItemToolGroup,
   IndividualToolCallDisplay,
@@ -31,8 +32,8 @@ import {
 
 export type ScheduleFn = (
   request: ToolCallRequestInfo | ToolCallRequestInfo[],
+  signal: AbortSignal,
 ) => void;
-export type CancelFn = (reason?: string) => void;
 export type MarkToolsAsSubmittedFn = (callIds: string[]) => void;
 
 export type TrackedScheduledToolCall = ScheduledToolCall & {
@@ -68,17 +69,14 @@ export function useReactToolScheduler(
   setPendingHistoryItem: React.Dispatch<
     React.SetStateAction<HistoryItemWithoutId | null>
   >,
-): [TrackedToolCall[], ScheduleFn, CancelFn, MarkToolsAsSubmittedFn] {
+  getPreferredEditor: () => EditorType | undefined,
+): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
   const [toolCallsForDisplay, setToolCallsForDisplay] = useState<
     TrackedToolCall[]
   >([]);
-  const schedulerRef = useRef<CoreToolScheduler | null>(null);
 
-  useEffect(() => {
-    const outputUpdateHandler: OutputUpdateHandler = (
-      toolCallId,
-      outputChunk,
-    ) => {
+  const outputUpdateHandler: OutputUpdateHandler = useCallback(
+    (toolCallId, outputChunk) => {
       setPendingHistoryItem((prevItem) => {
         if (prevItem?.type === 'tool_group') {
           return {
@@ -103,17 +101,19 @@ export function useReactToolScheduler(
           return tc;
         }),
       );
-    };
+    },
+    [setPendingHistoryItem],
+  );
 
-    const allToolCallsCompleteHandler: AllToolCallsCompleteHandler = (
-      completedToolCalls,
-    ) => {
+  const allToolCallsCompleteHandler: AllToolCallsCompleteHandler = useCallback(
+    (completedToolCalls) => {
       onComplete(completedToolCalls);
-    };
+    },
+    [onComplete],
+  );
 
-    const toolCallsUpdateHandler: ToolCallsUpdateHandler = (
-      updatedCoreToolCalls: ToolCall[],
-    ) => {
+  const toolCallsUpdateHandler: ToolCallsUpdateHandler = useCallback(
+    (updatedCoreToolCalls: ToolCall[]) => {
       setToolCallsForDisplay((prevTrackedCalls) =>
         updatedCoreToolCalls.map((coreTc) => {
           const existingTrackedCall = prevTrackedCalls.find(
@@ -127,27 +127,39 @@ export function useReactToolScheduler(
           return newTrackedCall;
         }),
       );
-    };
-
-    schedulerRef.current = new CoreToolScheduler({
-      toolRegistry: config.getToolRegistry(),
-      outputUpdateHandler,
-      onAllToolCallsComplete: allToolCallsCompleteHandler,
-      onToolCallsUpdate: toolCallsUpdateHandler,
-      approvalMode: config.getApprovalMode(),
-    });
-  }, [config, onComplete, setPendingHistoryItem]);
-
-  const schedule: ScheduleFn = useCallback(
-    async (request: ToolCallRequestInfo | ToolCallRequestInfo[]) => {
-      schedulerRef.current?.schedule(request);
     },
     [],
   );
 
-  const cancel: CancelFn = useCallback((reason: string = 'unspecified') => {
-    schedulerRef.current?.cancelAll(reason);
-  }, []);
+  const scheduler = useMemo(
+    () =>
+      new CoreToolScheduler({
+        toolRegistry: config.getToolRegistry(),
+        outputUpdateHandler,
+        onAllToolCallsComplete: allToolCallsCompleteHandler,
+        onToolCallsUpdate: toolCallsUpdateHandler,
+        approvalMode: config.getApprovalMode(),
+        getPreferredEditor,
+        config,
+      }),
+    [
+      config,
+      outputUpdateHandler,
+      allToolCallsCompleteHandler,
+      toolCallsUpdateHandler,
+      getPreferredEditor,
+    ],
+  );
+
+  const schedule: ScheduleFn = useCallback(
+    async (
+      request: ToolCallRequestInfo | ToolCallRequestInfo[],
+      signal: AbortSignal,
+    ) => {
+      scheduler.schedule(request, signal);
+    },
+    [scheduler],
+  );
 
   const markToolsAsSubmitted: MarkToolsAsSubmittedFn = useCallback(
     (callIdsToMark: string[]) => {
@@ -162,7 +174,7 @@ export function useReactToolScheduler(
     [],
   );
 
-  return [toolCallsForDisplay, schedule, cancel, markToolsAsSubmitted];
+  return [toolCallsForDisplay, schedule, markToolsAsSubmitted];
 }
 
 /**
@@ -217,10 +229,8 @@ export function mapToDisplay(
           trackedCall.request.args,
         );
         renderOutputAsMarkdown = currentToolInstance.isOutputMarkdown;
-      }
-
-      if (trackedCall.status === 'error') {
-        description = '';
+      } else if ('request' in trackedCall && 'args' in trackedCall.request) {
+        description = JSON.stringify(trackedCall.request.args);
       }
 
       const baseDisplayProperties: Omit<

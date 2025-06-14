@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCoreSystemPrompt } from './prompts.js'; // Adjust import path
 import * as process from 'node:process';
+import { isGitRepository } from '../utils/gitUtils.js';
 
 // Mock tool names if they are dynamically generated or complex
 vi.mock('../tools/ls', () => ({ LSTool: { Name: 'list_directory' } }));
@@ -18,10 +19,13 @@ vi.mock('../tools/read-many-files', () => ({
   ReadManyFilesTool: { Name: 'read_many_files' },
 }));
 vi.mock('../tools/shell', () => ({
-  ShellTool: { Name: 'execute_bash_command' },
+  ShellTool: { Name: 'run_shell_command' },
 }));
 vi.mock('../tools/write-file', () => ({
   WriteFileTool: { Name: 'write_file' },
+}));
+vi.mock('../utils/gitUtils', () => ({
+  isGitRepository: vi.fn(),
 }));
 
 describe('Core System Prompt (prompts.ts)', () => {
@@ -110,6 +114,20 @@ describe('Core System Prompt (prompts.ts)', () => {
     expect(prompt).toContain('# Outside of Sandbox');
     expect(prompt).not.toContain('# Sandbox');
     expect(prompt).not.toContain('# MacOS Seatbelt');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should include git instructions when in a git repo', () => {
+    vi.mocked(isGitRepository).mockReturnValue(true);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).toContain('# Git Repository');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should not include git instructions when not in a git repo', () => {
+    vi.mocked(isGitRepository).mockReturnValue(false);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).not.toContain('# Git Repository');
     expect(prompt).toMatchSnapshot();
   });
 });

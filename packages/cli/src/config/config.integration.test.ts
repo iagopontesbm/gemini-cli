@@ -8,11 +8,21 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
 import { tmpdir } from 'os';
-import { Config, ConfigParameters } from '@gemini-code/core';
+import {
+  Config,
+  ConfigParameters,
+  ContentGeneratorConfig,
+} from '@gemini-cli/core';
+
+const TEST_CONTENT_GENERATOR_CONFIG: ContentGeneratorConfig = {
+  apiKey: 'test-key',
+  model: 'test-model',
+  userAgent: 'test-agent',
+};
 
 // Mock file discovery service and tool registry
-vi.mock('@gemini-code/core', async () => {
-  const actual = await vi.importActual('@gemini-code/core');
+vi.mock('@gemini-cli/core', async () => {
+  const actual = await vi.importActual('@gemini-cli/core');
   return {
     ...actual,
     FileDiscoveryService: vi.fn().mockImplementation(() => ({
@@ -43,55 +53,49 @@ describe('Configuration Integration Tests', () => {
   describe('File Filtering Configuration', () => {
     it('should load default file filtering settings', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: undefined, // Should default to true
-        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
     it('should load custom file filtering settings from configuration', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: false,
-        fileFilteringAllowBuildArtifacts: true,
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
     it('should merge user and workspace file filtering settings', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: true,
       };
 
       const config = new Config(configParams);
 
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
     });
   });
@@ -99,52 +103,46 @@ describe('Configuration Integration Tests', () => {
   describe('Configuration Integration', () => {
     it('should handle partial configuration objects gracefully', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: false,
-        fileFilteringAllowBuildArtifacts: undefined, // Should default to false
       };
 
       const config = new Config(configParams);
 
       // Specified settings should be applied
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-
-      // Missing settings should use defaults
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
     it('should handle empty configuration objects gracefully', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: undefined,
-        fileFilteringAllowBuildArtifacts: undefined,
       };
 
       const config = new Config(configParams);
 
       // All settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
 
     it('should handle missing configuration sections gracefully', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         // Missing fileFiltering configuration
       };
 
@@ -152,62 +150,40 @@ describe('Configuration Integration Tests', () => {
 
       // All git-aware settings should use defaults
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
     });
   });
 
   describe('Real-world Configuration Scenarios', () => {
     it('should handle a security-focused configuration', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: false,
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(true);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(false);
-    });
-
-    it('should handle a development-focused configuration', async () => {
-      const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
-        sandbox: false,
-        targetDir: tempDir,
-        debugMode: false,
-        userAgent: 'test-agent',
-        fileFilteringRespectGitIgnore: true,
-        fileFilteringAllowBuildArtifacts: true,
-      };
-
-      const config = new Config(configParams);
-
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
 
     it('should handle a CI/CD environment configuration', async () => {
       const configParams: ConfigParameters = {
-        apiKey: 'test-key',
-        model: 'test-model',
+        cwd: '/tmp',
+        contentGeneratorConfig: TEST_CONTENT_GENERATOR_CONFIG,
+        embeddingModel: 'test-embedding-model',
         sandbox: false,
         targetDir: tempDir,
         debugMode: false,
-        userAgent: 'test-agent',
         fileFilteringRespectGitIgnore: false, // CI might need to see all files
-        fileFilteringAllowBuildArtifacts: true,
       };
 
       const config = new Config(configParams);
 
       expect(config.getFileFilteringRespectGitIgnore()).toBe(false);
-      expect(config.getFileFilteringAllowBuildArtifacts()).toBe(true);
     });
   });
 });

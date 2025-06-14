@@ -9,20 +9,23 @@ import { hideBin } from 'yargs/helpers';
 import process from 'node:process';
 import {
   Config,
-  loadEnvironment,
-  createServerConfig,
   loadServerHierarchicalMemory,
-  ConfigParameters,
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-} from '@gemini-code/core';
+  ContentGeneratorConfig,
+  GEMINI_CONFIG_DIR as GEMINI_DIR,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_EMBEDDING_MODEL,
+  FileDiscoveryService,
+} from '@gemini-cli/core';
 import { Settings } from './settings.js';
-import { readPackageUp } from 'read-package-up';
-import {
-  getEffectiveModel,
-  type EffectiveModelCheckResult,
-} from '../utils/modelCheck.js';
+import { getEffectiveModel } from '../utils/modelCheck.js';
+import { Extension } from './extension.js';
+import * as dotenv from 'dotenv';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import * as os from 'node:os';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -34,9 +37,6 @@ const logger = {
   error: (...args: any[]) => console.error('[ERROR]', ...args),
 };
 
-export const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro-preview-06-05';
-export const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash-preview-05-20';
-
 interface CliArgs {
   model: string | undefined;
   sandbox: boolean | string | undefined;
@@ -45,6 +45,8 @@ interface CliArgs {
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
+  telemetry: boolean | undefined;
+  checkpoint: boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -89,7 +91,17 @@ async function parseArguments(): Promise<CliArgs> {
         'Automatically accept all actions (aka YOLO mode, see https://www.youtube.com/watch?v=xvFZjo5PgG0 for more details)?',
       default: false,
     })
-    .version() // This will enable the --version flag based on package.json
+    .option('telemetry', {
+      type: 'boolean',
+      description: 'Enable telemetry?',
+    })
+    .option('checkpoint', {
+      alias: 'c',
+      type: 'boolean',
+      description: 'Enables checkpointing of file edits',
+      default: false,
+    })
+    .version(process.env.CLI_VERSION || '0.0.0') // This will enable the --version flag based on package.json
     .help()
     .alias('h', 'help')
     .strict().argv;
@@ -103,6 +115,8 @@ async function parseArguments(): Promise<CliArgs> {
 export async function loadHierarchicalGeminiMemory(
   currentWorkingDirectory: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
+  extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode) {
     logger.debug(
@@ -111,44 +125,21 @@ export async function loadHierarchicalGeminiMemory(
   }
   // Directly call the server function.
   // The server function will use its own homedir() for the global path.
-  return loadServerHierarchicalMemory(currentWorkingDirectory, debugMode);
-}
-
-export interface LoadCliConfigResult {
-  config: Config;
-  modelWasSwitched: boolean;
-  originalModelBeforeSwitch?: string;
-  finalModel: string;
+  return loadServerHierarchicalMemory(
+    currentWorkingDirectory,
+    debugMode,
+    fileService,
+    extensionContextFilePaths,
+  );
 }
 
 export async function loadCliConfig(
   settings: Settings,
+  extensions: Extension[],
   geminiIgnorePatterns: string[],
-): Promise<LoadCliConfigResult> {
+  sessionId: string,
+): Promise<Config> {
   loadEnvironment();
-
-  const geminiApiKey = process.env.GEMINI_API_KEY;
-  const googleApiKey = process.env.GOOGLE_API_KEY;
-  const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
-  const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
-
-  const hasGeminiApiKey = !!geminiApiKey;
-  const hasGoogleApiKey = !!googleApiKey;
-  const hasVertexProjectLocationConfig =
-    !!googleCloudProject && !!googleCloudLocation;
-
-  if (!hasGeminiApiKey && !hasGoogleApiKey && !hasVertexProjectLocationConfig) {
-    logger.error(
-      'No valid API authentication configuration found. Please set ONE of the following combinations in your environment variables or .env file:\n' +
-        '1. GEMINI_API_KEY (for Gemini API access).\n' +
-        '2. GOOGLE_API_KEY (for Gemini API or Vertex AI Express Mode access).\n' +
-        '3. GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION (for Vertex AI access).\n\n' +
-        'For Gemini API keys, visit: https://ai.google.dev/gemini-api/docs/api-key\n' +
-        'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/start/authentication\n' +
-        'The GOOGLE_GENAI_USE_VERTEXAI environment variable can also be set to true/false to influence service selection when ambiguity exists.',
-    );
-    process.exit(1);
-  }
 
   const argv = await parseArguments();
   const debugMode = argv.debug || false;
@@ -164,81 +155,167 @@ export async function loadCliConfig(
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
+  const extensionContextFilePaths = extensions.flatMap((e) => e.contextFiles);
+
+  const fileService = new FileDiscoveryService(process.cwd());
+  await fileService.initialize({
+    respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+  });
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
     process.cwd(),
     debugMode,
+    fileService,
+    extensionContextFilePaths,
   );
 
-  const userAgent = await createUserAgent();
-  const apiKeyForServer = geminiApiKey || googleApiKey || '';
-  const useVertexAI = hasGeminiApiKey ? false : undefined;
+  const contentGeneratorConfig = await createContentGeneratorConfig(argv);
 
-  let modelToUse = argv.model || DEFAULT_GEMINI_MODEL;
-  let modelSwitched = false;
-  let originalModel: string | undefined = undefined;
+  const mcpServers = mergeMcpServers(settings, extensions);
 
-  if (apiKeyForServer) {
-    const checkResult: EffectiveModelCheckResult = await getEffectiveModel(
-      apiKeyForServer,
-      modelToUse,
-    );
-    if (checkResult.switched) {
-      modelSwitched = true;
-      originalModel = checkResult.originalModelIfSwitched;
-      modelToUse = checkResult.effectiveModel;
-    }
-  } else {
-    // logger.debug('API key not available during config load. Skipping model availability check.');
-  }
-
-  const configParams: ConfigParameters = {
-    apiKey: apiKeyForServer,
-    model: modelToUse,
-    sandbox: argv.sandbox ?? settings.sandbox ?? argv.yolo ?? false,
+  return new Config({
+    sessionId,
+    contentGeneratorConfig,
+    embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
+    sandbox: argv.sandbox ?? settings.sandbox,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
     fullContext: argv.all_files || false,
     coreTools: settings.coreTools || undefined,
+    excludeTools: settings.excludeTools || undefined,
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
     toolCallCommand: settings.toolCallCommand,
     mcpServerCommand: settings.mcpServerCommand,
-    mcpServers: settings.mcpServers,
-    userAgent,
+    mcpServers,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
-    vertexai: useVertexAI,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
     geminiIgnorePatterns,
     accessibility: settings.accessibility,
+    telemetry:
+      argv.telemetry !== undefined
+        ? argv.telemetry
+        : (settings.telemetry ?? false),
     // Git-aware file filtering settings
     fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-    fileFilteringAllowBuildArtifacts:
-      settings.fileFiltering?.allowBuildArtifacts,
-  };
-
-  const config = createServerConfig(configParams);
-  return {
-    config,
-    modelWasSwitched: modelSwitched,
-    originalModelBeforeSwitch: originalModel,
-    finalModel: modelToUse,
-  };
+    checkpoint: argv.checkpoint,
+    proxy:
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy,
+    cwd: process.cwd(),
+    telemetryOtlpEndpoint:
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetryOtlpEndpoint,
+    fileDiscoveryService: fileService,
+  });
 }
 
-async function createUserAgent(): Promise<string> {
-  try {
-    const packageJsonInfo = await readPackageUp({ cwd: import.meta.url });
-    const cliVersion = packageJsonInfo?.packageJson.version || 'unknown';
-    return `GeminiCLI/${cliVersion} Node.js/${process.version} (${process.platform}; ${process.arch})`;
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.warn(
-      `Could not determine package version for User-Agent: ${message}`,
+function mergeMcpServers(settings: Settings, extensions: Extension[]) {
+  const mcpServers = { ...(settings.mcpServers || {}) };
+  for (const extension of extensions) {
+    Object.entries(extension.config.mcpServers || {}).forEach(
+      ([key, server]) => {
+        if (mcpServers[key]) {
+          logger.warn(
+            `Skipping extension MCP config for server with key "${key}" as it already exists.`,
+          );
+          return;
+        }
+        mcpServers[key] = server;
+      },
     );
-    return `GeminiCLI/unknown Node.js/${process.version} (${process.platform}; ${process.arch})`;
+  }
+  return mcpServers;
+}
+
+async function createContentGeneratorConfig(
+  argv: CliArgs,
+): Promise<ContentGeneratorConfig> {
+  const geminiApiKey = process.env.GEMINI_API_KEY;
+  const googleApiKey = process.env.GOOGLE_API_KEY;
+  const googleCloudProject = process.env.GOOGLE_CLOUD_PROJECT;
+  const googleCloudLocation = process.env.GOOGLE_CLOUD_LOCATION;
+
+  const hasCodeAssist = process.env.GEMINI_CODE_ASSIST === 'true';
+  const hasGeminiApiKey = !!geminiApiKey;
+  const hasGoogleApiKey = !!googleApiKey;
+  const hasVertexProjectLocationConfig =
+    !!googleCloudProject && !!googleCloudLocation;
+
+  if (hasGeminiApiKey && hasGoogleApiKey) {
+    logger.warn(
+      'Both GEMINI_API_KEY and GOOGLE_API_KEY are set. Using GOOGLE_API_KEY.',
+    );
+  }
+  if (
+    !hasCodeAssist &&
+    !hasGeminiApiKey &&
+    !hasGoogleApiKey &&
+    !hasVertexProjectLocationConfig
+  ) {
+    logger.error(
+      'No valid API authentication configuration found. Please set ONE of the following combinations in your environment variables or .env file:\n' +
+        '1. GEMINI_CODE_ASSIST=true (for Code Assist access).\n' +
+        '2. GEMINI_API_KEY (for Gemini API access).\n' +
+        '3. GOOGLE_API_KEY (for Gemini API or Vertex AI Express Mode access).\n' +
+        '4. GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION (for Vertex AI access).\n\n' +
+        'For Gemini API keys, visit: https://ai.google.dev/gemini-api/docs/api-key\n' +
+        'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/start/authentication\n' +
+        'The GOOGLE_GENAI_USE_VERTEXAI environment variable can also be set to true/false to influence service selection when ambiguity exists.',
+    );
+    process.exit(1);
+  }
+
+  const config: ContentGeneratorConfig = {
+    model: argv.model || DEFAULT_GEMINI_MODEL,
+    apiKey: googleApiKey || geminiApiKey || '',
+    vertexai: hasGeminiApiKey ? false : undefined,
+    codeAssist: hasCodeAssist,
+  };
+
+  if (config.apiKey) {
+    config.model = await getEffectiveModel(config.apiKey, config.model);
+  }
+
+  return config;
+}
+
+function findEnvFile(startDir: string): string | null {
+  let currentDir = path.resolve(startDir);
+  while (true) {
+    // prefer gemini-specific .env under GEMINI_DIR
+    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
+    if (fs.existsSync(geminiEnvPath)) {
+      return geminiEnvPath;
+    }
+    const envPath = path.join(currentDir, '.env');
+    if (fs.existsSync(envPath)) {
+      return envPath;
+    }
+    const parentDir = path.dirname(currentDir);
+    if (parentDir === currentDir || !parentDir) {
+      // check .env under home as fallback, again preferring gemini-specific .env
+      const homeGeminiEnvPath = path.join(os.homedir(), GEMINI_DIR, '.env');
+      if (fs.existsSync(homeGeminiEnvPath)) {
+        return homeGeminiEnvPath;
+      }
+      const homeEnvPath = path.join(os.homedir(), '.env');
+      if (fs.existsSync(homeEnvPath)) {
+        return homeEnvPath;
+      }
+      return null;
+    }
+    currentDir = parentDir;
+  }
+}
+
+export function loadEnvironment(): void {
+  const envFilePath = findEnvFile(process.cwd());
+  if (envFilePath) {
+    dotenv.config({ path: envFilePath });
   }
 }

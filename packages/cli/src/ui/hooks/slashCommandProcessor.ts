@@ -9,11 +9,28 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
-import { Config } from '@gemini-code/core';
-import { Message, MessageType, HistoryItemWithoutId } from '../types.js';
+import {
+  Config,
+  GitService,
+  Logger,
+  MCPDiscoveryState,
+  MCPServerStatus,
+  getMCPDiscoveryState,
+  getMCPServerStatus,
+} from '@gemini-cli/core';
+import { useSessionStats } from '../contexts/SessionContext.js';
+import {
+  Message,
+  MessageType,
+  HistoryItemWithoutId,
+  HistoryItem,
+} from '../types.js';
+import { promises as fs } from 'fs';
+import path from 'path';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
-import { formatMemoryUsage } from '../utils/formatters.js';
+import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
+import { getCliVersion } from '../../utils/version.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -30,7 +47,10 @@ export interface SlashCommand {
     mainCommand: string,
     subCommand?: string,
     args?: string,
-  ) => void | SlashCommandActionReturn; // Action can now return this object
+  ) =>
+    | void
+    | SlashCommandActionReturn
+    | Promise<void | SlashCommandActionReturn>; // Action can now return this object
 }
 
 /**
@@ -38,16 +58,28 @@ export interface SlashCommand {
  */
 export const useSlashCommandProcessor = (
   config: Config | null,
+  history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   clearItems: UseHistoryManagerReturn['clearItems'],
+  loadHistory: UseHistoryManagerReturn['loadHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
+  openEditorDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
-  cliVersion: string,
+  showToolDescriptions: boolean = false,
+  setQuittingMessages: (message: HistoryItem[]) => void,
 ) => {
+  const session = useSessionStats();
+  const gitService = useMemo(() => {
+    if (!config?.getProjectRoot()) {
+      return;
+    }
+    return new GitService(config.getProjectRoot());
+  }, [config]);
+
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -59,6 +91,19 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
+        };
+      } else if (message.type === MessageType.STATS) {
+        historyItemContent = {
+          type: 'stats',
+          stats: message.stats,
+          lastTurnStats: message.lastTurnStats,
+          duration: message.duration,
+        };
+      } else if (message.type === MessageType.QUIT) {
+        historyItemContent = {
+          type: 'quit',
+          stats: message.stats,
+          duration: message.duration,
         };
       } else {
         historyItemContent = {
@@ -109,12 +154,12 @@ export const useSlashCommandProcessor = (
     [addMessage],
   );
 
-  const slashCommands: SlashCommand[] = useMemo(
-    () => [
+  const slashCommands: SlashCommand[] = useMemo(() => {
+    const commands: SlashCommand[] = [
       {
         name: 'help',
         altName: '?',
-        description: 'for help on gemini-code',
+        description: 'for help on gemini-cli',
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
@@ -138,9 +183,205 @@ export const useSlashCommandProcessor = (
         },
       },
       {
+        name: 'editor',
+        description: 'set external editor preference',
+        action: (_mainCommand, _subCommand, _args) => {
+          openEditorDialog();
+        },
+      },
+      {
+        name: 'stats',
+        altName: 'usage',
+        description: 'check session stats',
+        action: (_mainCommand, _subCommand, _args) => {
+          const now = new Date();
+          const { sessionStartTime, cumulative, currentTurn } = session.stats;
+          const wallDuration = now.getTime() - sessionStartTime.getTime();
+
+          addMessage({
+            type: MessageType.STATS,
+            stats: cumulative,
+            lastTurnStats: currentTurn,
+            duration: formatDuration(wallDuration),
+            timestamp: new Date(),
+          });
+        },
+      },
+      {
+        name: 'mcp',
+        description: 'list configured MCP servers and tools',
+        action: async (_mainCommand, _subCommand, _args) => {
+          // Check if the _subCommand includes a specific flag to control description visibility
+          let useShowDescriptions = showToolDescriptions;
+          if (_subCommand === 'desc' || _subCommand === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (
+            _subCommand === 'nodesc' ||
+            _subCommand === 'nodescriptions'
+          ) {
+            useShowDescriptions = false;
+          } else if (_args === 'desc' || _args === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (_args === 'nodesc' || _args === 'nodescriptions') {
+            useShowDescriptions = false;
+          }
+
+          const toolRegistry = await config?.getToolRegistry();
+          if (!toolRegistry) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Could not retrieve tool registry.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          const mcpServers = config?.getMcpServers() || {};
+          const serverNames = Object.keys(mcpServers);
+
+          if (serverNames.length === 0) {
+            addMessage({
+              type: MessageType.INFO,
+              content: 'No MCP servers configured.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          // Check if any servers are still connecting
+          const connectingServers = serverNames.filter(
+            (name) => getMCPServerStatus(name) === MCPServerStatus.CONNECTING,
+          );
+          const discoveryState = getMCPDiscoveryState();
+
+          let message = '';
+
+          // Add overall discovery status message if needed
+          if (
+            discoveryState === MCPDiscoveryState.IN_PROGRESS ||
+            connectingServers.length > 0
+          ) {
+            message += `\u001b[33m⏳ MCP servers are starting up (${connectingServers.length} initializing)...\u001b[0m\n`;
+            message += `\u001b[90mNote: First startup may take longer. Tool availability will update automatically.\u001b[0m\n\n`;
+          }
+
+          message += 'Configured MCP servers:\n\n';
+
+          for (const serverName of serverNames) {
+            const serverTools = toolRegistry.getToolsByServer(serverName);
+            const status = getMCPServerStatus(serverName);
+
+            // Add status indicator with descriptive text
+            let statusIndicator = '';
+            let statusText = '';
+            switch (status) {
+              case MCPServerStatus.CONNECTED:
+                statusIndicator = '🟢';
+                statusText = 'Ready';
+                break;
+              case MCPServerStatus.CONNECTING:
+                statusIndicator = '🔄';
+                statusText = 'Starting... (first startup may take longer)';
+                break;
+              case MCPServerStatus.DISCONNECTED:
+              default:
+                statusIndicator = '🔴';
+                statusText = 'Disconnected';
+                break;
+            }
+
+            // Get server description if available
+            const server = mcpServers[serverName];
+
+            // Format server header with bold formatting and status
+            message += `${statusIndicator} \u001b[1m${serverName}\u001b[0m - ${statusText}`;
+
+            // Add tool count with conditional messaging
+            if (status === MCPServerStatus.CONNECTED) {
+              message += ` (${serverTools.length} tools)`;
+            } else if (status === MCPServerStatus.CONNECTING) {
+              message += ` (tools will appear when ready)`;
+            } else {
+              message += ` (${serverTools.length} tools cached)`;
+            }
+
+            // Add server description with proper handling of multi-line descriptions
+            if (useShowDescriptions && server?.description) {
+              const greenColor = '\u001b[32m';
+              const resetColor = '\u001b[0m';
+
+              const descLines = server.description.split('\n');
+              message += `: ${greenColor}${descLines[0]}${resetColor}`;
+              message += '\n';
+
+              // If there are multiple lines, add proper indentation for each line
+              if (descLines.length > 1) {
+                for (let i = 1; i < descLines.length; i++) {
+                  // Skip empty lines at the end
+                  if (i === descLines.length - 1 && descLines[i].trim() === '')
+                    continue;
+                  message += `    ${greenColor}${descLines[i]}${resetColor}\n`;
+                }
+              }
+            } else {
+              message += '\n';
+            }
+
+            // Reset formatting after server entry
+            message += '\u001b[0m';
+
+            if (serverTools.length > 0) {
+              serverTools.forEach((tool) => {
+                if (useShowDescriptions && tool.description) {
+                  // Format tool name in cyan using simple ANSI cyan color
+                  message += `  - \u001b[36m${tool.name}\u001b[0m: `;
+
+                  // Apply green color to the description text
+                  const greenColor = '\u001b[32m';
+                  const resetColor = '\u001b[0m';
+
+                  // Handle multi-line descriptions by properly indenting and preserving formatting
+                  const descLines = tool.description.split('\n');
+                  message += `${greenColor}${descLines[0]}${resetColor}\n`;
+
+                  // If there are multiple lines, add proper indentation for each line
+                  if (descLines.length > 1) {
+                    for (let i = 1; i < descLines.length; i++) {
+                      // Skip empty lines at the end
+                      if (
+                        i === descLines.length - 1 &&
+                        descLines[i].trim() === ''
+                      )
+                        continue;
+                      message += `      ${greenColor}${descLines[i]}${resetColor}\n`;
+                    }
+                  }
+                  // Reset is handled inline with each line now
+                } else {
+                  // Use cyan color for the tool name even when not showing descriptions
+                  message += `  - \u001b[36m${tool.name}\u001b[0m\n`;
+                }
+              });
+            } else {
+              message += '  No tools available\n';
+            }
+            message += '\n';
+          }
+
+          // Make sure to reset any ANSI formatting at the end to prevent it from affecting the terminal
+          message += '\u001b[0m';
+
+          addMessage({
+            type: MessageType.INFO,
+            content: message,
+            timestamp: new Date(),
+          });
+        },
+      },
+      {
         name: 'memory',
         description:
-          'Manage memory. Usage: /memory <show|refresh|add> [text for add]',
+          'manage memory. Usage: /memory <show|refresh|add> [text for add]',
         action: (mainCommand, subCommand, args) => {
           switch (subCommand) {
             case 'show':
@@ -163,7 +404,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'tools',
-        description: 'list available tools',
+        description: 'list available Gemini CLI tools',
         action: async (_mainCommand, _subCommand, _args) => {
           const toolRegistry = await config?.getToolRegistry();
           const tools = toolRegistry?.getAllTools();
@@ -175,10 +416,14 @@ export const useSlashCommandProcessor = (
             });
             return;
           }
-          const toolList = tools.map((tool) => tool.name);
+
+          // Filter out MCP tools by checking if they have a serverName property
+          const geminiTools = tools.filter((tool) => !('serverName' in tool));
+          const geminiToolList = geminiTools.map((tool) => tool.displayName);
+
           addMessage({
             type: MessageType.INFO,
-            content: `Available tools:\n\n${toolList.join('\n')}`,
+            content: `Available Gemini CLI tools:\n\n${geminiToolList.join('\n')}`,
             timestamp: new Date(),
           });
         },
@@ -191,17 +436,19 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'about',
-        description: 'Show version info',
+        description: 'show version info',
         action: (_mainCommand, _subCommand, _args) => {
-          const osVersion = `${process.platform} ${process.version}`;
+          const osVersion = process.platform;
           let sandboxEnv = 'no sandbox';
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX;
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
+            sandboxEnv = `sandbox-exec (${
+              process.env.SEATBELT_PROFILE || 'unknown'
+            })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-
+          const cliVersion = getCliVersion();
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
@@ -214,7 +461,7 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'bug',
-        description: 'Submit a bug report.',
+        description: 'submit a bug report',
         action: (_mainCommand, _subCommand, args) => {
           let bugDescription = _subCommand || '';
           if (args) {
@@ -227,10 +474,13 @@ export const useSlashCommandProcessor = (
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX.replace(/^gemini-(?:code-)?/, '');
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'})`;
+            sandboxEnv = `sandbox-exec (${
+              process.env.SEATBELT_PROFILE || 'unknown'
+            })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const memoryUsage = formatMemoryUsage(process.memoryUsage().rss);
+          const cliVersion = getCliVersion();
 
           const diagnosticInfo = `
 ## Describe the bug
@@ -278,33 +528,251 @@ Add any other context about the problem here.
         },
       },
       {
+        name: 'save',
+        description: 'save conversation checkpoint. Usage: /save [tag]',
+        action: async (_mainCommand, subCommand, _args) => {
+          const tag = (subCommand || '').trim();
+          const logger = new Logger(config?.getSessionId() || '');
+          await logger.initialize();
+          const chat = await config?.getGeminiClient()?.getChat();
+          const history = chat?.getHistory() || [];
+          if (history.length > 0) {
+            await logger.saveCheckpoint(chat?.getHistory() || [], tag);
+            addMessage({
+              type: MessageType.INFO,
+              content: `Conversation checkpoint saved${tag ? ' with tag: ' + tag : ''}.`,
+              timestamp: new Date(),
+            });
+          } else {
+            addMessage({
+              type: MessageType.INFO,
+              content: 'No conversation found to save.',
+              timestamp: new Date(),
+            });
+          }
+        },
+      },
+      {
+        name: 'resume',
+        description:
+          'resume from conversation checkpoint. Usage: /resume [tag]',
+        action: async (_mainCommand, subCommand, _args) => {
+          const tag = (subCommand || '').trim();
+          const logger = new Logger(config?.getSessionId() || '');
+          await logger.initialize();
+          const conversation = await logger.loadCheckpoint(tag);
+          if (conversation.length === 0) {
+            addMessage({
+              type: MessageType.INFO,
+              content: `No saved checkpoint found${tag ? ' with tag: ' + tag : ''}.`,
+              timestamp: new Date(),
+            });
+            return;
+          }
+          const chat = await config?.getGeminiClient()?.getChat();
+          if (!chat) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'No chat client available to resume conversation.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+          clearItems();
+          chat.clearHistory();
+          const rolemap: { [key: string]: MessageType } = {
+            user: MessageType.USER,
+            model: MessageType.GEMINI,
+          };
+          let i = 0;
+          for (const item of conversation) {
+            i += 1;
+            const text =
+              item.parts
+                ?.filter((m) => !!m.text)
+                .map((m) => m.text)
+                .join('') || '';
+            if (i <= 2) {
+              // Skip system prompt back and forth.
+              continue;
+            }
+            if (!text) {
+              // Parsing Part[] back to various non-text output not yet implemented.
+              continue;
+            }
+            addItem(
+              {
+                type: (item.role && rolemap[item.role]) || MessageType.GEMINI,
+                text,
+              } as HistoryItemWithoutId,
+              i,
+            );
+            chat.addHistory(item);
+          }
+          console.clear();
+          refreshStatic();
+        },
+      },
+      {
         name: 'quit',
         altName: 'exit',
         description: 'exit the cli',
-        action: (_mainCommand, _subCommand, _args) => {
-          onDebugMessage('Quitting. Good-bye.');
-          process.exit(0);
+        action: async (mainCommand, _subCommand, _args) => {
+          const now = new Date();
+          const { sessionStartTime, cumulative } = session.stats;
+          const wallDuration = now.getTime() - sessionStartTime.getTime();
+
+          setQuittingMessages([
+            {
+              type: 'user',
+              text: `/${mainCommand}`,
+              id: now.getTime() - 1,
+            },
+            {
+              type: 'quit',
+              stats: cumulative,
+              duration: formatDuration(wallDuration),
+              id: now.getTime(),
+            },
+          ]);
+
+          setTimeout(() => {
+            process.exit(0);
+          }, 100);
         },
       },
-    ],
-    [
-      onDebugMessage,
-      setShowHelp,
-      refreshStatic,
-      openThemeDialog,
-      clearItems,
-      performMemoryRefresh,
-      showMemoryAction,
-      addMemoryAction,
-      addMessage,
-      toggleCorgiMode,
-      config,
-      cliVersion,
-    ],
-  );
+    ];
+
+    if (config?.getCheckpointEnabled()) {
+      commands.push({
+        name: 'restore',
+        description:
+          'restore a tool call. This will reset the conversation and file history to the state it was in when the tool call was suggested',
+        action: async (_mainCommand, subCommand, _args) => {
+          const checkpointDir = config?.getGeminiDir()
+            ? path.join(config.getGeminiDir(), 'checkpoints')
+            : undefined;
+
+          if (!checkpointDir) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Could not determine the .gemini directory path.',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          try {
+            // Ensure the directory exists before trying to read it.
+            await fs.mkdir(checkpointDir, { recursive: true });
+            const files = await fs.readdir(checkpointDir);
+            const jsonFiles = files.filter((file) => file.endsWith('.json'));
+
+            if (!subCommand) {
+              if (jsonFiles.length === 0) {
+                addMessage({
+                  type: MessageType.INFO,
+                  content: 'No restorable tool calls found.',
+                  timestamp: new Date(),
+                });
+                return;
+              }
+              const truncatedFiles = jsonFiles.map((file) => {
+                const components = file.split('.');
+                if (components.length <= 1) {
+                  return file;
+                }
+                components.pop();
+                return components.join('.');
+              });
+              const fileList = truncatedFiles.join('\n');
+              addMessage({
+                type: MessageType.INFO,
+                content: `Available tool calls to restore:\n\n${fileList}`,
+                timestamp: new Date(),
+              });
+              return;
+            }
+
+            const selectedFile = subCommand.endsWith('.json')
+              ? subCommand
+              : `${subCommand}.json`;
+
+            if (!jsonFiles.includes(selectedFile)) {
+              addMessage({
+                type: MessageType.ERROR,
+                content: `File not found: ${selectedFile}`,
+                timestamp: new Date(),
+              });
+              return;
+            }
+
+            const filePath = path.join(checkpointDir, selectedFile);
+            const data = await fs.readFile(filePath, 'utf-8');
+            const toolCallData = JSON.parse(data);
+
+            if (toolCallData.history) {
+              loadHistory(toolCallData.history);
+            }
+
+            if (toolCallData.clientHistory) {
+              await config
+                ?.getGeminiClient()
+                ?.setHistory(toolCallData.clientHistory);
+            }
+
+            if (toolCallData.commitHash) {
+              await gitService?.restoreProjectFromSnapshot(
+                toolCallData.commitHash,
+              );
+              addMessage({
+                type: MessageType.INFO,
+                content: `Restored project to the state before the tool call.`,
+                timestamp: new Date(),
+              });
+            }
+
+            return {
+              shouldScheduleTool: true,
+              toolName: toolCallData.toolCall.name,
+              toolArgs: toolCallData.toolCall.args,
+            };
+          } catch (error) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Could not read restorable tool calls. This is the error: ${error}`,
+              timestamp: new Date(),
+            });
+          }
+        },
+      });
+    }
+    return commands;
+  }, [
+    onDebugMessage,
+    setShowHelp,
+    refreshStatic,
+    openThemeDialog,
+    openEditorDialog,
+    clearItems,
+    performMemoryRefresh,
+    showMemoryAction,
+    addMemoryAction,
+    addMessage,
+    toggleCorgiMode,
+    config,
+    showToolDescriptions,
+    session,
+    gitService,
+    loadHistory,
+    addItem,
+    setQuittingMessages,
+  ]);
 
   const handleSlashCommand = useCallback(
-    (rawQuery: PartListUnion): SlashCommandActionReturn | boolean => {
+    async (
+      rawQuery: PartListUnion,
+    ): Promise<SlashCommandActionReturn | boolean> => {
       if (typeof rawQuery !== 'string') {
         return false;
       }
@@ -313,7 +781,12 @@ Add any other context about the problem here.
         return false;
       }
       const userMessageTimestamp = Date.now();
-      addItem({ type: MessageType.USER, text: trimmed }, userMessageTimestamp);
+      if (trimmed !== '/quit' && trimmed !== '/exit') {
+        addItem(
+          { type: MessageType.USER, text: trimmed },
+          userMessageTimestamp,
+        );
+      }
 
       let subCommand: string | undefined;
       let args: string | undefined;
@@ -336,7 +809,7 @@ Add any other context about the problem here.
 
       for (const cmd of slashCommands) {
         if (mainCommand === cmd.name || mainCommand === cmd.altName) {
-          const actionResult = cmd.action(mainCommand, subCommand, args);
+          const actionResult = await cmd.action(mainCommand, subCommand, args);
           if (
             typeof actionResult === 'object' &&
             actionResult?.shouldScheduleTool

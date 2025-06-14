@@ -6,10 +6,28 @@ The Gemini CLI supports several built-in commands to help you manage your sessio
 
 Slash commands provide meta-level control over the CLI itself. They can typically be executed by typing the command and pressing `Enter`.
 
+- **`/editor`**
+
+  - **Description:** Allows you to configure your external editor for actions such as modifying Gemini's proposed code change.
+  - **Action:** Opens a dialog for selecting supported editors.
+
 - **`/help`** (or **`/?`**)
 
   - **Description:** Displays help information about the Gemini CLI, including available commands and their usage.
   - **Action:** Opens a help dialog or section within the CLI.
+
+- **`/mcp`** (Toggle descriptions: **Ctrl+T**)
+
+  - **Description:** Lists configured Model Context Protocol (MCP) servers and their available tools.
+  - **Action:** Displays a formatted list of MCP servers with connection status indicators, server details, and available tools.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Shows detailed descriptions for MCP servers and tools.
+      - **Action:** Displays each tool's name with its full description, formatted for readability.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hides tool descriptions, showing only the tool names.
+      - **Action:** Displays a compact list with only tool names.
+  - **Keyboard Shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
 
 - **`/clear`** (Shortcut: **Ctrl+L**)
 
@@ -32,14 +50,16 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
     - **`refresh`**:
       - **Description:** Reloads the hierarchical instructional context (memory) from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the AI's understanding based on the latest `GEMINI.md` content.
       - **Action:** The CLI re-scans for all relevant `GEMINI.md` files and rebuilds its instructional memory. The number of loaded files is typically indicated in the CLI footer.
-    - **`delete_all_added`**:
-      - **Description:** Removes all ad-hoc memory entries that were added during the current session via `/memory add`. This does not affect memory loaded from `GEMINI.md` files.
-      - **Action:** All user-added memory entries for the current session are cleared.
-  - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
+    - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
 - **`/quit`** (or **`/exit`**)
+
   - **Description:** Exits the Gemini CLI application.
   - **Action:** Terminates the CLI process.
+
+- **`/tools`**
+  - **Description:** Displays a list of all the tools that are currently available to the model.
+  - **Action:** Outputs a list of the available tools.
 
 ## At Commands (`@`)
 
@@ -99,6 +119,6 @@ The `!` prefix provides a powerful way to interact with your system's shell dire
     - Type your shell commands (e.g., `cd my_project`, `npm run dev`, `cat file.txt`).
     - Type `!` and press Enter again to exit Shell Mode.
 
-- **Caution for all `!` usage:** Be mindful of the commands you execute, as they have the same permissions and impact as if you ran them directly in your terminal. The Shell Mode feature does not inherently add extra sandboxing beyond what's already configured for the underlying `execute_bash_command` tool.
+- **Caution for all `!` usage:** Be mindful of the commands you execute, as they have the same permissions and impact as if you ran them directly in your terminal. The Shell Mode feature does not inherently add extra sandboxing beyond what's already configured for the underlying `run_shell_command` tool.
 
 This integrated shell capability allows for seamless switching between AI-assisted tasks and direct system interaction.

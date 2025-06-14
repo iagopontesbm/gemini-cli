@@ -1,5 +1,5 @@
 {
-  "name": "@gemini-code/cli",
+  "name": "@gemini-cli/cli",
   "version": "0.1.0",
   "description": "Gemini CLI",
   "type": "module",
@@ -8,7 +8,7 @@
     "gemini": "dist/index.js"
   },
   "scripts": {
-    "build": "../../scripts/build_package.sh",
+    "build": "node ../../scripts/build_package.js",
     "clean": "rm -rf dist",
     "start": "node dist/index.js",
     "debug": "node --inspect-brk dist/index.js",
@@ -19,7 +19,7 @@
     "typecheck": "tsc --noEmit",
     "prerelease:version": "node ../../scripts/bind_package_version.js",
     "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
-    "prepublishOnly": "npm publish --workspace=@gemini-code/core",
+    "prepublishOnly": "npm publish --workspace=@gemini-cli/core",
     "prepack": "npm run build"
   },
   "files": [
@@ -29,7 +29,8 @@
     "sandboxImageUri": "gemini-cli-sandbox"
   },
   "dependencies": {
-    "@gemini-code/core": "0.1.0",
+    "@gemini-cli/core": "file:../core",
+    "command-exists": "^1.2.9",
     "diff": "^7.0.0",
     "dotenv": "^16.4.7",
     "highlight.js": "^11.11.1",
@@ -52,6 +53,7 @@
   },
   "devDependencies": {
     "@testing-library/react": "^14.0.0",
+    "@types/command-exists": "^1.2.3",
     "@types/diff": "^7.0.2",
     "@types/dotenv": "^6.1.1",
     "@types/node": "^20.11.24",

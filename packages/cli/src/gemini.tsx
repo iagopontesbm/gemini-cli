@@ -6,18 +6,18 @@
 
 import React from 'react';
 import { render } from 'ink';
-import { App } from './ui/App.js';
+import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
-import { readPackageUp } from 'read-package-up';
-import { fileURLToPath } from 'node:url';
-import { dirname } from 'node:path';
+import { basename } from 'node:path';
 import { sandbox_command, start_sandbox } from './utils/sandbox.js';
 import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
 import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
+import { loadExtensions, Extension } from './config/extension.js';
+import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
@@ -32,45 +32,45 @@ import {
   WebFetchTool,
   WebSearchTool,
   WriteFileTool,
-} from '@gemini-code/core';
+  sessionId,
+  logUserPrompt,
+} from '@gemini-cli/core';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-async function main() {
-  // warn about deprecated environment variables
-  if (process.env.GEMINI_CODE_MODEL) {
-    console.warn('GEMINI_CODE_MODEL is deprecated. Use GEMINI_MODEL instead.');
-    process.env.GEMINI_MODEL = process.env.GEMINI_CODE_MODEL;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX is deprecated. Use GEMINI_SANDBOX instead.',
-    );
-    process.env.GEMINI_SANDBOX = process.env.GEMINI_CODE_SANDBOX;
-  }
-  if (process.env.GEMINI_CODE_SANDBOX_IMAGE) {
-    console.warn(
-      'GEMINI_CODE_SANDBOX_IMAGE is deprecated. Use GEMINI_SANDBOX_IMAGE_NAME instead.',
-    );
-    process.env.GEMINI_SANDBOX_IMAGE_NAME =
-      process.env.GEMINI_CODE_SANDBOX_IMAGE; // Corrected to GEMINI_SANDBOX_IMAGE_NAME
-  }
-
+export async function main() {
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
-  const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
+  setWindowTitle(basename(workspaceRoot), settings);
 
-  const { config, modelWasSwitched, originalModelBeforeSwitch, finalModel } =
-    await loadCliConfig(settings.merged, geminiIgnorePatterns);
+  const geminiIgnorePatterns = await loadGeminiIgnorePatterns(workspaceRoot);
+  await cleanupCheckpoints();
+  if (settings.errors.length > 0) {
+    for (const error of settings.errors) {
+      let errorMessage = `Error in ${error.path}: ${error.message}`;
+      if (!process.env.NO_COLOR) {
+        errorMessage = `\x1b[31m${errorMessage}\x1b[0m`;
+      }
+      console.error(errorMessage);
+      console.error(`Please fix ${error.path} and try again.`);
+    }
+    process.exit(1);
+  }
+
+  const extensions = loadExtensions(workspaceRoot);
+  const config = await loadCliConfig(
+    settings.merged,
+    extensions,
+    geminiIgnorePatterns,
+    sessionId,
+  );
 
   // Initialize centralized FileDiscoveryService
   await config.getFileService();
-
-  if (modelWasSwitched && originalModelBeforeSwitch) {
-    console.log(
-      `[INFO] Your configured model (${originalModelBeforeSwitch}) was temporarily unavailable. Switched to ${finalModel} for this session.`,
-    );
+  if (config.getCheckpointEnabled()) {
+    try {
+      await config.getGitService();
+    } catch {
+      // For now swallow the error, later log it.
+    }
   }
 
   if (settings.merged.theme) {
@@ -80,6 +80,10 @@ async function main() {
       console.warn(`Warning: Theme "${settings.merged.theme}" not found.`);
     }
   }
+
+  // When using Code Assist this triggers the Oauth login.
+  // Do this now, before sandboxing, so web redirect works.
+  await config.getGeminiClient().getChat();
 
   // hop into sandbox if we are outside and sandboxing is enabled
   if (!process.env.SANDBOX) {
@@ -95,16 +99,11 @@ async function main() {
 
   // Render UI, passing necessary config values. Check that there is no command line question.
   if (process.stdin.isTTY && input?.length === 0) {
-    const readUpResult = await readPackageUp({ cwd: __dirname });
-    const cliVersion =
-      process.env.CLI_VERSION || readUpResult?.packageJson.version || 'unknown';
-
     render(
       <React.StrictMode>
-        <App
+        <AppWrapper
           config={config}
           settings={settings}
-          cliVersion={cliVersion}
           startupWarnings={startupWarnings}
         />
       </React.StrictMode>,
@@ -122,11 +121,30 @@ async function main() {
     process.exit(1);
   }
 
+  logUserPrompt(config, {
+    prompt: input,
+    prompt_length: input.length,
+  });
+
   // Non-interactive mode handled by runNonInteractive
-  const nonInteractiveConfig = await loadNonInteractiveConfig(config, settings);
+  const nonInteractiveConfig = await loadNonInteractiveConfig(
+    config,
+    extensions,
+    settings,
+  );
 
   await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
+}
+
+function setWindowTitle(title: string, settings: LoadedSettings) {
+  if (!settings.merged.hideWindowTitle) {
+    process.stdout.write(`\x1b]2; Gemini - ${title} \x07`);
+
+    process.on('exit', () => {
+      process.stdout.write(`\x1b]2;\x07`);
+    });
+  }
 }
 
 // --- Global Unhandled Rejection Handler ---
@@ -144,19 +162,9 @@ process.on('unhandledRejection', (reason, _promise) => {
   process.exit(1);
 });
 
-// --- Global Entry Point ---
-main().catch((error) => {
-  console.error('An unexpected critical error occurred:');
-  if (error instanceof Error) {
-    console.error(error.message);
-  } else {
-    console.error(String(error));
-  }
-  process.exit(1);
-});
-
 async function loadNonInteractiveConfig(
   config: Config,
+  extensions: Extension[],
   settings: LoadedSettings,
 ) {
   if (config.getApprovalMode() === ApprovalMode.YOLO) {
@@ -188,9 +196,10 @@ async function loadNonInteractiveConfig(
     ...settings.merged,
     coreTools: nonInteractiveTools,
   };
-  const nonInteractiveConfigResult = await loadCliConfig(
+  return await loadCliConfig(
     nonInteractiveSettings,
+    extensions,
     config.getGeminiIgnorePatterns(),
+    config.getSessionId(),
   );
-  return nonInteractiveConfigResult.config;
 }

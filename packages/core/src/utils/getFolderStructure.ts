@@ -8,6 +8,7 @@ import * as fs from 'fs/promises';
 import { Dirent } from 'fs';
 import * as path from 'path';
 import { getErrorMessage, isNodeError } from './errors.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 const MAX_ITEMS = 200;
 const TRUNCATION_INDICATOR = '...';
@@ -23,13 +24,16 @@ interface FolderStructureOptions {
   ignoredFolders?: Set<string>;
   /** Optional regex to filter included files by name. */
   fileIncludePattern?: RegExp;
+  /** For filtering files. */
+  fileService?: FileDiscoveryService;
 }
 
 // Define a type for the merged options where fileIncludePattern remains optional
 type MergedFolderStructureOptions = Required<
-  Omit<FolderStructureOptions, 'fileIncludePattern'>
+  Omit<FolderStructureOptions, 'fileIncludePattern' | 'fileService'>
 > & {
   fileIncludePattern?: RegExp;
+  fileService?: FileDiscoveryService;
 };
 
 /** Represents the full, unfiltered information about a folder and its contents. */
@@ -119,6 +123,12 @@ async function readFullStructure(
           break;
         }
         const fileName = entry.name;
+        const filePath = path.join(currentPath, fileName);
+        if (options.fileService) {
+          if (options.fileService.shouldIgnoreFile(filePath)) {
+            continue;
+          }
+        }
         if (
           !options.fileIncludePattern ||
           options.fileIncludePattern.test(fileName)
@@ -148,7 +158,14 @@ async function readFullStructure(
         const subFolderName = entry.name;
         const subFolderPath = path.join(currentPath, subFolderName);
 
-        if (options.ignoredFolders.has(subFolderName)) {
+        let isIgnoredByGit = false;
+        if (options?.fileService) {
+          if (options.fileService.shouldIgnoreFile(subFolderPath)) {
+            isIgnoredByGit = true;
+          }
+        }
+
+        if (options.ignoredFolders.has(subFolderName) || isIgnoredByGit) {
           const ignoredSubFolder: FullFolderInfo = {
             name: subFolderName,
             path: subFolderPath,
@@ -275,6 +292,7 @@ export async function getFolderStructure(
     maxItems: options?.maxItems ?? MAX_ITEMS,
     ignoredFolders: options?.ignoredFolders ?? DEFAULT_IGNORED_FOLDERS,
     fileIncludePattern: options?.fileIncludePattern,
+    fileService: options?.fileService,
   };
 
   try {
@@ -317,7 +335,8 @@ export async function getFolderStructure(
     const summary =
       `Showing up to ${mergedOptions.maxItems} items (files + folders). ${disclaimer}`.trim();
 
-    return `${summary}\n\n${displayPath}/\n${structureLines.join('\n')}`;
+    const output = `${summary}\n\n${displayPath}/\n${structureLines.join('\n')}`;
+    return output;
   } catch (error: unknown) {
     console.error(`Error getting folder structure for ${resolvedPath}:`, error);
     return `Error processing directory "${resolvedPath}": ${getErrorMessage(error)}`;

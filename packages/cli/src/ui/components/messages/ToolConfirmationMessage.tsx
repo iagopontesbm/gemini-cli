@@ -13,7 +13,8 @@ import {
   ToolConfirmationOutcome,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
-} from '@gemini-code/core';
+  Config,
+} from '@gemini-cli/core';
 import {
   RadioButtonSelect,
   RadioSelectItem,
@@ -21,14 +22,17 @@ import {
 
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
+  config?: Config;
+  isFocused?: boolean;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails }) => {
+> = ({ confirmationDetails, isFocused = true }) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
+    if (!isFocused) return;
     if (key.escape) {
       onConfirm(ToolConfirmationOutcome.Cancel);
     }
@@ -44,6 +48,24 @@ export const ToolConfirmationMessage: React.FC<
   >();
 
   if (confirmationDetails.type === 'edit') {
+    if (confirmationDetails.isModifying) {
+      return (
+        <Box
+          minWidth="90%"
+          borderStyle="round"
+          borderColor={Colors.Gray}
+          justifyContent="space-around"
+          padding={1}
+          overflow="hidden"
+        >
+          <Text>Modify in progress: </Text>
+          <Text color={Colors.AccentGreen}>
+            Save and close external editor to continue
+          </Text>
+        </Box>
+      );
+    }
+
     // Body content is now the DiffRenderer, passing filename to it
     // The bordered box is removed from here and handled within DiffRenderer
     bodyContent = (
@@ -62,6 +84,10 @@ export const ToolConfirmationMessage: React.FC<
       {
         label: 'Yes, allow always',
         value: ToolConfirmationOutcome.ProceedAlways,
+      },
+      {
+        label: 'Modify with external editor',
+        value: ToolConfirmationOutcome.ModifyWithEditor,
       },
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
@@ -85,6 +111,38 @@ export const ToolConfirmationMessage: React.FC<
       },
       {
         label: `Yes, allow always "${executionProps.rootCommand} ..."`,
+        value: ToolConfirmationOutcome.ProceedAlways,
+      },
+      { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
+    );
+  } else if (confirmationDetails.type === 'info') {
+    const infoProps = confirmationDetails;
+    const displayUrls =
+      infoProps.urls &&
+      !(infoProps.urls.length === 1 && infoProps.urls[0] === infoProps.prompt);
+
+    bodyContent = (
+      <Box flexDirection="column" paddingX={1} marginLeft={1}>
+        <Text color={Colors.AccentCyan}>{infoProps.prompt}</Text>
+        {displayUrls && infoProps.urls && infoProps.urls.length > 0 && (
+          <Box flexDirection="column" marginTop={1}>
+            <Text>URLs to fetch:</Text>
+            {infoProps.urls.map((url) => (
+              <Text key={url}> - {url}</Text>
+            ))}
+          </Box>
+        )}
+      </Box>
+    );
+
+    question = `Do you want to proceed?`;
+    options.push(
+      {
+        label: 'Yes, allow once',
+        value: ToolConfirmationOutcome.ProceedOnce,
+      },
+      {
+        label: 'Yes, allow always',
         value: ToolConfirmationOutcome.ProceedAlways,
       },
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
@@ -133,7 +191,11 @@ export const ToolConfirmationMessage: React.FC<
 
       {/* Select Input for Options */}
       <Box flexShrink={0}>
-        <RadioButtonSelect items={options} onSelect={handleSelect} />
+        <RadioButtonSelect
+          items={options}
+          onSelect={handleSelect}
+          isFocused={isFocused}
+        />
       </Box>
     </Box>
   );

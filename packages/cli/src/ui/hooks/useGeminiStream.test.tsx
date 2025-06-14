@@ -15,9 +15,12 @@ import {
   TrackedExecutingToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
-import { Config } from '@gemini-code/core';
+import { Config, EditorType } from '@gemini-cli/core';
 import { Part, PartListUnion } from '@google/genai';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
+import { HistoryItem } from '../types.js';
+import { Dispatch, SetStateAction } from 'react';
+import { LoadedSettings } from '../../config/settings.js';
 
 // --- MOCKS ---
 const mockSendMessageStream = vi
@@ -30,15 +33,16 @@ const MockedGeminiClientClass = vi.hoisted(() =>
     // _config
     this.startChat = mockStartChat;
     this.sendMessageStream = mockSendMessageStream;
+    this.addHistory = vi.fn();
   }),
 );
 
-vi.mock('@gemini-code/core', async (importOriginal) => {
+vi.mock('@gemini-cli/core', async (importOriginal) => {
   const actualCoreModule = (await importOriginal()) as any;
   return {
-    ...(actualCoreModule || {}),
-    GeminiClient: MockedGeminiClientClass, // Export the class for type checking or other direct uses
-    Config: actualCoreModule.Config, // Ensure Config is passed through
+    ...actualCoreModule,
+    GitService: vi.fn(),
+    GeminiClient: MockedGeminiClientClass,
   };
 });
 
@@ -92,6 +96,15 @@ vi.mock('./useLogger.js', () => ({
   useLogger: vi.fn().mockReturnValue({
     logMessage: vi.fn().mockResolvedValue(undefined),
   }),
+}));
+
+const mockStartNewTurn = vi.fn();
+const mockAddUsage = vi.fn();
+vi.mock('../contexts/SessionContext.js', () => ({
+  useSessionStats: vi.fn(() => ({
+    startNewTurn: mockStartNewTurn,
+    addUsage: mockAddUsage,
+  })),
 }));
 
 vi.mock('./slashCommandProcessor.js', () => ({
@@ -266,10 +279,13 @@ describe('useGeminiStream', () => {
       getToolRegistry: vi.fn(
         () => ({ getToolSchemaList: vi.fn(() => []) }) as any,
       ),
+      getProjectRoot: vi.fn(() => '/test/dir'),
+      getCheckpointEnabled: vi.fn(() => false),
       getGeminiClient: mockGetGeminiClient,
+      addHistory: vi.fn(),
     } as unknown as Config;
     mockOnDebugMessage = vi.fn();
-    mockHandleSlashCommand = vi.fn().mockReturnValue(false);
+    mockHandleSlashCommand = vi.fn().mockResolvedValue(false);
 
     // Mock return value for useReactToolScheduler
     mockScheduleToolCalls = vi.fn();
@@ -294,7 +310,19 @@ describe('useGeminiStream', () => {
       .mockReturnValue((async function* () {})());
   });
 
-  const renderTestHook = (initialToolCalls: TrackedToolCall[] = []) => {
+  const mockLoadedSettings: LoadedSettings = {
+    merged: { preferredEditor: 'vscode' },
+    user: { path: '/user/settings.json', settings: {} },
+    workspace: { path: '/workspace/.gemini/settings.json', settings: {} },
+    errors: [],
+    forScope: vi.fn(),
+    setValue: vi.fn(),
+  } as unknown as LoadedSettings;
+
+  const renderTestHook = (
+    initialToolCalls: TrackedToolCall[] = [],
+    geminiClient?: any,
+  ) => {
     mockUseReactToolScheduler.mockReturnValue([
       initialToolCalls,
       mockScheduleToolCalls,
@@ -302,22 +330,61 @@ describe('useGeminiStream', () => {
       mockMarkToolsAsSubmitted,
     ]);
 
-    const { result, rerender } = renderHook(() =>
-      useGeminiStream(
-        mockAddItem as unknown as UseHistoryManagerReturn['addItem'],
-        mockSetShowHelp,
-        mockConfig,
-        mockOnDebugMessage,
-        mockHandleSlashCommand,
-        false, // shellModeActive
-      ),
+    const client = geminiClient || mockConfig.getGeminiClient();
+
+    const { result, rerender } = renderHook(
+      (props: {
+        client: any;
+        history: HistoryItem[];
+        addItem: UseHistoryManagerReturn['addItem'];
+        setShowHelp: Dispatch<SetStateAction<boolean>>;
+        config: Config;
+        onDebugMessage: (message: string) => void;
+        handleSlashCommand: (
+          cmd: PartListUnion,
+        ) => Promise<
+          | import('./slashCommandProcessor.js').SlashCommandActionReturn
+          | boolean
+        >;
+        shellModeActive: boolean;
+        loadedSettings: LoadedSettings;
+      }) =>
+        useGeminiStream(
+          props.client,
+          props.history,
+          props.addItem,
+          props.setShowHelp,
+          props.config,
+          props.onDebugMessage,
+          props.handleSlashCommand,
+          props.shellModeActive,
+          () => 'vscode' as EditorType,
+        ),
+      {
+        initialProps: {
+          client,
+          history: [],
+          addItem: mockAddItem as unknown as UseHistoryManagerReturn['addItem'],
+          setShowHelp: mockSetShowHelp,
+          config: mockConfig,
+          onDebugMessage: mockOnDebugMessage,
+          handleSlashCommand: mockHandleSlashCommand as unknown as (
+            cmd: PartListUnion,
+          ) => Promise<
+            | import('./slashCommandProcessor.js').SlashCommandActionReturn
+            | boolean
+          >,
+          shellModeActive: false,
+          loadedSettings: mockLoadedSettings,
+        },
+      },
     );
     return {
       result,
       rerender,
       mockMarkToolsAsSubmitted,
       mockSendMessageStream,
-      // mockFilter removed
+      client,
     };
   };
 
@@ -414,24 +481,31 @@ describe('useGeminiStream', () => {
       } as TrackedCancelledToolCall,
     ];
 
-    const hookResult = await act(async () =>
-      renderTestHook(simplifiedToolCalls),
-    );
-
     const {
+      rerender,
       mockMarkToolsAsSubmitted,
       mockSendMessageStream: localMockSendMessageStream,
-    } = hookResult!;
+      client,
+    } = renderTestHook(simplifiedToolCalls);
 
-    // It seems the initial render + effect run should be enough.
-    // If rerender was for a specific state change, it might still be needed.
-    // For now, let's test if the initial effect run (covered by the first act) is sufficient.
-    // If not, we can add back: await act(async () => { rerender({}); });
-
-    expect(mockMarkToolsAsSubmitted).toHaveBeenCalledWith(['call1', 'call2']);
+    act(() => {
+      rerender({
+        client,
+        history: [],
+        addItem: mockAddItem,
+        setShowHelp: mockSetShowHelp,
+        config: mockConfig,
+        onDebugMessage: mockOnDebugMessage,
+        handleSlashCommand:
+          mockHandleSlashCommand as unknown as typeof mockHandleSlashCommand,
+        shellModeActive: false,
+        loadedSettings: mockLoadedSettings,
+      });
+    });
 
     await waitFor(() => {
-      expect(localMockSendMessageStream).toHaveBeenCalledTimes(1);
+      expect(mockMarkToolsAsSubmitted).toHaveBeenCalledTimes(0);
+      expect(localMockSendMessageStream).toHaveBeenCalledTimes(0);
     });
 
     const expectedMergedResponse = mergePartListUnions([
@@ -442,5 +516,128 @@ describe('useGeminiStream', () => {
       expectedMergedResponse,
       expect.any(AbortSignal),
     );
+  });
+
+  it('should handle all tool calls being cancelled', async () => {
+    const toolCalls: TrackedToolCall[] = [
+      {
+        request: { callId: '1', name: 'testTool', args: {} },
+        status: 'cancelled',
+        response: {
+          callId: '1',
+          responseParts: [{ text: 'cancelled' }],
+          error: undefined,
+          resultDisplay: 'Tool 1 cancelled display',
+        },
+        responseSubmittedToGemini: false,
+        tool: {
+          name: 'testTool',
+          description: 'desc',
+          getDescription: vi.fn(),
+        } as any,
+      },
+    ];
+
+    const client = new MockedGeminiClientClass(mockConfig);
+    const { mockMarkToolsAsSubmitted, rerender } = renderTestHook(
+      toolCalls,
+      client,
+    );
+
+    act(() => {
+      rerender({
+        client,
+        history: [],
+        addItem: mockAddItem,
+        setShowHelp: mockSetShowHelp,
+        config: mockConfig,
+        onDebugMessage: mockOnDebugMessage,
+        handleSlashCommand:
+          mockHandleSlashCommand as unknown as typeof mockHandleSlashCommand,
+        shellModeActive: false,
+        loadedSettings: mockLoadedSettings,
+      });
+    });
+
+    await waitFor(() => {
+      expect(mockMarkToolsAsSubmitted).toHaveBeenCalledTimes(0);
+      expect(client.addHistory).toHaveBeenCalledTimes(2);
+      expect(client.addHistory).toHaveBeenCalledWith({
+        role: 'user',
+        parts: [{ text: 'cancelled' }],
+      });
+    });
+  });
+
+  describe('Session Stats Integration', () => {
+    it('should call startNewTurn and addUsage for a simple prompt', async () => {
+      const mockMetadata = { totalTokenCount: 123 };
+      const mockStream = (async function* () {
+        yield { type: 'content', value: 'Response' };
+        yield { type: 'usage_metadata', value: mockMetadata };
+      })();
+      mockSendMessageStream.mockReturnValue(mockStream);
+
+      const { result } = renderTestHook();
+
+      await act(async () => {
+        await result.current.submitQuery('Hello, world!');
+      });
+
+      expect(mockStartNewTurn).toHaveBeenCalledTimes(1);
+      expect(mockAddUsage).toHaveBeenCalledTimes(1);
+      expect(mockAddUsage).toHaveBeenCalledWith(mockMetadata);
+    });
+
+    it('should only call addUsage for a tool continuation prompt', async () => {
+      const mockMetadata = { totalTokenCount: 456 };
+      const mockStream = (async function* () {
+        yield { type: 'content', value: 'Final Answer' };
+        yield { type: 'usage_metadata', value: mockMetadata };
+      })();
+      mockSendMessageStream.mockReturnValue(mockStream);
+
+      const { result } = renderTestHook();
+
+      await act(async () => {
+        await result.current.submitQuery([{ text: 'tool response' }], {
+          isContinuation: true,
+        });
+      });
+
+      expect(mockStartNewTurn).not.toHaveBeenCalled();
+      expect(mockAddUsage).toHaveBeenCalledTimes(1);
+      expect(mockAddUsage).toHaveBeenCalledWith(mockMetadata);
+    });
+
+    it('should not call addUsage if the stream contains no usage metadata', async () => {
+      // Arrange: A stream that yields content but never a usage_metadata event
+      const mockStream = (async function* () {
+        yield { type: 'content', value: 'Some response text' };
+      })();
+      mockSendMessageStream.mockReturnValue(mockStream);
+
+      const { result } = renderTestHook();
+
+      await act(async () => {
+        await result.current.submitQuery('Query with no usage data');
+      });
+
+      expect(mockStartNewTurn).toHaveBeenCalledTimes(1);
+      expect(mockAddUsage).not.toHaveBeenCalled();
+    });
+
+    it('should not call startNewTurn for a slash command', async () => {
+      mockHandleSlashCommand.mockReturnValue(true);
+
+      const { result } = renderTestHook();
+
+      await act(async () => {
+        await result.current.submitQuery('/stats');
+      });
+
+      expect(mockStartNewTurn).not.toHaveBeenCalled();
+      expect(mockSendMessageStream).not.toHaveBeenCalled();
+    });
   });
 });

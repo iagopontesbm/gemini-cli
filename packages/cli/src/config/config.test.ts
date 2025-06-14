@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// packages/cli/src/config/config.test.ts
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as os from 'os';
 import { loadCliConfig } from './config.js';
 import { Settings } from './settings.js';
-import * as ServerConfig from '@gemini-code/core';
+import { Extension } from './extension.js';
+import * as ServerConfig from '@gemini-cli/core';
 
 const MOCK_HOME_DIR = '/mock/home/user';
 
@@ -28,37 +27,18 @@ vi.mock('read-package-up', () => ({
   ),
 }));
 
-vi.mock('@gemini-code/core', async () => {
+vi.mock('@gemini-cli/core', async () => {
   const actualServer =
-    await vi.importActual<typeof ServerConfig>('@gemini-code/core');
+    await vi.importActual<typeof ServerConfig>('@gemini-cli/core');
   return {
     ...actualServer,
     loadEnvironment: vi.fn(),
-    createServerConfig: vi.fn((params) => ({
-      // Mock the config object and its methods
-      getApiKey: () => params.apiKey,
-      getModel: () => params.model,
-      getSandbox: () => params.sandbox,
-      getTargetDir: () => params.targetDir,
-      getDebugMode: () => params.debugMode,
-      getQuestion: () => params.question,
-      getFullContext: () => params.fullContext,
-      getCoreTools: () => params.coreTools,
-      getToolDiscoveryCommand: () => params.toolDiscoveryCommand,
-      getToolCallCommand: () => params.toolCallCommand,
-      getMcpServerCommand: () => params.mcpServerCommand,
-      getMcpServers: () => params.mcpServers,
-      getUserAgent: () => params.userAgent,
-      getUserMemory: () => params.userMemory,
-      getGeminiMdFileCount: () => params.geminiMdFileCount,
-      getVertexAI: () => params.vertexai,
-      getShowMemoryUsage: () => params.showMemoryUsage, // Added for the test
-      // Add any other methods that are called on the config object
-      setUserMemory: vi.fn(),
-      setGeminiMdFileCount: vi.fn(),
-    })),
-    loadServerHierarchicalMemory: vi.fn(() =>
-      Promise.resolve({ memoryContent: '', fileCount: 0 }),
+    loadServerHierarchicalMemory: vi.fn(
+      (cwd, debug, fileService, extensionPaths) =>
+        Promise.resolve({
+          memoryContent: extensionPaths?.join(',') || '',
+          fileCount: extensionPaths?.length || 0,
+        }),
     ),
   };
 });
@@ -82,29 +62,137 @@ describe('loadCliConfig', () => {
   it('should set showMemoryUsage to true when --memory flag is present', async () => {
     process.argv = ['node', 'script.js', '--show_memory_usage'];
     const settings: Settings = {};
-    const result = await loadCliConfig(settings);
-    expect(result.config.getShowMemoryUsage()).toBe(true);
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getShowMemoryUsage()).toBe(true);
   });
 
   it('should set showMemoryUsage to false when --memory flag is not present', async () => {
     process.argv = ['node', 'script.js'];
     const settings: Settings = {};
-    const result = await loadCliConfig(settings);
-    expect(result.config.getShowMemoryUsage()).toBe(false);
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getShowMemoryUsage()).toBe(false);
   });
 
   it('should set showMemoryUsage to false by default from settings if CLI flag is not present', async () => {
     process.argv = ['node', 'script.js'];
     const settings: Settings = { showMemoryUsage: false };
-    const result = await loadCliConfig(settings);
-    expect(result.config.getShowMemoryUsage()).toBe(false);
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getShowMemoryUsage()).toBe(false);
   });
 
   it('should prioritize CLI flag over settings for showMemoryUsage (CLI true, settings false)', async () => {
     process.argv = ['node', 'script.js', '--show_memory_usage'];
     const settings: Settings = { showMemoryUsage: false };
-    const result = await loadCliConfig(settings);
-    expect(result.config.getShowMemoryUsage()).toBe(true);
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getShowMemoryUsage()).toBe(true);
+  });
+});
+
+describe('loadCliConfig telemetry', () => {
+  const originalArgv = process.argv;
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(os.homedir).mockReturnValue(MOCK_HOME_DIR);
+    process.env.GEMINI_API_KEY = 'test-api-key';
+  });
+
+  afterEach(() => {
+    process.argv = originalArgv;
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  it('should set telemetry to false by default when no flag or setting is present', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(false);
+  });
+
+  it('should set telemetry to true when --telemetry flag is present', async () => {
+    process.argv = ['node', 'script.js', '--telemetry'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(true);
+  });
+
+  it('should set telemetry to false when --no-telemetry flag is present', async () => {
+    process.argv = ['node', 'script.js', '--no-telemetry'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(false);
+  });
+
+  it('should use telemetry value from settings if CLI flag is not present (settings true)', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = { telemetry: true };
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(true);
+  });
+
+  it('should use telemetry value from settings if CLI flag is not present (settings false)', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = { telemetry: false };
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(false);
+  });
+
+  it('should prioritize --telemetry CLI flag (true) over settings (false)', async () => {
+    process.argv = ['node', 'script.js', '--telemetry'];
+    const settings: Settings = { telemetry: false };
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(true);
+  });
+
+  it('should prioritize --no-telemetry CLI flag (false) over settings (true)', async () => {
+    process.argv = ['node', 'script.js', '--no-telemetry'];
+    const settings: Settings = { telemetry: true };
+    const config = await loadCliConfig(settings, [], [], 'test-session');
+    expect(config.getTelemetryEnabled()).toBe(false);
+  });
+});
+
+describe('API Key Handling', () => {
+  const originalEnv = { ...process.env };
+  const originalArgv = process.argv;
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    process.argv = ['node', 'script.js'];
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    process.argv = originalArgv;
+  });
+
+  it('should use GEMINI_API_KEY from env', async () => {
+    process.env.GEMINI_API_KEY = 'gemini-key';
+    delete process.env.GOOGLE_API_KEY;
+
+    const settings: Settings = {};
+    const result = await loadCliConfig(settings, [], [], 'test-session');
+    expect(result.getContentGeneratorConfig().apiKey).toBe('gemini-key');
+  });
+
+  it('should use GOOGLE_API_KEY and warn when both GOOGLE_API_KEY and GEMINI_API_KEY are set', async () => {
+    const consoleWarnSpy = vi
+      .spyOn(console, 'warn')
+      .mockImplementation(() => {});
+
+    process.env.GEMINI_API_KEY = 'gemini-key';
+    process.env.GOOGLE_API_KEY = 'google-key';
+
+    const settings: Settings = {};
+    const result = await loadCliConfig(settings, [], [], 'test-session');
+
+    expect(consoleWarnSpy).toHaveBeenCalledWith(
+      '[WARN]',
+      'Both GEMINI_API_KEY and GOOGLE_API_KEY are set. Using GOOGLE_API_KEY.',
+    );
+    expect(result.getContentGeneratorConfig().apiKey).toBe('google-key');
   });
 });
 
@@ -119,15 +207,46 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
     vi.restoreAllMocks();
   });
 
-  it('should have a placeholder test to ensure test file validity', () => {
-    // This test suite is currently a placeholder.
-    // Tests for loadHierarchicalGeminiMemory were removed due to persistent
-    // and complex mocking issues with Node.js built-in modules (like 'os')
-    // in the Vitest environment. These issues prevented consistent and reliable
-    // testing of file system interactions dependent on os.homedir().
-    // The core logic was implemented as per specification, but the tests
-    // could not be stabilized.
-    expect(true).toBe(true);
+  it('should pass extension context file paths to loadServerHierarchicalMemory', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = {};
+    const extensions: Extension[] = [
+      {
+        config: {
+          name: 'ext1',
+          version: '1.0.0',
+        },
+        contextFiles: ['/path/to/ext1/GEMINI.md'],
+      },
+      {
+        config: {
+          name: 'ext2',
+          version: '1.0.0',
+        },
+        contextFiles: [],
+      },
+      {
+        config: {
+          name: 'ext3',
+          version: '1.0.0',
+        },
+        contextFiles: [
+          '/path/to/ext3/context1.md',
+          '/path/to/ext3/context2.md',
+        ],
+      },
+    ];
+    await loadCliConfig(settings, extensions, [], 'session-id');
+    expect(ServerConfig.loadServerHierarchicalMemory).toHaveBeenCalledWith(
+      expect.any(String),
+      false,
+      expect.any(Object),
+      [
+        '/path/to/ext1/GEMINI.md',
+        '/path/to/ext3/context1.md',
+        '/path/to/ext3/context2.md',
+      ],
+    );
   });
 
   // NOTE TO FUTURE DEVELOPERS:
@@ -151,4 +270,33 @@ describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
     expect(fsPromises.readFile).toHaveBeenCalledWith(MOCK_GLOBAL_PATH_LOCAL, 'utf-8');
   });
   */
+});
+
+describe('mergeMcpServers', () => {
+  it('should not modify the original settings object', async () => {
+    const settings: Settings = {
+      mcpServers: {
+        'test-server': {
+          url: 'http://localhost:8080',
+        },
+      },
+    };
+    const extensions: Extension[] = [
+      {
+        config: {
+          name: 'ext1',
+          version: '1.0.0',
+          mcpServers: {
+            'ext1-server': {
+              url: 'http://localhost:8081',
+            },
+          },
+        },
+        contextFiles: [],
+      },
+    ];
+    const originalSettings = JSON.parse(JSON.stringify(settings));
+    await loadCliConfig(settings, extensions, [], 'test-session');
+    expect(settings).toEqual(originalSettings);
+  });
 });

@@ -5,11 +5,13 @@
  */
 
 import {
+  logToolCall,
   ToolCallRequestInfo,
   ToolCallResponseInfo,
   ToolRegistry,
   ToolResult,
 } from '../index.js';
+import { Config } from '../config/config.js';
 import { convertToFunctionResponse } from './coreToolScheduler.js';
 
 /**
@@ -17,16 +19,26 @@ import { convertToFunctionResponse } from './coreToolScheduler.js';
  * It does not handle confirmations, multiple calls, or live updates.
  */
 export async function executeToolCall(
+  config: Config,
   toolCallRequest: ToolCallRequestInfo,
   toolRegistry: ToolRegistry,
   abortSignal?: AbortSignal,
 ): Promise<ToolCallResponseInfo> {
   const tool = toolRegistry.getTool(toolCallRequest.name);
 
+  const startTime = Date.now();
   if (!tool) {
     const error = new Error(
       `Tool "${toolCallRequest.name}" not found in registry.`,
     );
+    const durationMs = Date.now() - startTime;
+    logToolCall(config, {
+      function_name: toolCallRequest.name,
+      function_args: toolCallRequest.args,
+      duration_ms: durationMs,
+      success: false,
+      error: error.message,
+    });
     // Ensure the response structure matches what the API expects for an error
     return {
       callId: toolCallRequest.callId,
@@ -53,6 +65,14 @@ export async function executeToolCall(
       // No live output callback for non-interactive mode
     );
 
+    const durationMs = Date.now() - startTime;
+    logToolCall(config, {
+      function_name: toolCallRequest.name,
+      function_args: toolCallRequest.args,
+      duration_ms: durationMs,
+      success: true,
+    });
+
     const response = convertToFunctionResponse(
       toolCallRequest.name,
       toolCallRequest.callId,
@@ -67,6 +87,14 @@ export async function executeToolCall(
     };
   } catch (e) {
     const error = e instanceof Error ? e : new Error(String(e));
+    const durationMs = Date.now() - startTime;
+    logToolCall(config, {
+      function_name: toolCallRequest.name,
+      function_args: toolCallRequest.args,
+      duration_ms: durationMs,
+      success: false,
+      error: error.message,
+    });
     return {
       callId: toolCallRequest.callId,
       responseParts: [

@@ -5,8 +5,8 @@
  */
 
 import {
+  EmbedContentParameters,
   GenerateContentConfig,
-  GoogleGenAI,
   Part,
   SchemaUnion,
   PartListUnion,
@@ -14,7 +14,6 @@ import {
   Tool,
   GenerateContentResponse,
 } from '@google/genai';
-import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
 import { Turn, ServerGeminiStreamEvent, GeminiEventType } from './turn.js';
 import { Config } from '../config/config.js';
@@ -27,11 +26,18 @@ import { GeminiChat } from './geminiChat.js';
 import { retryWithBackoff } from '../utils/retry.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { tokenLimit } from './tokenLimits.js';
+import {
+  ContentGenerator,
+  createContentGenerator,
+} from './contentGenerator.js';
+import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 
 export class GeminiClient {
   private chat: Promise<GeminiChat>;
-  private client: GoogleGenAI;
+  private contentGenerator: Promise<ContentGenerator>;
   private model: string;
+  private embeddingModel: string;
   private generateContentConfig: GenerateContentConfig = {
     temperature: 0,
     topP: 1,
@@ -39,29 +45,39 @@ export class GeminiClient {
   private readonly MAX_TURNS = 100;
 
   constructor(private config: Config) {
-    const userAgent = config.getUserAgent();
-    const apiKeyFromConfig = config.getApiKey();
-    const vertexaiFlag = config.getVertexAI();
+    if (config.getProxy()) {
+      setGlobalDispatcher(new ProxyAgent(config.getProxy() as string));
+    }
 
-    this.client = new GoogleGenAI({
-      apiKey: apiKeyFromConfig === '' ? undefined : apiKeyFromConfig,
-      vertexai: vertexaiFlag,
-      httpOptions: {
-        headers: {
-          'User-Agent': userAgent,
-        },
-      },
-    });
+    this.contentGenerator = createContentGenerator(
+      this.config.getContentGeneratorConfig(),
+    );
     this.model = config.getModel();
+    this.embeddingModel = config.getEmbeddingModel();
     this.chat = this.startChat();
+  }
+
+  async addHistory(content: Content) {
+    const chat = await this.chat;
+    chat.addHistory(content);
   }
 
   getChat(): Promise<GeminiChat> {
     return this.chat;
   }
 
+  async getHistory(): Promise<Content[]> {
+    const chat = await this.chat;
+    return chat.getHistory();
+  }
+
+  async setHistory(history: Content[]): Promise<void> {
+    const chat = await this.chat;
+    chat.setHistory(history);
+  }
+
   private async getEnvironment(): Promise<Part[]> {
-    const cwd = process.cwd();
+    const cwd = this.config.getWorkingDir();
     const today = new Date().toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',
@@ -69,7 +85,9 @@ export class GeminiClient {
       day: 'numeric',
     });
     const platform = process.platform;
-    const folderStructure = await getFolderStructure(cwd);
+    const folderStructure = await getFolderStructure(cwd, {
+      fileService: await this.config.getFileService(),
+    });
     const context = `
   Okay, just setting up the context for our chat.
   Today is ${today}.
@@ -143,8 +161,8 @@ export class GeminiClient {
       const systemInstruction = getCoreSystemPrompt(userMemory);
 
       return new GeminiChat(
-        this.client,
-        this.client.models,
+        this.config,
+        await this.contentGenerator,
         this.model,
         {
           systemInstruction,
@@ -168,9 +186,10 @@ export class GeminiClient {
     request: PartListUnion,
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
-  ): AsyncGenerator<ServerGeminiStreamEvent> {
+  ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
     if (!turns) {
-      return;
+      const chat = await this.chat;
+      return new Turn(chat);
     }
 
     const compressed = await this.tryCompressChat();
@@ -187,18 +206,22 @@ export class GeminiClient {
       const nextSpeakerCheck = await checkNextSpeaker(chat, this, signal);
       if (nextSpeakerCheck?.next_speaker === 'model') {
         const nextRequest = [{ text: 'Please continue.' }];
+        // This recursive call's events will be yielded out, but the final
+        // turn object will be from the top-level call.
         yield* this.sendMessageStream(nextRequest, signal, turns - 1);
       }
     }
+    return turn;
   }
 
   async generateJson(
     contents: Content[],
     schema: SchemaUnion,
     abortSignal: AbortSignal,
-    model: string = 'gemini-2.0-flash',
+    model: string = DEFAULT_GEMINI_FLASH_MODEL,
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
+    const cg = await this.contentGenerator;
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -209,7 +232,7 @@ export class GeminiClient {
       };
 
       const apiCall = () =>
-        this.client.models.generateContent({
+        cg.generateContent({
           model,
           config: {
             ...requestConfig,
@@ -236,7 +259,8 @@ export class GeminiClient {
         throw error;
       }
       try {
-        return JSON.parse(text);
+        const parsedJson = JSON.parse(text);
+        return parsedJson;
       } catch (parseError) {
         await reportError(
           parseError,
@@ -248,12 +272,11 @@ export class GeminiClient {
           'generateJson-parse',
         );
         throw new Error(
-          `Failed to parse API response as JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`,
+          `Failed to parse API response as JSON: ${getErrorMessage(parseError)}`,
         );
       }
     } catch (error) {
       if (abortSignal.aborted) {
-        // Regular cancellation error, fail normally
         throw error;
       }
 
@@ -264,15 +287,16 @@ export class GeminiClient {
       ) {
         throw error;
       }
+
       await reportError(
         error,
         'Error generating JSON content via API.',
         contents,
         'generateJson-api',
       );
-      const message =
-        error instanceof Error ? error.message : 'Unknown API error.';
-      throw new Error(`Failed to generate JSON content: ${message}`);
+      throw new Error(
+        `Failed to generate JSON content: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -281,6 +305,7 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
+    const cg = await this.contentGenerator;
     const modelToUse = this.model;
     const configToUse: GenerateContentConfig = {
       ...this.generateContentConfig,
@@ -298,15 +323,19 @@ export class GeminiClient {
       };
 
       const apiCall = () =>
-        this.client.models.generateContent({
+        cg.generateContent({
           model: modelToUse,
           config: requestConfig,
           contents,
         });
 
       const result = await retryWithBackoff(apiCall);
+      console.log(
+        'Raw API Response in client.ts:',
+        JSON.stringify(result, null, 2),
+      );
       return result;
-    } catch (error) {
+    } catch (error: unknown) {
       if (abortSignal.aborted) {
         throw error;
       }
@@ -320,20 +349,53 @@ export class GeminiClient {
         },
         'generateContent-api',
       );
-      const message =
-        error instanceof Error ? error.message : 'Unknown API error.';
       throw new Error(
-        `Failed to generate content with model ${modelToUse}: ${message}`,
+        `Failed to generate content with model ${modelToUse}: ${getErrorMessage(error)}`,
       );
     }
+  }
+
+  async generateEmbedding(texts: string[]): Promise<number[][]> {
+    if (!texts || texts.length === 0) {
+      return [];
+    }
+    const embedModelParams: EmbedContentParameters = {
+      model: this.embeddingModel,
+      contents: texts,
+    };
+
+    const cg = await this.contentGenerator;
+    const embedContentResponse = await cg.embedContent(embedModelParams);
+    if (
+      !embedContentResponse.embeddings ||
+      embedContentResponse.embeddings.length === 0
+    ) {
+      throw new Error('No embeddings found in API response.');
+    }
+
+    if (embedContentResponse.embeddings.length !== texts.length) {
+      throw new Error(
+        `API returned a mismatched number of embeddings. Expected ${texts.length}, got ${embedContentResponse.embeddings.length}.`,
+      );
+    }
+
+    return embedContentResponse.embeddings.map((embedding, index) => {
+      const values = embedding.values;
+      if (!values || values.length === 0) {
+        throw new Error(
+          `API returned an empty embedding for input text at index ${index}: "${texts[index]}"`,
+        );
+      }
+      return values;
+    });
   }
 
   private async tryCompressChat(): Promise<boolean> {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
-    // Count tokens using the models module from the GoogleGenAI client instance
-    const { totalTokens } = await this.client.models.countTokens({
+    const cg = await this.contentGenerator;
+    const { totalTokens } = await cg.countTokens({
       model: this.model,
       contents: history,
     });

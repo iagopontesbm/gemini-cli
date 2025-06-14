@@ -5,65 +5,49 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Text, Box, useInput, useStdin } from 'ink';
+import { Text, Box, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
-import { useTextBuffer, cpSlice, cpLen } from './shared/text-buffer.js';
+import { cpSlice, cpLen, TextBuffer } from './shared/text-buffer.js';
 import chalk from 'chalk';
-import { useTerminalSize } from '../hooks/useTerminalSize.js';
 import stringWidth from 'string-width';
 import process from 'node:process';
 import { useCompletion } from '../hooks/useCompletion.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
 import { SlashCommand } from '../hooks/slashCommandProcessor.js';
-import { Config } from '@gemini-code/core';
+import { Config } from '@gemini-cli/core';
 
 export interface InputPromptProps {
+  buffer: TextBuffer;
   onSubmit: (value: string) => void;
   userMessages: readonly string[];
   onClearScreen: () => void;
   config: Config; // Added config for useCompletion
   slashCommands: SlashCommand[]; // Added slashCommands for useCompletion
   placeholder?: string;
-  height?: number; // Visible height of the editor area
   focus?: boolean;
-  widthFraction: number;
+  inputWidth: number;
+  suggestionsWidth: number;
   shellModeActive: boolean;
   setShellModeActive: (value: boolean) => void;
 }
 
 export const InputPrompt: React.FC<InputPromptProps> = ({
+  buffer,
   onSubmit,
   userMessages,
   onClearScreen,
   config,
   slashCommands,
-  placeholder = 'Type your message or @path/to/file',
-  height = 10,
+  placeholder = '  Type your message or @path/to/file',
   focus = true,
-  widthFraction,
+  inputWidth,
+  suggestionsWidth,
   shellModeActive,
   setShellModeActive,
 }) => {
-  const terminalSize = useTerminalSize();
-  const padding = 3;
-  const effectiveWidth = Math.max(
-    20,
-    Math.round(terminalSize.columns * widthFraction) - padding,
-  );
-  const suggestionsWidth = Math.max(60, Math.floor(terminalSize.columns * 0.8));
-
   const [justNavigatedHistory, setJustNavigatedHistory] = useState(false);
-
-  const { stdin, setRawMode } = useStdin();
-
-  const buffer = useTextBuffer({
-    initialText: '',
-    viewport: { height, width: effectiveWidth },
-    stdin,
-    setRawMode,
-  });
 
   const completion = useCompletion(
     buffer.text,
@@ -349,15 +333,21 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         </Text>
         <Box flexGrow={1} flexDirection="column">
           {buffer.text.length === 0 && placeholder ? (
-            <Text color={Colors.SubtleComment}>{placeholder}</Text>
+            focus ? (
+              <Text>
+                {chalk.inverse(placeholder.slice(0, 1))}
+                <Text color={Colors.Gray}>{placeholder.slice(1)}</Text>
+              </Text>
+            ) : (
+              <Text color={Colors.Gray}>{placeholder}</Text>
+            )
           ) : (
             linesToRender.map((lineText, visualIdxInRenderedSet) => {
               const cursorVisualRow = cursorVisualRowAbsolute - scrollVisualRow;
-              let display = cpSlice(lineText, 0, effectiveWidth);
+              let display = cpSlice(lineText, 0, inputWidth);
               const currentVisualWidth = stringWidth(display);
-              if (currentVisualWidth < effectiveWidth) {
-                display =
-                  display + ' '.repeat(effectiveWidth - currentVisualWidth);
+              if (currentVisualWidth < inputWidth) {
+                display = display + ' '.repeat(inputWidth - currentVisualWidth);
               }
 
               if (visualIdxInRenderedSet === cursorVisualRow) {
@@ -377,7 +367,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
                       cpSlice(display, relativeVisualColForHighlight + 1);
                   } else if (
                     relativeVisualColForHighlight === cpLen(display) &&
-                    cpLen(display) === effectiveWidth
+                    cpLen(display) === inputWidth
                   ) {
                     display = display + chalk.inverse(' ');
                   }

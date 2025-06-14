@@ -6,15 +6,16 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { render } from 'ink-testing-library';
-import { App } from './App.js';
+import { AppWrapper as App } from './App.js';
 import {
   Config as ServerConfig,
   MCPServerConfig,
   ApprovalMode,
   ToolRegistry,
   AccessibilitySettings,
-} from '@gemini-code/core';
+} from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
+import process from 'node:process';
 
 // Define a more complete mock server config based on actual Config
 interface MockServerConfig {
@@ -37,6 +38,7 @@ interface MockServerConfig {
   vertexai?: boolean;
   showMemoryUsage?: boolean;
   accessibility?: AccessibilitySettings;
+  embeddingModel: string;
 
   getApiKey: Mock<() => string>;
   getModel: Mock<() => string>;
@@ -61,11 +63,13 @@ interface MockServerConfig {
   getVertexAI: Mock<() => boolean | undefined>;
   getShowMemoryUsage: Mock<() => boolean>;
   getAccessibility: Mock<() => AccessibilitySettings>;
+  getProjectRoot: Mock<() => string | undefined>;
+  getAllGeminiMdFilenames: Mock<() => string[]>;
 }
 
-// Mock @gemini-code/core and its Config class
-vi.mock('@gemini-code/core', async (importOriginal) => {
-  const actualCore = await importOriginal<typeof import('@gemini-code/core')>();
+// Mock @gemini-cli/core and its Config class
+vi.mock('@gemini-cli/core', async (importOriginal) => {
+  const actualCore = await importOriginal<typeof import('@gemini-cli/core')>();
   const ConfigClassMock = vi
     .fn()
     .mockImplementation((optionsPassedToConstructor) => {
@@ -91,6 +95,7 @@ vi.mock('@gemini-code/core', async (importOriginal) => {
         vertexai: opts.vertexai,
         showMemoryUsage: opts.showMemoryUsage ?? false,
         accessibility: opts.accessibility ?? {},
+        embeddingModel: opts.embeddingModel || 'test-embedding-model',
 
         getApiKey: vi.fn(() => opts.apiKey || 'test-key'),
         getModel: vi.fn(() => opts.model || 'test-model-in-mock-factory'),
@@ -117,12 +122,17 @@ vi.mock('@gemini-code/core', async (importOriginal) => {
         getVertexAI: vi.fn(() => opts.vertexai),
         getShowMemoryUsage: vi.fn(() => opts.showMemoryUsage ?? false),
         getAccessibility: vi.fn(() => opts.accessibility ?? {}),
+        getProjectRoot: vi.fn(() => opts.projectRoot),
+        getGeminiClient: vi.fn(() => ({})),
+        getCheckpointEnabled: vi.fn(() => opts.checkpoint ?? true),
+        getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
       };
     });
   return {
     ...actualCore,
     Config: ConfigClassMock,
     MCPServerConfig: actualCore.MCPServerConfig,
+    getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
   };
 });
 
@@ -169,21 +179,25 @@ describe('App UI', () => {
       path: '/workspace/.gemini/settings.json',
       settings,
     };
-    return new LoadedSettings(userSettingsFile, workspaceSettingsFile);
+    return new LoadedSettings(userSettingsFile, workspaceSettingsFile, []);
   };
 
   beforeEach(() => {
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
-      apiKey: 'test-key',
-      model: 'test-model-in-options',
+      contentGeneratorConfig: {
+        apiKey: 'test-key',
+        model: 'test-model',
+      },
+      embeddingModel: 'test-embedding-model',
       sandbox: false,
       targetDir: '/test/dir',
       debugMode: false,
-      userAgent: 'test-agent',
       userMemory: '',
       geminiMdFileCount: 0,
       showMemoryUsage: false,
+      sessionId: 'test-session-id',
+      cwd: '/tmp',
       // Provide other required fields for ConfigParameters if necessary
     }) as unknown as MockServerConfig;
 
@@ -215,7 +229,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -232,7 +245,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -253,12 +265,31 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
     await Promise.resolve();
     expect(lastFrame()).toContain('Using 1 AGENTS.MD file');
+  });
+
+  it('should display the first custom contextFileName when an array is provided', async () => {
+    mockSettings = createMockSettings({
+      contextFileName: ['AGENTS.MD', 'CONTEXT.MD'],
+      theme: 'Default',
+    });
+    mockConfig.getGeminiMdFileCount.mockReturnValue(2);
+    mockConfig.getDebugMode.mockReturnValue(false);
+    mockConfig.getShowMemoryUsage.mockReturnValue(false);
+
+    const { lastFrame, unmount } = render(
+      <App
+        config={mockConfig as unknown as ServerConfig}
+        settings={mockSettings}
+      />,
+    );
+    currentUnmount = unmount;
+    await Promise.resolve();
+    expect(lastFrame()).toContain('Using 2 AGENTS.MD files');
   });
 
   it('should display custom contextFileName with plural when set and count is > 1', async () => {
@@ -274,7 +305,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -295,7 +325,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -315,7 +344,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -336,7 +364,6 @@ describe('App UI', () => {
       <App
         config={mockConfig as unknown as ServerConfig}
         settings={mockSettings}
-        cliVersion="1.0.0"
       />,
     );
     currentUnmount = unmount;
@@ -344,20 +371,50 @@ describe('App UI', () => {
     expect(lastFrame()).toContain('Using 2 MCP servers');
   });
 
-  it('should display theme dialog if no theme is set in settings', async () => {
-    mockSettings = createMockSettings({});
-    mockConfig.getDebugMode.mockReturnValue(false);
-    mockConfig.getShowMemoryUsage.mockReturnValue(false);
+  describe('when no theme is set', () => {
+    let originalNoColor: string | undefined;
 
-    const { lastFrame, unmount } = render(
-      <App
-        config={mockConfig as unknown as ServerConfig}
-        settings={mockSettings}
-        cliVersion="1.0.0"
-      />,
-    );
-    currentUnmount = unmount;
+    beforeEach(() => {
+      originalNoColor = process.env.NO_COLOR;
+      // Ensure no theme is set for these tests
+      mockSettings = createMockSettings({});
+      mockConfig.getDebugMode.mockReturnValue(false);
+      mockConfig.getShowMemoryUsage.mockReturnValue(false);
+    });
 
-    expect(lastFrame()).toContain('Select Theme');
+    afterEach(() => {
+      process.env.NO_COLOR = originalNoColor;
+    });
+
+    it('should display theme dialog if NO_COLOR is not set', async () => {
+      delete process.env.NO_COLOR;
+
+      const { lastFrame, unmount } = render(
+        <App
+          config={mockConfig as unknown as ServerConfig}
+          settings={mockSettings}
+        />,
+      );
+      currentUnmount = unmount;
+
+      expect(lastFrame()).toContain('Select Theme');
+    });
+
+    it('should display a message if NO_COLOR is set', async () => {
+      process.env.NO_COLOR = 'true';
+
+      const { lastFrame, unmount } = render(
+        <App
+          config={mockConfig as unknown as ServerConfig}
+          settings={mockSettings}
+        />,
+      );
+      currentUnmount = unmount;
+
+      expect(lastFrame()).toContain(
+        'Theme configuration unavailable due to NO_COLOR env variable.',
+      );
+      expect(lastFrame()).not.toContain('Select Theme');
+    });
   });
 });

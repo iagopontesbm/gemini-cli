@@ -10,22 +10,27 @@ import { IndividualToolCallDisplay, ToolCallStatus } from '../../types.js';
 import { ToolMessage } from './ToolMessage.js';
 import { ToolConfirmationMessage } from './ToolConfirmationMessage.js';
 import { Colors } from '../../colors.js';
+import { Config } from '@gemini-cli/core';
 
 interface ToolGroupMessageProps {
   groupId: number;
   toolCalls: IndividualToolCallDisplay[];
   availableTerminalHeight: number;
+  config?: Config;
+  isFocused?: boolean;
 }
 
 // Main component renders the border and maps the tools using ToolMessage
 export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
   toolCalls,
   availableTerminalHeight,
+  config,
+  isFocused = true,
 }) => {
   const hasPending = !toolCalls.every(
     (t) => t.status === ToolCallStatus.Success,
   );
-  const borderColor = hasPending ? Colors.AccentYellow : Colors.SubtleComment;
+  const borderColor = hasPending ? Colors.AccentYellow : Colors.Gray;
 
   const staticHeight = /* border */ 2 + /* marginBottom */ 1;
 
@@ -55,7 +60,7 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
       {toolCalls.map((tool) => {
         const isConfirming = toolAwaitingApproval?.callId === tool.callId;
         return (
-          <Box key={tool.callId} flexDirection="column">
+          <Box key={tool.callId} flexDirection="column" minHeight={1}>
             <Box flexDirection="row" alignItems="center">
               <ToolMessage
                 callId={tool.callId}
@@ -80,6 +85,8 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
               tool.confirmationDetails && (
                 <ToolConfirmationMessage
                   confirmationDetails={tool.confirmationDetails}
+                  config={config}
+                  isFocused={isFocused}
                 />
               )}
           </Box>

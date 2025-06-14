@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as dotenv from 'dotenv';
-import * as fs from 'node:fs';
 import * as path from 'node:path';
 import process from 'node:process';
-import * as os from 'node:os';
+import { ContentGeneratorConfig } from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -24,6 +22,9 @@ import { WebSearchTool } from '../tools/web-search.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import { GitService } from '../services/gitService.js';
+import { initializeTelemetry } from '../telemetry/index.js';
+import { DEFAULT_GEMINI_EMBEDDING_MODEL } from './models.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -44,89 +45,115 @@ export class MCPServerConfig {
     readonly cwd?: string,
     // For sse transport
     readonly url?: string,
+    // For streamable http transport
+    readonly httpUrl?: string,
+    // For websocket transport
+    readonly tcp?: string,
     // Common
     readonly timeout?: number,
     readonly trust?: boolean,
+    // Metadata
+    readonly description?: string,
   ) {}
 }
 
 export interface ConfigParameters {
-  apiKey: string;
-  model: string;
-  sandbox: boolean | string;
+  sessionId: string;
+  contentGeneratorConfig: ContentGeneratorConfig;
+  embeddingModel?: string;
+  sandbox?: boolean | string;
   targetDir: string;
   debugMode: boolean;
   question?: string;
   fullContext?: boolean;
   coreTools?: string[];
+  excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
-  userAgent: string;
   userMemory?: string;
   geminiMdFileCount?: number;
   approvalMode?: ApprovalMode;
-  vertexai?: boolean;
   showMemoryUsage?: boolean;
-  contextFileName?: string;
+  contextFileName?: string | string[];
   geminiIgnorePatterns?: string[];
   accessibility?: AccessibilitySettings;
+  telemetry?: boolean;
+  telemetryLogUserPromptsEnabled?: boolean;
+  telemetryOtlpEndpoint?: string;
   fileFilteringRespectGitIgnore?: boolean;
-  fileFilteringAllowBuildArtifacts?: boolean;
+  checkpoint?: boolean;
+  proxy?: string;
+  cwd: string;
+  fileDiscoveryService?: FileDiscoveryService;
 }
 
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
-  private readonly apiKey: string;
-  private readonly model: string;
-  private readonly sandbox: boolean | string;
+  private readonly sessionId: string;
+  private readonly contentGeneratorConfig: ContentGeneratorConfig;
+  private readonly embeddingModel: string;
+  private readonly sandbox: boolean | string | undefined;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
   private readonly question: string | undefined;
   private readonly fullContext: boolean;
   private readonly coreTools: string[] | undefined;
+  private readonly excludeTools: string[] | undefined;
   private readonly toolDiscoveryCommand: string | undefined;
   private readonly toolCallCommand: string | undefined;
   private readonly mcpServerCommand: string | undefined;
   private readonly mcpServers: Record<string, MCPServerConfig> | undefined;
-  private readonly userAgent: string;
   private userMemory: string;
   private geminiMdFileCount: number;
   private approvalMode: ApprovalMode;
-  private readonly vertexai: boolean | undefined;
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
+  private readonly telemetry: boolean;
+  private readonly telemetryLogUserPromptsEnabled: boolean;
+  private readonly telemetryOtlpEndpoint: string;
   private readonly geminiClient: GeminiClient;
   private readonly geminiIgnorePatterns: string[] = [];
   private readonly fileFilteringRespectGitIgnore: boolean;
-  private readonly fileFilteringAllowBuildArtifacts: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
+  private gitService: GitService | undefined = undefined;
+  private readonly checkpoint: boolean;
+  private readonly proxy: string | undefined;
+  private readonly cwd: string;
 
   constructor(params: ConfigParameters) {
-    this.apiKey = params.apiKey;
-    this.model = params.model;
+    this.sessionId = params.sessionId;
+    this.contentGeneratorConfig = params.contentGeneratorConfig;
+    this.embeddingModel =
+      params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
     this.targetDir = path.resolve(params.targetDir);
     this.debugMode = params.debugMode;
     this.question = params.question;
     this.fullContext = params.fullContext ?? false;
     this.coreTools = params.coreTools;
+    this.excludeTools = params.excludeTools;
     this.toolDiscoveryCommand = params.toolDiscoveryCommand;
     this.toolCallCommand = params.toolCallCommand;
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
-    this.userAgent = params.userAgent;
     this.userMemory = params.userMemory ?? '';
     this.geminiMdFileCount = params.geminiMdFileCount ?? 0;
     this.approvalMode = params.approvalMode ?? ApprovalMode.DEFAULT;
-    this.vertexai = params.vertexai;
     this.showMemoryUsage = params.showMemoryUsage ?? false;
     this.accessibility = params.accessibility ?? {};
+    this.telemetry = params.telemetry ?? false;
+    this.telemetryLogUserPromptsEnabled =
+      params.telemetryLogUserPromptsEnabled ?? true;
+    this.telemetryOtlpEndpoint =
+      params.telemetryOtlpEndpoint ?? 'http://localhost:4317';
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
-    this.fileFilteringAllowBuildArtifacts =
-      params.fileFilteringAllowBuildArtifacts ?? false;
+    this.checkpoint = params.checkpoint ?? false;
+    this.proxy = params.proxy;
+    this.cwd = params.cwd ?? process.cwd();
+    this.fileDiscoveryService = params.fileDiscoveryService ?? null;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -137,21 +164,37 @@ export class Config {
 
     this.toolRegistry = createToolRegistry(this);
     this.geminiClient = new GeminiClient(this);
+
+    if (this.telemetry) {
+      initializeTelemetry(this);
+    }
   }
 
-  getApiKey(): string {
-    return this.apiKey;
+  getSessionId(): string {
+    return this.sessionId;
+  }
+
+  getContentGeneratorConfig(): ContentGeneratorConfig {
+    return this.contentGeneratorConfig;
   }
 
   getModel(): string {
-    return this.model;
+    return this.contentGeneratorConfig.model;
   }
 
-  getSandbox(): boolean | string {
+  getEmbeddingModel(): string {
+    return this.embeddingModel;
+  }
+
+  getSandbox(): boolean | string | undefined {
     return this.sandbox;
   }
 
   getTargetDir(): string {
+    return this.targetDir;
+  }
+
+  getProjectRoot(): string {
     return this.targetDir;
   }
 
@@ -174,6 +217,10 @@ export class Config {
     return this.coreTools;
   }
 
+  getExcludeTools(): string[] | undefined {
+    return this.excludeTools;
+  }
+
   getToolDiscoveryCommand(): string | undefined {
     return this.toolDiscoveryCommand;
   }
@@ -188,10 +235,6 @@ export class Config {
 
   getMcpServers(): Record<string, MCPServerConfig> | undefined {
     return this.mcpServers;
-  }
-
-  getUserAgent(): string {
-    return this.userAgent;
   }
 
   getUserMemory(): string {
@@ -218,10 +261,6 @@ export class Config {
     this.approvalMode = mode;
   }
 
-  getVertexAI(): boolean | undefined {
-    return this.vertexai;
-  }
-
   getShowMemoryUsage(): boolean {
     return this.showMemoryUsage;
   }
@@ -230,8 +269,24 @@ export class Config {
     return this.accessibility;
   }
 
+  getTelemetryEnabled(): boolean {
+    return this.telemetry;
+  }
+
+  getTelemetryLogUserPromptsEnabled(): boolean {
+    return this.telemetryLogUserPromptsEnabled;
+  }
+
+  getTelemetryOtlpEndpoint(): string {
+    return this.telemetryOtlpEndpoint;
+  }
+
   getGeminiClient(): GeminiClient {
     return this.geminiClient;
+  }
+
+  getGeminiDir(): string {
+    return path.join(this.targetDir, GEMINI_DIR);
   }
 
   getGeminiIgnorePatterns(): string[] {
@@ -242,8 +297,16 @@ export class Config {
     return this.fileFilteringRespectGitIgnore;
   }
 
-  getFileFilteringAllowBuildArtifacts(): boolean {
-    return this.fileFilteringAllowBuildArtifacts;
+  getCheckpointEnabled(): boolean {
+    return this.checkpoint;
+  }
+
+  getProxy(): string | undefined {
+    return this.proxy;
+  }
+
+  getWorkingDir(): string {
+    return this.cwd;
   }
 
   async getFileService(): Promise<FileDiscoveryService> {
@@ -251,56 +314,18 @@ export class Config {
       this.fileDiscoveryService = new FileDiscoveryService(this.targetDir);
       await this.fileDiscoveryService.initialize({
         respectGitIgnore: this.fileFilteringRespectGitIgnore,
-        includeBuildArtifacts: this.fileFilteringAllowBuildArtifacts,
       });
     }
     return this.fileDiscoveryService;
   }
-}
 
-function findEnvFile(startDir: string): string | null {
-  let currentDir = path.resolve(startDir);
-  while (true) {
-    // prefer gemini-specific .env under GEMINI_DIR
-    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
-    if (fs.existsSync(geminiEnvPath)) {
-      return geminiEnvPath;
+  async getGitService(): Promise<GitService> {
+    if (!this.gitService) {
+      this.gitService = new GitService(this.targetDir);
+      await this.gitService.initialize();
     }
-    const envPath = path.join(currentDir, '.env');
-    if (fs.existsSync(envPath)) {
-      return envPath;
-    }
-    const parentDir = path.dirname(currentDir);
-    if (parentDir === currentDir || !parentDir) {
-      // check .env under home as fallback, again preferring gemini-specific .env
-      const homeGeminiEnvPath = path.join(os.homedir(), GEMINI_DIR, '.env');
-      if (fs.existsSync(homeGeminiEnvPath)) {
-        return homeGeminiEnvPath;
-      }
-      const homeEnvPath = path.join(os.homedir(), '.env');
-      if (fs.existsSync(homeEnvPath)) {
-        return homeEnvPath;
-      }
-      return null;
-    }
-    currentDir = parentDir;
+    return this.gitService;
   }
-}
-
-export function loadEnvironment(): void {
-  const envFilePath = findEnvFile(process.cwd());
-  if (!envFilePath) {
-    return;
-  }
-  dotenv.config({ path: envFilePath });
-}
-
-export function createServerConfig(params: ConfigParameters): Config {
-  return new Config({
-    ...params,
-    targetDir: path.resolve(params.targetDir), // Ensure targetDir is resolved
-    userAgent: params.userAgent ?? 'GeminiCLI/unknown', // Default user agent
-  });
 }
 
 export function createToolRegistry(config: Config): Promise<ToolRegistry> {
@@ -309,12 +334,22 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   const tools = config.getCoreTools()
     ? new Set(config.getCoreTools())
     : undefined;
+  const excludeTools = config.getExcludeTools()
+    ? new Set(config.getExcludeTools())
+    : undefined;
 
   // helper to create & register core tools that are enabled
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const registerCoreTool = (ToolClass: any, ...args: unknown[]) => {
     // check both the tool name (.Name) and the class name (.name)
-    if (!tools || tools.has(ToolClass.Name) || tools.has(ToolClass.name)) {
+    if (
+      // coreTools contain tool name
+      (!tools || tools.has(ToolClass.Name) || tools.has(ToolClass.name)) &&
+      // excludeTools don't contain tool name
+      (!excludeTools ||
+        (!excludeTools.has(ToolClass.Name) &&
+          !excludeTools.has(ToolClass.name)))
+    ) {
       registry.registerTool(new ToolClass(...args));
     }
   };

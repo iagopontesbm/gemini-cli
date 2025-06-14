@@ -9,6 +9,7 @@ import {
   GenerateContentResponse,
   FunctionCall,
   FunctionDeclaration,
+  GenerateContentResponseUsageMetadata,
 } from '@google/genai';
 import {
   ToolCallConfirmationDetails,
@@ -43,6 +44,7 @@ export enum GeminiEventType {
   UserCancelled = 'user_cancelled',
   Error = 'error',
   ChatCompressed = 'chat_compressed',
+  UsageMetadata = 'usage_metadata',
 }
 
 export interface GeminiErrorEventValue {
@@ -100,6 +102,11 @@ export type ServerGeminiChatCompressedEvent = {
   type: GeminiEventType.ChatCompressed;
 };
 
+export type ServerGeminiUsageMetadataEvent = {
+  type: GeminiEventType.UsageMetadata;
+  value: GenerateContentResponseUsageMetadata & { apiTimeMs?: number };
+};
+
 // The original union type, now composed of the individual types
 export type ServerGeminiStreamEvent =
   | ServerGeminiContentEvent
@@ -108,7 +115,8 @@ export type ServerGeminiStreamEvent =
   | ServerGeminiToolCallConfirmationEvent
   | ServerGeminiUserCancelledEvent
   | ServerGeminiErrorEvent
-  | ServerGeminiChatCompressedEvent;
+  | ServerGeminiChatCompressedEvent
+  | ServerGeminiUsageMetadataEvent;
 
 // A turn manages the agentic loop turn within the server context.
 export class Turn {
@@ -118,6 +126,7 @@ export class Turn {
     args: Record<string, unknown>;
   }>;
   private debugResponses: GenerateContentResponse[];
+  private lastUsageMetadata: GenerateContentResponseUsageMetadata | null = null;
 
   constructor(private readonly chat: GeminiChat) {
     this.pendingToolCalls = [];
@@ -128,6 +137,7 @@ export class Turn {
     req: PartListUnion,
     signal: AbortSignal,
   ): AsyncGenerator<ServerGeminiStreamEvent> {
+    const startTime = Date.now();
     try {
       const responseStream = await this.chat.sendMessageStream({
         message: req,
@@ -157,6 +167,19 @@ export class Turn {
             yield event;
           }
         }
+
+        if (resp.usageMetadata) {
+          this.lastUsageMetadata =
+            resp.usageMetadata as GenerateContentResponseUsageMetadata;
+        }
+      }
+
+      if (this.lastUsageMetadata) {
+        const durationMs = Date.now() - startTime;
+        yield {
+          type: GeminiEventType.UsageMetadata,
+          value: { ...this.lastUsageMetadata, apiTimeMs: durationMs },
+        };
       }
     } catch (error) {
       if (signal.aborted) {
@@ -196,5 +219,9 @@ export class Turn {
 
   getDebugResponses(): GenerateContentResponse[] {
     return this.debugResponses;
+  }
+
+  getUsageMetadata(): GenerateContentResponseUsageMetadata | null {
+    return this.lastUsageMetadata;
   }
 }

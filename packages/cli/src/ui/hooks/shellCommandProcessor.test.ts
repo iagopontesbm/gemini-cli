@@ -7,7 +7,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { act, renderHook } from '@testing-library/react';
 import { useShellCommandProcessor } from './shellCommandProcessor.js';
-import { type Config } from '@gemini-code/core';
+import { type Config } from '@gemini-cli/core';
 import { type PartListUnion } from '@google/genai';
 import { existsSync, readFileSync, unlinkSync } from 'fs';
 import type * as FsMod from 'fs';
@@ -44,8 +44,10 @@ vi.mock('path', () => ({
 vi.mock('os', () => ({
   default: {
     tmpdir: vi.fn(() => '/tmp'),
+    platform: vi.fn(() => 'linux'),
   },
   tmpdir: vi.fn(() => '/tmp'),
+  platform: vi.fn(() => 'linux'),
 }));
 
 // Configure the fs mock to use new vi.fn() instances created within the factory

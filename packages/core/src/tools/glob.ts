@@ -6,11 +6,47 @@
 
 import fs from 'fs';
 import path from 'path';
-import fg from 'fast-glob';
+import { glob } from 'glob';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { BaseTool, ToolResult } from './tools.js';
 import { shortenPath, makeRelative } from '../utils/paths.js';
 import { Config } from '../config/config.js';
+
+// Subset of 'Path' interface provided by 'glob' that we can implement for testing
+export interface GlobPath {
+  fullpath(): string;
+  mtimeMs?: number;
+}
+
+/**
+ * Sorts file entries based on recency and then alphabetically.
+ * Recent files (modified within recencyThresholdMs) are listed first, newest to oldest.
+ * Older files are listed after recent ones, sorted alphabetically by path.
+ */
+export function sortFileEntries(
+  entries: GlobPath[],
+  nowTimestamp: number,
+  recencyThresholdMs: number,
+): GlobPath[] {
+  const sortedEntries = [...entries];
+  sortedEntries.sort((a, b) => {
+    const mtimeA = a.mtimeMs ?? 0;
+    const mtimeB = b.mtimeMs ?? 0;
+    const aIsRecent = nowTimestamp - mtimeA < recencyThresholdMs;
+    const bIsRecent = nowTimestamp - mtimeB < recencyThresholdMs;
+
+    if (aIsRecent && bIsRecent) {
+      return mtimeB - mtimeA;
+    } else if (aIsRecent) {
+      return -1;
+    } else if (bIsRecent) {
+      return 1;
+    } else {
+      return a.fullpath().localeCompare(b.fullpath());
+    }
+  });
+  return sortedEntries;
+}
 
 /**
  * Parameters for the GlobTool
@@ -165,7 +201,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    */
   async execute(
     params: GlobToolParams,
-    _signal: AbortSignal,
+    signal: AbortSignal,
   ): Promise<ToolResult> {
     const validationError = this.validateToolParams(params);
     if (validationError) {
@@ -187,26 +223,25 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         this.config.getFileFilteringRespectGitIgnore();
       const fileDiscovery = await this.config.getFileService();
 
-      const entries = await fg(params.pattern, {
+      const entries = (await glob(params.pattern, {
         cwd: searchDirAbsolute,
-        absolute: true,
-        onlyFiles: true,
-        stats: true,
+        withFileTypes: true,
+        nodir: true,
+        stat: true,
+        nocase: !params.case_sensitive,
         dot: true,
-        caseSensitiveMatch: params.case_sensitive ?? false,
         ignore: ['**/node_modules/**', '**/.git/**'],
-        followSymbolicLinks: false,
-        suppressErrors: true,
-      });
+        follow: false,
+        signal,
+      })) as GlobPath[];
 
       // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
       let gitIgnoredCount = 0;
 
       if (respectGitIgnore && fileDiscovery.isGitRepository()) {
-        const allPaths = entries.map((entry) => entry.path);
-        const relativePaths = allPaths.map((p) =>
-          path.relative(this.rootDirectory, p),
+        const relativePaths = entries.map((p) =>
+          path.relative(this.rootDirectory, p.fullpath()),
         );
         const filteredRelativePaths = fileDiscovery.filterFiles(relativePaths, {
           respectGitIgnore,
@@ -216,7 +251,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         );
 
         filteredEntries = entries.filter((entry) =>
-          filteredAbsolutePaths.has(entry.path),
+          filteredAbsolutePaths.has(entry.fullpath()),
         );
         gitIgnoredCount = entries.length - filteredEntries.length;
       }
@@ -232,13 +267,20 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         };
       }
 
-      filteredEntries.sort((a, b) => {
-        const mtimeA = a.stats?.mtime?.getTime() ?? 0;
-        const mtimeB = b.stats?.mtime?.getTime() ?? 0;
-        return mtimeB - mtimeA;
-      });
+      // Set filtering such that we first show the most recent files
+      const oneDayInMs = 24 * 60 * 60 * 1000;
+      const nowTimestamp = new Date().getTime();
 
-      const sortedAbsolutePaths = filteredEntries.map((entry) => entry.path);
+      // Sort the filtered entries using the new helper function
+      const sortedEntries = sortFileEntries(
+        filteredEntries,
+        nowTimestamp,
+        oneDayInMs,
+      );
+
+      const sortedAbsolutePaths = sortedEntries.map((entry) =>
+        entry.fullpath(),
+      );
       const fileListDescription = sortedAbsolutePaths.join('\n');
       const fileCount = sortedAbsolutePaths.length;
 

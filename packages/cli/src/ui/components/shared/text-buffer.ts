@@ -11,6 +11,7 @@ import os from 'os';
 import pathMod from 'path';
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import stringWidth from 'string-width';
+import { unescapePath } from '@gemini-cli/core';
 
 export type Direction =
   | 'left'
@@ -85,6 +86,7 @@ interface UseTextBufferProps {
   stdin?: NodeJS.ReadStream | null; // For external editor
   setRawMode?: (mode: boolean) => void; // For external editor
   onChange?: (text: string) => void; // Callback for when text changes
+  isValidPath: (path: string) => boolean;
 }
 
 interface UndoHistoryEntry {
@@ -392,6 +394,7 @@ export function useTextBuffer({
   stdin,
   setRawMode,
   onChange,
+  isValidPath,
 }: UseTextBufferProps): TextBuffer {
   const [lines, setLines] = useState<string[]>(() => {
     const l = initialText.split('\n');
@@ -561,6 +564,28 @@ export function useTextBuffer({
       }
       dbg('insert', { ch, beforeCursor: [cursorRow, cursorCol] });
       pushUndo();
+
+      // Arbitrary threshold to avoid false positives on normal key presses
+      // while still detecting virtually all reasonable length file paths.
+      const minLengthToInferAsDragDrop = 3;
+      if (ch.length >= minLengthToInferAsDragDrop) {
+        // Possible drag and drop of a file path.
+        let potentialPath = ch;
+        if (
+          potentialPath.length > 2 &&
+          potentialPath.startsWith("'") &&
+          potentialPath.endsWith("'")
+        ) {
+          potentialPath = ch.slice(1, -1);
+        }
+
+        potentialPath = potentialPath.trim();
+        // Be conservative and only add an @ if the path is valid.
+        if (isValidPath(unescapePath(potentialPath))) {
+          ch = `@${potentialPath}`;
+        }
+      }
+
       setLines((prevLines) => {
         const newLines = [...prevLines];
         const lineContent = currentLine(cursorRow);
@@ -573,7 +598,15 @@ export function useTextBuffer({
       setCursorCol((prev) => prev + cpLen(ch)); // Use cpLen for character length
       setPreferredCol(null);
     },
-    [pushUndo, cursorRow, cursorCol, currentLine, insertStr, setPreferredCol],
+    [
+      pushUndo,
+      cursorRow,
+      cursorCol,
+      currentLine,
+      insertStr,
+      setPreferredCol,
+      isValidPath,
+    ],
   );
 
   const newline = useCallback((): void => {
@@ -1407,7 +1440,7 @@ export interface TextBuffer {
     key: Record<string, boolean>,
   ) => boolean;
   /**
-   * Opens the current buffer contents in the user’s preferred terminal text
+   * Opens the current buffer contents in the user's preferred terminal text
    * editor ($VISUAL or $EDITOR, falling back to "vi").  The method blocks
    * until the editor exits, then reloads the file and replaces the in‑memory
    * buffer with whatever the user saved.
@@ -1418,7 +1451,7 @@ export interface TextBuffer {
    *
    * Note: We purposefully rely on the *synchronous* spawn API so that the
    * calling process genuinely waits for the editor to close before
-   * continuing.  This mirrors Git’s behaviour and simplifies downstream
+   * continuing.  This mirrors Git's behaviour and simplifies downstream
    * control‑flow (callers can simply `await` the Promise).
    */
   openInExternalEditor: (opts?: { editor?: string }) => Promise<void>;

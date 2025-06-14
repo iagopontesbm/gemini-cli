@@ -5,6 +5,9 @@ ENV SANDBOX="$SANDBOX_NAME"
 
 # install minimal set of packages, then clean up
 RUN apt-get update && apt-get install -y --no-install-recommends \
+  python3 \
+  make \
+  g++ \
   man-db \
   curl \
   dnsutils \
@@ -20,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   psmisc \
   lsof \
   socat \
+  ca-certificates \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
@@ -34,11 +38,11 @@ ENV PATH=$PATH:/usr/local/share/npm-global/bin
 USER node
 
 # install gemini-cli and clean up
-COPY packages/cli/dist/gemini-code-cli-*.tgz /usr/local/share/npm-global/gemini-code-cli.tgz
-COPY packages/core/dist/gemini-code-core-*.tgz /usr/local/share/npm-global/gemini-code-core.tgz
-RUN npm install -g /usr/local/share/npm-global/gemini-code-cli.tgz /usr/local/share/npm-global/gemini-code-core.tgz \
+COPY packages/cli/dist/gemini-cli-cli-*.tgz /usr/local/share/npm-global/gemini-cli-cli.tgz
+COPY packages/core/dist/gemini-cli-core-*.tgz /usr/local/share/npm-global/gemini-cli-core.tgz
+RUN npm install -g /usr/local/share/npm-global/gemini-cli-cli.tgz /usr/local/share/npm-global/gemini-cli-core.tgz \
   && npm cache clean --force \
-  && rm -f /usr/local/share/npm-global/gemini-code-{cli,core}.tgz
+  && rm -f /usr/local/share/npm-global/gemini-cli-{cli,core}.tgz
 
 # default entrypoint when none specified
 CMD ["gemini"]

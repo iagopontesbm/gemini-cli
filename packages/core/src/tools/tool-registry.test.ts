@@ -124,16 +124,20 @@ class MockTool extends BaseTool<{ param: string }, ToolResult> {
 }
 
 const baseConfigParams: ConfigParameters = {
-  apiKey: 'test-api-key',
-  model: 'test-model',
+  cwd: '/tmp',
+  contentGeneratorConfig: {
+    model: 'test-model',
+    apiKey: 'test-api-key',
+    vertexai: false,
+  },
+  embeddingModel: 'test-embedding-model',
   sandbox: false,
   targetDir: '/test/dir',
   debugMode: false,
-  userAgent: 'TestAgent/1.0',
   userMemory: '',
   geminiMdFileCount: 0,
   approvalMode: ApprovalMode.DEFAULT,
-  vertexai: false,
+  sessionId: 'test-session-id',
 };
 
 describe('ToolRegistry', () => {
