@@ -190,9 +190,7 @@ async function ensureBinary(
       );
     }
   } else {
-    release = getJson(
-      `https://api.github.com/repos/${repo}/releases/latest`,
-    );
+    release = getJson(`https://api.github.com/repos/${repo}/releases/latest`);
     const version = release.tag_name.startsWith('v')
       ? release.tag_name.substring(1)
       : release.tag_name;
