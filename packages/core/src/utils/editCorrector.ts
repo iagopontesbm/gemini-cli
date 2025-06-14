@@ -574,7 +574,7 @@ export function unescapeStringForGeminiBug(inputString: string): string {
   // g : Global flag, to replace all occurrences.
 
   return inputString.replace(
-    /\\(n|t|r|'|"|`|\\|\n)/g,
+    /\\+(n|t|r|'|"|`|\\|\n)/g,
     (match, capturedChar) => {
       // 'match' is the entire erroneous sequence, e.g., if the input (in memory) was "\\\\`", match is "\\\\`".
       // 'capturedChar' is the character that determines the true meaning, e.g., '`'.
