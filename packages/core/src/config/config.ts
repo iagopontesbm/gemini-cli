@@ -45,6 +45,8 @@ export class MCPServerConfig {
     readonly cwd?: string,
     // For sse transport
     readonly url?: string,
+    // For streamable http transport
+    readonly httpUrl?: string,
     // For websocket transport
     readonly tcp?: string,
     // Common
@@ -84,6 +86,7 @@ export interface ConfigParameters {
   checkpoint?: boolean;
   proxy?: string;
   cwd: string;
+  fileDiscoveryService?: FileDiscoveryService;
 }
 
 export class Config {
@@ -143,12 +146,14 @@ export class Config {
     this.telemetry = params.telemetry ?? false;
     this.telemetryLogUserPromptsEnabled =
       params.telemetryLogUserPromptsEnabled ?? true;
-    this.telemetryOtlpEndpoint = params.telemetryOtlpEndpoint ?? '';
+    this.telemetryOtlpEndpoint =
+      params.telemetryOtlpEndpoint ?? 'http://localhost:4317';
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
     this.checkpoint = params.checkpoint ?? false;
     this.proxy = params.proxy;
     this.cwd = params.cwd ?? process.cwd();
+    this.fileDiscoveryService = params.fileDiscoveryService ?? null;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);

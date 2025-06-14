@@ -17,10 +17,11 @@ import {
   GEMINI_CONFIG_DIR as GEMINI_DIR,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
+  FileDiscoveryService,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 import { getEffectiveModel } from '../utils/modelCheck.js';
-import { ExtensionConfig } from './extension.js';
+import { Extension } from './extension.js';
 import * as dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
@@ -114,6 +115,7 @@ async function parseArguments(): Promise<CliArgs> {
 export async function loadHierarchicalGeminiMemory(
   currentWorkingDirectory: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
   extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode) {
@@ -126,13 +128,14 @@ export async function loadHierarchicalGeminiMemory(
   return loadServerHierarchicalMemory(
     currentWorkingDirectory,
     debugMode,
+    fileService,
     extensionContextFilePaths,
   );
 }
 
 export async function loadCliConfig(
   settings: Settings,
-  extensions: ExtensionConfig[],
+  extensions: Extension[],
   geminiIgnorePatterns: string[],
   sessionId: string,
 ): Promise<Config> {
@@ -152,14 +155,17 @@ export async function loadCliConfig(
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
-  const extensionContextFilePaths = extensions
-    .map((e) => e.contextFileName)
-    .filter((p): p is string => !!p);
+  const extensionContextFilePaths = extensions.flatMap((e) => e.contextFiles);
 
+  const fileService = new FileDiscoveryService(process.cwd());
+  await fileService.initialize({
+    respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+  });
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
     process.cwd(),
     debugMode,
+    fileService,
     extensionContextFilePaths,
   );
 
@@ -203,21 +209,24 @@ export async function loadCliConfig(
       process.env.http_proxy,
     cwd: process.cwd(),
     telemetryOtlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    fileDiscoveryService: fileService,
   });
 }
 
-function mergeMcpServers(settings: Settings, extensions: ExtensionConfig[]) {
-  const mcpServers = settings.mcpServers || {};
+function mergeMcpServers(settings: Settings, extensions: Extension[]) {
+  const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
-    Object.entries(extension.mcpServers || {}).forEach(([key, server]) => {
-      if (mcpServers[key]) {
-        logger.warn(
-          `Skipping extension MCP config for server with key "${key}" as it already exists.`,
-        );
-        return;
-      }
-      mcpServers[key] = server;
-    });
+    Object.entries(extension.config.mcpServers || {}).forEach(
+      ([key, server]) => {
+        if (mcpServers[key]) {
+          logger.warn(
+            `Skipping extension MCP config for server with key "${key}" as it already exists.`,
+          );
+          return;
+        }
+        mcpServers[key] = server;
+      },
+    );
   }
   return mcpServers;
 }
