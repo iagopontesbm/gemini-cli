@@ -90,8 +90,9 @@ function getJson(url) {
 
 function downloadFile(url, dest) {
   try {
-    execSync(`curl -fL --progress-bar -o "${dest}" "${url}"`, {
-      stdio: 'inherit',
+    // Use -sS to hide progress but show errors.
+    execSync(`curl -fL -sS -o "${dest}" "${url}"`, {
+      stdio: 'pipe', // Suppress stdout/stderr from the command
     });
     return dest;
   } catch (e) {
@@ -176,7 +177,9 @@ async function ensureBinary(
       if (foundAsset) {
         release = r;
         asset = foundAsset;
-        console.log(`✅ Found asset ${asset.name} in release ${r.tag_name}`);
+        console.log(
+          `⬇️  Found ${asset.name} in release ${r.tag_name}, downloading...`,
+        );
         break;
       }
     }
@@ -210,17 +213,13 @@ async function ensureBinary(
   const archivePath = path.join(tmpDir, asset.name);
 
   try {
-    console.log(`Downloading ${downloadUrl}...`);
     downloadFile(downloadUrl, archivePath);
-    console.log(`Downloaded to ${archivePath}`);
 
-    console.log(`Extracting ${archivePath}...`);
     if (ext === 'zip') {
-      execSync(`unzip -o "${archivePath}" -d "${tmpDir}"`);
+      execSync(`unzip -o "${archivePath}" -d "${tmpDir}"`, { stdio: 'pipe' });
     } else {
-      execSync(`tar -xzf "${archivePath}" -C "${tmpDir}"`);
+      execSync(`tar -xzf "${archivePath}" -C "${tmpDir}"`, { stdio: 'pipe' });
     }
-    console.log(`Extracted to ${tmpDir}`);
 
     const nameToFind = binaryNameInArchive || executableName;
     const foundBinaryPath = findFile(tmpDir, (file) => {
@@ -236,7 +235,6 @@ async function ensureBinary(
       );
     }
 
-    console.log(`Found binary at ${foundBinaryPath}`);
     fs.renameSync(foundBinaryPath, executablePath);
 
     if (platform !== 'windows') {
@@ -424,9 +422,7 @@ async function main() {
 
   try {
     await waitForPort(JAEGER_PORT);
-    console.log(
-      `✅ Jaeger started successfully. UI: http://localhost:${JAEGER_PORT}`,
-    );
+    console.log(`✅ Jaeger started successfully.`);
   } catch (_) {
     console.error(`🛑 Error: Jaeger failed to start on port ${JAEGER_PORT}.`);
     if (jaegerProcess && jaegerProcess.pid) {
@@ -471,9 +467,11 @@ async function main() {
     });
   });
 
+  console.log(`\n✨ Local telemetry environment is running.`);
   console.log(
-    '\n✨ Local telemetry environment is running. Press Ctrl+C to exit.',
+    `\n🔎 View traces in the Jaeger UI: http://localhost:${JAEGER_PORT}`,
   );
+  console.log(`\nPress Ctrl+C to exit.`);
 }
 
 main();
