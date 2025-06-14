@@ -136,7 +136,6 @@ export async function loadHierarchicalGeminiMemory(
 export async function loadCliConfig(
   settings: Settings,
   extensions: Extension[],
-  geminiIgnorePatterns: string[],
   sessionId: string,
 ): Promise<Config> {
   loadEnvironment();
@@ -158,9 +157,6 @@ export async function loadCliConfig(
   const extensionContextFilePaths = extensions.flatMap((e) => e.contextFiles);
 
   const fileService = new FileDiscoveryService(process.cwd());
-  await fileService.initialize({
-    respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-  });
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
     process.cwd(),
@@ -193,7 +189,6 @@ export async function loadCliConfig(
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
     showMemoryUsage:
       argv.show_memory_usage || settings.showMemoryUsage || false,
-    geminiIgnorePatterns,
     accessibility: settings.accessibility,
     telemetry:
       argv.telemetry !== undefined
@@ -211,6 +206,7 @@ export async function loadCliConfig(
     telemetryOtlpEndpoint:
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetryOtlpEndpoint,
     fileDiscoveryService: fileService,
+    bugCommand: settings.bugCommand,
   });
 }
 
@@ -264,7 +260,7 @@ async function createContentGeneratorConfig(
         '3. GOOGLE_API_KEY (for Gemini API or Vertex AI Express Mode access).\n' +
         '4. GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION (for Vertex AI access).\n\n' +
         'For Gemini API keys, visit: https://ai.google.dev/gemini-api/docs/api-key\n' +
-        'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/start/authentication\n' +
+        'For Vertex AI authentication, visit: https://cloud.google.com/vertex-ai/docs/authentication\n' +
         'The GOOGLE_GENAI_USE_VERTEXAI environment variable can also be set to true/false to influence service selection when ambiguity exists.',
     );
     process.exit(1);
