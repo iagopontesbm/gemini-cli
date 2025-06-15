@@ -140,6 +140,7 @@ export const useGeminiStream = (
     onExec,
     onDebugMessage,
     config,
+    geminiClient,
   );
 
   const streamingState = useMemo(() => {
