@@ -35,13 +35,27 @@ export class TestRig {
   }
 
   run(prompt, ...args) {
-    return execSync(`node ${this.bundlePath} --prompt "${prompt}" ${args.join(' ')}`, {
+    const output = execSync(`node ${this.bundlePath} --prompt "${prompt}" ${args.join(' ')}`, {
       cwd: this.testDir,
       encoding: 'utf-8',
     });
+
+    if (env.KEEP_OUTPUT === 'true') {
+        console.log('--- CLI Output ---');
+        console.log(output);
+        console.log('--- End CLI Output ---');
+    }
+
+    return output;
   }
 
   readFile(fileName) {
-    return readFileSync(join(this.testDir, fileName), 'utf-8');
+    const content = readFileSync(join(this.testDir, fileName), 'utf-8');
+    if (env.KEEP_OUTPUT === 'true') {
+        console.log(`--- File Content: ${fileName} ---`);
+        console.log(content);
+        console.log(`--- End File Content: ${fileName} ---`);
+    }
+    return content;
   }
 }
