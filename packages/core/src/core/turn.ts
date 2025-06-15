@@ -172,9 +172,11 @@ export class Turn {
         }
         this.debugResponses.push(resp);
 
-        const thought = resp.candidates?.[0]?.content?.parts?.[0]?.thought;
-        if (thought) {
-          const rawText = resp.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+        const thoughtPart = resp.candidates?.[0]?.content?.parts?.[0];
+        if (thoughtPart?.thought) {
+          // Thought always has a bold "subject" part enclosed in double asterisks
+          // (e.g., **Subject**). The rest of the string is considered the description.
+          const rawText = thoughtPart.text ?? '';
           const subjectStringMatches = rawText.match(/\*\*(.*?)\*\*/s);
           const subject = subjectStringMatches
             ? subjectStringMatches[1].trim()
