@@ -1083,7 +1083,7 @@ Add any other context about the problem here.
 
       const message = mockAddItem.mock.calls[1][0].text;
 
-      // Check that server description is included (with ANSI color codes)
+      // Check that server description is included
       expect(message).toContain('Ready (2 tools)');
       expect(message).toContain('This is a server description');
 
