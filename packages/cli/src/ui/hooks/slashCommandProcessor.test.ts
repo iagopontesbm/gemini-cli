@@ -1019,6 +1019,90 @@ Add any other context about the problem here.
     });
   });
 
+  describe('/mcp schema', () => {
+    it('should display tool schemas and descriptions', async () => {
+      // Mock MCP servers configuration with server description
+      const mockMcpServers = {
+        server1: {
+          command: 'cmd1',
+          description: 'This is a server description',
+        },
+      };
+
+      // Setup getMCPServerStatus mock implementation
+      vi.mocked(getMCPServerStatus).mockImplementation((serverName) => {
+        if (serverName === 'server1') return MCPServerStatus.CONNECTED;
+        return MCPServerStatus.DISCONNECTED;
+      });
+
+      // Setup getMCPDiscoveryState mock to return completed
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
+
+      // Mock tools from server with descriptions
+      const mockServerTools = [
+        {
+          name: 'tool1',
+          description: 'This is tool 1 description',
+          schema: {
+            parameters: [{ name: 'param1', type: 'string' }],
+          },
+        },
+        {
+          name: 'tool2',
+          description: 'This is tool 2 description',
+          schema: {
+            parameters: [{ name: 'param2', type: 'number' }],
+          },
+        },
+      ];
+
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getToolsByServer: vi.fn().mockReturnValue(mockServerTools),
+        }),
+        getMcpServers: vi.fn().mockReturnValue(mockMcpServers),
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor(true);
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = await handleSlashCommand('/mcp schema');
+      });
+
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: expect.stringContaining('Configured MCP servers:'),
+        }),
+        expect.any(Number),
+      );
+
+      const message = mockAddItem.mock.calls[1][0].text;
+
+      // Check that server description is included (with ANSI color codes)
+      expect(message).toContain('\u001b[1mserver1\u001b[0m - Ready (2 tools)');
+      expect(message).toContain(
+        '\u001b[32mThis is a server description\u001b[0m',
+      );
+
+      // Check that tool schemas are included
+      expect(message).toContain('\u001b[36mtool1\u001b[0m');
+      expect(message).toContain('tool 1 description');
+      expect(message).toContain('param1');
+      expect(message).toContain('string');
+      expect(message).toContain('\u001b[36mtool2\u001b[0m');
+      expect(message).toContain('tool 2 description');
+      expect(message).toContain('param2');
+      expect(message).toContain('number');
+
+      expect(commandResult).toBe(true);
+    });
+  });
+
   describe('/compress command', () => {
     it('should call tryCompressChat(true)', async () => {
       const { handleSlashCommand } = getProcessor();
