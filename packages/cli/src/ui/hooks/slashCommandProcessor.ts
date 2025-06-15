@@ -346,7 +346,10 @@ export const useSlashCommandProcessor = (
 
             if (serverTools.length > 0) {
               serverTools.forEach((tool) => {
-                if ((useShowDescriptions || useShowSchema) && tool.description) {
+                if (
+                  (useShowDescriptions || useShowSchema) &&
+                  tool.description
+                ) {
                   // Format tool name in cyan using simple ANSI cyan color
                   message += `  - \u001b[36m${tool.name}\u001b[0m`;
 
@@ -376,7 +379,11 @@ export const useSlashCommandProcessor = (
                   const greenColor = '\u001b[32m';
                   const resetColor = '\u001b[0m';
 
-                  const paramsLines = JSON.stringify(tool.schema.parameters, null, 2).trim().split('\n');
+                  const paramsLines = JSON.stringify(
+                    tool.schema.parameters,
+                    null,
+                    2
+                  ).trim().split('\n');
                   if (paramsLines) {
                     for (let i = 0; i < paramsLines.length; i++) {
                       message += `      ${greenColor}${paramsLines[i]}${resetColor}\n`;
