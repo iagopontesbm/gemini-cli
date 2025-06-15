@@ -14,6 +14,7 @@
     "prepare": "npm run bundle",
     "test": "npm run test --workspaces",
     "test:ci": "npm run test:ci --workspaces --if-present",
+    "integration-test": "node --test integration-tests/*.js",
     "start": "node scripts/start.js",
     "debug": "cross-env DEBUG=1 node scripts/start.js",
     "lint:fix": "eslint . --fix",
