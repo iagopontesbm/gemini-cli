@@ -13,7 +13,10 @@ import { env } from 'process';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 function sanitizeTestName(name) {
-  return name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-');
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '-')
+    .replace(/-+/g, '-');
 }
 
 export class TestRig {
@@ -35,15 +38,18 @@ export class TestRig {
   }
 
   run(prompt, ...args) {
-    const output = execSync(`node ${this.bundlePath} --prompt "${prompt}" ${args.join(' ')}`, {
-      cwd: this.testDir,
-      encoding: 'utf-8',
-    });
+    const output = execSync(
+      `node ${this.bundlePath} --prompt "${prompt}" ${args.join(' ')}`,
+      {
+        cwd: this.testDir,
+        encoding: 'utf-8',
+      },
+    );
 
     if (env.KEEP_OUTPUT === 'true') {
-        console.log('--- CLI Output ---');
-        console.log(output);
-        console.log('--- End CLI Output ---');
+      console.log('--- CLI Output ---');
+      console.log(output);
+      console.log('--- End CLI Output ---');
     }
 
     return output;
@@ -52,9 +58,9 @@ export class TestRig {
   readFile(fileName) {
     const content = readFileSync(join(this.testDir, fileName), 'utf-8');
     if (env.KEEP_OUTPUT === 'true') {
-        console.log(`--- File Content: ${fileName} ---`);
-        console.log(content);
-        console.log(`--- End File Content: ${fileName} ---`);
+      console.log(`--- File Content: ${fileName} ---`);
+      console.log(content);
+      console.log(`--- End File Content: ${fileName} ---`);
     }
     return content;
   }

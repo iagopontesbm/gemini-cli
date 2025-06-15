@@ -10,7 +10,6 @@ npm run preflight
 
 This single command ensures that your changes meet all the quality gates of the project. While you can run the individual steps (`build`, `test`, `typecheck`, `lint`) separately, it is highly recommended to use `npm run preflight` to ensure a comprehensive validation.
 
-
 ## Writing Tests
 
 This project uses **Vitest** as its primary testing framework. When writing tests, aim to follow existing patterns. Key conventions include:

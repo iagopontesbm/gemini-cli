@@ -61,8 +61,6 @@ If you'd like to get early feedback on your work, please use GitHub's **Draft Pu
 
 Before submitting your PR, ensure that all automated checks are passing by running `npm run preflight`. This command runs all tests, linting, and other style checks.
 
-
-
 #### 5. Update Documentation
 
 If your PR introduces a user-facing change (e.g., a new command, a modified flag, or a change in behavior), you must also update the relevant documentation in the `/docs` directory.
@@ -158,8 +156,6 @@ npm run integration-test
 
 For more detailed information on the integration testing framework, please see the [Integration Tests documentation](./docs/integration-tests.md).
 
-
-
 #### Important Note for Sandbox Users on macOS/Windows
 
 This project uses native dependencies (e.g., `tree-sitter`) that are compiled for a specific operating system.
@@ -192,7 +188,6 @@ npm run preflight
 ```
 
 This command will run ESLint, Prettier, all tests, and other checks as defined in the project's `package.json`.
-
 
 #### Formatting
 
