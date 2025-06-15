@@ -1,0 +1,5 @@
+# Ask mode approvers required for all files minus docs
+@google-gemini/gemini-cli-askmode-approvers
+
+# Docs are not subject to ask mode for now
+docs/
