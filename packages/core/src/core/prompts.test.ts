@@ -28,8 +28,6 @@ vi.mock('../utils/gitUtils', () => ({
 }));
 
 describe('Core System Prompt (prompts.ts)', () => {
-  
-
   it('should return the base prompt when no userMemory is provided', () => {
     vi.stubEnv('SANDBOX', undefined);
     const prompt = getCoreSystemPrompt();
