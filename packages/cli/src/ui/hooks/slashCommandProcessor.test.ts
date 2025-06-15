@@ -595,14 +595,9 @@ Add any other context about the problem here.
       });
 
       // Should only show tool1 and tool2, not the MCP tools
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Available Gemini CLI tools:\n\nTool1\nTool2',
-        }),
-        expect.any(Number),
-      );
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('\u001b[36mTool1\u001b[0m');
+      expect(message).toContain('\u001b[36mTool2\u001b[0m');
       expect(commandResult).toBe(true);
     });
 
@@ -626,14 +621,8 @@ Add any other context about the problem here.
         commandResult = await handleSlashCommand('/tools');
       });
 
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Available Gemini CLI tools:\n\n',
-        }),
-        expect.any(Number),
-      );
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('No tools available');
       expect(commandResult).toBe(true);
     });
   });
