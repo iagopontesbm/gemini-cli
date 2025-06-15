@@ -18,7 +18,7 @@ export interface ReadFileToolParams {
   /**
    * The absolute path to the file to read
    */
-  abs_path: string;
+  absolute_path: string;
 
   /**
    * The line number to start reading from (optional)
@@ -47,7 +47,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       'Reads and returns the content of a specified file from the local filesystem. Handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), and PDF files. For text files, it can read specific line ranges.',
       {
         properties: {
-          abs_path: {
+          absolute_path: {
             description:
               "The absolute path to the file to read (e.g., '/home/user/project/file.txt'). Relative paths are not supported. You must provide an absolute path.",
             type: 'string',
@@ -64,7 +64,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
             type: 'number',
           },
         },
-        required: ['abs_path'],
+        required: ['absolute_path'],
         type: 'object',
       },
     );
@@ -81,7 +81,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     ) {
       return 'Parameters failed schema validation.';
     }
-    const filePath = params.abs_path;
+    const filePath = params.absolute_path;
     if (!path.isAbsolute(filePath)) {
       return `File path must be absolute, but was relative: ${filePath}. You must provide an absolute path.`;
     }
@@ -96,8 +96,8 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     }
 
     const fileService = this.config.getFileService();
-    if (fileService.shouldGeminiIgnoreFile(params.abs_path)) {
-      const relativePath = makeRelative(params.abs_path, this.rootDirectory);
+    if (fileService.shouldGeminiIgnoreFile(params.absolute_path)) {
+      const relativePath = makeRelative(params.absolute_path, this.rootDirectory);
       return `File path '${shortenPath(relativePath)}' is ignored by .geminiignore pattern(s).`;
     }
 
@@ -107,12 +107,12 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
   getDescription(params: ReadFileToolParams): string {
     if (
       !params ||
-      typeof params.abs_path !== 'string' ||
-      params.abs_path.trim() === ''
+      typeof params.absolute_path !== 'string' ||
+      params.absolute_path.trim() === ''
     ) {
       return `Path unavailable`;
     }
-    const relativePath = makeRelative(params.abs_path, this.rootDirectory);
+    const relativePath = makeRelative(params.absolute_path, this.rootDirectory);
     return shortenPath(relativePath);
   }
 
@@ -129,7 +129,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     }
 
     const result = await processSingleFileContent(
-      params.abs_path,
+      params.absolute_path,
       this.rootDirectory,
       params.offset,
       params.limit,
