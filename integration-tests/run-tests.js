@@ -43,6 +43,14 @@ async function main() {
     console.log(`Keeping output for test run in: ${runDir}`);
   }
 
+  const verbose = args.includes('--verbose');
+  if (verbose) {
+    const verboseIndex = args.indexOf('--verbose');
+    if (verboseIndex > -1) {
+      args.splice(verboseIndex, 1);
+    }
+  }
+
   const testPatterns =
     args.length > 0 ? args : ['integration-tests/*.test.js'];
   const testFiles = glob.sync(testPatterns, { cwd: rootDir, absolute: true });
@@ -61,8 +69,15 @@ async function main() {
       env: {
         ...process.env,
         INTEGRATION_TEST_FILE_DIR: testFileDir,
+        KEEP_OUTPUT: keepOutput.toString(),
+        TEST_FILE_NAME: testFileName,
       },
     });
+
+    if (verbose) {
+      child.stdout.pipe(process.stdout);
+      child.stderr.pipe(process.stderr);
+    }
 
     if (keepOutput) {
       const outputFile = join(testFileDir, 'output.log');
@@ -70,7 +85,7 @@ async function main() {
       child.stdout.pipe(outputStream);
       child.stderr.pipe(outputStream);
       console.log(`Output for ${testFileName} written to: ${outputFile}`);
-    } else {
+    } else if (!verbose) {
       child.stdout.pipe(process.stdout);
       child.stderr.pipe(process.stderr);
     }

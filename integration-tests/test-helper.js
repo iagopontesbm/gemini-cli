@@ -26,6 +26,7 @@ export class TestRig {
   }
 
   setup(testName) {
+    this.testName = testName;
     const sanitizedName = sanitizeTestName(testName);
     this.testDir = join(env.INTEGRATION_TEST_FILE_DIR, sanitizedName);
     mkdirSync(this.testDir, { recursive: true });
@@ -47,9 +48,13 @@ export class TestRig {
     );
 
     if (env.KEEP_OUTPUT === 'true') {
-      console.log('--- CLI Output ---');
+      const testId = `${env.TEST_FILE_NAME.replace(
+        '.test.js',
+        '',
+      )}:${this.testName.replace(/ /g, '-')}`;
+      console.log(`--- TEST: ${testId} ---`);
       console.log(output);
-      console.log('--- End CLI Output ---');
+      console.log(`--- END TEST: ${testId} ---`);
     }
 
     return output;
@@ -58,9 +63,13 @@ export class TestRig {
   readFile(fileName) {
     const content = readFileSync(join(this.testDir, fileName), 'utf-8');
     if (env.KEEP_OUTPUT === 'true') {
-      console.log(`--- File Content: ${fileName} ---`);
+      const testId = `${env.TEST_FILE_NAME.replace(
+        '.test.js',
+        '',
+      )}:${this.testName.replace(/ /g, '-')}`;
+      console.log(`--- FILE: ${testId}/${fileName} ---`);
       console.log(content);
-      console.log(`--- End File Content: ${fileName} ---`);
+      console.log(`--- END FILE: ${testId}/${fileName} ---`);
     }
     return content;
   }
