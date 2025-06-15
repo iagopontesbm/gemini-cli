@@ -14,6 +14,15 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const rootDir = join(__dirname, '..');
 const integrationTestsDir = join(rootDir, '.integration-tests');
 
+if (process.env.GEMINI_SANDBOX === 'docker') {
+    console.log('Building sandbox for Docker...');
+    const buildResult = spawnSync('npm', ['run', 'build:all'], { stdio: 'inherit' });
+    if (buildResult.status !== 0) {
+        console.error('Sandbox build failed.');
+        process.exit(1);
+    }
+}
+
 const runId = `${Date.now()}`;
 const runDir = join(integrationTestsDir, runId);
 
