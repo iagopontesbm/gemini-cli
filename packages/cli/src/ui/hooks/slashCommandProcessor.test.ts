@@ -625,6 +625,41 @@ Add any other context about the problem here.
       expect(message).toContain('No tools available');
       expect(commandResult).toBe(true);
     });
+
+    it('should display tool descriptions when /tools desc is used', async () => {
+      const mockTools = [
+        {
+          name: 'tool1',
+          displayName: 'Tool1',
+          description: 'Description for Tool1',
+        },
+        {
+          name: 'tool2',
+          displayName: 'Tool2',
+          description: 'Description for Tool2',
+        },
+      ];
+
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getAllTools: vi.fn().mockReturnValue(mockTools),
+        }),
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = await handleSlashCommand('/tools desc');
+      });
+
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('\u001b[36mTool1\u001b[0m');
+      expect(message).toContain('Description for Tool1');
+      expect(message).toContain('\u001b[36mTool2\u001b[0m');
+      expect(message).toContain('Description for Tool2');
+      expect(commandResult).toBe(true);
+    });
   });
 
   describe('/mcp command', () => {
