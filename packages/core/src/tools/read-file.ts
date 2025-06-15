@@ -97,7 +97,10 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
 
     const fileService = this.config.getFileService();
     if (fileService.shouldGeminiIgnoreFile(params.absolute_path)) {
-      const relativePath = makeRelative(params.absolute_path, this.rootDirectory);
+      const relativePath = makeRelative(
+        params.absolute_path,
+        this.rootDirectory,
+      );
       return `File path '${shortenPath(relativePath)}' is ignored by .geminiignore pattern(s).`;
     }
 
