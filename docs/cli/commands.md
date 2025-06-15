@@ -58,8 +58,21 @@ Slash commands provide meta-level control over the CLI itself. They can typicall
   - **Action:** Terminates the CLI process.
 
 - **`/tools`**
+
   - **Description:** Displays a list of all the tools that are currently available to the model.
   - **Action:** Outputs a list of the available tools.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Shows detailed descriptions of each tool.
+      - **Action:** Displays each tool's name with its full description as provided to the model.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hides tool descriptions, showing only the tool names.
+      - **Action:** Displays a compact list with only tool names.
+
+- **`/compress`**
+
+  - **Description:** Compresses the current context. This will save on tokens used for future tasks while retaining a high level summary of what has happened.
+  - **Action:** Replaces the entire chat context with a summary.
 
 ## At Commands (`@`)
 

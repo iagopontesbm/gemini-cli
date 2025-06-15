@@ -9,6 +9,7 @@ import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
+import { useStateAndRef } from './useStateAndRef.js';
 import {
   Config,
   GitService,
@@ -80,6 +81,13 @@ export const useSlashCommandProcessor = (
     return new GitService(config.getProjectRoot());
   }, [config]);
 
+  const pendingHistoryItems: HistoryItemWithoutId[] = [];
+  const [pendingCompressionItemRef, setPendingCompressionItem] =
+    useStateAndRef<HistoryItemWithoutId | null>(null);
+  if (pendingCompressionItemRef.current != null) {
+    pendingHistoryItems.push(pendingCompressionItemRef.current);
+  }
+
   const addMessage = useCallback(
     (message: Message) => {
       // Convert Message to HistoryItemWithoutId
@@ -104,6 +112,11 @@ export const useSlashCommandProcessor = (
           type: 'quit',
           stats: message.stats,
           duration: message.duration,
+        };
+      } else if (message.type === MessageType.COMPRESSION) {
+        historyItemContent = {
+          type: 'compression',
+          compression: message.compression,
         };
       } else {
         historyItemContent = {
@@ -406,6 +419,21 @@ export const useSlashCommandProcessor = (
         name: 'tools',
         description: 'list available Gemini CLI tools',
         action: async (_mainCommand, _subCommand, _args) => {
+          // Check if the _subCommand includes a specific flag to control description visibility
+          let useShowDescriptions = showToolDescriptions;
+          if (_subCommand === 'desc' || _subCommand === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (
+            _subCommand === 'nodesc' ||
+            _subCommand === 'nodescriptions'
+          ) {
+            useShowDescriptions = false;
+          } else if (_args === 'desc' || _args === 'descriptions') {
+            useShowDescriptions = true;
+          } else if (_args === 'nodesc' || _args === 'nodescriptions') {
+            useShowDescriptions = false;
+          }
+
           const toolRegistry = await config?.getToolRegistry();
           const tools = toolRegistry?.getAllTools();
           if (!tools) {
@@ -419,11 +447,51 @@ export const useSlashCommandProcessor = (
 
           // Filter out MCP tools by checking if they have a serverName property
           const geminiTools = tools.filter((tool) => !('serverName' in tool));
-          const geminiToolList = geminiTools.map((tool) => tool.displayName);
+
+          let message = 'Available Gemini CLI tools:\n\n';
+
+          if (geminiTools.length > 0) {
+            geminiTools.forEach((tool) => {
+              if (useShowDescriptions && tool.description) {
+                // Format tool name in cyan using simple ANSI cyan color
+                message += `  - \u001b[36m${tool.displayName}\u001b[0m: `;
+
+                // Apply green color to the description text
+                const greenColor = '\u001b[32m';
+                const resetColor = '\u001b[0m';
+
+                // Handle multi-line descriptions by properly indenting and preserving formatting
+                const descLines = tool.description.split('\n');
+                message += `${greenColor}${descLines[0]}${resetColor}\n`;
+
+                // If there are multiple lines, add proper indentation for each line
+                if (descLines.length > 1) {
+                  for (let i = 1; i < descLines.length; i++) {
+                    // Skip empty lines at the end
+                    if (
+                      i === descLines.length - 1 &&
+                      descLines[i].trim() === ''
+                    )
+                      continue;
+                    message += `      ${greenColor}${descLines[i]}${resetColor}\n`;
+                  }
+                }
+              } else {
+                // Use cyan color for the tool name even when not showing descriptions
+                message += `  - \u001b[36m${tool.displayName}\u001b[0m\n`;
+              }
+            });
+          } else {
+            message += '  No tools available\n';
+          }
+          message += '\n';
+
+          // Make sure to reset any ANSI formatting at the end to prevent it from affecting the terminal
+          message += '\u001b[0m';
 
           addMessage({
             type: MessageType.INFO,
-            content: `Available Gemini CLI tools:\n\n${geminiToolList.join('\n')}`,
+            content: message,
             timestamp: new Date(),
           });
         },
@@ -499,13 +567,14 @@ Add any other context about the problem here.
 `;
 
           let bugReportUrl =
-            'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.md';
-          if (bugDescription) {
-            const encodedArgs = encodeURIComponent(bugDescription);
-            bugReportUrl += `&title=${encodedArgs}`;
+            'https://github.com/google-gemini/gemini-cli/issues/new?template=bug_report.md&title={title}&body={body}';
+          const bugCommand = config?.getBugCommand();
+          if (bugCommand?.urlTemplate) {
+            bugReportUrl = bugCommand.urlTemplate;
           }
-          const encodedBody = encodeURIComponent(diagnosticInfo);
-          bugReportUrl += `&body=${encodedBody}`;
+          bugReportUrl = bugReportUrl
+            .replace('{title}', encodeURIComponent(bugDescription))
+            .replace('{body}', encodeURIComponent(diagnosticInfo));
 
           addMessage({
             type: MessageType.INFO,
@@ -641,6 +710,57 @@ Add any other context about the problem here.
           }, 100);
         },
       },
+      {
+        name: 'compress',
+        altName: 'summarize',
+        description: 'Compresses the context by replacing it with a summary.',
+        action: async (_mainCommand, _subCommand, _args) => {
+          if (pendingCompressionItemRef.current !== null) {
+            addMessage({
+              type: MessageType.ERROR,
+              content:
+                'Already compressing, wait for previous request to complete',
+              timestamp: new Date(),
+            });
+            return;
+          }
+          setPendingCompressionItem({
+            type: MessageType.COMPRESSION,
+            compression: {
+              isPending: true,
+            },
+          });
+          try {
+            const compressed = await config!
+              .getGeminiClient()!
+              .tryCompressChat(true);
+            if (compressed) {
+              addMessage({
+                type: MessageType.COMPRESSION,
+                compression: {
+                  isPending: false,
+                  originalTokenCount: compressed.originalTokenCount,
+                  newTokenCount: compressed.newTokenCount,
+                },
+                timestamp: new Date(),
+              });
+            } else {
+              addMessage({
+                type: MessageType.ERROR,
+                content: 'Failed to compress chat history.',
+                timestamp: new Date(),
+              });
+            }
+          } catch (e) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Failed to compress chat history: ${e instanceof Error ? e.message : String(e)}`,
+              timestamp: new Date(),
+            });
+          }
+          setPendingCompressionItem(null);
+        },
+      },
     ];
 
     if (config?.getCheckpointEnabled()) {
@@ -767,6 +887,8 @@ Add any other context about the problem here.
     loadHistory,
     addItem,
     setQuittingMessages,
+    pendingCompressionItemRef,
+    setPendingCompressionItem,
   ]);
 
   const handleSlashCommand = useCallback(
@@ -830,5 +952,5 @@ Add any other context about the problem here.
     [addItem, slashCommands, addMessage],
   );
 
-  return { handleSlashCommand, slashCommands };
+  return { handleSlashCommand, slashCommands, pendingHistoryItems };
 };
