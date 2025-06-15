@@ -1,3 +1,8 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 import { strict as assert } from 'assert';
 import { test } from 'node:test';
