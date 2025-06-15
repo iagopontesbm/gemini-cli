@@ -13,6 +13,7 @@ import {
   GEMINI_CONFIG_DIR,
   getAllGeminiMdFilenames,
 } from '../tools/memoryTool.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts
 // TODO: Integrate with a more robust server-side logger if available/appropriate.
@@ -81,6 +82,7 @@ async function getGeminiMdFilePathsInternal(
   currentWorkingDirectory: string,
   userHomePath: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
   extensionContextFilePaths: string[] = [],
 ): Promise<string[]> {
   const allPaths = new Set<string>();
@@ -182,8 +184,7 @@ async function getGeminiMdFilePathsInternal(
       fileName: geminiMdFilename,
       maxDirs: MAX_DIRECTORIES_TO_SCAN_FOR_MEMORY,
       debug: debugMode,
-      respectGitIgnore: true,
-      projectRoot: projectRoot || resolvedCwd,
+      fileService,
     });
     downwardPaths.sort(); // Sort for consistent ordering, though hierarchy might be more complex
     if (debugMode && downwardPaths.length > 0)
@@ -270,6 +271,7 @@ function concatenateInstructions(
 export async function loadServerHierarchicalMemory(
   currentWorkingDirectory: string,
   debugMode: boolean,
+  fileService: FileDiscoveryService,
   extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode)
@@ -283,6 +285,7 @@ export async function loadServerHierarchicalMemory(
     currentWorkingDirectory,
     userHomePath,
     debugMode,
+    fileService,
     extensionContextFilePaths,
   );
   if (filePaths.length === 0) {
