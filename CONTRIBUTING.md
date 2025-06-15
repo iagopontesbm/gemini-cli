@@ -59,10 +59,9 @@ If you'd like to get early feedback on your work, please use GitHub's **Draft Pu
 
 #### 4. Ensure All Checks Pass
 
-Before submitting your PR (and before marking a draft as "Ready for Review"), please ensure that all automated checks are passing. This includes:
+Before submitting your PR, ensure that all automated checks are passing by running `npm run preflight`. This command runs all tests, linting, and other style checks.
 
-- **Tests:** All existing tests must pass, and new code should be accompanied by new tests. Run `npm run test`.
-- **Linting and Style:** Your code must adhere to our project's style guidelines. Run `npm run preflight` to check everything.
+
 
 #### 5. Update Documentation
 
@@ -135,13 +134,31 @@ If you’d like to run the source build outside of the gemini-cli folder you can
 
 ### Running Tests
 
-To execute the test suite for the project:
+This project contains two types of tests: unit tests and integration tests.
+
+#### Unit Tests
+
+To execute the unit test suite for the project:
 
 ```bash
 npm run test
 ```
 
-This will run tests located in the `packages/core` and `packages/cli` directories. Ensure tests pass before submitting any changes.
+This will run tests located in the `packages/core` and `packages/cli` directories. Ensure tests pass before submitting any changes. For a more comprehensive check, it is recommended to run `npm run preflight`.
+
+#### Integration Tests
+
+The integration tests are designed to validate the end-to-end functionality of the Gemini CLI. They are not run as part of the default `npm run test` command.
+
+To run the integration tests, use the following command:
+
+```bash
+npm run integration-test
+```
+
+For more detailed information on the integration testing framework, please see the [Integration Tests documentation](./docs/integration-tests.md).
+
+
 
 #### Important Note for Sandbox Users on macOS/Windows
 
@@ -168,13 +185,14 @@ You will need to repeat the npm rebuild step any time you switch from running th
 
 ### Linting and Preflight Checks
 
-To ensure code quality, formatting consistency, and run final checks before committing:
+To ensure code quality and formatting consistency, run the preflight check:
 
 ```bash
 npm run preflight
 ```
 
-This command usually runs ESLint, Prettier, and potentially other checks as defined in the project's `package.json`.
+This command will run ESLint, Prettier, all tests, and other checks as defined in the project's `package.json`.
+
 
 #### Formatting
 
