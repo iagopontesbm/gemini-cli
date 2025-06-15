@@ -382,8 +382,10 @@ export const useSlashCommandProcessor = (
                   const paramsLines = JSON.stringify(
                     tool.schema.parameters,
                     null,
-                    2
-                  ).trim().split('\n');
+                    2,
+                  )
+                    .trim()
+                    .split('\n');
                   if (paramsLines) {
                     for (let i = 0; i < paramsLines.length; i++) {
                       message += `      ${greenColor}${paramsLines[i]}${resetColor}\n`;
