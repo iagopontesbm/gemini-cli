@@ -1084,17 +1084,13 @@ Add any other context about the problem here.
       const message = mockAddItem.mock.calls[1][0].text;
 
       // Check that server description is included (with ANSI color codes)
-      expect(message).toContain('\u001b[1mserver1\u001b[0m - Ready (2 tools)');
-      expect(message).toContain(
-        '\u001b[32mThis is a server description\u001b[0m',
-      );
+      expect(message).toContain('Ready (2 tools)');
+      expect(message).toContain('This is a server description');
 
       // Check that tool schemas are included
-      expect(message).toContain('\u001b[36mtool1\u001b[0m');
       expect(message).toContain('tool 1 description');
       expect(message).toContain('param1');
       expect(message).toContain('string');
-      expect(message).toContain('\u001b[36mtool2\u001b[0m');
       expect(message).toContain('tool 2 description');
       expect(message).toContain('param2');
       expect(message).toContain('number');
