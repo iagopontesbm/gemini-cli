@@ -10,6 +10,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
 import { FileDiscoveryService } from '@gemini-cli/core';
+import { glob } from 'glob';
 
 // Mock dependencies
 vi.mock('fs/promises');
@@ -24,6 +25,7 @@ vi.mock('@gemini-cli/core', async () => {
     getErrorMessage: vi.fn((error) => error.message),
   };
 });
+vi.mock('glob');
 
 describe('useCompletion git-aware filtering integration', () => {
   let mockFileDiscoveryService: Mocked<FileDiscoveryService>;
@@ -38,16 +40,13 @@ describe('useCompletion git-aware filtering integration', () => {
 
   beforeEach(() => {
     mockFileDiscoveryService = {
-      initialize: vi.fn(),
-      shouldIgnoreFile: vi.fn(),
+      shouldGitIgnoreFile: vi.fn(),
       filterFiles: vi.fn(),
-      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
     };
 
     mockConfig = {
       getFileFilteringRespectGitIgnore: vi.fn(() => true),
-      getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
-      getFileService: vi.fn().mockResolvedValue(mockFileDiscoveryService),
+      getFileService: vi.fn().mockReturnValue(mockFileDiscoveryService),
     };
 
     vi.mocked(FileDiscoveryService).mockImplementation(
@@ -71,7 +70,7 @@ describe('useCompletion git-aware filtering integration', () => {
     ] as Array<{ name: string; isDirectory: () => boolean }>);
 
     // Mock git ignore service to ignore certain files
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+    mockFileDiscoveryService.shouldGitIgnoreFile.mockImplementation(
       (path: string) =>
         path.includes('node_modules') ||
         path.includes('dist') ||
@@ -125,7 +124,7 @@ describe('useCompletion git-aware filtering integration', () => {
     );
 
     // Mock git ignore service
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+    mockFileDiscoveryService.shouldGitIgnoreFile.mockImplementation(
       (path: string) => path.includes('node_modules') || path.includes('temp'),
     );
 
@@ -173,10 +172,6 @@ describe('useCompletion git-aware filtering integration', () => {
   });
 
   it('should handle git discovery service initialization failure gracefully', async () => {
-    mockFileDiscoveryService.initialize.mockRejectedValue(
-      new Error('Git not found'),
-    );
-
     vi.mocked(fs.readdir).mockResolvedValue([
       { name: 'src', isDirectory: () => true },
       { name: 'README.md', isDirectory: () => false },
@@ -208,7 +203,7 @@ describe('useCompletion git-aware filtering integration', () => {
       { name: 'index.ts', isDirectory: () => false },
     ] as Array<{ name: string; isDirectory: () => boolean }>);
 
-    mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+    mockFileDiscoveryService.shouldGitIgnoreFile.mockImplementation(
       (path: string) => path.includes('.log'),
     );
 
@@ -223,6 +218,59 @@ describe('useCompletion git-aware filtering integration', () => {
     // Should filter out .log files but include matching .tsx files
     expect(result.current.suggestions).toEqual([
       { label: 'component.tsx', value: 'component.tsx' },
+    ]);
+  });
+
+  it('should use glob for top-level @ completions when available', async () => {
+    const globResults = [`${testCwd}/src/index.ts`, `${testCwd}/README.md`];
+    vi.mocked(glob).mockResolvedValue(globResults);
+
+    const { result } = renderHook(() =>
+      useCompletion('@s', testCwd, true, slashCommands, mockConfig),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(glob).toHaveBeenCalledWith('**/s*', {
+      cwd: testCwd,
+      dot: false,
+      nocase: true,
+    });
+    expect(fs.readdir).not.toHaveBeenCalled(); // Ensure glob is used instead of readdir
+    expect(result.current.suggestions).toEqual([
+      { label: 'README.md', value: 'README.md' },
+      { label: 'src/index.ts', value: 'src/index.ts' },
+    ]);
+  });
+
+  it('should include dotfiles in glob search when input starts with a dot', async () => {
+    const globResults = [
+      `${testCwd}/.env`,
+      `${testCwd}/.gitignore`,
+      `${testCwd}/src/index.ts`,
+    ];
+    vi.mocked(glob).mockResolvedValue(globResults);
+
+    const { result } = renderHook(() =>
+      useCompletion('@.', testCwd, true, slashCommands, mockConfig),
+    );
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 150));
+    });
+
+    expect(glob).toHaveBeenCalledWith('**/.*', {
+      cwd: testCwd,
+      dot: true,
+      nocase: true,
+    });
+    expect(fs.readdir).not.toHaveBeenCalled();
+    expect(result.current.suggestions).toEqual([
+      { label: '.env', value: '.env' },
+      { label: '.gitignore', value: '.gitignore' },
+      { label: 'src/index.ts', value: 'src/index.ts' },
     ]);
   });
 });

@@ -9,6 +9,8 @@ import {
   ToolCallRequestInfo,
   executeToolCall,
   ToolRegistry,
+  shutdownTelemetry,
+  isTelemetrySdkInitialized,
 } from '@gemini-cli/core';
 import {
   Content,
@@ -120,5 +122,9 @@ export async function runNonInteractive(
   } catch (error) {
     console.error('Error processing input:', error);
     process.exit(1);
+  } finally {
+    if (isTelemetrySdkInitialized()) {
+      await shutdownTelemetry();
+    }
   }
 }

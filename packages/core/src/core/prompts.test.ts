@@ -7,6 +7,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { getCoreSystemPrompt } from './prompts.js'; // Adjust import path
 import * as process from 'node:process';
+import * as os from 'node:os';
+import { isGitRepository } from '../utils/gitUtils.js';
 
 // Mock tool names if they are dynamically generated or complex
 vi.mock('../tools/ls', () => ({ LSTool: { Name: 'list_directory' } }));
@@ -23,6 +25,12 @@ vi.mock('../tools/shell', () => ({
 vi.mock('../tools/write-file', () => ({
   WriteFileTool: { Name: 'write_file' },
 }));
+vi.mock('node:os', () => ({
+  platform: vi.fn(),
+}));
+vi.mock('../utils/gitUtils', () => ({
+  isGitRepository: vi.fn(),
+}));
 
 describe('Core System Prompt (prompts.ts)', () => {
   // Store original env vars that we modify
@@ -31,6 +39,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   beforeEach(() => {
     // Store original value before each test
     originalSandboxEnv = process.env.SANDBOX;
+    vi.mocked(os.platform).mockReturnValue('darwin');
   });
 
   afterEach(() => {
@@ -101,6 +110,20 @@ describe('Core System Prompt (prompts.ts)', () => {
     expect(prompt).toContain('# Outside of Sandbox');
     expect(prompt).not.toContain('# Sandbox');
     expect(prompt).not.toContain('# MacOS Seatbelt');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should include git instructions when in a git repo', () => {
+    vi.mocked(isGitRepository).mockReturnValue(true);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).toContain('# Git Repository');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should not include git instructions when not in a git repo', () => {
+    vi.mocked(isGitRepository).mockReturnValue(false);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).not.toContain('# Git Repository');
     expect(prompt).toMatchSnapshot();
   });
 });

@@ -135,7 +135,7 @@ export async function handleAtCommand({
   addItem({ type: 'user', text: query }, userMessageTimestamp);
 
   // Get centralized file discovery service
-  const fileDiscovery = await config.getFileService();
+  const fileDiscovery = config.getFileService();
   const respectGitIgnore = config.getFileFilteringRespectGitIgnore();
 
   const pathSpecsToRead: string[] = [];
@@ -182,7 +182,7 @@ export async function handleAtCommand({
     }
 
     // Check if path should be ignored by git
-    if (fileDiscovery.shouldIgnoreFile(pathName)) {
+    if (fileDiscovery.shouldGitIgnoreFile(pathName)) {
       const reason = respectGitIgnore
         ? 'git-ignored and will be skipped'
         : 'ignored by custom patterns';
@@ -366,38 +366,27 @@ export async function handleAtCommand({
       confirmationDetails: undefined,
     };
 
-    if (
-      result.llmContent &&
-      typeof result.llmContent === 'string' &&
-      result.llmContent.trim() !== ''
-    ) {
+    if (Array.isArray(result.llmContent)) {
+      const fileContentRegex = /^--- (.*?) ---\n\n([\s\S]*?)\n\n$/;
       processedQueryParts.push({
         text: '\n--- Content from referenced files ---',
       });
-      const fileContentRegex =
-        /\n--- (.*?) ---\n([\s\S]*?)(?=\n--- .*? ---\n|$)/g;
-      let match;
-      const foundContentForSpecs = new Set<string>();
-      while ((match = fileContentRegex.exec(result.llmContent)) !== null) {
-        const filePathSpecInContent = match[1]; // This is a resolved pathSpec
-        const fileActualContent = match[2].trim();
-        if (pathSpecsToRead.includes(filePathSpecInContent)) {
-          // Ensure we only add content for paths we requested
-          processedQueryParts.push({
-            text: `\nContent from @${filePathSpecInContent}:\n`,
-          });
-          processedQueryParts.push({ text: fileActualContent });
-          foundContentForSpecs.add(filePathSpecInContent);
-        }
-      }
-      // Check if any requested pathSpecs didn't yield content in the parsed block, could indicate an issue.
-      for (const requestedSpec of pathSpecsToRead) {
-        if (!foundContentForSpecs.has(requestedSpec)) {
-          onDebugMessage(
-            `Content for @${requestedSpec} was expected but not found in read_many_files output.`,
-          );
-          // Optionally add a note about missing content for this spec
-          // processedQueryParts.push({ text: `\nContent for @${requestedSpec} not found or empty.\n` });
+      for (const part of result.llmContent) {
+        if (typeof part === 'string') {
+          const match = fileContentRegex.exec(part);
+          if (match) {
+            const filePathSpecInContent = match[1]; // This is a resolved pathSpec
+            const fileActualContent = match[2].trim();
+            processedQueryParts.push({
+              text: `\nContent from @${filePathSpecInContent}:\n`,
+            });
+            processedQueryParts.push({ text: fileActualContent });
+          } else {
+            processedQueryParts.push({ text: part });
+          }
+        } else {
+          // part is a Part object.
+          processedQueryParts.push(part);
         }
       }
       processedQueryParts.push({ text: '\n--- End of content ---' });

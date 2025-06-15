@@ -30,14 +30,42 @@ import {
   recordToolCallMetrics,
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
+import { ToolConfirmationOutcome } from '../index.js';
+import {
+  GenerateContentResponse,
+  GenerateContentResponseUsageMetadata,
+} from '@google/genai';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
-  config.getTelemetryLogUserPromptsEnabled() ?? false;
+  config.getTelemetryLogPromptsEnabled() ?? false;
 
 function getCommonAttributes(config: Config): LogAttributes {
   return {
     'session.id': config.getSessionId(),
   };
+}
+
+export enum ToolCallDecision {
+  ACCEPT = 'accept',
+  REJECT = 'reject',
+  MODIFY = 'modify',
+}
+
+export function getDecisionFromOutcome(
+  outcome: ToolConfirmationOutcome,
+): ToolCallDecision {
+  switch (outcome) {
+    case ToolConfirmationOutcome.ProceedOnce:
+    case ToolConfirmationOutcome.ProceedAlways:
+    case ToolConfirmationOutcome.ProceedAlwaysServer:
+    case ToolConfirmationOutcome.ProceedAlwaysTool:
+      return ToolCallDecision.ACCEPT;
+    case ToolConfirmationOutcome.ModifyWithEditor:
+      return ToolCallDecision.MODIFY;
+    case ToolConfirmationOutcome.Cancel:
+    default:
+      return ToolCallDecision.REJECT;
+  }
 }
 
 export function logCliConfiguration(config: Config): void {
@@ -58,11 +86,9 @@ export function logCliConfiguration(config: Config): void {
     api_key_enabled: !!generatorConfig.apiKey,
     vertex_ai_enabled: !!generatorConfig.vertexai,
     code_assist_enabled: !!generatorConfig.codeAssist,
-    log_user_prompts_enabled: config.getTelemetryLogUserPromptsEnabled(),
+    log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),
-    file_filtering_allow_build_artifacts:
-      config.getFileFilteringAllowBuildArtifacts(),
     debug_mode: config.getDebugMode(),
     mcp_servers: mcpServers ? Object.keys(mcpServers).join(',') : '',
   };
@@ -95,7 +121,7 @@ export function logUserPrompt(
 
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `User prompt. Length: ${event.prompt_length}`,
+    body: `User prompt. Length: ${event.prompt_length}.`,
     attributes,
   };
   logger.emit(logRecord);
@@ -103,15 +129,20 @@ export function logUserPrompt(
 
 export function logToolCall(
   config: Config,
-  event: Omit<ToolCallEvent, 'event.name' | 'event.timestamp'>,
+  event: Omit<ToolCallEvent, 'event.name' | 'event.timestamp' | 'decision'>,
+  outcome?: ToolConfirmationOutcome,
 ): void {
   if (!isTelemetrySdkInitialized()) return;
+
+  const decision = outcome ? getDecisionFromOutcome(outcome) : undefined;
+
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_TOOL_CALL,
     'event.timestamp': new Date().toISOString(),
-    function_args: JSON.stringify(event.function_args),
+    function_args: JSON.stringify(event.function_args, null, 2),
+    decision,
   };
   if (event.error) {
     attributes['error.message'] = event.error;
@@ -121,7 +152,7 @@ export function logToolCall(
   }
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `Tool call: ${event.function_name}. Success: ${event.success}. Duration: ${event.duration_ms}ms.`,
+    body: `Tool call: ${event.function_name}${decision ? `. Decision: ${decision}` : ''}. Success: ${event.success}. Duration: ${event.duration_ms}ms.`,
     attributes,
   };
   logger.emit(logRecord);
@@ -130,6 +161,7 @@ export function logToolCall(
     event.function_name,
     event.duration_ms,
     event.success,
+    decision,
   );
 }
 
@@ -146,16 +178,10 @@ export function logApiRequest(
   };
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `API request to ${event.model}. Tokens: ${event.input_token_count}.`,
+    body: `API request to ${event.model}.`,
     attributes,
   };
   logger.emit(logRecord);
-  recordTokenUsageMetrics(
-    config,
-    event.model,
-    event.input_token_count,
-    'input',
-  );
 }
 
 export function logApiError(
@@ -231,6 +257,12 @@ export function logApiResponse(
   recordTokenUsageMetrics(
     config,
     event.model,
+    event.input_token_count,
+    'input',
+  );
+  recordTokenUsageMetrics(
+    config,
+    event.model,
     event.output_token_count,
     'output',
   );
@@ -247,4 +279,44 @@ export function logApiResponse(
     'thought',
   );
   recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
+}
+
+export function combinedUsageMetadata(
+  chunks: GenerateContentResponse[],
+): GenerateContentResponseUsageMetadata {
+  const metadataKeys: Array<keyof GenerateContentResponseUsageMetadata> = [
+    'promptTokenCount',
+    'candidatesTokenCount',
+    'cachedContentTokenCount',
+    'thoughtsTokenCount',
+    'toolUsePromptTokenCount',
+    'totalTokenCount',
+  ];
+
+  const totals: Record<keyof GenerateContentResponseUsageMetadata, number> = {
+    promptTokenCount: 0,
+    candidatesTokenCount: 0,
+    cachedContentTokenCount: 0,
+    thoughtsTokenCount: 0,
+    toolUsePromptTokenCount: 0,
+    totalTokenCount: 0,
+    cacheTokensDetails: 0,
+    candidatesTokensDetails: 0,
+    promptTokensDetails: 0,
+    toolUsePromptTokensDetails: 0,
+    trafficType: 0,
+  };
+
+  for (const chunk of chunks) {
+    if (chunk.usageMetadata) {
+      for (const key of metadataKeys) {
+        const chunkValue = chunk.usageMetadata[key];
+        if (typeof chunkValue === 'number') {
+          totals[key] += chunkValue;
+        }
+      }
+    }
+  }
+
+  return totals as unknown as GenerateContentResponseUsageMetadata;
 }
