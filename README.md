@@ -30,7 +30,7 @@ Once the CLI is running, you can start interacting with Gemini from your shell.
 You can start a project from a new directory:
 
 ```sh
-$ cd projects/
+$ cd new-project/
 $ gemini
 > Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
 ```
