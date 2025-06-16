@@ -21,7 +21,6 @@ const mockConfig = {
   isSandboxed: vi.fn(() => false),
   getFileService: vi.fn(),
   getFileFilteringRespectGitIgnore: vi.fn(() => true),
-  getFileFilteringAllowBuildArtifacts: vi.fn(() => false),
 } as unknown as Config;
 
 const mockReadManyFilesExecute = vi.fn();
@@ -90,9 +89,9 @@ describe('handleAtCommand', () => {
     // Mock FileDiscoveryService
     mockFileDiscoveryService = {
       initialize: vi.fn(),
-      shouldIgnoreFile: vi.fn(() => false),
+      shouldGitIgnoreFile: vi.fn(() => false),
       filterFiles: vi.fn((files) => files),
-      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [], customIgnored: [] })),
+      getIgnoreInfo: vi.fn(() => ({ gitIgnored: [] })),
       isGitRepository: vi.fn(() => true),
     };
     vi.mocked(FileDiscoveryService).mockImplementation(
@@ -102,7 +101,7 @@ describe('handleAtCommand', () => {
     // Mock getFileService to return the mocked FileDiscoveryService
     mockConfig.getFileService = vi
       .fn()
-      .mockResolvedValue(mockFileDiscoveryService);
+      .mockReturnValue(mockFileDiscoveryService);
   });
 
   afterEach(() => {
@@ -240,8 +239,12 @@ describe('handleAtCommand', () => {
     // If it were to return actual image Part, the test and handling would be different.
     // Current implementation of read_many_files for images returns base64 in text.
     const imageFileTextContent = '[base64 image data for path/to/image.png]';
+    const imagePart = {
+      mimeType: 'image/png',
+      inlineData: imageFileTextContent,
+    };
     mockReadManyFilesExecute.mockResolvedValue({
-      llmContent: [`--- ${imagePath} ---\n\n${imageFileTextContent}\n\n`],
+      llmContent: [imagePart],
       returnDisplay: 'Read 1 image.',
     });
 
@@ -256,8 +259,7 @@ describe('handleAtCommand', () => {
     expect(result.processedQuery).toEqual([
       { text: `@${imagePath}` },
       { text: '\n--- Content from referenced files ---' },
-      { text: `\nContent from @${imagePath}:\n` },
-      { text: imageFileTextContent },
+      imagePart,
       { text: '\n--- End of content ---' },
     ]);
     expect(result.shouldProceed).toBe(true);
@@ -579,7 +581,7 @@ describe('handleAtCommand', () => {
       const query = `@${gitIgnoredFile}`;
 
       // Mock the file discovery service to report this file as git-ignored
-      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      mockFileDiscoveryService.shouldGitIgnoreFile.mockImplementation(
         (path: string) => path === gitIgnoredFile,
       );
 
@@ -592,7 +594,7 @@ describe('handleAtCommand', () => {
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+      expect(mockFileDiscoveryService.shouldGitIgnoreFile).toHaveBeenCalledWith(
         gitIgnoredFile,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
@@ -611,7 +613,7 @@ describe('handleAtCommand', () => {
       const query = `@${validFile}`;
       const fileContent = 'console.log("Hello world");';
 
-      mockFileDiscoveryService.shouldIgnoreFile.mockReturnValue(false);
+      mockFileDiscoveryService.shouldGitIgnoreFile.mockReturnValue(false);
       mockReadManyFilesExecute.mockResolvedValue({
         llmContent: [`--- ${validFile} ---\n\n${fileContent}\n\n`],
         returnDisplay: 'Read 1 file.',
@@ -626,7 +628,7 @@ describe('handleAtCommand', () => {
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+      expect(mockFileDiscoveryService.shouldGitIgnoreFile).toHaveBeenCalledWith(
         validFile,
       );
       expect(mockReadManyFilesExecute).toHaveBeenCalledWith(
@@ -649,7 +651,7 @@ describe('handleAtCommand', () => {
       const query = `@${validFile} @${gitIgnoredFile}`;
       const fileContent = '# Project README';
 
-      mockFileDiscoveryService.shouldIgnoreFile.mockImplementation(
+      mockFileDiscoveryService.shouldGitIgnoreFile.mockImplementation(
         (path: string) => path === gitIgnoredFile,
       );
       mockReadManyFilesExecute.mockResolvedValue({
@@ -666,10 +668,10 @@ describe('handleAtCommand', () => {
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+      expect(mockFileDiscoveryService.shouldGitIgnoreFile).toHaveBeenCalledWith(
         validFile,
       );
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+      expect(mockFileDiscoveryService.shouldGitIgnoreFile).toHaveBeenCalledWith(
         gitIgnoredFile,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(
@@ -696,7 +698,7 @@ describe('handleAtCommand', () => {
       const gitFile = '.git/config';
       const query = `@${gitFile}`;
 
-      mockFileDiscoveryService.shouldIgnoreFile.mockReturnValue(true);
+      mockFileDiscoveryService.shouldGitIgnoreFile.mockReturnValue(true);
 
       const result = await handleAtCommand({
         query,
@@ -707,7 +709,7 @@ describe('handleAtCommand', () => {
         signal: abortController.signal,
       });
 
-      expect(mockFileDiscoveryService.shouldIgnoreFile).toHaveBeenCalledWith(
+      expect(mockFileDiscoveryService.shouldGitIgnoreFile).toHaveBeenCalledWith(
         gitFile,
       );
       expect(mockOnDebugMessage).toHaveBeenCalledWith(

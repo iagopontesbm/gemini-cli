@@ -38,25 +38,33 @@ When you create a `.gemini/settings.json` file for project-specific settings, or
 
 ### Available Settings in `settings.json`:
 
-- **`contextFileName`** (string, optional):
+- **`contextFileName`** (string or array of strings, optional):
 
-  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`).
+  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`). May be a single filename or a list of accepted filenames.
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
+
+- **`bugCommand`** (object, optional):
+
+  - **Description:** Overrides the default URL for the `/bug` command.
+  - **Properties:**
+    - **`urlTemplate`** (string, required): A URL that can contain `{title}` and `{body}` placeholders.
+  - **Example:**
+    ```json
+    "bugCommand": {
+      "urlTemplate": "https://bug.example.com/new?title={title}&body={body}"
+    }
+    ```
 
 - **`fileFiltering`** (object, optional):
 
   - **Description:** Controls git-aware file filtering behavior for @ commands and file discovery tools.
   - **Properties:**
     - **`respectGitIgnore`** (boolean, default: `true`): Whether to respect .gitignore patterns when discovering files. When enabled, git-ignored files (like `node_modules/`, `dist/`, `.env`) are automatically excluded from @ commands and file listing operations.
-    - **`customIgnorePatterns`** (array of strings, default: `[]`): Additional patterns to ignore beyond git-ignored files. Useful for excluding specific directories or file types.
-    - **`allowBuildArtifacts`** (boolean, default: `false`): Whether to include build artifacts and generated files in file discovery operations.
   - **Example:**
     ```json
     "fileFiltering": {
       "respectGitIgnore": true,
-      "customIgnorePatterns": ["temp/", "*.log"],
-      "allowBuildArtifacts": false
     }
     ```
 
@@ -201,6 +209,29 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Specifies the default Gemini model to use.
   - Overrides the hardcoded default, which is currently `gemini-2.5-pro-preview-05-06`.
   - Example: `export GEMINI_MODEL="gemini-1.5-flash-latest"`
+- **`GOOGLE_API_KEY`**:
+  - Your Google Cloud API key.
+  - Required for using Vertex AI in express mode.
+  - Ensure you have the necessary permissions and set the `GOOGLE_GENAI_USE_VERTEXAI=true` environment variable.
+  - Example: `export GOOGLE_API_KEY="YOUR_GOOGLE_API_ KEY"`.
+- **`GOOGLE_CLOUD_PROJECT`**:
+  - Your Google Cloud Project ID.
+  - Required for using Code Assist or Vertex AI.
+  - If using Vertex AI, ensure you have the necessary permissions and set the `GOOGLE_GENAI_USE_VERTEXAI=true` environment variable.
+  - Example: `export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"`.
+- **`OTLP_GOOGLE_CLOUD_PROJECT`**:
+  - Your Google Cloud Project ID for Telemetry in Google Cloud
+  - Example: `export OTLP_GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"`.
+- **`GOOGLE_CLOUD_LOCATION`**:
+  - Your Google Cloud Project Location (e.g., us-central1).
+  - Required for using Vertex AI in non express mode.
+  - If using Vertex AI, ensure you have the necessary permissions and set the `GOOGLE_GENAI_USE_VERTEXAI=true` environment variable.
+  - Example: `export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"`.
+- **`GEMINI_CODE_ASSIST`**:
+  - Enables Code Assist functionality.
+  - Accepts `true`, `false`, or a custom command string.
+  - If you are using an Enterprise account you should also set the `GOOGLE_CLOUD_PROJECT` environment variable.
+  - Example: `export GEMINI_CODE_ASSIST=true`.
 - **`GEMINI_SANDBOX`**:
   - Alternative to the `sandbox` setting in `settings.json`.
   - Accepts `true`, `false`, `docker`, `podman`, or a custom command string.
@@ -215,6 +246,9 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - Set to any value to disable all color output in the CLI.
 - **`CLI_TITLE`**:
   - Set to a string to customize the title of the CLI.
+- **`CODE_ASSIST_ENDPOINT`**:
+  - Specifies the endpoint for the code assist server.
+  - This is useful for development and testing.
 
 ## 3. Command-Line Arguments
 

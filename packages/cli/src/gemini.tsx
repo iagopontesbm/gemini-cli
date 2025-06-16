@@ -15,24 +15,16 @@ import { LoadedSettings, loadSettings } from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
-import { loadGeminiIgnorePatterns } from './utils/loadIgnorePatterns.js';
-import { loadExtensions, ExtensionConfig } from './config/extension.js';
+import { loadExtensions, Extension } from './config/extension.js';
 import { cleanupCheckpoints } from './utils/cleanup.js';
 import {
   ApprovalMode,
   Config,
   EditTool,
-  GlobTool,
-  GrepTool,
-  LSTool,
-  MemoryTool,
-  ReadFileTool,
-  ReadManyFilesTool,
   ShellTool,
-  WebFetchTool,
-  WebSearchTool,
   WriteFileTool,
   sessionId,
+  logUserPrompt,
 } from '@gemini-cli/core';
 
 export async function main() {
@@ -40,7 +32,6 @@ export async function main() {
   const settings = loadSettings(workspaceRoot);
   setWindowTitle(basename(workspaceRoot), settings);
 
-  const geminiIgnorePatterns = loadGeminiIgnorePatterns(workspaceRoot);
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
@@ -55,15 +46,10 @@ export async function main() {
   }
 
   const extensions = loadExtensions(workspaceRoot);
-  const config = await loadCliConfig(
-    settings.merged,
-    extensions,
-    geminiIgnorePatterns,
-    sessionId,
-  );
+  const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
   // Initialize centralized FileDiscoveryService
-  await config.getFileService();
+  config.getFileService();
   if (config.getCheckpointEnabled()) {
     try {
       await config.getGitService();
@@ -120,6 +106,11 @@ export async function main() {
     process.exit(1);
   }
 
+  logUserPrompt(config, {
+    prompt: input,
+    prompt_length: input.length,
+  });
+
   // Non-interactive mode handled by runNonInteractive
   const nonInteractiveConfig = await loadNonInteractiveConfig(
     config,
@@ -158,7 +149,7 @@ process.on('unhandledRejection', (reason, _promise) => {
 
 async function loadNonInteractiveConfig(
   config: Config,
-  extensions: ExtensionConfig[],
+  extensions: Extension[],
   settings: LoadedSettings,
 ) {
   if (config.getApprovalMode() === ApprovalMode.YOLO) {
@@ -167,33 +158,20 @@ async function loadNonInteractiveConfig(
   }
 
   // Everything is not allowed, ensure that only read-only tools are configured.
-
-  let existingCoreTools = config.getCoreTools();
-  existingCoreTools = existingCoreTools || [
-    ReadFileTool.Name,
-    LSTool.Name,
-    GrepTool.Name,
-    GlobTool.Name,
-    EditTool.Name,
-    WriteFileTool.Name,
-    WebFetchTool.Name,
-    WebSearchTool.Name,
-    ReadManyFilesTool.Name,
-    ShellTool.Name,
-    MemoryTool.Name,
-  ];
+  const existingExcludeTools = settings.merged.excludeTools || [];
   const interactiveTools = [ShellTool.Name, EditTool.Name, WriteFileTool.Name];
-  const nonInteractiveTools = existingCoreTools.filter(
-    (tool) => !interactiveTools.includes(tool),
-  );
+
+  const newExcludeTools = [
+    ...new Set([...existingExcludeTools, ...interactiveTools]),
+  ];
+
   const nonInteractiveSettings = {
     ...settings.merged,
-    coreTools: nonInteractiveTools,
+    excludeTools: newExcludeTools,
   };
   return await loadCliConfig(
     nonInteractiveSettings,
     extensions,
-    config.getGeminiIgnorePatterns(),
     config.getSessionId(),
   );
 }
