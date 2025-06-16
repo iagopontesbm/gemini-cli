@@ -11,7 +11,7 @@ import { TestRig } from './test-helper.js';
 test('should be able to fetch a url', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
-  const prompt = 'Can you fetch the content from https://www.google.com';
+  const prompt = `Can you fetch the content from https://www.google.com`;
   const result = await rig.run(prompt);
   assert.ok(result.toLowerCase().includes('<title>google</title>'));
 });

@@ -15,7 +15,7 @@ test('should be able to read multiple files', async (t) => {
   rig.setup(t.name);
   fs.writeFileSync(path.join(rig.testDir, 'file1.txt'), 'file 1 content');
   fs.writeFileSync(path.join(rig.testDir, 'file2.txt'), 'file 2 content');
-  const prompt = 'Can you read file1.txt and file2.txt';
+  const prompt = `Can you read file1.txt and file2.txt`;
   const result = await rig.run(prompt);
   assert.ok(result.includes('file 1 content'));
   assert.ok(result.includes('file 2 content'));

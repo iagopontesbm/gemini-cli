@@ -11,7 +11,7 @@ import { TestRig } from './test-helper.js';
 test('should be able to search the web', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
-  const prompt = 'who is the president of the united states';
+  const prompt = `what planet do we live on`;
   const result = await rig.run(prompt);
-  assert.ok(result.toLowerCase().includes('joe biden'));
+  assert.ok(result.toLowerCase().includes('Earth'));
 });

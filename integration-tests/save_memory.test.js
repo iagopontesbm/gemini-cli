@@ -11,7 +11,7 @@ import { TestRig } from './test-helper.js';
 test('should be able to save to memory', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
-  const prompt = 'remember that my favorite color is blue';
+  const prompt = `remember that my favorite color is blue`;
   await rig.run(prompt);
   const result = await rig.run('what is my favorite color?');
   assert.ok(result.toLowerCase().includes('blue'));
