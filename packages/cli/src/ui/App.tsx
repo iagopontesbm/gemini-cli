@@ -54,6 +54,9 @@ import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
 import { SessionStatsProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
+import { UpdateNotification } from './components/UpdateNotification.js';
+import updateNotifier from 'update-notifier';
+import { checkForUpdates } from '../gemini.js';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
 
@@ -69,7 +72,30 @@ export const AppWrapper = (props: AppProps) => (
   </SessionStatsProvider>
 );
 
+
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
+  const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const checkForUpdates = async () => {
+      const notifier = updateNotifier({
+        pkg: {
+          name: '@gemini-cli/cli',
+          version: '0.0.1',
+        },
+        updateCheckInterval: 0,
+        shouldNotifyInNpmScript: true,
+      });
+
+      if (notifier.update) {
+        setUpdateMessage(
+          `Update available! ${notifier.update.current} → ${notifier.update.latest}`,
+        );
+      }
+    };
+    checkForUpdates();
+  }, []);
+
   const { history, addItem, clearItems, loadHistory } = useHistory();
   const {
     consoleMessages,
@@ -409,6 +435,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             <Box flexDirection="column" key="header">
               <Header title={process.env.GEMINI_CLI_TITLE} />
               <Tips config={config} />
+              {updateMessage && <UpdateNotification message={updateMessage} />}
             </Box>,
             ...history.map((h) => (
               <HistoryItemDisplay

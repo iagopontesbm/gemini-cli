@@ -48,8 +48,6 @@ export async function checkForUpdates() {
 }
 
 export async function main() {
-  await checkForUpdates();
-
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
   setWindowTitle(basename(workspaceRoot), settings);
