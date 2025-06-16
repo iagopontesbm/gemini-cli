@@ -57,6 +57,7 @@ import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import updateNotifier from 'update-notifier';
 import { checkForUpdates } from '../gemini.js';
+import pkg from '../../package.json' with { type: 'json' };
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
 
@@ -80,8 +81,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     const checkForUpdates = async () => {
       const notifier = updateNotifier({
         pkg: {
-          name: '@gemini-cli/cli',
-          version: '0.0.1',
+          name: pkg.name,
+          version: pkg.version,
         },
         updateCheckInterval: 0,
         shouldNotifyInNpmScript: true,
