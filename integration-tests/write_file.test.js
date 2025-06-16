@@ -15,8 +15,8 @@ test('should be able to write a file', async (t) => {
   rig.setup(t.name);
   const prompt = `show me an example of using the write tool. put a dad joke in dad.txt`;
   await rig.run(prompt);
-  const newFilePath = path.join(rig.testDir, 'new_file.txt');
+  const newFilePath = path.join(rig.testDir, 'dad.txt');
   assert.ok(fs.existsSync(newFilePath));
   const newFileContent = fs.readFileSync(newFilePath, 'utf-8');
-  assert.strictEqual(newFileContent, 'new file content');
+  assert.notEqual(newFileContent, '');
 });

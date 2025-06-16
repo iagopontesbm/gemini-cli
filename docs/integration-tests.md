@@ -18,6 +18,22 @@ Also as a developer for full context a shortcut can be found at
 npm run test:e2e
 ```
 
+## Running a specfic set of tests
+
+To run a 1 or more test files you can use `npm run <integration test command> <file_name1> ....` where <integration test command> is any of `test:e2e` or `test:integration*` and <file_name> is any of the files in `integration/<file_name>.test.js`
+
+```bash
+npm run test:e2e write_file
+```
+
+### Running a Single Test by Name
+
+To run a single test by its name, use the `--test-name-pattern` flag:
+
+```bash
+npm run test:e2e -- --test-name-pattern "reads a file"
+```
+
 ### Running All Tests
 
 To run the entire suite of integration tests, use the following command:
@@ -47,25 +63,9 @@ npm run test:integration:sandbox:docker
 npm run test:integration:sandbox:podman
 ```
 
-### Running a Single Test File
+## Diagnostics
 
-To run a specific test file, provide the path to the file as an argument:
-
-```bash
-npm run test:integration:sandbox:none -- integration-tests/file-system.test.js
-```
-
-### Running a Single Test by Name
-
-To run a single test by its name, use the `--test-name-pattern` flag:
-
-```bash
-npm run test:integration:sandbox:none -- --test-name-pattern "reads a file"
-```
-
-## Debugging
-
-The integration test runner provides several options for debugging test failures.
+The integration test runner provides several options for diagnostics to help track down test failures.
 
 ### Keeping Test Output
 
