@@ -173,12 +173,10 @@ function executeShellCommand(
 }
 
 function addShellCommandToGeminiHistory(
-  geminiClient: GeminiClient | null,
+  geminiClient: GeminiClient,
   rawQuery: string,
   resultText: string,
 ) {
-  if (!geminiClient) return;
-
   const modelContent =
     resultText.length > MAX_OUTPUT_LENGTH
       ? resultText.substring(0, MAX_OUTPUT_LENGTH) + '\n... (truncated)'
@@ -214,7 +212,7 @@ export const useShellCommandProcessor = (
   onExec: (command: Promise<void>) => void,
   onDebugMessage: (message: string) => void,
   config: Config,
-  geminiClient: GeminiClient | null,
+  geminiClient: GeminiClient,
 ) => {
   const handleShellCommand = useCallback(
     (rawQuery: PartListUnion, abortSignal: AbortSignal): boolean => {
