@@ -69,7 +69,9 @@ async function main() {
     const testFileDir = join(runDir, testFileName);
     mkdirSync(testFileDir, { recursive: true });
 
-    console.log(`------------- Running test file: ${testFileName} ------------------------------`);
+    console.log(
+      `------------- Running test file: ${testFileName} ------------------------------`,
+    );
 
     const child = spawn('node', ['--test', testFile], {
       stdio: 'pipe',
