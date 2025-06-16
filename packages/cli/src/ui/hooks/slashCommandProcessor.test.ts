@@ -1159,6 +1159,10 @@ Add any other context about the problem here.
       await act(async () => {
         hook.result.current.handleSlashCommand('/compress');
       });
+      await act(async () => {
+        hook.rerender();
+      });
+      expect(hook.result.current.pendingHistoryItems).toEqual([]);
       expect(mockGeminiClient.tryCompressChat).toHaveBeenCalledWith(true);
       expect(mockAddItem).toHaveBeenNthCalledWith(
         2,
