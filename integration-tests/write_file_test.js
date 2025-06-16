@@ -1,3 +1,8 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 import { test, expect } from '@jest/globals';
 import { TestRun } from '../test-helper';
@@ -7,7 +12,8 @@ import * as path from 'path';
 test('should be able to write a file', async () => {
   const testRun = new TestRun();
   try {
-    const prompt = 'Can you write a file named "new_file.txt" with the content "new file content"';
+    const prompt =
+      'Can you write a file named "new_file.txt" with the content "new file content"';
     await testRun.run(prompt);
     const newFilePath = path.join(testRun.testDirectory, 'new_file.txt');
     expect(fs.existsSync(newFilePath)).toBe(true);

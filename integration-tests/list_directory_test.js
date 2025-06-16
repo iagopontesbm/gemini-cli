@@ -1,3 +1,8 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 import { test, expect } from '@jest/globals';
 import { TestRun } from '../test-helper';
@@ -7,7 +12,10 @@ import * as path from 'path';
 test('should be able to list a directory', async () => {
   const testRun = new TestRun();
   try {
-    fs.writeFileSync(path.join(testRun.testDirectory, 'file1.txt'), 'file 1 content');
+    fs.writeFileSync(
+      path.join(testRun.testDirectory, 'file1.txt'),
+      'file 1 content',
+    );
     fs.mkdirSync(path.join(testRun.testDirectory, 'subdir'));
     const prompt = 'Can you list the files in the current directory';
     const result = await testRun.run(prompt);

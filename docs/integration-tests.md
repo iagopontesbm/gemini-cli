@@ -12,7 +12,7 @@ These tests are located in the `integration-tests` directory and are run using a
 
 The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run integration-test:no-sandbox` script.
 
-Also as a developer for full context a shortcut can be found at 
+Also as a developer for full context a shortcut can be found at
 
 ```bash
 npm run test:e2e
@@ -28,18 +28,21 @@ npm run integration-test:all
 
 ### Sandbox Matrix
 
-The `all` command will run tests for `no sandboxing`, `docker` and `podman`. 
+The `all` command will run tests for `no sandboxing`, `docker` and `podman`.
 Each individual type can be run as
 
 ```bash
 npm run integration-test:all
 ```
+
 ```bash
 npm run integration-test:sandbox-none
 ```
+
 ```bash
 npm run integration-test:sandbox-docker
 ```
+
 ```bash
 npm run integration-test:sandbox-podman
 ```
