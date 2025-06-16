@@ -295,6 +295,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
       }
     } else if (key.ctrl && (input === 'c' || input === 'C')) {
+      if (buffer.text.length > 0) {
+        buffer.setText('');
+      }
       handleExit(ctrlCPressedOnce, setCtrlCPressedOnce, ctrlCTimerRef);
     } else if (key.ctrl && (input === 'd' || input === 'D')) {
       if (buffer.text.length > 0) {
