@@ -56,7 +56,6 @@ import { SessionStatsProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import updateNotifier from 'update-notifier';
-import { checkForUpdates } from '../gemini.js';
 import pkg from '../../package.json' with { type: 'json' };
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
@@ -72,7 +71,6 @@ export const AppWrapper = (props: AppProps) => (
     <App {...props} />
   </SessionStatsProvider>
 );
-
 
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
