@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-
 import { test } from 'node:test';
 import { strict as assert } from 'assert';
 import { TestRig } from './test-helper.js';
@@ -21,4 +20,3 @@ test('should be able to list a directory', async (t) => {
   assert.ok(result.includes('file1.txt'));
   assert.ok(result.includes('subdir'));
 });
-
