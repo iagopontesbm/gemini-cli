@@ -1,5 +1,5 @@
-# Require review from askmode approvers for all files by default
-*       @google-gemini/gemini-cli-askmode-approvers
+# Require askmode approvers for all PRs to the release branch
+/       @google-gemini/gemini-cli-askmode-approvers   branch=release
 
 # Don't require review for markdown files
 **/*.md
