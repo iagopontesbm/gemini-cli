@@ -51,58 +51,6 @@ jobs:
           path: |
             packages/*/dist
             package-lock.json # Only upload dist and lockfile
-
-  # integration-remote:
-  #   name: Integration Test (from Git)
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   strategy:
-  #     matrix:
-  #       node-version: [20.x]
-  #   steps:
-  #     - name: Set up Node.js ${{ matrix.node-version }}
-  #       uses: actions/setup-node@v4
-  #       with:
-  #         node-version: ${{ matrix.node-version }}
-
-  #     - name: Auth
-  #       run: npx google-artifactregistry-auth
-
-  #     - name: Run integration test from GitHub commit
-  #       run: npx --yes github:${{ github.repository }}@${{ github.sha }} -p "hello world"
-  integration-local:
-    name: Test
-    runs-on: ubuntu-latest
-    needs: build # This job depends on the 'build' job
-    permissions:
-      contents: read
-      checks: write
-      pull-requests: write
-    strategy:
-      matrix:
-        node-version: [20.x] # Should match the build job's matrix
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: build-artifacts-${{ matrix.node-version }}
-          path: . # Download to the root, this will include package-lock.json and packages/*/dist
-
-      - name: Install dependencies for testing
-        run: npm ci # Install fresh dependencies using the downloaded package-lock.json
-
-      - name: Run tests and generate reports
-        run: GEMINI_API_KEY=fakeapikey npx --yes . -p "if you are running say hello"
-
   test:
     name: Test
     runs-on: ubuntu-latest
