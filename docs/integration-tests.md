@@ -139,9 +139,8 @@ To ensure the integration tests are always run, a GitHub Actions workflow is def
 
 The workflow uses a matrix strategy to run the tests in different sandboxing environments:
 
--   `no-sandbox`: Runs the tests without any sandboxing.
--   `sandbox-docker`: Runs the tests in a Docker container.
--   `sandbox-podman`: Runs the tests in a Podman container.
+- `no-sandbox`: Runs the tests without any sandboxing.
+- `sandbox-docker`: Runs the tests in a Docker container.
+- `sandbox-podman`: Runs the tests in a Podman container.
 
 This ensures that the Gemini CLI is tested across a variety of environments, improving its robustness and reliability.
-
