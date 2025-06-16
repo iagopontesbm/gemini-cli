@@ -1,8 +1,7 @@
-# Require review from askmode approvers for all files by default
-*       @google-gemini/gemini-cli-askmode-approvers
+# By default, require reviews from the release approvers for all files.
+* @google-gemini/gemini-cli-askmode-approvers
 
-# Don't require review for markdown files
+# The following files don't need reviews from the release approvers.
+# These patterns override the rule above.
 **/*.md
-
-# Don't require review for docs
-docs/
+/docs/
