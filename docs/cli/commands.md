@@ -50,6 +50,7 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** Exit Gemini CLI.
 
 - [**`/tools`**](../tools/index.md)
+
   - **Description:** Display a list of tools that are currently available within Gemini CLI.
   - **Sub-commands:**
     - **`desc`** or **`descriptions`**:
