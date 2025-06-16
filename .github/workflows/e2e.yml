@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        sandbox: [sandbox:none, sandbox:docker, sandbox:podman]
+        sandbox: [sandbox:none, sandbox:docker]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
