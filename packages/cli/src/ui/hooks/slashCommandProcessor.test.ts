@@ -1139,6 +1139,17 @@ Add any other context about the problem here.
       const hook = getProcessorHook();
       mockTryCompressChat.mockImplementationOnce(async (force?: boolean) => {
         expect(force).toBe(true);
+        await act(async () => {
+          hook.rerender();
+        });
+        expect(hook.result.current.pendingHistoryItems).toContainEqual({
+          type: MessageType.COMPRESSION,
+          compression: {
+            isPending: true,
+            originalTokenCount: null,
+            newTokenCount: null,
+          },
+        });
         return {
           originalTokenCount: 100,
           newTokenCount: 50,
@@ -1147,14 +1158,6 @@ Add any other context about the problem here.
 
       await act(async () => {
         hook.result.current.handleSlashCommand('/compress');
-        expect(hook.result.current.pendingHistoryItems).toContain({
-          type: MessageType.COMPRESSION,
-          compression: {
-            isPending: true,
-            originalTokenCount: null,
-            newTokenCount: null,
-          },
-        });
       });
       expect(mockGeminiClient.tryCompressChat).toHaveBeenCalledWith(true);
       expect(mockAddItem).toHaveBeenNthCalledWith(
