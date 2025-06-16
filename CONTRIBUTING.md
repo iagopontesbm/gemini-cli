@@ -166,7 +166,7 @@ npm run preflight
 
 This command will run ESLint, Prettier, all tests, and other checks as defined in the project's `package.json`.
 
-*ProTip*
+_ProTip_
 
 after cloning create a git precommit hook file to ensure your commits are always clean.
 
