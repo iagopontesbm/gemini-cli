@@ -481,7 +481,6 @@ export const useSlashCommandProcessor = (
 
                 // Handle multi-line descriptions by properly indenting and preserving formatting
                 const descLines = tool.description.trim().split('\n');
-                message += `${greenColor}${descLines[0]}${resetColor}\n`;
 
                 // If there are multiple lines, add proper indentation for each line
                 if (descLines) {
