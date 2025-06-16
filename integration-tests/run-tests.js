@@ -51,7 +51,8 @@ async function main() {
     }
   }
 
-  const testPatterns = args.length > 0 ? args : ['integration-tests/*.test.js'];
+  const testPatterns =
+    args.length > 0 ? args : ['integration-tests/**/*.test.js'];
   const testFiles = glob.sync(testPatterns, { cwd: rootDir, absolute: true });
 
   let allTestsPassed = true;
