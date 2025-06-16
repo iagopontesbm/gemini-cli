@@ -48,6 +48,11 @@ vi.mock('node:fs/promises', () => ({
   mkdir: vi.fn(),
 }));
 
+const mockGetCliVersionFn = vi.fn(() => '0.1.0');
+vi.mock('../../utils/version.js', () => ({
+  getCliVersion: (...args: []) => mockGetCliVersionFn(...args),
+}));
+
 import { act, renderHook } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach, afterEach, Mock } from 'vitest';
 import open from 'open';
@@ -62,6 +67,7 @@ import {
   getMCPServerStatus,
   MCPDiscoveryState,
   getMCPDiscoveryState,
+  GeminiClient,
 } from '@gemini-cli/core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 
@@ -100,6 +106,8 @@ describe('useSlashCommandProcessor', () => {
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
+  let mockTryCompressChat: ReturnType<typeof vi.fn>;
+  let mockGeminiClient: GeminiClient;
   let mockConfig: Config;
   let mockCorgiMode: ReturnType<typeof vi.fn>;
   const mockUseSessionStats = useSessionStats as Mock;
@@ -115,12 +123,18 @@ describe('useSlashCommandProcessor', () => {
     mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
+    mockTryCompressChat = vi.fn();
+    mockGeminiClient = {
+      tryCompressChat: mockTryCompressChat,
+    } as unknown as GeminiClient;
     mockConfig = {
       getDebugMode: vi.fn(() => false),
+      getGeminiClient: () => mockGeminiClient,
       getSandbox: vi.fn(() => 'test-sandbox'),
       getModel: vi.fn(() => 'test-model'),
       getProjectRoot: vi.fn(() => '/test/dir'),
       getCheckpointEnabled: vi.fn(() => true),
+      getBugCommand: vi.fn(() => undefined),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
     mockUseSessionStats.mockReturnValue({
@@ -341,6 +355,7 @@ describe('useSlashCommandProcessor', () => {
     const originalEnv = process.env;
     beforeEach(() => {
       vi.resetModules();
+      mockGetCliVersionFn.mockReturnValue('0.1.0');
       process.env = { ...originalEnv };
     });
 
@@ -390,17 +405,61 @@ Add any other context about the problem here.
     };
 
     it('should call open with the correct GitHub issue URL and return true', async () => {
+      mockGetCliVersionFn.mockReturnValue('test-version');
       process.env.SANDBOX = 'gemini-sandbox';
       process.env.SEATBELT_PROFILE = 'test_profile';
-      process.env.CLI_VERSION = 'test-version';
       const { handleSlashCommand } = getProcessor();
       const bugDescription = 'This is a test bug';
       const expectedUrl = getExpectedUrl(
         bugDescription,
         process.env.SANDBOX,
         process.env.SEATBELT_PROFILE,
-        process.env.CLI_VERSION,
+        'test-version',
       );
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = await handleSlashCommand(`/bug ${bugDescription}`);
+      });
+
+      expect(mockAddItem).toHaveBeenCalledTimes(2);
+      expect(open).toHaveBeenCalledWith(expectedUrl);
+      expect(commandResult).toBe(true);
+    });
+
+    it('should use the custom bug command URL from config if available', async () => {
+      process.env.CLI_VERSION = '0.1.0';
+      process.env.SANDBOX = 'sandbox-exec';
+      process.env.SEATBELT_PROFILE = 'permissive-open';
+      const bugCommand = {
+        urlTemplate:
+          'https://custom-bug-tracker.com/new?title={title}&body={body}',
+      };
+      mockConfig = {
+        ...mockConfig,
+        getBugCommand: vi.fn(() => bugCommand),
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor();
+      const bugDescription = 'This is a custom bug';
+      const diagnosticInfo = `
+## Describe the bug
+A clear and concise description of what the bug is.
+
+## Additional context
+Add any other context about the problem here.
+
+## Diagnostic Information
+*   **CLI Version:** 0.1.0
+*   **Git Commit:** ${GIT_COMMIT_INFO}
+*   **Operating System:** test-platform test-node-version
+*   **Sandbox Environment:** sandbox-exec (permissive-open)
+*   **Model Version:** test-model
+*   **Memory Usage:** 11.8 MB
+`;
+      const expectedUrl = bugCommand.urlTemplate
+        .replace('{title}', encodeURIComponent(bugDescription))
+        .replace('{body}', encodeURIComponent(diagnosticInfo));
+
       let commandResult: SlashCommandActionReturn | boolean = false;
       await act(async () => {
         commandResult = await handleSlashCommand(`/bug ${bugDescription}`);
@@ -545,14 +604,9 @@ Add any other context about the problem here.
       });
 
       // Should only show tool1 and tool2, not the MCP tools
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Available Gemini CLI tools:\n\nTool1\nTool2',
-        }),
-        expect.any(Number),
-      );
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('\u001b[36mTool1\u001b[0m');
+      expect(message).toContain('\u001b[36mTool2\u001b[0m');
       expect(commandResult).toBe(true);
     });
 
@@ -576,14 +630,43 @@ Add any other context about the problem here.
         commandResult = await handleSlashCommand('/tools');
       });
 
-      expect(mockAddItem).toHaveBeenNthCalledWith(
-        2,
-        expect.objectContaining({
-          type: MessageType.INFO,
-          text: 'Available Gemini CLI tools:\n\n',
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('No tools available');
+      expect(commandResult).toBe(true);
+    });
+
+    it('should display tool descriptions when /tools desc is used', async () => {
+      const mockTools = [
+        {
+          name: 'tool1',
+          displayName: 'Tool1',
+          description: 'Description for Tool1',
+        },
+        {
+          name: 'tool2',
+          displayName: 'Tool2',
+          description: 'Description for Tool2',
+        },
+      ];
+
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getAllTools: vi.fn().mockReturnValue(mockTools),
         }),
-        expect.any(Number),
-      );
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor();
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = await handleSlashCommand('/tools desc');
+      });
+
+      const message = mockAddItem.mock.calls[1][0].text;
+      expect(message).toContain('\u001b[36mTool1\u001b[0m');
+      expect(message).toContain('Description for Tool1');
+      expect(message).toContain('\u001b[36mTool2\u001b[0m');
+      expect(message).toContain('Description for Tool2');
       expect(commandResult).toBe(true);
     });
   });
@@ -942,6 +1025,117 @@ Add any other context about the problem here.
       );
 
       expect(commandResult).toBe(true);
+    });
+  });
+
+  describe('/mcp schema', () => {
+    it('should display tool schemas and descriptions', async () => {
+      // Mock MCP servers configuration with server description
+      const mockMcpServers = {
+        server1: {
+          command: 'cmd1',
+          description: 'This is a server description',
+        },
+      };
+
+      // Setup getMCPServerStatus mock implementation
+      vi.mocked(getMCPServerStatus).mockImplementation((serverName) => {
+        if (serverName === 'server1') return MCPServerStatus.CONNECTED;
+        return MCPServerStatus.DISCONNECTED;
+      });
+
+      // Setup getMCPDiscoveryState mock to return completed
+      vi.mocked(getMCPDiscoveryState).mockReturnValue(
+        MCPDiscoveryState.COMPLETED,
+      );
+
+      // Mock tools from server with descriptions
+      const mockServerTools = [
+        {
+          name: 'tool1',
+          description: 'This is tool 1 description',
+          schema: {
+            parameters: [{ name: 'param1', type: 'string' }],
+          },
+        },
+        {
+          name: 'tool2',
+          description: 'This is tool 2 description',
+          schema: {
+            parameters: [{ name: 'param2', type: 'number' }],
+          },
+        },
+      ];
+
+      mockConfig = {
+        ...mockConfig,
+        getToolRegistry: vi.fn().mockResolvedValue({
+          getToolsByServer: vi.fn().mockReturnValue(mockServerTools),
+        }),
+        getMcpServers: vi.fn().mockReturnValue(mockMcpServers),
+      } as unknown as Config;
+
+      const { handleSlashCommand } = getProcessor(true);
+      let commandResult: SlashCommandActionReturn | boolean = false;
+      await act(async () => {
+        commandResult = await handleSlashCommand('/mcp schema');
+      });
+
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.INFO,
+          text: expect.stringContaining('Configured MCP servers:'),
+        }),
+        expect.any(Number),
+      );
+
+      const message = mockAddItem.mock.calls[1][0].text;
+
+      // Check that server description is included
+      expect(message).toContain('Ready (2 tools)');
+      expect(message).toContain('This is a server description');
+
+      // Check that tool schemas are included
+      expect(message).toContain('tool 1 description');
+      expect(message).toContain('param1');
+      expect(message).toContain('string');
+      expect(message).toContain('tool 2 description');
+      expect(message).toContain('param2');
+      expect(message).toContain('number');
+
+      expect(commandResult).toBe(true);
+    });
+  });
+
+  describe('/compress command', () => {
+    it('should call tryCompressChat(true)', async () => {
+      const { handleSlashCommand } = getProcessor();
+      mockTryCompressChat.mockImplementationOnce(async (force?: boolean) => {
+        // TODO: Check that we have a pending compression item in the history.
+        expect(force).toBe(true);
+        return {
+          originalTokenCount: 100,
+          newTokenCount: 50,
+        };
+      });
+
+      await act(async () => {
+        handleSlashCommand('/compress');
+      });
+      expect(mockGeminiClient.tryCompressChat).toHaveBeenCalledWith(true);
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({
+          type: MessageType.COMPRESSION,
+          compression: {
+            isPending: false,
+            originalTokenCount: 100,
+            newTokenCount: 50,
+          },
+        }),
+        expect.any(Number),
+      );
     });
   });
 });
