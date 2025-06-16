@@ -6,7 +6,7 @@
 
 import { spawnSync } from 'child_process';
 import { spawn } from 'child_process';
-import { mkdirSync, rmSync, writeFileSync, createWriteStream } from 'fs';
+import { mkdirSync, rmSync, createWriteStream } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';
 import { glob } from 'glob';
@@ -51,8 +51,7 @@ async function main() {
     }
   }
 
-  const testPatterns =
-    args.length > 0 ? args : ['integration-tests/*.test.js'];
+  const testPatterns = args.length > 0 ? args : ['integration-tests/*.test.js'];
   const testFiles = glob.sync(testPatterns, { cwd: rootDir, absolute: true });
 
   let allTestsPassed = true;
