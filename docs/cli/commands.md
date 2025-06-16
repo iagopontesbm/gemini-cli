@@ -22,7 +22,9 @@ Slash commands provide meta-level control over the CLI itself.
       - **Description:** Show detailed descriptions for MCP servers and tools.
     - **`nodesc`** or **`nodescriptions`**:
       - **Description:** Hide tool descriptions, showing only the tool names.
-  - **Keyboard shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
+    - **`schema`**:
+      - **Description:** Show the full JSON schema for the tool's configured parameters.
+  - **Keyboard Shortcut:** Press **Ctrl+T** at any time to toggle between showing and hiding tool descriptions.
 
 - **`/clear`**
 
@@ -49,6 +51,15 @@ Slash commands provide meta-level control over the CLI itself.
 
 - [**`/tools`**](../tools/index.md)
   - **Description:** Display a list of tools that are currently available within Gemini CLI.
+  - **Sub-commands:**
+    - **`desc`** or **`descriptions`**:
+      - **Description:** Show detailed descriptions of each tool, including each tool's name with its full description as provided to the model.
+    - **`nodesc`** or **`nodescriptions`**:
+      - **Description:** Hide tool descriptions, showing only the tool names.
+
+- **`/compress`**
+
+  - **Description:** Replace the entire chat context with a summary. This saves on tokens used for future tasks while retaining a high level summary of what has happened.
 
 ## At commands (`@`)
 
