@@ -10,7 +10,7 @@ These tests are located in the `integration-tests` directory and are run using a
 
 ## Running the Tests
 
-The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run integration-test:no-sandbox` script.
+The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run test:integration:sandbox:none` script.
 
 Also as a developer for full context a shortcut can be found at
 
@@ -23,7 +23,7 @@ npm run test:e2e
 To run the entire suite of integration tests, use the following command:
 
 ```bash
-npm run integration-test:all
+npm run test:integration:all
 ```
 
 ### Sandbox Matrix
@@ -32,19 +32,19 @@ The `all` command will run tests for `no sandboxing`, `docker` and `podman`.
 Each individual type can be run as
 
 ```bash
-npm run integration-test:all
+npm run test:integration:all
 ```
 
 ```bash
-npm run integration-test:sandbox-none
+npm run test:integration:sandbox-none
 ```
 
 ```bash
-npm run integration-test:sandbox-docker
+npm run test:integration:sandbox:docker
 ```
 
 ```bash
-npm run integration-test:sandbox-podman
+npm run test:integration:sandbox:podman
 ```
 
 ### Running a Single Test File
@@ -52,7 +52,7 @@ npm run integration-test:sandbox-podman
 To run a specific test file, provide the path to the file as an argument:
 
 ```bash
-npm run integration-test:no-sandbox -- integration-tests/file-system.test.js
+npm run test:integration:sandbox:none -- integration-tests/file-system.test.js
 ```
 
 ### Running a Single Test by Name
@@ -60,7 +60,7 @@ npm run integration-test:no-sandbox -- integration-tests/file-system.test.js
 To run a single test by its name, use the `--test-name-pattern` flag:
 
 ```bash
-npm run integration-test:no-sandbox -- --test-name-pattern "reads a file"
+npm run test:integration:sandbox:none -- --test-name-pattern "reads a file"
 ```
 
 ## Debugging
@@ -75,10 +75,10 @@ To keep the test output, you can either use the `--keep-output` flag or set the 
 
 ```bash
 # Using the flag
-npm run integration-test:no-sandbox -- --keep-output
+npm run test:integration:sandbox:none -- --keep-output
 
 # Using the environment variable
-KEEP_OUTPUT=true npm run integration-test:no-sandbox
+KEEP_OUTPUT=true npm run test:integration:sandbox:none
 ```
 
 When output is kept, the test runner will print the path to the unique directory for the test run.
@@ -88,7 +88,7 @@ When output is kept, the test runner will print the path to the unique directory
 For more detailed debugging, the `--verbose` flag will stream the real-time output from the `gemini` command to the console. This is useful for observing the command's behavior as it runs.
 
 ```bash
-npm run integration-test:no-sandbox -- --verbose
+npm run test:integration:sandbox:none -- --verbose
 ```
 
 When using `--verbose` with `--keep-output`, the output is streamed to the console and also saved to a log file within the test's temporary directory.
@@ -110,7 +110,7 @@ To ensure code quality and consistency, the integration test files are linted as
 To check for linting errors, run the following command:
 
 ```bash
-eslint integration-tests
+npm run lint
 ```
 
 ### Automatically Fixing Issues
@@ -118,7 +118,7 @@ eslint integration-tests
 To automatically fix any fixable linting errors, run:
 
 ```bash
-eslint integration-tests --fix
+npm run lint --fix
 ```
 
 ## Directory Structure
@@ -142,8 +142,8 @@ To ensure the integration tests are always run, a GitHub Actions workflow is def
 
 The workflow uses a matrix strategy to run the tests in different sandboxing environments:
 
-- `no-sandbox`: Runs the tests without any sandboxing.
-- `sandbox-docker`: Runs the tests in a Docker container.
-- `sandbox-podman`: Runs the tests in a Podman container.
+- `sandbox:none`: Runs the tests without any sandboxing.
+- `sandbox:docker`: Runs the tests in a Docker container.
+- `sandbox:podman`: Runs the tests in a Podman container.
 
 This ensures that the Gemini CLI is tested across a variety of environments, improving its robustness and reliability.

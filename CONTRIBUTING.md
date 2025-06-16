@@ -151,7 +151,7 @@ The integration tests are designed to validate the end-to-end functionality of t
 To run the integration tests, use the following command:
 
 ```bash
-npm run integration-test
+npm run test:integration
 ```
 
 For more detailed information on the integration testing framework, please see the [Integration Tests documentation](./docs/integration-tests.md).
