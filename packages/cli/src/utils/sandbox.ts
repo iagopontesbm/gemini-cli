@@ -505,7 +505,7 @@ export async function start_sandbox(sandbox: string) {
       args.push('--env', `no_proxy=${noProxy}`);
     }
 
-    // if using proxy, switch to internal networking through proxy
+
     // if using proxy, switch to internal networking through proxy
     if (proxy) {
       execSync(
