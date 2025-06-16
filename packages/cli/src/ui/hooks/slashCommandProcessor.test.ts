@@ -159,8 +159,8 @@ describe('useSlashCommandProcessor', () => {
     process.env = { ...globalThis.process.env };
   });
 
-  const getProcessorHook = (showToolDescriptions: boolean = false) => {
-    return renderHook(() =>
+  const getProcessorHook = (showToolDescriptions: boolean = false) =>
+    renderHook(() =>
       useSlashCommandProcessor(
         mockConfig,
         [],
@@ -178,12 +178,9 @@ describe('useSlashCommandProcessor', () => {
         mockSetQuittingMessages,
       ),
     );
-  };
 
-
-  const getProcessor = (showToolDescriptions: boolean = false) => {
-    return getProcessorHook(showToolDescriptions).result.current;
-  };
+  const getProcessor = (showToolDescriptions: boolean = false) =>
+    getProcessorHook(showToolDescriptions).result.current;
 
   describe('/memory add', () => {
     it('should return tool scheduling info on valid input', async () => {
