@@ -27,8 +27,8 @@ import {
   combinedUsageMetadata,
 } from '../telemetry/loggers.js';
 import {
-  getResponseText,
-  getResponseTextFromParts,
+  getStructuredResponse,
+  getStructuredResponseFromParts,
 } from '../utils/generateContentResponseUtilities.js';
 
 /**
@@ -153,7 +153,7 @@ export class GeminiChat {
     model: string,
   ): Promise<void> {
     const shouldLogUserPrompts = (config: Config): boolean =>
-      config.getTelemetryLogUserPromptsEnabled() ?? false;
+      config.getTelemetryLogPromptsEnabled() ?? false;
 
     const requestText = this._getRequestTextFromContents(contents);
     logApiRequest(this.config, {
@@ -239,7 +239,7 @@ export class GeminiChat {
       await this._logApiResponse(
         durationMs,
         response.usageMetadata,
-        getResponseText(response),
+        getStructuredResponse(response),
       );
 
       this.sendPromise = (async () => {
@@ -417,6 +417,10 @@ export class GeminiChat {
           chunks.push(chunk);
           const content = chunk.candidates?.[0]?.content;
           if (content !== undefined) {
+            if (this.isThoughtContent(content)) {
+              yield chunk;
+              continue;
+            }
             outputContent.push(content);
           }
         }
@@ -437,7 +441,7 @@ export class GeminiChat {
           allParts.push(...content.parts);
         }
       }
-      const fullText = getResponseTextFromParts(allParts);
+      const fullText = getStructuredResponseFromParts(allParts);
       await this._logApiResponse(
         durationMs,
         combinedUsageMetadata(chunks),
@@ -452,12 +456,19 @@ export class GeminiChat {
     modelOutput: Content[],
     automaticFunctionCallingHistory?: Content[],
   ) {
+    const nonThoughtModelOutput = modelOutput.filter(
+      (content) => !this.isThoughtContent(content),
+    );
+
     let outputContents: Content[] = [];
     if (
-      modelOutput.length > 0 &&
-      modelOutput.every((content) => content.role !== undefined)
+      nonThoughtModelOutput.length > 0 &&
+      nonThoughtModelOutput.every((content) => content.role !== undefined)
     ) {
-      outputContents = modelOutput;
+      outputContents = nonThoughtModelOutput;
+    } else if (nonThoughtModelOutput.length === 0 && modelOutput.length > 0) {
+      // This case handles when the model returns only a thought.
+      // We don't want to add an empty model response in this case.
     } else {
       // When not a function response appends an empty content when model returns empty response, so that the
       // history is always alternating between user and model.
@@ -486,7 +497,6 @@ export class GeminiChat {
       if (this.isThoughtContent(content)) {
         continue;
       }
-
       const lastContent =
         consolidatedOutputContents[consolidatedOutputContents.length - 1];
       if (this.isTextContent(lastContent) && this.isTextContent(content)) {

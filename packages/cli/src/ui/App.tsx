@@ -11,6 +11,7 @@ import {
   measureElement,
   Static,
   Text,
+  useStdin,
   useInput,
   type Key as InkKeyType,
 } from 'ink';
@@ -45,17 +46,22 @@ import process from 'node:process';
 import {
   getErrorMessage,
   type Config,
-  getCurrentGeminiMdFilename,
+  getAllGeminiMdFilenames,
   ApprovalMode,
   isEditorAvailable,
   EditorType,
 } from '@gemini-cli/core';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
-import { SessionStatsProvider } from './contexts/SessionContext.js';
+import {
+  SessionStatsProvider,
+  useSessionStats,
+} from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
+import { useTextBuffer } from './components/shared/text-buffer.js';
+import * as fs from 'fs';
 
-const CTRL_C_PROMPT_DURATION_MS = 1000;
+const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
 interface AppProps {
   config: Config;
@@ -76,6 +82,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleNewMessage,
     clearConsoleMessages: clearConsoleMessagesState,
   } = useConsoleMessages();
+  const { stats: sessionStats } = useSessionStats();
   const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
   const [staticKey, setStaticKey] = useState(0);
   const refreshStatic = useCallback(() => {
@@ -98,6 +105,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     HistoryItem[] | null
   >(null);
   const ctrlCTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
+  const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -134,6 +143,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
         process.cwd(),
         config.getDebugMode(),
+        config.getFileService(),
       );
       config.setUserMemory(memoryContent);
       config.setGeminiMdFileCount(fileCount);
@@ -164,7 +174,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [config, addItem]);
 
-  const { handleSlashCommand, slashCommands } = useSlashCommandProcessor(
+  const {
+    handleSlashCommand,
+    slashCommands,
+    pendingHistoryItems: pendingSlashCommandHistoryItems,
+  } = useSlashCommandProcessor(
     config,
     history,
     addItem,
@@ -180,27 +194,42 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     showToolDescriptions,
     setQuittingMessages,
   );
+  const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
-  useInput((input: string, key: InkKeyType) => {
-    if (key.ctrl && input === 'o') {
-      setShowErrorDetails((prev) => !prev);
-      refreshStatic();
-    } else if (key.ctrl && input === 't') {
-      // Toggle showing tool descriptions
-      const newValue = !showToolDescriptions;
-      setShowToolDescriptions(newValue);
-      refreshStatic();
+  const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
+  const { stdin, setRawMode } = useStdin();
+  const isValidPath = useCallback((filePath: string): boolean => {
+    try {
+      return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+    } catch (_e) {
+      return false;
+    }
+  }, []);
 
-      // Re-execute the MCP command to show/hide descriptions
-      const mcpServers = config.getMcpServers();
-      if (Object.keys(mcpServers || {}).length > 0) {
-        // Pass description flag based on the new value
-        handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
-      }
-    } else if (key.ctrl && (input === 'c' || input === 'C')) {
-      if (ctrlCPressedOnce) {
-        if (ctrlCTimerRef.current) {
-          clearTimeout(ctrlCTimerRef.current);
+  const widthFraction = 0.9;
+  const inputWidth = Math.max(
+    20,
+    Math.round(terminalWidth * widthFraction) - 3,
+  );
+  const suggestionsWidth = Math.max(60, Math.floor(terminalWidth * 0.8));
+
+  const buffer = useTextBuffer({
+    initialText: '',
+    viewport: { height: 10, width: inputWidth },
+    stdin,
+    setRawMode,
+    isValidPath,
+  });
+
+  const handleExit = useCallback(
+    (
+      pressedOnce: boolean,
+      setPressedOnce: (value: boolean) => void,
+      timerRef: React.MutableRefObject<NodeJS.Timeout | null>,
+    ) => {
+      if (pressedOnce) {
+        if (timerRef.current) {
+          clearTimeout(timerRef.current);
         }
         const quitCommand = slashCommands.find(
           (cmd) => cmd.name === 'quit' || cmd.altName === 'exit',
@@ -211,23 +240,39 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           process.exit(0);
         }
       } else {
-        setCtrlCPressedOnce(true);
-        ctrlCTimerRef.current = setTimeout(() => {
-          setCtrlCPressedOnce(false);
-          ctrlCTimerRef.current = null;
-        }, CTRL_C_PROMPT_DURATION_MS);
-      }
-    }
-  });
-
-  useEffect(
-    () => () => {
-      if (ctrlCTimerRef.current) {
-        clearTimeout(ctrlCTimerRef.current);
+        setPressedOnce(true);
+        timerRef.current = setTimeout(() => {
+          setPressedOnce(false);
+          timerRef.current = null;
+        }, CTRL_EXIT_PROMPT_DURATION_MS);
       }
     },
-    [],
+    [slashCommands],
   );
+
+  useInput((input: string, key: InkKeyType) => {
+    if (key.ctrl && input === 'o') {
+      setShowErrorDetails((prev) => !prev);
+      refreshStatic();
+    } else if (key.ctrl && input === 't') {
+      const newValue = !showToolDescriptions;
+      setShowToolDescriptions(newValue);
+      refreshStatic();
+
+      const mcpServers = config.getMcpServers();
+      if (Object.keys(mcpServers || {}).length > 0) {
+        handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
+      }
+    } else if (key.ctrl && (input === 'c' || input === 'C')) {
+      handleExit(ctrlCPressedOnce, setCtrlCPressedOnce, ctrlCTimerRef);
+    } else if (key.ctrl && (input === 'd' || input === 'D')) {
+      if (buffer.text.length > 0) {
+        // Do nothing if there is text in the input.
+        return;
+      }
+      handleExit(ctrlDPressedOnce, setCtrlDPressedOnce, ctrlDTimerRef);
+    }
+  });
 
   useConsolePatcher({
     onNewMessage: handleNewMessage,
@@ -250,18 +295,24 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     return editorType as EditorType;
   }, [settings, openEditorDialog]);
 
-  const { streamingState, submitQuery, initError, pendingHistoryItems } =
-    useGeminiStream(
-      config.getGeminiClient(),
-      history,
-      addItem,
-      setShowHelp,
-      config,
-      setDebugMessage,
-      handleSlashCommand,
-      shellModeActive,
-      getPreferredEditor,
-    );
+  const {
+    streamingState,
+    submitQuery,
+    initError,
+    pendingHistoryItems: pendingGeminiHistoryItems,
+    thought,
+  } = useGeminiStream(
+    config.getGeminiClient(),
+    history,
+    addItem,
+    setShowHelp,
+    config,
+    setDebugMessage,
+    handleSlashCommand,
+    shellModeActive,
+    getPreferredEditor,
+  );
+  pendingHistoryItems.push(...pendingGeminiHistoryItems);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);
   const showAutoAcceptIndicator = useAutoAcceptIndicator({ config });
@@ -324,7 +375,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     refreshStatic();
   }, [clearItems, clearConsoleMessagesState, refreshStatic]);
 
-  const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize(); // Get terminalWidth
   const mainControlsRef = useRef<DOMElement>(null);
   const pendingHistoryItemRef = useRef<DOMElement>(null);
 
@@ -372,6 +422,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   }, [consoleMessages, config]);
 
   const branchName = useGitBranchName(config.getTargetDir());
+
+  const contextFileNames = useMemo(() => {
+    const fromSettings = settings.merged.contextFileName;
+    if (fromSettings) {
+      return Array.isArray(fromSettings) ? fromSettings : [fromSettings];
+    }
+    return getAllGeminiMdFilenames();
+  }, [settings.merged.contextFileName]);
 
   if (quittingMessages) {
     return (
@@ -485,6 +543,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           ) : (
             <>
               <LoadingIndicator
+                thought={
+                  streamingState === StreamingState.WaitingForConfirmation ||
+                  config.getAccessibility()?.disableLoadingPhrases
+                    ? undefined
+                    : thought
+                }
                 currentLoadingPhrase={
                   config.getAccessibility()?.disableLoadingPhrases
                     ? undefined
@@ -506,13 +570,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                     <Text color={Colors.AccentYellow}>
                       Press Ctrl+C again to exit.
                     </Text>
+                  ) : ctrlDPressedOnce ? (
+                    <Text color={Colors.AccentYellow}>
+                      Press Ctrl+D again to exit.
+                    </Text>
                   ) : (
                     <ContextSummaryDisplay
                       geminiMdFileCount={geminiMdFileCount}
-                      contextFileName={
-                        settings.merged.contextFileName ||
-                        getCurrentGeminiMdFilename()
-                      }
+                      contextFileNames={contextFileNames}
                       mcpServers={config.getMcpServers()}
                       showToolDescriptions={showToolDescriptions}
                     />
@@ -535,7 +600,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
               {isInputActive && (
                 <InputPrompt
-                  widthFraction={0.9}
+                  buffer={buffer}
+                  inputWidth={inputWidth}
+                  suggestionsWidth={suggestionsWidth}
                   onSubmit={handleFinalSubmit}
                   userMessages={userMessages}
                   onClearScreen={handleClearScreen}
@@ -592,6 +659,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             showMemoryUsage={
               config.getDebugMode() || config.getShowMemoryUsage()
             }
+            promptTokenCount={sessionStats.currentResponse.promptTokenCount}
+            candidatesTokenCount={
+              sessionStats.currentResponse.candidatesTokenCount
+            }
+            totalTokenCount={sessionStats.currentResponse.totalTokenCount}
           />
         </Box>
       </Box>
