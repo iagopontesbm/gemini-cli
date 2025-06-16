@@ -31,7 +31,7 @@ You can start a project from a new directory:
 
 ```sh
 $ cd projects/
-$ gemini --yolo  # Auto-accept everything!
+$ gemini
 > Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
 ```
 
