@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getCoreSystemPrompt } from './prompts.js'; // Adjust import path
-import * as process from 'node:process';
+import { describe, it, expect, vi } from 'vitest';
+import { getCoreSystemPrompt } from './prompts.js';
+import { isGitRepository } from '../utils/gitUtils.js';
 
 // Mock tool names if they are dynamically generated or complex
 vi.mock('../tools/ls', () => ({ LSTool: { Name: 'list_directory' } }));
@@ -23,27 +23,13 @@ vi.mock('../tools/shell', () => ({
 vi.mock('../tools/write-file', () => ({
   WriteFileTool: { Name: 'write_file' },
 }));
+vi.mock('../utils/gitUtils', () => ({
+  isGitRepository: vi.fn(),
+}));
 
 describe('Core System Prompt (prompts.ts)', () => {
-  // Store original env vars that we modify
-  let originalSandboxEnv: string | undefined;
-
-  beforeEach(() => {
-    // Store original value before each test
-    originalSandboxEnv = process.env.SANDBOX;
-  });
-
-  afterEach(() => {
-    // Restore original value after each test
-    if (originalSandboxEnv === undefined) {
-      delete process.env.SANDBOX;
-    } else {
-      process.env.SANDBOX = originalSandboxEnv;
-    }
-  });
-
   it('should return the base prompt when no userMemory is provided', () => {
-    delete process.env.SANDBOX; // Ensure default state for snapshot
+    vi.stubEnv('SANDBOX', undefined);
     const prompt = getCoreSystemPrompt();
     expect(prompt).not.toContain('---\n\n'); // Separator should not be present
     expect(prompt).toContain('You are an interactive CLI agent'); // Check for core content
@@ -51,7 +37,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should return the base prompt when userMemory is empty string', () => {
-    delete process.env.SANDBOX;
+    vi.stubEnv('SANDBOX', undefined);
     const prompt = getCoreSystemPrompt('');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are an interactive CLI agent');
@@ -59,7 +45,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should return the base prompt when userMemory is whitespace only', () => {
-    delete process.env.SANDBOX;
+    vi.stubEnv('SANDBOX', undefined);
     const prompt = getCoreSystemPrompt('   \n  \t ');
     expect(prompt).not.toContain('---\n\n');
     expect(prompt).toContain('You are an interactive CLI agent');
@@ -67,7 +53,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should append userMemory with separator when provided', () => {
-    delete process.env.SANDBOX;
+    vi.stubEnv('SANDBOX', undefined);
     const memory = 'This is custom user memory.\nBe extra polite.';
     const expectedSuffix = `\n\n---\n\n${memory}`;
     const prompt = getCoreSystemPrompt(memory);
@@ -78,7 +64,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should include sandbox-specific instructions when SANDBOX env var is set', () => {
-    process.env.SANDBOX = 'true'; // Generic sandbox value
+    vi.stubEnv('SANDBOX', 'true'); // Generic sandbox value
     const prompt = getCoreSystemPrompt();
     expect(prompt).toContain('# Sandbox');
     expect(prompt).not.toContain('# MacOS Seatbelt');
@@ -87,7 +73,7 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should include seatbelt-specific instructions when SANDBOX env var is "sandbox-exec"', () => {
-    process.env.SANDBOX = 'sandbox-exec';
+    vi.stubEnv('SANDBOX', 'sandbox-exec');
     const prompt = getCoreSystemPrompt();
     expect(prompt).toContain('# MacOS Seatbelt');
     expect(prompt).not.toContain('# Sandbox');
@@ -96,11 +82,27 @@ describe('Core System Prompt (prompts.ts)', () => {
   });
 
   it('should include non-sandbox instructions when SANDBOX env var is not set', () => {
-    delete process.env.SANDBOX; // Ensure it's not set
+    vi.stubEnv('SANDBOX', undefined); // Ensure it's not set
     const prompt = getCoreSystemPrompt();
     expect(prompt).toContain('# Outside of Sandbox');
     expect(prompt).not.toContain('# Sandbox');
     expect(prompt).not.toContain('# MacOS Seatbelt');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should include git instructions when in a git repo', () => {
+    vi.stubEnv('SANDBOX', undefined);
+    vi.mocked(isGitRepository).mockReturnValue(true);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).toContain('# Git Repository');
+    expect(prompt).toMatchSnapshot();
+  });
+
+  it('should not include git instructions when not in a git repo', () => {
+    vi.stubEnv('SANDBOX', undefined);
+    vi.mocked(isGitRepository).mockReturnValue(false);
+    const prompt = getCoreSystemPrompt();
+    expect(prompt).not.toContain('# Git Repository');
     expect(prompt).toMatchSnapshot();
   });
 });
