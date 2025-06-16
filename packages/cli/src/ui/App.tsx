@@ -88,7 +88,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
       if (notifier.update) {
         setUpdateMessage(
-          `Update available! ${notifier.update.current} → ${notifier.update.latest}`,
+          `Gemini CLI update available! ${notifier.update.current} → ${notifier.update.latest}\nRun npm install -g ${pkg.name} to update`,
         );
       }
     };

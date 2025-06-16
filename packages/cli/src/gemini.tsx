@@ -34,18 +34,6 @@ import {
   WriteFileTool,
   sessionId,
 } from '@gemini-cli/core';
-import updateNotifier from 'update-notifier';
-import { readPackageUp } from 'read-package-up';
-
-export async function checkForUpdates() {
-  const pkg = await readPackageUp({ cwd: import.meta.url });
-  if (pkg) {
-    updateNotifier({
-      pkg: pkg.packageJson,
-      updateCheckInterval: 0,
-    }).notify();
-  }
-}
 
 export async function main() {
   const workspaceRoot = process.cwd();
