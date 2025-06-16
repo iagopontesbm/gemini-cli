@@ -56,7 +56,7 @@ import { SessionStatsProvider } from './contexts/SessionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import updateNotifier from 'update-notifier';
-import pkg from '../../package.json' with { type: 'json' };
+import { readPackageUp } from 'read-package-up';
 
 const CTRL_C_PROMPT_DURATION_MS = 1000;
 
@@ -77,10 +77,16 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
   useEffect(() => {
     const checkForUpdates = async () => {
+      const pkgResult = await readPackageUp({ cwd: process.cwd() });
+      if (!pkgResult) {
+        return;
+      }
+
+      const { packageJson } = pkgResult;
       const notifier = updateNotifier({
         pkg: {
-          name: pkg.name,
-          version: pkg.version,
+          name: packageJson.name,
+          version: packageJson.version,
         },
         updateCheckInterval: 0,
         shouldNotifyInNpmScript: true,
@@ -88,7 +94,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
       if (notifier.update) {
         setUpdateMessage(
-          `Gemini CLI update available! ${notifier.update.current} → ${notifier.update.latest}\nRun npm install -g ${pkg.name} to update`,
+          `Gemini CLI update available! ${notifier.update.current} → ${notifier.update.latest}\nRun npm install -g ${packageJson.name} to update`,
         );
       }
     };
