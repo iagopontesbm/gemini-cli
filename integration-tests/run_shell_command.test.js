@@ -11,7 +11,7 @@ import { TestRig } from './test-helper.js';
 test('should be able to run a shell command', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
-  const prompt = `Can you run the command 'echo hello world'`;;
+  const prompt = `Can you run the command 'echo hello world'`;
   const result = await rig.run(prompt);
   assert.ok(result.includes('hello world'));
 });
