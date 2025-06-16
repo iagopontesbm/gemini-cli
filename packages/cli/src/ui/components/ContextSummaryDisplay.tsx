@@ -11,14 +11,14 @@ import { type MCPServerConfig } from '@gemini-cli/core';
 
 interface ContextSummaryDisplayProps {
   geminiMdFileCount: number;
-  contextFileName: string;
+  contextFileNames: string[];
   mcpServers?: Record<string, MCPServerConfig>;
   showToolDescriptions?: boolean;
 }
 
 export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
   geminiMdFileCount,
-  contextFileName,
+  contextFileNames,
   mcpServers,
   showToolDescriptions,
 }) => {
@@ -30,7 +30,9 @@ export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
 
   const geminiMdText =
     geminiMdFileCount > 0
-      ? `${geminiMdFileCount} ${contextFileName} file${geminiMdFileCount > 1 ? 's' : ''}`
+      ? `${geminiMdFileCount} ${contextFileNames[0]} file${
+          geminiMdFileCount > 1 ? 's' : ''
+        }`
       : '';
 
   const mcpText =
@@ -47,12 +49,12 @@ export const ContextSummaryDisplay: React.FC<ContextSummaryDisplayProps> = ({
   }
   if (mcpText) {
     summaryText += mcpText;
-    // Add Ctrl+T hint when MCP servers are available
+    // Add ctrl+t hint when MCP servers are available
     if (mcpServers && Object.keys(mcpServers).length > 0) {
       if (showToolDescriptions) {
-        summaryText += ' (Ctrl+T to hide descriptions)';
+        summaryText += ' (ctrl+t to toggle)';
       } else {
-        summaryText += ' (Ctrl+T to view descriptions)';
+        summaryText += ' (ctrl+t to view)';
       }
     }
   }
