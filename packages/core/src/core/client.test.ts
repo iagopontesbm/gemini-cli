@@ -17,6 +17,9 @@ import { ContentGenerator } from './contentGenerator.js';
 import { GeminiChat } from './geminiChat.js';
 import { Config } from '../config/config.js';
 import { Turn } from './turn.js';
+import { getCoreSystemPrompt } from './prompts.js';
+import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
+import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 
 // --- Mocks ---
 const mockChatCreateFn = vi.fn();
@@ -53,6 +56,11 @@ vi.mock('../utils/generateContentResponseUtilities', () => ({
   getResponseText: (result: GenerateContentResponse) =>
     result.candidates?.[0]?.content?.parts?.map((part) => part.text).join('') ||
     undefined,
+}));
+vi.mock('../telemetry/index.js', () => ({
+  logApiRequest: vi.fn(),
+  logApiResponse: vi.fn(),
+  logApiError: vi.fn(),
 }));
 
 describe('Gemini Client (client.ts)', () => {
@@ -92,6 +100,7 @@ describe('Gemini Client (client.ts)', () => {
       getFunctionDeclarations: vi.fn().mockReturnValue([]),
       getTool: vi.fn().mockReturnValue(null),
     };
+    const fileService = new FileDiscoveryService('/test/dir');
     const MockedConfig = vi.mocked(Config, true);
     MockedConfig.mockImplementation(() => {
       const mock = {
@@ -109,6 +118,9 @@ describe('Gemini Client (client.ts)', () => {
         getUserMemory: vi.fn().mockReturnValue(''),
         getFullContext: vi.fn().mockReturnValue(false),
         getSessionId: vi.fn().mockReturnValue('test-session-id'),
+        getProxy: vi.fn().mockReturnValue(undefined),
+        getWorkingDir: vi.fn().mockReturnValue('/test/dir'),
+        getFileService: vi.fn().mockReturnValue(fileService),
       };
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return mock as any;
@@ -239,6 +251,68 @@ describe('Gemini Client (client.ts)', () => {
     });
   });
 
+  describe('generateContent', () => {
+    it('should call generateContent with the correct parameters', async () => {
+      const contents = [{ role: 'user', parts: [{ text: 'hello' }] }];
+      const generationConfig = { temperature: 0.5 };
+      const abortSignal = new AbortController().signal;
+
+      // Mock countTokens
+      const mockGenerator: Partial<ContentGenerator> = {
+        countTokens: vi.fn().mockResolvedValue({ totalTokens: 1 }),
+        generateContent: mockGenerateContentFn,
+      };
+      client['contentGenerator'] = Promise.resolve(
+        mockGenerator as ContentGenerator,
+      );
+
+      await client.generateContent(contents, generationConfig, abortSignal);
+
+      expect(mockGenerateContentFn).toHaveBeenCalledWith({
+        model: 'test-model',
+        config: {
+          abortSignal,
+          systemInstruction: getCoreSystemPrompt(''),
+          temperature: 0.5,
+          topP: 1,
+        },
+        contents,
+      });
+    });
+  });
+
+  describe('generateJson', () => {
+    it('should call generateContent with the correct parameters', async () => {
+      const contents = [{ role: 'user', parts: [{ text: 'hello' }] }];
+      const schema = { type: 'string' };
+      const abortSignal = new AbortController().signal;
+
+      // Mock countTokens
+      const mockGenerator: Partial<ContentGenerator> = {
+        countTokens: vi.fn().mockResolvedValue({ totalTokens: 1 }),
+        generateContent: mockGenerateContentFn,
+      };
+      client['contentGenerator'] = Promise.resolve(
+        mockGenerator as ContentGenerator,
+      );
+
+      await client.generateJson(contents, schema, abortSignal);
+
+      expect(mockGenerateContentFn).toHaveBeenCalledWith({
+        model: DEFAULT_GEMINI_FLASH_MODEL,
+        config: {
+          abortSignal,
+          systemInstruction: getCoreSystemPrompt(''),
+          temperature: 0,
+          topP: 1,
+          responseSchema: schema,
+          responseMimeType: 'application/json',
+        },
+        contents,
+      });
+    });
+  });
+
   describe('addHistory', () => {
     it('should call chat.addHistory with the provided content', async () => {
       const mockChat = {
@@ -254,6 +328,34 @@ describe('Gemini Client (client.ts)', () => {
       await client.addHistory(newContent);
 
       expect(mockChat.addHistory).toHaveBeenCalledWith(newContent);
+    });
+  });
+
+  describe('resetChat', () => {
+    it('should create a new chat session, clearing the old history', async () => {
+      // 1. Get the initial chat instance and add some history.
+      const initialChat = await client.getChat();
+      const initialHistory = await client.getHistory();
+      await client.addHistory({
+        role: 'user',
+        parts: [{ text: 'some old message' }],
+      });
+      const historyWithOldMessage = await client.getHistory();
+      expect(historyWithOldMessage.length).toBeGreaterThan(
+        initialHistory.length,
+      );
+
+      // 2. Call resetChat.
+      await client.resetChat();
+
+      // 3. Get the new chat instance and its history.
+      const newChat = await client.getChat();
+      const newHistory = await client.getHistory();
+
+      // 4. Assert that the chat instance is new and the history is reset.
+      expect(newChat).not.toBe(initialChat);
+      expect(newHistory.length).toBe(initialHistory.length);
+      expect(JSON.stringify(newHistory)).not.toContain('some old message');
     });
   });
 

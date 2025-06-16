@@ -10,7 +10,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { quote } from 'shell-quote';
-import { readPackageUp } from 'read-package-up';
+import { getPackageJson } from './package.js';
 import commandExists from 'command-exists';
 import {
   USER_SETTINGS_DIR,
@@ -102,13 +102,10 @@ async function shouldUseCurrentUserInSandbox(): Promise<boolean> {
 async function getSandboxImageName(
   isCustomProjectSandbox: boolean,
 ): Promise<string> {
-  const packageJsonResult = await readPackageUp();
-  const packageJsonConfig = packageJsonResult?.packageJson.config as
-    | { sandboxImageUri?: string }
-    | undefined;
+  const packageJson = await getPackageJson();
   return (
     process.env.GEMINI_SANDBOX_IMAGE ??
-    packageJsonConfig?.sandboxImageUri ??
+    packageJson?.config?.sandboxImageUri ??
     (isCustomProjectSandbox
       ? LOCAL_DEV_SANDBOX_IMAGE_NAME + '-' + path.basename(path.resolve())
       : LOCAL_DEV_SANDBOX_IMAGE_NAME)
@@ -345,7 +342,6 @@ export async function start_sandbox(sandbox: string) {
     // spawn child and let it inherit stdio
     sandboxProcess = spawn(sandbox, args, {
       stdio: 'inherit',
-      env: sandboxEnv,
     });
     await new Promise((resolve) => sandboxProcess?.on('close', resolve));
     return;
@@ -446,6 +442,27 @@ export async function start_sandbox(sandbox: string) {
   // mount os.tmpdir() as os.tmpdir() inside container
   args.push('--volume', `${os.tmpdir()}:${getContainerPath(os.tmpdir())}`);
 
+  // mount gcloud config directory if it exists
+  const gcloudConfigDir = path.join(os.homedir(), '.config', 'gcloud');
+  if (fs.existsSync(gcloudConfigDir)) {
+    args.push(
+      '--volume',
+      `${gcloudConfigDir}:${getContainerPath(gcloudConfigDir)}:ro`,
+    );
+  }
+
+  // mount ADC file if GOOGLE_APPLICATION_CREDENTIALS is set
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    const adcFile = process.env.GOOGLE_APPLICATION_CREDENTIALS;
+    if (fs.existsSync(adcFile)) {
+      args.push('--volume', `${adcFile}:${getContainerPath(adcFile)}:ro`);
+      args.push(
+        '--env',
+        `GOOGLE_APPLICATION_CREDENTIALS=${getContainerPath(adcFile)}`,
+      );
+    }
+  }
+
   // mount paths listed in SANDBOX_MOUNTS
   if (process.env.SANDBOX_MOUNTS) {
     for (let mount of process.env.SANDBOX_MOUNTS.split(',')) {
@@ -488,38 +505,41 @@ export async function start_sandbox(sandbox: string) {
   // copy as both upper-case and lower-case as is required by some utilities
   // GEMINI_SANDBOX_PROXY_COMMAND implies HTTPS_PROXY unless HTTP_PROXY is set
   const proxyCommand = process.env.GEMINI_SANDBOX_PROXY_COMMAND;
-  let proxy =
-    process.env.HTTPS_PROXY ||
-    process.env.https_proxy ||
-    process.env.HTTP_PROXY ||
-    process.env.http_proxy ||
-    'http://localhost:8877';
-  proxy = proxy.replace('localhost', SANDBOX_PROXY_NAME);
-  if (proxy) {
-    args.push('--env', `HTTPS_PROXY=${proxy}`);
-    args.push('--env', `https_proxy=${proxy}`); // lower-case can be required, e.g. for curl
-    args.push('--env', `HTTP_PROXY=${proxy}`);
-    args.push('--env', `http_proxy=${proxy}`);
-  }
-  const noProxy = process.env.NO_PROXY || process.env.no_proxy;
-  if (noProxy) {
-    args.push('--env', `NO_PROXY=${noProxy}`);
-    args.push('--env', `no_proxy=${noProxy}`);
-  }
 
-  // if using proxy, switch to internal networking through proxy
-  if (proxy) {
-    execSync(
-      `${sandbox} network inspect ${SANDBOX_NETWORK_NAME} || ${sandbox} network create --internal ${SANDBOX_NETWORK_NAME}`,
-    );
-    args.push('--network', SANDBOX_NETWORK_NAME);
-    // if proxy command is set, create a separate network w/ host access (i.e. non-internal)
-    // we will run proxy in its own container connected to both host network and internal network
-    // this allows proxy to work even on rootless podman on macos with host<->vm<->container isolation
-    if (proxyCommand) {
+  if (proxyCommand) {
+    let proxy =
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy ||
+      'http://localhost:8877';
+    proxy = proxy.replace('localhost', SANDBOX_PROXY_NAME);
+    if (proxy) {
+      args.push('--env', `HTTPS_PROXY=${proxy}`);
+      args.push('--env', `https_proxy=${proxy}`); // lower-case can be required, e.g. for curl
+      args.push('--env', `HTTP_PROXY=${proxy}`);
+      args.push('--env', `http_proxy=${proxy}`);
+    }
+    const noProxy = process.env.NO_PROXY || process.env.no_proxy;
+    if (noProxy) {
+      args.push('--env', `NO_PROXY=${noProxy}`);
+      args.push('--env', `no_proxy=${noProxy}`);
+    }
+
+    // if using proxy, switch to internal networking through proxy
+    if (proxy) {
       execSync(
-        `${sandbox} network inspect ${SANDBOX_PROXY_NAME} || ${sandbox} network create ${SANDBOX_PROXY_NAME}`,
+        `${sandbox} network inspect ${SANDBOX_NETWORK_NAME} || ${sandbox} network create --internal ${SANDBOX_NETWORK_NAME}`,
       );
+      args.push('--network', SANDBOX_NETWORK_NAME);
+      // if proxy command is set, create a separate network w/ host access (i.e. non-internal)
+      // we will run proxy in its own container connected to both host network and internal network
+      // this allows proxy to work even on rootless podman on macos with host<->vm<->container isolation
+      if (proxyCommand) {
+        execSync(
+          `${sandbox} network inspect ${SANDBOX_PROXY_NAME} || ${sandbox} network create ${SANDBOX_PROXY_NAME}`,
+        );
+      }
     }
   }
 
@@ -535,9 +555,36 @@ export async function start_sandbox(sandbox: string) {
   const containerName = `${imageName}-${index}`;
   args.push('--name', containerName, '--hostname', containerName);
 
-  // copy GEMINI_API_KEY
+  // copy GEMINI_API_KEY(s)
   if (process.env.GEMINI_API_KEY) {
     args.push('--env', `GEMINI_API_KEY=${process.env.GEMINI_API_KEY}`);
+  }
+  if (process.env.GOOGLE_API_KEY) {
+    args.push('--env', `GOOGLE_API_KEY=${process.env.GOOGLE_API_KEY}`);
+  }
+
+  // copy GOOGLE_GENAI_USE_VERTEXAI
+  if (process.env.GOOGLE_GENAI_USE_VERTEXAI) {
+    args.push(
+      '--env',
+      `GOOGLE_GENAI_USE_VERTEXAI=${process.env.GOOGLE_GENAI_USE_VERTEXAI}`,
+    );
+  }
+
+  // copy GOOGLE_CLOUD_PROJECT
+  if (process.env.GOOGLE_CLOUD_PROJECT) {
+    args.push(
+      '--env',
+      `GOOGLE_CLOUD_PROJECT=${process.env.GOOGLE_CLOUD_PROJECT}`,
+    );
+  }
+
+  // copy GOOGLE_CLOUD_LOCATION
+  if (process.env.GOOGLE_CLOUD_LOCATION) {
+    args.push(
+      '--env',
+      `GOOGLE_CLOUD_LOCATION=${process.env.GOOGLE_CLOUD_LOCATION}`,
+    );
   }
 
   // copy GEMINI_MODEL
@@ -630,6 +677,7 @@ export async function start_sandbox(sandbox: string) {
   // start and set up proxy if GEMINI_SANDBOX_PROXY_COMMAND is set
   let proxyProcess: ChildProcess | undefined = undefined;
   let sandboxProcess: ChildProcess | undefined = undefined;
+
   if (proxyCommand) {
     // run proxyCommand in its own container
     const proxyContainerCommand = `${sandbox} run --rm --init ${userFlag} --name ${SANDBOX_PROXY_NAME} --network ${SANDBOX_PROXY_NAME} -p 8877:8877 -v ${process.cwd()}:${workdir} --workdir ${workdir} ${image} ${proxyCommand}`;

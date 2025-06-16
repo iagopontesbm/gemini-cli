@@ -21,30 +21,43 @@ import {
 } from '@google/genai';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
-import { CcpaResponse, toCcpaRequest, fromCcpaResponse } from './converter.js';
+import {
+  CodeAssistResponse,
+  toCodeAssistRequest,
+  fromCodeAsistResponse,
+} from './converter.js';
 import { PassThrough } from 'node:stream';
 
-// TODO: Use production endpoint once it supports our methods.
-export const CCPA_ENDPOINT =
-  'https://staging-cloudcode-pa.sandbox.googleapis.com';
-export const CCPA_API_VERSION = 'v1internal';
+/** HTTP options to be used in each of the requests. */
+export interface HttpOptions {
+  /** Additional HTTP headers to be sent with the request. */
+  headers?: Record<string, string>;
+}
 
-export class CcpaServer implements ContentGenerator {
+// TODO: Use production endpoint once it supports our methods.
+export const CODE_ASSIST_ENDPOINT =
+  process.env.CODE_ASSIST_ENDPOINT ??
+  'https://staging-cloudcode-pa.sandbox.googleapis.com';
+export const CODE_ASSIST_API_VERSION = 'v1internal';
+
+export class CodeAssistServer implements ContentGenerator {
   constructor(
     readonly auth: OAuth2Client,
     readonly projectId?: string,
+    readonly httpOptions: HttpOptions = {},
   ) {}
 
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    const resps = await this.streamEndpoint<CcpaResponse>(
+    const resps = await this.streamEndpoint<CodeAssistResponse>(
       'streamGenerateContent',
-      toCcpaRequest(req, this.projectId),
+      toCodeAssistRequest(req, this.projectId),
+      req.config?.abortSignal,
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
       for await (const resp of resps) {
-        yield fromCcpaResponse(resp);
+        yield fromCodeAsistResponse(resp);
       }
     })();
   }
@@ -52,11 +65,12 @@ export class CcpaServer implements ContentGenerator {
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.callEndpoint<CcpaResponse>(
+    const resp = await this.callEndpoint<CodeAssistResponse>(
       'generateContent',
-      toCcpaRequest(req, this.projectId),
+      toCodeAssistRequest(req, this.projectId),
+      req.config?.abortSignal,
     );
-    return fromCcpaResponse(resp);
+    return fromCodeAsistResponse(resp);
   }
 
   async onboardUser(
@@ -87,16 +101,21 @@ export class CcpaServer implements ContentGenerator {
     throw Error();
   }
 
-  async callEndpoint<T>(method: string, req: object): Promise<T> {
+  async callEndpoint<T>(
+    method: string,
+    req: object,
+    signal?: AbortSignal,
+  ): Promise<T> {
     const res = await this.auth.request({
-      url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-Goog-User-Project': this.projectId || '',
+        ...this.httpOptions.headers,
       },
       responseType: 'json',
       body: JSON.stringify(req),
+      signal,
     });
     return res.data as T;
   }
@@ -104,16 +123,21 @@ export class CcpaServer implements ContentGenerator {
   async streamEndpoint<T>(
     method: string,
     req: object,
+    signal?: AbortSignal,
   ): Promise<AsyncGenerator<T>> {
     const res = await this.auth.request({
-      url: `${CCPA_ENDPOINT}/${CCPA_API_VERSION}:${method}`,
+      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
       method: 'POST',
       params: {
         alt: 'sse',
       },
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.httpOptions.headers,
+      },
       responseType: 'stream',
       body: JSON.stringify(req),
+      signal,
     });
 
     return (async function* (): AsyncGenerator<T> {

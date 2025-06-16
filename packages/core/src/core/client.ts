@@ -14,9 +14,13 @@ import {
   Tool,
   GenerateContentResponse,
 } from '@google/genai';
-import process from 'node:process';
 import { getFolderStructure } from '../utils/getFolderStructure.js';
-import { Turn, ServerGeminiStreamEvent, GeminiEventType } from './turn.js';
+import {
+  Turn,
+  ServerGeminiStreamEvent,
+  GeminiEventType,
+  ChatCompressionInfo,
+} from './turn.js';
 import { Config } from '../config/config.js';
 import { getCoreSystemPrompt } from './prompts.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
@@ -28,24 +32,15 @@ import { retryWithBackoff } from '../utils/retry.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { tokenLimit } from './tokenLimits.js';
 import {
-  logApiRequest,
-  logApiResponse,
-  logApiError,
-} from '../telemetry/index.js';
-import {
   ContentGenerator,
   createContentGenerator,
 } from './contentGenerator.js';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
+import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 
-const proxy =
-  process.env.HTTPS_PROXY ||
-  process.env.https_proxy ||
-  process.env.HTTP_PROXY ||
-  process.env.http_proxy;
-
-if (proxy) {
-  setGlobalDispatcher(new ProxyAgent(proxy));
+function isThinkingSupported(model: string) {
+  if (model.startsWith('gemini-2.5')) return true;
+  return false;
 }
 
 export class GeminiClient {
@@ -60,6 +55,10 @@ export class GeminiClient {
   private readonly MAX_TURNS = 100;
 
   constructor(private config: Config) {
+    if (config.getProxy()) {
+      setGlobalDispatcher(new ProxyAgent(config.getProxy() as string));
+    }
+
     this.contentGenerator = createContentGenerator(
       this.config.getContentGeneratorConfig(),
     );
@@ -87,8 +86,13 @@ export class GeminiClient {
     chat.setHistory(history);
   }
 
+  async resetChat(): Promise<void> {
+    this.chat = this.startChat();
+    await this.chat;
+  }
+
   private async getEnvironment(): Promise<Part[]> {
-    const cwd = process.cwd();
+    const cwd = this.config.getWorkingDir();
     const today = new Date().toLocaleDateString(undefined, {
       weekday: 'long',
       year: 'numeric',
@@ -96,7 +100,9 @@ export class GeminiClient {
       day: 'numeric',
     });
     const platform = process.platform;
-    const folderStructure = await getFolderStructure(cwd);
+    const folderStructure = await getFolderStructure(cwd, {
+      fileService: this.config.getFileService(),
+    });
     const context = `
   Okay, just setting up the context for our chat.
   Today is ${today}.
@@ -168,14 +174,21 @@ export class GeminiClient {
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
-
+      const generateContentConfigWithThinking = isThinkingSupported(this.model)
+        ? {
+            ...this.generateContentConfig,
+            thinkingConfig: {
+              includeThoughts: true,
+            },
+          }
+        : this.generateContentConfig;
       return new GeminiChat(
         this.config,
         await this.contentGenerator,
         this.model,
         {
           systemInstruction,
-          ...this.generateContentConfig,
+          ...generateContentConfigWithThinking,
           tools,
         },
         history,
@@ -203,7 +216,7 @@ export class GeminiClient {
 
     const compressed = await this.tryCompressChat();
     if (compressed) {
-      yield { type: GeminiEventType.ChatCompressed };
+      yield { type: GeminiEventType.ChatCompressed, value: compressed };
     }
     const chat = await this.chat;
     const turn = new Turn(chat);
@@ -223,90 +236,14 @@ export class GeminiClient {
     return turn;
   }
 
-  private _logApiRequest(model: string, inputTokenCount: number): void {
-    logApiRequest(this.config, {
-      model,
-      input_token_count: inputTokenCount,
-      duration_ms: 0, // Duration is not known at request time
-    });
-  }
-
-  private _logApiResponse(
-    model: string,
-    durationMs: number,
-    attempt: number,
-    response: GenerateContentResponse,
-  ): void {
-    const promptFeedback = response.promptFeedback;
-    const finishReason = response.candidates?.[0]?.finishReason;
-    let responseError;
-    if (promptFeedback?.blockReason) {
-      responseError = `Blocked: ${promptFeedback.blockReason}${promptFeedback.blockReasonMessage ? ' - ' + promptFeedback.blockReasonMessage : ''}`;
-    } else if (
-      finishReason &&
-      !['STOP', 'MAX_TOKENS', 'UNSPECIFIED'].includes(finishReason)
-    ) {
-      responseError = `Finished with reason: ${finishReason}`;
-    }
-
-    logApiResponse(this.config, {
-      model,
-      duration_ms: durationMs,
-      attempt,
-      status_code: undefined,
-      error: responseError,
-      output_token_count: response.usageMetadata?.candidatesTokenCount ?? 0,
-      cached_content_token_count:
-        response.usageMetadata?.cachedContentTokenCount ?? 0,
-      thoughts_token_count: response.usageMetadata?.thoughtsTokenCount ?? 0,
-      tool_token_count: response.usageMetadata?.toolUsePromptTokenCount ?? 0,
-      response_text: getResponseText(response),
-    });
-  }
-
-  private _logApiError(
-    model: string,
-    error: unknown,
-    durationMs: number,
-    attempt: number,
-    isAbort: boolean = false,
-  ): void {
-    let statusCode: number | string | undefined;
-    let errorMessage = getErrorMessage(error);
-
-    if (isAbort) {
-      errorMessage = 'Request aborted by user';
-      statusCode = 'ABORTED'; // Custom S
-    } else if (typeof error === 'object' && error !== null) {
-      if ('status' in error) {
-        statusCode = (error as { status: number | string }).status;
-      } else if ('code' in error) {
-        statusCode = (error as { code: number | string }).code;
-      } else if ('httpStatusCode' in error) {
-        statusCode = (error as { httpStatusCode: number | string })
-          .httpStatusCode;
-      }
-    }
-
-    logApiError(this.config, {
-      model,
-      error: errorMessage,
-      status_code: statusCode,
-      duration_ms: durationMs,
-      attempt,
-    });
-  }
-
   async generateJson(
     contents: Content[],
     schema: SchemaUnion,
     abortSignal: AbortSignal,
-    model: string = 'gemini-2.0-flash',
+    model: string = DEFAULT_GEMINI_FLASH_MODEL,
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
     const cg = await this.contentGenerator;
-    const attempt = 1;
-    const startTime = Date.now();
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -315,22 +252,6 @@ export class GeminiClient {
         ...this.generateContentConfig,
         ...config,
       };
-
-      let inputTokenCount = 0;
-      try {
-        const { totalTokens } = await cg.countTokens({
-          model,
-          contents,
-        });
-        inputTokenCount = totalTokens || 0;
-      } catch (_e) {
-        console.warn(
-          `Failed to count tokens for model ${model}. Proceeding with inputTokenCount = 0. Error: ${getErrorMessage(_e)}`,
-        );
-        inputTokenCount = 0;
-      }
-
-      this._logApiRequest(model, inputTokenCount);
 
       const apiCall = () =>
         cg.generateContent({
@@ -345,7 +266,6 @@ export class GeminiClient {
         });
 
       const result = await retryWithBackoff(apiCall);
-      const durationMs = Date.now() - startTime;
 
       const text = getResponseText(result);
       if (!text) {
@@ -358,12 +278,10 @@ export class GeminiClient {
           contents,
           'generateJson-empty-response',
         );
-        this._logApiError(model, error, durationMs, attempt);
         throw error;
       }
       try {
         const parsedJson = JSON.parse(text);
-        this._logApiResponse(model, durationMs, attempt, result);
         return parsedJson;
       } catch (parseError) {
         await reportError(
@@ -375,15 +293,12 @@ export class GeminiClient {
           },
           'generateJson-parse',
         );
-        this._logApiError(model, parseError, durationMs, attempt);
         throw new Error(
           `Failed to parse API response as JSON: ${getErrorMessage(parseError)}`,
         );
       }
     } catch (error) {
-      const durationMs = Date.now() - startTime;
       if (abortSignal.aborted) {
-        this._logApiError(model, error, durationMs, attempt, true);
         throw error;
       }
 
@@ -394,7 +309,6 @@ export class GeminiClient {
       ) {
         throw error;
       }
-      this._logApiError(model, error, durationMs, attempt);
 
       await reportError(
         error,
@@ -419,8 +333,6 @@ export class GeminiClient {
       ...this.generateContentConfig,
       ...generationConfig,
     };
-    const attempt = 1;
-    const startTime = Date.now();
 
     try {
       const userMemory = this.config.getUserMemory();
@@ -431,22 +343,6 @@ export class GeminiClient {
         ...configToUse,
         systemInstruction,
       };
-
-      let inputTokenCount = 0;
-      try {
-        const { totalTokens } = await cg.countTokens({
-          model: modelToUse,
-          contents,
-        });
-        inputTokenCount = totalTokens || 0;
-      } catch (_e) {
-        console.warn(
-          `Failed to count tokens for model ${modelToUse}. Proceeding with inputTokenCount = 0. Error: ${getErrorMessage(_e)}`,
-        );
-        inputTokenCount = 0;
-      }
-
-      this._logApiRequest(modelToUse, inputTokenCount);
 
       const apiCall = () =>
         cg.generateContent({
@@ -460,17 +356,11 @@ export class GeminiClient {
         'Raw API Response in client.ts:',
         JSON.stringify(result, null, 2),
       );
-      const durationMs = Date.now() - startTime;
-      this._logApiResponse(modelToUse, durationMs, attempt, result);
       return result;
     } catch (error: unknown) {
-      const durationMs = Date.now() - startTime;
       if (abortSignal.aborted) {
-        this._logApiError(modelToUse, error, durationMs, attempt, true);
         throw error;
       }
-
-      this._logApiError(modelToUse, error, durationMs, attempt);
 
       await reportError(
         error,
@@ -522,44 +412,55 @@ export class GeminiClient {
     });
   }
 
-  private async tryCompressChat(): Promise<boolean> {
+  async tryCompressChat(
+    force: boolean = false,
+  ): Promise<ChatCompressionInfo | null> {
     const chat = await this.chat;
     const history = chat.getHistory(true); // Get curated history
 
+    // Regardless of `force`, don't do anything if the history is empty.
+    if (history.length === 0) {
+      return null;
+    }
+
     const cg = await this.contentGenerator;
-    const { totalTokens } = await cg.countTokens({
+    const { totalTokens: originalTokenCount } = await cg.countTokens({
       model: this.model,
       contents: history,
     });
 
-    if (totalTokens === undefined) {
-      // If token count is undefined, we can't determine if we need to compress.
-      console.warn(
-        `Could not determine token count for model ${this.model}. Skipping compression check.`,
-      );
-      return false;
-    }
-    const tokenCount = totalTokens; // Now guaranteed to be a number
+    // If not forced, check if we should compress based on context size.
+    if (!force) {
+      if (originalTokenCount === undefined) {
+        // If token count is undefined, we can't determine if we need to compress.
+        console.warn(
+          `Could not determine token count for model ${this.model}. Skipping compression check.`,
+        );
+        return null;
+      }
+      const tokenCount = originalTokenCount; // Now guaranteed to be a number
 
-    const limit = tokenLimit(this.model);
-    if (!limit) {
-      // If no limit is defined for the model, we can't compress.
-      console.warn(
-        `No token limit defined for model ${this.model}. Skipping compression check.`,
-      );
-      return false;
+      const limit = tokenLimit(this.model);
+      if (!limit) {
+        // If no limit is defined for the model, we can't compress.
+        console.warn(
+          `No token limit defined for model ${this.model}. Skipping compression check.`,
+        );
+        return null;
+      }
+
+      if (tokenCount < 0.95 * limit) {
+        return null;
+      }
     }
 
-    if (tokenCount < 0.95 * limit) {
-      return false;
-    }
     const summarizationRequestMessage = {
       text: 'Summarize our conversation up to this point. The summary should be a concise yet comprehensive overview of all key topics, questions, answers, and important details discussed. This summary will replace the current chat history to conserve tokens, so it must capture everything essential to understand the context and continue our conversation effectively as if no information was lost.',
     };
     const response = await chat.sendMessage({
       message: summarizationRequestMessage,
     });
-    this.chat = this.startChat([
+    const newHistory = [
       {
         role: 'user',
         parts: [summarizationRequestMessage],
@@ -568,8 +469,15 @@ export class GeminiClient {
         role: 'model',
         parts: [{ text: response.text }],
       },
-    ]);
+    ];
+    this.chat = this.startChat(newHistory);
+    const newTokenCount = (
+      await cg.countTokens({ model: this.model, contents: newHistory })
+    ).totalTokens;
 
-    return true;
+    return {
+      originalTokenCount,
+      newTokenCount,
+    };
   }
 }
