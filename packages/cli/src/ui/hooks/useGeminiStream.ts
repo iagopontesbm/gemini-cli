@@ -13,6 +13,7 @@ import {
   ServerGeminiStreamEvent as GeminiEvent,
   ServerGeminiContentEvent as ContentEvent,
   ServerGeminiErrorEvent as ErrorEvent,
+  ServerGeminiChatCompressedEvent,
   getErrorMessage,
   isNodeError,
   MessageSenderType,
@@ -20,6 +21,7 @@ import {
   logUserPrompt,
   GitService,
   EditorType,
+  ThoughtSummary,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -72,7 +74,7 @@ enum StreamProcessingStatus {
  * API interaction, and tool call lifecycle.
  */
 export const useGeminiStream = (
-  geminiClient: GeminiClient | null,
+  geminiClient: GeminiClient,
   history: HistoryItem[],
   addItem: UseHistoryManagerReturn['addItem'],
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
@@ -89,6 +91,7 @@ export const useGeminiStream = (
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [isResponding, setIsResponding] = useState<boolean>(false);
+  const [thought, setThought] = useState<ThoughtSummary | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
   const logger = useLogger();
@@ -137,6 +140,7 @@ export const useGeminiStream = (
     onExec,
     onDebugMessage,
     config,
+    geminiClient,
   );
 
   const streamingState = useMemo(() => {
@@ -368,11 +372,14 @@ export const useGeminiStream = (
   );
 
   const handleChatCompressionEvent = useCallback(
-    () =>
+    (eventValue: ServerGeminiChatCompressedEvent['value']) =>
       addItem(
         {
           type: 'info',
-          text: `IMPORTANT: this conversation approached the input token limit for ${config.getModel()}. We'll send a compressed context to the model for any future messages.`,
+          text:
+            `IMPORTANT: This conversation approached the input token limit for ${config.getModel()}. ` +
+            `A compressed context will be sent for future messages (compressed from: ` +
+            `${eventValue.originalTokenCount} to ${eventValue.newTokenCount} tokens).`,
         },
         Date.now(),
       ),
@@ -389,6 +396,9 @@ export const useGeminiStream = (
       const toolCallRequests: ToolCallRequestInfo[] = [];
       for await (const event of stream) {
         switch (event.type) {
+          case ServerGeminiEventType.Thought:
+            setThought(event.value);
+            break;
           case ServerGeminiEventType.Content:
             geminiMessageBuffer = handleContentEvent(
               event.value,
@@ -406,7 +416,7 @@ export const useGeminiStream = (
             handleErrorEvent(event.value, userMessageTimestamp);
             break;
           case ServerGeminiEventType.ChatCompressed:
-            handleChatCompressionEvent();
+            handleChatCompressionEvent(event.value);
             break;
           case ServerGeminiEventType.UsageMetadata:
             addUsage(event.value);
@@ -463,13 +473,6 @@ export const useGeminiStream = (
 
       if (!options?.isContinuation) {
         startNewTurn();
-      }
-
-      if (!geminiClient) {
-        const errorMsg = 'Gemini client is not available.';
-        setInitError(errorMsg);
-        addItem({ type: MessageType.ERROR, text: errorMsg }, Date.now());
-        return;
       }
 
       setIsResponding(true);
@@ -726,5 +729,6 @@ export const useGeminiStream = (
     submitQuery,
     initError,
     pendingHistoryItems,
+    thought,
   };
 };
