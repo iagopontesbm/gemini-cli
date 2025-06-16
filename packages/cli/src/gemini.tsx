@@ -50,6 +50,12 @@ export async function main() {
 
   // Initialize centralized FileDiscoveryService
   config.getFileService();
+
+  if (!config.getFileService()) {
+    console.error('FileDiscoveryService not initialized');
+    process.exit(1);
+  }
+
   if (config.getCheckpointEnabled()) {
     try {
       await config.getGitService();
