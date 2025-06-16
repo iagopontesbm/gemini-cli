@@ -136,7 +136,7 @@ Use the `npm run telemetry -- --target=gcp` command which automates setting up a
     - Ensure you have a Google Cloud Project ID.
     - Export the `GOOGLE_CLOUD_PROJECT` environment variable to make it available to the OTEL collector.
       ```bash
-      export GOOGLE_CLOUD_PROJECT="your-project-id"
+      export OTLP_GOOGLE_CLOUD_PROJECT="your-project-id"
       ```
     - Authenticate with Google Cloud (e.g., run `gcloud auth application-default login` or ensure `GOOGLE_APPLICATION_CREDENTIALS` is set).
     - Ensure your account/service account has the necessary roles: "Cloud Trace Agent", "Monitoring Metric Writer", and "Logs Writer".
@@ -273,6 +273,15 @@ These are numerical measurements of behavior over time.
     - `model`
 
 - `gemini_cli.token.usage` (Counter, Int): Counts the number of tokens used.
+
   - **Attributes**:
     - `model`
     - `type` (string: "input", "output", "thought", "cache", or "tool")
+
+- `gemini_cli.file.operation.count` (Counter, Int): Counts file operations.
+
+  - **Attributes**:
+    - `operation` (string: "create", "read", "update"): The type of file operation.
+    - `lines` (optional, Int): Number of lines in the file.
+    - `mimetype` (optional, string): Mimetype of the file.
+    - `extension` (optional, string): File extension of the file.
