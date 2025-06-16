@@ -18,7 +18,7 @@
       "request": "launch",
       "name": "Launch E2E",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "test:e2e"],
+      "runtimeArgs": ["run", "test:e2e", "read_many_files"],
       "skipFiles": ["<node_internals>/**"],
       "cwd": "${workspaceFolder}"
     },

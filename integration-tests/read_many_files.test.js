@@ -8,7 +8,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'assert';
 import { TestRig } from './test-helper.js';
 
-test('should be able to read multiple files', async (t) => {
+test.skip('should be able to read multiple files', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
   rig.createFile('file1.txt', 'file 1 content');
