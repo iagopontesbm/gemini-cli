@@ -11,7 +11,10 @@ import { TestRig } from './test-helper.js';
 test('should be able to run a shell command', async (t) => {
   const rig = new TestRig();
   rig.setup(t.name);
-  const prompt = `Can you run the command 'echo hello world'`;
+  rig.createFile('blah.txt', 'some content');
+
+  const prompt = `Can you use ls to list the contexts of the current folder`;
   const result = await rig.run(prompt);
-  assert.ok(result.includes('hello world'));
+
+  assert.ok(result.includes('blah.txt'));
 });

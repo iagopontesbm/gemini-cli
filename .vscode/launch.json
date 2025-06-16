@@ -14,6 +14,15 @@
       "cwd": "${workspaceFolder}"
     },
     {
+      "type": "node",
+      "request": "launch",
+      "name": "Launch E2E",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "test:e2e"],
+      "skipFiles": ["<node_internals>/**"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
       "name": "Attach",
       "port": 9229,
       "request": "attach",

@@ -38,6 +38,10 @@ export class TestRig {
     return filePath;
   }
 
+  mkdir(dir) {
+    mkdirSync(join(this.testDir, dir));
+  }
+
   run(prompt, ...args) {
     const output = execSync(
       `node ${this.bundlePath} --yolo --prompt "${prompt}" ${args.join(' ')}`,
