@@ -237,7 +237,6 @@ async function connectAndDiscover(
       );
       process.exit(1);
     }
-    console.error(
     let errorString =
       `failed to start or connect to MCP server '${mcpServerName}' ` +
       `${JSON.stringify(safeConfig)}; \n${error}`;

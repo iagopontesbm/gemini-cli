@@ -328,7 +328,6 @@ export class Config {
     return this.ideMode;
   }
 
-  async getFileService(): Promise<FileDiscoveryService> {
   getBugCommand(): BugCommandSettings | undefined {
     return this.bugCommand;
   }

@@ -231,7 +231,7 @@ export async function loadCliConfig(
       process.env.https_proxy ||
       process.env.HTTP_PROXY ||
       process.env.http_proxy,
-    telemetryOtlpEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT,
+    cwd: process.cwd(),
     ideMode: settings.ideMode,
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
