@@ -60,9 +60,7 @@ This project uses **Vitest** as its primary testing framework. When writing test
 
 ## Git Repo
 
-The main branch for this project is called "main".
-
-This project is hosted on GitHub. To interact with issues and pull requests, you should use the GitHub CLI tool (`gh`) if it's installed. Otherwise you can find the project's issues at https://github.com/google-gemini/gemini-cli/issues and pull requests at https://github.com/google-gemini/pulls.
+The main branch for this project is called "main"
 
 ## JavaScript/TypeScript
 

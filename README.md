@@ -41,7 +41,7 @@ Or work with an existing project:
 $ git clone https://github.com/google-gemini/gemini-cli
 $ cd gemini-cli
 $ gemini
-> What issues have been filed on GitHub recently for this project?
+> Give me a summary of all of the changes that went in yesterday
 ```
 
 ## API Key Setup
