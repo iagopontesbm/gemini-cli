@@ -10,14 +10,14 @@ These tests are located in the `integration-tests` directory and are run using a
 
 ## Running the Tests
 
-The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run integration-test` script.
+The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run integration-test:no-sandbox` script.
 
 ### Running All Tests
 
 To run the entire suite of integration tests, use the following command:
 
 ```bash
-npm run integration-test
+npm run integration-test:no-sandbox
 ```
 
 ### Running a Single Test File
@@ -25,7 +25,7 @@ npm run integration-test
 To run a specific test file, provide the path to the file as an argument:
 
 ```bash
-npm run integration-test -- integration-tests/file-system.test.js
+npm run integration-test:no-sandbox -- integration-tests/file-system.test.js
 ```
 
 ### Running a Single Test by Name
@@ -33,18 +33,66 @@ npm run integration-test -- integration-tests/file-system.test.js
 To run a single test by its name, use the `--test-name-pattern` flag:
 
 ```bash
-npm run integration-test -- --test-name-pattern "reads a file"
+npm run integration-test:no-sandbox -- --test-name-pattern "reads a file"
 ```
 
 ## Debugging
 
-The integration test runner provides a `--keep-output` flag that can be used to preserve the test artifacts for debugging. When this flag is used, the temporary directories created during the test run will not be deleted.
+The integration test runner provides several options for debugging test failures.
+
+### Keeping Test Output
+
+You can preserve the temporary files created during a test run for inspection. This is useful for debugging issues with file system operations.
+
+To keep the test output, you can either use the `--keep-output` flag or set the `KEEP_OUTPUT` environment variable to `true`.
 
 ```bash
-npm run integration-test -- --keep-output
+# Using the flag
+npm run integration-test:no-sandbox -- --keep-output
+
+# Using the environment variable
+KEEP_OUTPUT=true npm run integration-test:no-sandbox
 ```
 
-When the `--keep-output` flag is used, the test runner will print the path to the unique directory for the test run.
+When output is kept, the test runner will print the path to the unique directory for the test run.
+
+### Verbose Output
+
+For more detailed debugging, the `--verbose` flag will stream the real-time output from the `gemini` command to the console. This is useful for observing the command's behavior as it runs.
+
+```bash
+npm run integration-test:no-sandbox -- --verbose
+```
+
+When using `--verbose` with `--keep-output`, the output is streamed to the console and also saved to a log file within the test's temporary directory.
+
+The verbose output is formatted to clearly identify the source of the logs:
+
+```
+--- TEST: <file-name-without-js>:<test-name> ---
+... output from the gemini command ...
+--- END TEST: <file-name-without-js>:<test-name> ---
+```
+
+## Linting and Formatting
+
+To ensure code quality and consistency, the integration test files are linted as part of the main build process. You can also manually run the linter and auto-fixer.
+
+### Running the Linter
+
+To check for linting errors, run the following command:
+
+```bash
+eslint integration-tests
+```
+
+### Automatically Fixing Issues
+
+To automatically fix any fixable linting errors, run:
+
+```bash
+eslint integration-tests --fix
+```
 
 ## Directory Structure
 
@@ -57,5 +105,6 @@ This structure makes it easy to locate the artifacts for a specific test run, fi
 └── <run-id>/
     └── <test-file-name>.test.js/
         └── <test-case-name>/
-            └── ...test artifacts...
+            ├── output.log
+            └── ...other test artifacts...
 ```
