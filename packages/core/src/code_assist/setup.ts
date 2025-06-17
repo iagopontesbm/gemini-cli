@@ -7,7 +7,6 @@
 import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CodeAssistServer } from './server.js';
 import { AuthClient } from 'google-auth-library';
-import { clearCachedCredentials } from './oauth2.js';
 
 /**
  *
@@ -50,7 +49,6 @@ export async function setupUser(
     }
     return lroRes.response?.cloudaicompanionProject?.id || '';
   } catch (e) {
-    await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
         'Google Workspace Account (e.g. your-name@your-company.com)' +
