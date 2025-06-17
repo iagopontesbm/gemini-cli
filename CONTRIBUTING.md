@@ -74,6 +74,10 @@ Your PR should have a clear, descriptive title and a detailed description of the
 
 In the PR description, explain the "why" behind your changes and link to the relevant issue (e.g., `Fixes #123`).
 
+## Forking
+
+If you are forking the repository you will be able to run the Built, Test and Integration test workflows. However in order to make the integration tests run you'll need to add a [Github Repository Secret]([url](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository)) with a value of `GEMII_API_KEY` and set that to a valid API key that you have available. Your key and secret it private to your repo; noone with out access can see your key and you cannot see any secrets related to this repo.
+
 ## Development Setup and Workflow
 
 This section guides contributors on how to build, modify, and understand the development setup of this project.
@@ -218,6 +222,7 @@ For more detailed architecture, see `docs/architecture.md`.
 
 ### VS Code:
 
+0.  Hit 'F5' - the default configuratino is `Run CLI` which will automatically run and debug the CLI in the ide.
 1.  Start the CLI in debug mode from the root directory:
     ```bash
     npm run debug
