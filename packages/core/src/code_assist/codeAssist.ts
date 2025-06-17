@@ -25,12 +25,15 @@ interface ClientAndProjectId {
 export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
 ): Promise<ContentGenerator> {
-  const cp = await getAuthClient();
-  const projectId = await setupUser(cp.client, cp.projectId || process.env.GOOGLE_CLOUD_PROJECT);
+  const cp = await getClientAndProject();
+  const projectId = await setupUser(
+    cp.client,
+    cp.projectId || process.env.GOOGLE_CLOUD_PROJECT,
+  );
   return new CodeAssistServer(cp.client, projectId, httpOptions);
 }
 
-async function getAuthClient(): Promise<ClientAndProjectId> {
+async function getClientAndProject(): Promise<ClientAndProjectId> {
   try {
     return await getGoogleAuthClient(OAUTH_SCOPE);
   } catch (_) {
@@ -47,7 +50,9 @@ async function getAuthClient(): Promise<ClientAndProjectId> {
  * @returns a valid auth client.
  * @throws error if there are no Application Default Credentials.
  */
-async function getGoogleAuthClient(scopes: string[]): Promise<ClientAndProjectId> {
+async function getGoogleAuthClient(
+  scopes: string[],
+): Promise<ClientAndProjectId> {
   const googleAuth = new GoogleAuth({ scopes });
   return {
     client: await googleAuth.getClient(),
