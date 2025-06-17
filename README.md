@@ -33,19 +33,26 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
 1.  **Gemini Code Assist:**
 
     - To enable this mode you only need set the GEMINI_CODE_ASSIST environment variable to true.
-    - Enterprise users must also provide a GOOGLE_CLOUD_PROJECT environment variable specifying their Google Cloud project.
-      In the following methods, replace `GOOGLE_CLOUD_PROJECT` with the relevant values for your project:
       - You can temporarily set the environment variable in your current shell session using the following command:
         ```bash
         export GEMINI_CODE_ASSIST="true"
-        export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID" // Enterprise users only.
         ```
       - For repeated use, you can add the environment variable to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following command adds the environment variable to a `~/.bashrc` file:
         ```bash
         echo 'export GEMINI_CODE_ASSIST="true"' >> ~/.bashrc
-        echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc # Enterprise users only.
         source ~/.bashrc
         ```
+    - There are two types of Google Accounts you might use to try to use Gemini Code Assist:
+      - **Personal Google Account**: This is the standard, free account you use for services like Gmail, Google Photos, and Google Drive for personal use (e.g. your-name@gmail.com).
+      - **Google Workspace Account**: This is a paid service for businesses and organizations that provides a suite of productivity tools, including a custom email domain (e.g. your-name@your-company.com), enhanced security features, and administrative controls. These accounts are often managed by an employer or school.
+        - Google Workspace Account must configure a Google Cloud Project Id to use. This can be done by:
+          - Using gcloud to set `gcloud config set project <your project id>`
+          - Setting the GOOGLE_CLOUD_PROJECT environment variable.
+    - During start up, Gemini CLI will look for cached credentials.
+      - If it finds Application Default Credentials (set up with `gcloud auth application-default login`) it will use them.
+      - Otherwise, if it find unexpired cached Oauth2 credentials it will use them.
+      - Otherwise, it will prompt you to visit a URL to authenticate (using Oauth2). Once authenticated, your Oauth2 credentials will be cached locally. Credentials normally expire after about 20 hours.
+    - Note that the Oauth2 login must be done in a browser that can communicate with the machine Gemini Cli is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
 
 2.  **Gemini API key:**
 
