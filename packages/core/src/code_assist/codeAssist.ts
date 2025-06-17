@@ -10,7 +10,6 @@ import { getOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
 import { CodeAssistServer, HttpOptions } from './server.js';
 
-
 // OAuth Scopes for Cloud Code authorization.
 const OAUTH_SCOPE = [
   'https://www.googleapis.com/auth/cloud-platform',

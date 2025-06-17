@@ -45,7 +45,7 @@ export class CodeAssistServer implements ContentGenerator {
     readonly auth: AuthClient,
     readonly projectId?: string,
     readonly httpOptions: HttpOptions = {},
-  ) { }
+  ) {}
 
   async generateContentStream(
     req: GenerateContentParameters,
