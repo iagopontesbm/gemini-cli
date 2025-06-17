@@ -6,7 +6,7 @@
 
 import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CodeAssistServer } from './server.js';
-import { OAuth2Client } from 'google-auth-library';
+import { AuthClient } from 'google-auth-library';
 import { clearCachedCredentials } from './oauth2.js';
 
 /**
@@ -14,11 +14,7 @@ import { clearCachedCredentials } from './oauth2.js';
  * @param projectId the user's project id, if any
  * @returns the user's actual project id
  */
-export async function setupUser(
-  oAuth2Client: OAuth2Client,
-  projectId?: string,
-): Promise<string> {
-  const caServer = new CodeAssistServer(oAuth2Client, projectId);
+export async function setupUser(authClient: AuthClient): Promise<string> {
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
     platform: 'PLATFORM_UNSPECIFIED',
@@ -27,6 +23,8 @@ export async function setupUser(
   if (process.env.GOOGLE_CLOUD_PROJECT) {
     clientMetadata.duetProject = process.env.GOOGLE_CLOUD_PROJECT;
   }
+
+  const caServer = new CodeAssistServer(authClient, clientMetadata.duetProject);
 
   // TODO: Support Free Tier user without projectId.
   const loadRes = await caServer.loadCodeAssist({
@@ -55,8 +53,8 @@ export async function setupUser(
     await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
-        'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-        'in their environment variables or .env file.\n\n',
+      'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
+      'in their environment variables or .env file.\n\n',
     );
     throw e;
   }

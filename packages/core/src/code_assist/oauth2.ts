@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OAuth2Client } from 'google-auth-library';
+import { OAuth2Client, Credentials, GoogleAuth, AuthClient } from 'google-auth-library';
 import * as http from 'http';
 import url from 'url';
 import crypto from 'crypto';
@@ -26,13 +26,6 @@ const OAUTH_CLIENT_ID =
 // the client secret is obviously not treated as a secret.)"
 const OAUTH_CLIENT_SECRET = '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';
 
-// OAuth Scopes for Cloud Code authorization.
-const OAUTH_SCOPE = [
-  'https://www.googleapis.com/auth/cloud-platform',
-  'https://www.googleapis.com/auth/userinfo.email',
-  'https://www.googleapis.com/auth/userinfo.profile',
-];
-
 const HTTP_REDIRECT = 301;
 const SIGN_IN_SUCCESS_URL =
   'https://developers.google.com/gemini-code-assist/auth_success_gemini';
@@ -46,24 +39,17 @@ export async function clearCachedCredentials(): Promise<void> {
   await fs.rm(getCachedCredentialPath());
 }
 
-export async function getOauthClient(): Promise<OAuth2Client> {
+export async function getOauthClient(scopes: string[]): Promise<AuthClient> {
   try {
     return await getCachedCredentialClient();
   } catch (_) {
-    const loggedInClient = await webLoginClient();
-
-    await fs.mkdir(path.dirname(getCachedCredentialPath()), {
-      recursive: true,
-    });
-    await fs.writeFile(
-      getCachedCredentialPath(),
-      JSON.stringify(loggedInClient.credentials, null, 2),
-    );
+    const loggedInClient = await webLoginClient(scopes);
+    await setCachedCredentials(loggedInClient.credentials);
     return loggedInClient;
   }
 }
 
-async function webLoginClient(): Promise<OAuth2Client> {
+async function webLoginClient(scopes: string[]): Promise<OAuth2Client> {
   const port = await getAvailablePort();
   const oAuth2Client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
@@ -75,13 +61,13 @@ async function webLoginClient(): Promise<OAuth2Client> {
     const state = crypto.randomBytes(32).toString('hex');
     const authURL: string = oAuth2Client.generateAuthUrl({
       access_type: 'offline',
-      scope: OAUTH_SCOPE,
+      scope: scopes,
       state,
     });
     console.log(
       `\n\nCode Assist login required.\n` +
-        `Attempting to open authentication page in your browser.\n` +
-        `Otherwise navigate to:\n\n${authURL}\n\n`,
+      `Attempting to open authentication page in your browser.\n` +
+      `Otherwise navigate to:\n\n${authURL}\n\n`,
     );
     open(authURL);
     console.log('Waiting for authentication...');
@@ -149,7 +135,6 @@ function getAvailablePort(): Promise<number> {
 async function getCachedCredentialClient(): Promise<OAuth2Client> {
   try {
     const creds = await fs.readFile(getCachedCredentialPath(), 'utf-8');
-
     const oAuth2Client = new OAuth2Client({
       clientId: OAUTH_CLIENT_ID,
       clientSecret: OAUTH_CLIENT_SECRET,
@@ -163,6 +148,14 @@ async function getCachedCredentialClient(): Promise<OAuth2Client> {
     // Could not load credentials.
     throw new Error('Could not load credentials');
   }
+}
+
+async function setCachedCredentials(credentials: Credentials) {
+  const filePath = getCachedCredentialPath();
+  await fs.mkdir(path.dirname(filePath), { recursive: true, });
+
+  const credString = JSON.stringify(credentials, null, 2);
+  await fs.writeFile(filePath, credString,);
 }
 
 function getCachedCredentialPath(): string {
