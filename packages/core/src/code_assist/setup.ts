@@ -53,8 +53,8 @@ export async function setupUser(authClient: AuthClient): Promise<string> {
     await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
-      'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-      'in their environment variables or .env file.\n\n',
+        'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
+        'in their environment variables or .env file.\n\n',
     );
     throw e;
   }
