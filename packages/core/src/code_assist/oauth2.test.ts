@@ -48,6 +48,7 @@ describe('oauth2', () => {
       access_token: 'test-access-token',
       refresh_token: 'test-refresh-token',
     };
+    const mockScopes = ['https://www.googleapis.com/auth/cloud-platform'];
 
     const mockGenerateAuthUrl = vi.fn().mockReturnValue(mockAuthUrl);
     const mockGetToken = vi.fn().mockResolvedValue({ tokens: mockTokens });
@@ -67,11 +68,18 @@ describe('oauth2', () => {
       typeof http.IncomingMessage,
       typeof http.ServerResponse
     >;
+
+    let serverListeningCallback: (value: unknown) => void;
+    const serverListeningPromise = new Promise(
+      (resolve) => (serverListeningCallback = resolve),
+    );
+
     const mockHttpServer = {
       listen: vi.fn((port: number, callback?: () => void) => {
         if (callback) {
           callback();
         }
+        serverListeningCallback(undefined);
       }),
       close: vi.fn((callback?: () => void) => {
         if (callback) {
@@ -89,10 +97,10 @@ describe('oauth2', () => {
       return mockHttpServer as unknown as http.Server;
     });
 
-    const clientPromise = getOauthClient();
+    const clientPromise = getOauthClient(mockScopes);
 
-    // Wait for the server to be created
-    await new Promise((resolve) => setTimeout(resolve, 0));
+    // wait for server to start listening.
+    await serverListeningPromise;
 
     const mockReq = {
       url: `/oauth2callback?code=${mockCode}&state=${mockState}`,
