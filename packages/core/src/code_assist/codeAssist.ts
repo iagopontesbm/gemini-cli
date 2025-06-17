@@ -17,20 +17,29 @@ const OAUTH_SCOPE = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ];
 
+interface ClientAndProjectId {
+  client: AuthClient;
+  projectId?: string;
+}
+
 export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
 ): Promise<ContentGenerator> {
-  const authClient = await getAuthClient();
-  const projectId = await setupUser(authClient);
-  return new CodeAssistServer(authClient, projectId, httpOptions);
+  const cp = await getAuthClient();
+  const projectId = await setupUser(cp.client, cp.projectId || process.env.GOOGLE_CLOUD_PROJECT);
+  return new CodeAssistServer(cp.client, projectId, httpOptions);
 }
 
-async function getAuthClient(): Promise<AuthClient> {
+async function getAuthClient(): Promise<ClientAndProjectId> {
   try {
     return await getGoogleAuthClient(OAUTH_SCOPE);
   } catch (_) {
     // No Application Default Credentials so try Oauth.
-    return await getOauthClient(OAUTH_SCOPE);
+    const oauthClient = await getOauthClient(OAUTH_SCOPE);
+    return {
+      client: oauthClient,
+      projectId: oauthClient.projectId || undefined,
+    };
   }
 }
 
@@ -38,7 +47,10 @@ async function getAuthClient(): Promise<AuthClient> {
  * @returns a valid auth client.
  * @throws error if there are no Application Default Credentials.
  */
-async function getGoogleAuthClient(scopes: string[]): Promise<AuthClient> {
+async function getGoogleAuthClient(scopes: string[]): Promise<ClientAndProjectId> {
   const googleAuth = new GoogleAuth({ scopes });
-  return await googleAuth.getClient();
+  return {
+    client: await googleAuth.getClient(),
+    projectId: await googleAuth.getProjectId(),
+  };
 }

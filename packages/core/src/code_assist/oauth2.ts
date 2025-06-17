@@ -36,7 +36,11 @@ const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
 export async function clearCachedCredentials(): Promise<void> {
+  try {
   await fs.rm(getCachedCredentialPath());
+  } catch(_) {
+    // The file might not be there but that's ok.
+  }
 }
 
 export async function getOauthClient(scopes: string[]): Promise<OAuth2Client> {
