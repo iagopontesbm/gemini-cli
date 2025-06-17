@@ -8,27 +8,27 @@ import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CodeAssistServer } from './server.js';
 import { AuthClient } from 'google-auth-library';
 import { clearCachedCredentials } from './oauth2.js';
+import { GaxiosError } from 'gaxios';
+
 
 /**
  *
  * @param projectId the user's project id, if any
  * @returns the user's actual project id
  */
-export async function setupUser(authClient: AuthClient): Promise<string> {
+export async function setupUser(authClient: AuthClient, projectId?: string): Promise<string> {
+  const caServer = new CodeAssistServer(authClient, projectId);
+
   const clientMetadata: ClientMetadata = {
     ideType: 'IDE_UNSPECIFIED',
     platform: 'PLATFORM_UNSPECIFIED',
     pluginType: 'GEMINI',
+    duetProject: projectId,
   };
-  if (process.env.GOOGLE_CLOUD_PROJECT) {
-    clientMetadata.duetProject = process.env.GOOGLE_CLOUD_PROJECT;
-  }
-
-  const caServer = new CodeAssistServer(authClient, clientMetadata.duetProject);
 
   // TODO: Support Free Tier user without projectId.
   const loadRes = await caServer.loadCodeAssist({
-    cloudaicompanionProject: process.env.GOOGLE_CLOUD_PROJECT,
+    cloudaicompanionProject: projectId,
     metadata: clientMetadata,
   });
 
@@ -37,7 +37,7 @@ export async function setupUser(authClient: AuthClient): Promise<string> {
 
   const onboardReq: OnboardUserRequest = {
     tierId: onboardTier,
-    cloudaicompanionProject: loadRes.cloudaicompanionProject || '',
+    cloudaicompanionProject: loadRes.cloudaicompanionProject || projectId || '',
     metadata: clientMetadata,
   };
   try {
@@ -47,14 +47,13 @@ export async function setupUser(authClient: AuthClient): Promise<string> {
       await new Promise((f) => setTimeout(f, 5000));
       lroRes = await caServer.onboardUser(onboardReq);
     }
-
     return lroRes.response?.cloudaicompanionProject?.id || '';
   } catch (e) {
     await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
-        'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-        'in their environment variables or .env file.\n\n',
+      'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
+      'in their environment variables or .env file.\n\n',
     );
     throw e;
   }
