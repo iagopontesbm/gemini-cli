@@ -37,8 +37,8 @@ const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
 export async function clearCachedCredentials(): Promise<void> {
   try {
-  await fs.rm(getCachedCredentialPath());
-  } catch(_) {
+    await fs.rm(getCachedCredentialPath());
+  } catch (_) {
     // The file might not be there but that's ok.
   }
 }

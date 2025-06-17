@@ -8,15 +8,16 @@ import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CodeAssistServer } from './server.js';
 import { AuthClient } from 'google-auth-library';
 import { clearCachedCredentials } from './oauth2.js';
-import { GaxiosError } from 'gaxios';
-
 
 /**
  *
  * @param projectId the user's project id, if any
  * @returns the user's actual project id
  */
-export async function setupUser(authClient: AuthClient, projectId?: string): Promise<string> {
+export async function setupUser(
+  authClient: AuthClient,
+  projectId?: string,
+): Promise<string> {
   const caServer = new CodeAssistServer(authClient, projectId);
 
   const clientMetadata: ClientMetadata = {
@@ -52,8 +53,8 @@ export async function setupUser(authClient: AuthClient, projectId?: string): Pro
     await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
-      'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-      'in their environment variables or .env file.\n\n',
+        'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
+        'in their environment variables or .env file.\n\n',
     );
     throw e;
   }
