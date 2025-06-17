@@ -63,10 +63,6 @@ const BUILTIN_SEATBELT_PROFILES = [
  * @returns {Promise<boolean>} A promise that resolves to true if the current user's UID/GID should be used, false otherwise.
  */
 async function shouldUseCurrentUserInSandbox(): Promise<boolean> {
-  if (process.env.GEMINI_CLI_INTEGRATION_TEST === 'true') {
-    return false;
-  }
-
   const envVar = process.env.SANDBOX_SET_UID_GID?.toLowerCase().trim();
 
   if (envVar === '1' || envVar === 'true') {
@@ -663,7 +659,10 @@ export async function start_sandbox(sandbox: string) {
   // Determine if the current user's UID/GID should be passed to the sandbox.
   // See shouldUseCurrentUserInSandbox for more details.
   let userFlag = '';
-  if (await shouldUseCurrentUserInSandbox()) {
+  if (process.env.GEMINI_CLI_INTEGRATION_TEST === 'true') {
+    args.push('--user', 'root');
+    userFlag = '--user root';
+  } else if (await shouldUseCurrentUserInSandbox()) {
     const uid = execSync('id -u').toString().trim();
     const gid = execSync('id -g').toString().trim();
     args.push('--user', `${uid}:${gid}`);
