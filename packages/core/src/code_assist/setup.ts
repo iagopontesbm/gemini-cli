@@ -13,10 +13,8 @@ import { AuthClient } from 'google-auth-library';
  * @param projectId the user's project id, if any
  * @returns the user's actual project id
  */
-export async function setupUser(
-  authClient: AuthClient,
-  projectId?: string,
-): Promise<string> {
+export async function setupUser(authClient: AuthClient): Promise<string> {
+  const projectId = process.env.GOOGLE_CLOUD_PROJECT;
   const caServer = new CodeAssistServer(authClient, projectId);
 
   const clientMetadata: ClientMetadata = {
