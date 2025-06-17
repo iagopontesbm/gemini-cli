@@ -42,13 +42,6 @@ const OAUTH_SCOPE = [
   'https://www.googleapis.com/auth/userinfo.profile',
 ];
 
-export async function clearCachedCredentials(): Promise<void> {
-  try {
-    await fs.rm(getCachedCredentialPath());
-  } catch (_) {
-    // The file might not be there but that's ok.
-  }
-}
 
 export async function getOauthClient(): Promise<OAuth2Client> {
   try {
