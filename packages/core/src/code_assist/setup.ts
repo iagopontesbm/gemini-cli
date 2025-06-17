@@ -53,8 +53,8 @@ export async function setupUser(
     await clearCachedCredentials();
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
-        'Enterprise users must specify GOOGLE_CLOUD_PROJECT ' +
-        'in their environment variables or .env file.\n\n',
+        'Google Workspace Account (e.g. your-name@your-company.com)' +
+        ' must specify a GOOGLE_CLOUD_PROJECT environment variable.\n\n',
     );
     throw e;
   }
