@@ -128,7 +128,7 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description: 'Run in IDE mode',
     })
-    .version(getCliVersion()) // This will enable the --version flag based on package.json
+    .version(await getCliVersion()) // This will enable the --version flag based on package.json
     .alias('v', 'version')
     .help()
     .alias('h', 'help')
