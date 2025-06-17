@@ -31,8 +31,8 @@ import path from 'path';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
-import { getCliVersion } from '../../utils/version.js';
 import { LoadedSettings } from '../../config/settings.js';
+import { CLI_VERSION } from '../../generated/version.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -539,7 +539,7 @@ export const useSlashCommandProcessor = (
             })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-          const cliVersion = await getCliVersion();
+          const cliVersion = CLI_VERSION;
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
@@ -570,7 +570,7 @@ export const useSlashCommandProcessor = (
             })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-          const cliVersion = await getCliVersion();
+          const cliVersion = CLI_VERSION;
           const memoryUsage = formatMemoryUsage(process.memoryUsage().rss);
 
           const diagnosticInfo = `

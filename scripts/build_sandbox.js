@@ -122,7 +122,7 @@ function buildImage(imageName, dockerfile) {
     execSync(
       `${buildCommand} ${
         process.env.BUILD_SANDBOX_FLAGS || ''
-      } --build-arg CLI_VERSION_ARG=${npmPackageVersion} -f "${dockerfile}" -t "${imageName}" .`,
+      } -f "${dockerfile}" -t "${imageName}" .`,
       { stdio: buildStdout, shell: '/bin/bash' },
     );
   } catch (e) {
@@ -136,7 +136,6 @@ function buildImage(imageName, dockerfile) {
       console.error(e.stderr.toString());
     }
     process.exit(1);
-  }
   console.log(`built ${imageName}`);
 }
 
