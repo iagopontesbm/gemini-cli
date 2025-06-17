@@ -283,8 +283,11 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
       // Ctrl+Enter for newline, Enter for submit
       if (key.return) {
-        if (key.ctrl) {
+        if (key.ctrl || query.endsWith('\\')) {
           // Ctrl+Enter for newline
+          if (query.endsWith('\\')) {
+            buffer.setText(query.slice(0, -1));
+          }
           buffer.newline();
         } else {
           // Enter for submit
