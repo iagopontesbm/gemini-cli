@@ -191,7 +191,7 @@ export class Logger {
     }
   }
 
-  getPreviousUserMessages(): string[] {
+  async getPreviousUserMessages(): Promise<string[]> {
     if (!this.initialized) return [];
     return this.logs
       .filter((entry) => entry.type === MessageSenderType.USER)
