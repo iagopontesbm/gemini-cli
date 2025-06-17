@@ -31,7 +31,7 @@ import path from 'path';
 import { createShowMemoryAction } from './useShowMemoryCommand.js';
 import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
-import { getCliVersion } from '../../utils/version.js';
+import { useAppVersion } from './useAppVersion.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -74,6 +74,7 @@ export const useSlashCommandProcessor = (
   showToolDescriptions: boolean = false,
   setQuittingMessages: (message: HistoryItem[]) => void,
 ) => {
+  const version = useAppVersion();
   const session = useSessionStats();
   const gitService = useMemo(() => {
     if (!config?.getProjectRoot()) {
@@ -529,11 +530,10 @@ export const useSlashCommandProcessor = (
             })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
-          const cliVersion = getCliVersion();
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
-            cliVersion,
+            cliVersion: version,
             osVersion,
             sandboxEnv,
             modelVersion,
@@ -561,7 +561,6 @@ export const useSlashCommandProcessor = (
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const memoryUsage = formatMemoryUsage(process.memoryUsage().rss);
-          const cliVersion = getCliVersion();
 
           const diagnosticInfo = `
 ## Describe the bug
@@ -571,7 +570,7 @@ A clear and concise description of what the bug is.
 Add any other context about the problem here.
 
 ## Diagnostic Information
-*   **CLI Version:** ${cliVersion}
+*   **CLI Version:** ${version}
 *   **Git Commit:** ${GIT_COMMIT_INFO}
 *   **Operating System:** ${osVersion}
 *   **Sandbox Environment:** ${sandboxEnv}
@@ -923,6 +922,7 @@ Add any other context about the problem here.
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
+    version,
   ]);
 
   const handleSlashCommand = useCallback(
