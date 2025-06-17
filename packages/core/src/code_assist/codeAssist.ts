@@ -18,6 +18,7 @@ const OAUTH_SCOPE = [
 ];
 
 interface ClientAndProjectId {
+  type: string;
   client: AuthClient;
   projectId?: string;
 }
@@ -30,6 +31,10 @@ export async function createCodeAssistContentGenerator(
     cp.client,
     cp.projectId || process.env.GOOGLE_CLOUD_PROJECT,
   );
+  console.debug(
+    `Authenticated with Code Assist using ${cp.type}` +
+      ` Credentials and project id: ${projectId}`,
+  );
   return new CodeAssistServer(cp.client, projectId, httpOptions);
 }
 
@@ -40,6 +45,7 @@ async function getClientAndProject(): Promise<ClientAndProjectId> {
     // No Application Default Credentials so try Oauth.
     const oauthClient = await getOauthClient(OAUTH_SCOPE);
     return {
+      type: 'Oauth2',
       client: oauthClient,
       projectId: oauthClient.projectId || undefined,
     };
@@ -55,6 +61,7 @@ async function getGoogleAuthClient(
 ): Promise<ClientAndProjectId> {
   const googleAuth = new GoogleAuth({ scopes });
   return {
+    type: 'Gcloud Application Default',
     client: await googleAuth.getClient(),
     projectId: await googleAuth.getProjectId(),
   };
