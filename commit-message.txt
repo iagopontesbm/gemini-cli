@@ -1,0 +1,12 @@
+feat(headless): reduce noise in non-interactive mode
+
+This commit introduces several changes to reduce the amount of noise printed to STDOUT when running in non-interactive (headless) mode.
+
+The following changes have been made:
+
+- **`gemini.tsx`**: The `setWindowTitle` function is now only called when `process.stdin.isTTY` is true, preventing the window title from being set in non-interactive sessions.
+- **`nonInteractiveCli.ts`**: The `getResponseText` function now checks for and filters out "thoughts" from the model's response, so they are not printed to STDOUT.
+- **`sandbox.ts`**: The "using macos seatbelt..." message is now logged to STDERR instead of STDOUT.
+- **`gitIgnoreParser.ts`**: The "Loaded X patterns" message is now logged to STDERR instead of STDOUT.
+
+These changes ensure that the output of the CLI is clean and contains only the model's response when running in non-interactive mode.
