@@ -2,7 +2,7 @@
 
 [![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
 
-This repository contains the Gemini CLI tool.
+This repository contains the Super Amazing Gemini CLI tool.
 
 ## Quickstart
 
