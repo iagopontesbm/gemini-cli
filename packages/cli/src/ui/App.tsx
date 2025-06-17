@@ -449,6 +449,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             item={item}
             isPending={false}
             config={config}
+            addItem={addItem}
           />
         ))}
       </Box>
@@ -484,6 +485,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 item={h}
                 isPending={false}
                 config={config}
+                addItem={addItem}
               />
             )),
           ]}
@@ -501,6 +503,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               isPending={true}
               config={config}
               isFocused={!isEditorDialogOpen}
+              addItem={addItem}
             />
           ))}
         </Box>

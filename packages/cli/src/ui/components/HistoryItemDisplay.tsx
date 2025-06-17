@@ -19,6 +19,7 @@ import { AboutBox } from './AboutBox.js';
 import { StatsDisplay } from './StatsDisplay.js';
 import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Config } from '@gemini-cli/core';
+import { UseHistoryManagerReturn } from '../hooks/useHistoryManager.js';
 
 interface HistoryItemDisplayProps {
   item: HistoryItem;
@@ -26,6 +27,7 @@ interface HistoryItemDisplayProps {
   isPending: boolean;
   config?: Config;
   isFocused?: boolean;
+  addItem: UseHistoryManagerReturn['addItem'];
 }
 
 export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
@@ -34,6 +36,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   isPending,
   config,
   isFocused = true,
+  addItem,
 }) => (
   <Box flexDirection="column" key={item.id}>
     {/* Render standard message types */}
@@ -80,6 +83,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         availableTerminalHeight={availableTerminalHeight}
         config={config}
         isFocused={isFocused}
+        addItem={addItem}
       />
     )}
     {item.type === 'compression' && (

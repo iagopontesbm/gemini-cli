@@ -21,6 +21,9 @@ describe('<HistoryItemDisplay />', () => {
     timestamp: 12345,
     isPending: false,
     availableTerminalHeight: 100,
+    // TODO: Hack
+    addItem: (_: Omit<HistoryItem, 'id'>, baseTimestamp: number) =>
+      baseTimestamp,
   };
 
   it('renders UserMessage for "user" type', () => {

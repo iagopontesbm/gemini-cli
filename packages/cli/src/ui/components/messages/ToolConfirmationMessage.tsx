@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { DiffRenderer } from './DiffRenderer.js';
 import { Colors } from '../../colors.js';
@@ -40,7 +40,6 @@ export const ToolConfirmationMessage: React.FC<
 
   const handleSelect = (item: ToolConfirmationOutcome) => onConfirm(item);
 
-  let bodyContent: React.ReactNode | null = null; // Removed contextDisplay here
   let question: string;
 
   const options: Array<RadioSelectItem<ToolConfirmationOutcome>> = new Array<
@@ -66,15 +65,6 @@ export const ToolConfirmationMessage: React.FC<
       );
     }
 
-    // Body content is now the DiffRenderer, passing filename to it
-    // The bordered box is removed from here and handled within DiffRenderer
-    bodyContent = (
-      <DiffRenderer
-        diffContent={confirmationDetails.fileDiff}
-        filename={confirmationDetails.fileName}
-      />
-    );
-
     question = `Apply this change?`;
     options.push(
       {
@@ -95,14 +85,6 @@ export const ToolConfirmationMessage: React.FC<
     const executionProps =
       confirmationDetails as ToolExecuteConfirmationDetails;
 
-    bodyContent = (
-      <Box flexDirection="column">
-        <Box paddingX={1} marginLeft={1}>
-          <Text color={Colors.AccentCyan}>{executionProps.command}</Text>
-        </Box>
-      </Box>
-    );
-
     question = `Allow execution?`;
     options.push(
       {
@@ -116,25 +98,6 @@ export const ToolConfirmationMessage: React.FC<
       { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel },
     );
   } else if (confirmationDetails.type === 'info') {
-    const infoProps = confirmationDetails;
-    const displayUrls =
-      infoProps.urls &&
-      !(infoProps.urls.length === 1 && infoProps.urls[0] === infoProps.prompt);
-
-    bodyContent = (
-      <Box flexDirection="column" paddingX={1} marginLeft={1}>
-        <Text color={Colors.AccentCyan}>{infoProps.prompt}</Text>
-        {displayUrls && infoProps.urls && infoProps.urls.length > 0 && (
-          <Box flexDirection="column" marginTop={1}>
-            <Text>URLs to fetch:</Text>
-            {infoProps.urls.map((url) => (
-              <Text key={url}> - {url}</Text>
-            ))}
-          </Box>
-        )}
-      </Box>
-    );
-
     question = `Do you want to proceed?`;
     options.push(
       {
@@ -150,13 +113,6 @@ export const ToolConfirmationMessage: React.FC<
   } else {
     // mcp tool confirmation
     const mcpProps = confirmationDetails as ToolMcpConfirmationDetails;
-
-    bodyContent = (
-      <Box flexDirection="column" paddingX={1} marginLeft={1}>
-        <Text color={Colors.AccentCyan}>MCP Server: {mcpProps.serverName}</Text>
-        <Text color={Colors.AccentCyan}>Tool: {mcpProps.toolName}</Text>
-      </Box>
-    );
 
     question = `Allow execution of MCP tool "${mcpProps.toolName}" from server "${mcpProps.serverName}"?`;
     options.push(
@@ -177,13 +133,16 @@ export const ToolConfirmationMessage: React.FC<
   }
 
   return (
-    <Box flexDirection="column" padding={1} minWidth="90%">
-      {/* Body Content (Diff Renderer or Command Info) */}
-      {/* No separate context display here anymore for edits */}
-      <Box flexGrow={1} flexShrink={1} overflow="hidden" marginBottom={1}>
-        {bodyContent}
-      </Box>
-
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      width="100%"
+      marginLeft={1}
+      borderDimColor={true}
+      borderColor={Colors.AccentYellow}
+      borderTop={false}
+      borderBottom={false}
+    >
       {/* Confirmation Question */}
       <Box marginBottom={1} flexShrink={0}>
         <Text>{question}</Text>

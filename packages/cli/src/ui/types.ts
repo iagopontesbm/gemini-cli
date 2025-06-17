@@ -9,6 +9,7 @@ import {
   ToolResultDisplay,
 } from '@gemini-cli/core';
 import { CumulativeStats } from './contexts/SessionContext.js';
+import { ReactNode } from 'react';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -124,6 +125,23 @@ export type HistoryItemCompression = HistoryItemBase & {
   compression: CompressionProps;
 };
 
+export type HistoryItemToolGroupBorder = HistoryItemBase & {
+  type: 'tool_group_border';
+  position: 'top' | 'bottom';
+};
+
+export type HistoryItemToolMessage = HistoryItemBase & {
+  type: 'tool_message';
+};
+
+export type HistoryItemToolConfirmationDetails = HistoryItemBase & {
+  type: 'tool_confirmation_details';
+};
+
+export type HistoryItemToolConfirmationMessage = HistoryItemBase & {
+  type: 'tool_confirmation_message';
+};
+
 // Using Omit<HistoryItem, 'id'> seems to have some issues with typescript's
 // type inference e.g. historyItem.type === 'tool_group' isn't auto-inferring that
 // 'tools' in historyItem.
@@ -139,7 +157,11 @@ export type HistoryItemWithoutId =
   | HistoryItemToolGroup
   | HistoryItemStats
   | HistoryItemQuit
-  | HistoryItemCompression;
+  | HistoryItemCompression
+  | HistoryItemToolGroupBorder
+  | HistoryItemToolMessage
+  | HistoryItemToolConfirmationDetails
+  | HistoryItemToolConfirmationMessage;
 
 export type HistoryItem = HistoryItemWithoutId & { id: number };
 

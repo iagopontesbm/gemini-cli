@@ -63,54 +63,68 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   );
   const hiddenLines = Math.max(0, lines.length - contentHeightEstimate);
 
+  const isPending = status === ToolCallStatus.Success;
+  const borderColor = isPending ? Colors.AccentYellow : Colors.Gray;
+
   return (
-    <Box paddingX={1} paddingY={0} flexDirection="column">
-      <Box minHeight={1}>
-        <ToolStatusIndicator status={status} />
-        <ToolInfo
-          name={name}
-          status={status}
-          description={description}
-          emphasis={emphasis}
-        />
-        {emphasis === 'high' && <TrailingIndicator />}
-      </Box>
-      {displayableResult && (
-        <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={1}>
-          <Box flexDirection="column">
-            {hiddenLines > 0 && (
-              <Box>
-                <Text color={Colors.Gray}>
-                  ... first {hiddenLines} line{hiddenLines === 1 ? '' : 's'}{' '}
-                  hidden ...
-                </Text>
-              </Box>
-            )}
-            {typeof displayableResult === 'string' &&
-              renderOutputAsMarkdown && (
-                <Box flexDirection="column">
-                  <MarkdownDisplay
-                    text={displayableResult}
-                    isPending={false}
-                    availableTerminalHeight={availableTerminalHeight}
-                  />
-                </Box>
-              )}
-            {typeof displayableResult === 'string' &&
-              !renderOutputAsMarkdown && (
-                <Box flexDirection="column">
-                  <Text>{displayableResult}</Text>
-                </Box>
-              )}
-            {typeof displayableResult !== 'string' && (
-              <DiffRenderer
-                diffContent={displayableResult.fileDiff}
-                filename={displayableResult.fileName}
-              />
-            )}
-          </Box>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      width="100%"
+      marginLeft={1}
+      borderDimColor={isPending}
+      borderColor={borderColor}
+      borderTop={false}
+      borderBottom={false}
+    >
+      <Box paddingX={1} paddingY={0} flexDirection="column">
+        <Box minHeight={1}>
+          <ToolStatusIndicator status={status} />
+          <ToolInfo
+            name={name}
+            status={status}
+            description={description}
+            emphasis={emphasis}
+          />
+          {emphasis === 'high' && <TrailingIndicator />}
         </Box>
-      )}
+        {displayableResult && (
+          <Box paddingLeft={STATUS_INDICATOR_WIDTH} width="100%" marginTop={1}>
+            <Box flexDirection="column">
+              {hiddenLines > 0 && (
+                <Box>
+                  <Text color={Colors.Gray}>
+                    ... first {hiddenLines} line{hiddenLines === 1 ? '' : 's'}{' '}
+                    hidden ...
+                  </Text>
+                </Box>
+              )}
+              {typeof displayableResult === 'string' &&
+                renderOutputAsMarkdown && (
+                  <Box flexDirection="column">
+                    <MarkdownDisplay
+                      text={displayableResult}
+                      isPending={false}
+                      availableTerminalHeight={availableTerminalHeight}
+                    />
+                  </Box>
+                )}
+              {typeof displayableResult === 'string' &&
+                !renderOutputAsMarkdown && (
+                  <Box flexDirection="column">
+                    <Text>{displayableResult}</Text>
+                  </Box>
+                )}
+              {typeof displayableResult !== 'string' && (
+                <DiffRenderer
+                  diffContent={displayableResult.fileDiff}
+                  filename={displayableResult.fileName}
+                />
+              )}
+            </Box>
+          </Box>
+        )}
+      </Box>
     </Box>
   );
 };

@@ -5,12 +5,15 @@
  */
 
 import React, { useMemo } from 'react';
-import { Box } from 'ink';
+import { Box, Text } from 'ink';
 import { IndividualToolCallDisplay, ToolCallStatus } from '../../types.js';
 import { ToolMessage } from './ToolMessage.js';
 import { ToolConfirmationMessage } from './ToolConfirmationMessage.js';
 import { Colors } from '../../colors.js';
 import { Config } from '@gemini-cli/core';
+import { UseHistoryManagerReturn } from '../../hooks/useHistoryManager.js';
+import { ToolGroupBorder } from './ToolGroupBorder.js';
+import { ToolConfirmationDetails } from './ToolConfirmationDetails.js';
 
 interface ToolGroupMessageProps {
   groupId: number;
@@ -18,6 +21,7 @@ interface ToolGroupMessageProps {
   availableTerminalHeight: number;
   config?: Config;
   isFocused?: boolean;
+  addItem: UseHistoryManagerReturn['addItem'];
 }
 
 // Main component renders the border and maps the tools using ToolMessage
@@ -26,6 +30,7 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
   availableTerminalHeight,
   config,
   isFocused = true,
+  addItem,
 }) => {
   const hasPending = !toolCalls.every(
     (t) => t.status === ToolCallStatus.Success,
@@ -41,24 +46,22 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
     [toolCalls],
   );
 
+  // tool_group_border(top)
+  //
+  // for tool in tools:
+  //   tool_message
+  //   tool_confirmation_details
+  //   tool_confirmation_message
+  //
+  // tool_group_border(bottom)
+
   return (
-    <Box
-      flexDirection="column"
-      borderStyle="round"
-      /*
-        This width constraint is highly important and protects us from an Ink rendering bug.
-        Since the ToolGroup can typically change rendering states frequently, it can cause
-        Ink to render the border of the box incorrectly and span multiple lines and even
-        cause tearing.
-      */
-      width="100%"
-      marginLeft={1}
-      borderDimColor={hasPending}
-      borderColor={borderColor}
-      marginBottom={1}
-    >
+    <Box flexDirection="column" width="100%">
+      <ToolGroupBorder hasPending={hasPending} position="top" />
       {toolCalls.map((tool) => {
         const isConfirming = toolAwaitingApproval?.callId === tool.callId;
+        const renderConfirmation =
+          tool.status === ToolCallStatus.Confirming && isConfirming;
         return (
           <Box key={tool.callId} flexDirection="column" minHeight={1}>
             <Box flexDirection="row" alignItems="center">
@@ -80,18 +83,28 @@ export const ToolGroupMessage: React.FC<ToolGroupMessageProps> = ({
                 renderOutputAsMarkdown={tool.renderOutputAsMarkdown}
               />
             </Box>
-            {tool.status === ToolCallStatus.Confirming &&
-              isConfirming &&
-              tool.confirmationDetails && (
-                <ToolConfirmationMessage
-                  confirmationDetails={tool.confirmationDetails}
-                  config={config}
-                  isFocused={isFocused}
-                />
-              )}
+            {
+              // <Text>
+              //   This text is between ToolMessage and ToolConfirmationMessage
+              // </Text>
+            }
+            {renderConfirmation && tool.confirmationDetails && (
+              <ToolConfirmationDetails
+                confirmationDetails={tool.confirmationDetails}
+                config={config}
+              />
+            )}
+            {renderConfirmation && tool.confirmationDetails && (
+              <ToolConfirmationMessage
+                confirmationDetails={tool.confirmationDetails}
+                config={config}
+                isFocused={isFocused}
+              />
+            )}
           </Box>
         );
       })}
+      <ToolGroupBorder hasPending={hasPending} position="bottom" />
     </Box>
   );
 };
