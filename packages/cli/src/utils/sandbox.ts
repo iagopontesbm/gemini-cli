@@ -63,6 +63,10 @@ const BUILTIN_SEATBELT_PROFILES = [
  * @returns {Promise<boolean>} A promise that resolves to true if the current user's UID/GID should be used, false otherwise.
  */
 async function shouldUseCurrentUserInSandbox(): Promise<boolean> {
+  if (process.env.GEMINI_CLI_INTEGRATION_TEST === 'true') {
+    return false;
+  }
+
   const envVar = process.env.SANDBOX_SET_UID_GID?.toLowerCase().trim();
 
   if (envVar === '1' || envVar === 'true') {
