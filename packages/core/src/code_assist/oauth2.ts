@@ -35,6 +35,13 @@ const SIGN_IN_FAILURE_URL =
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
+// OAuth Scopes for Cloud Code authorization.
+const OAUTH_SCOPE = [
+  'https://www.googleapis.com/auth/cloud-platform',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile',
+];
+
 export async function clearCachedCredentials(): Promise<void> {
   try {
     await fs.rm(getCachedCredentialPath());
@@ -43,17 +50,17 @@ export async function clearCachedCredentials(): Promise<void> {
   }
 }
 
-export async function getOauthClient(scopes: string[]): Promise<OAuth2Client> {
+export async function getOauthClient(): Promise<OAuth2Client> {
   try {
     return await getCachedCredentialClient();
   } catch (_) {
-    const loggedInClient = await webLoginClient(scopes);
+    const loggedInClient = await webLoginClient();
     await setCachedCredentials(loggedInClient.credentials);
     return loggedInClient;
   }
 }
 
-async function webLoginClient(scopes: string[]): Promise<OAuth2Client> {
+async function webLoginClient(): Promise<OAuth2Client> {
   const port = await getAvailablePort();
   const oAuth2Client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
@@ -65,7 +72,7 @@ async function webLoginClient(scopes: string[]): Promise<OAuth2Client> {
     const state = crypto.randomBytes(32).toString('hex');
     const authURL: string = oAuth2Client.generateAuthUrl({
       access_type: 'offline',
-      scope: scopes,
+      scope: OAUTH_SCOPE,
       state,
     });
     console.log(

@@ -45,9 +45,15 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
     - There are two types of Google Accounts you might use to try to use Gemini Code Assist:
       - **Personal Google Account**: This is the standard, free account you use for services like Gmail, Google Photos, and Google Drive for personal use (e.g. your-name@gmail.com).
       - **Google Workspace Account**: This is a paid service for businesses and organizations that provides a suite of productivity tools, including a custom email domain (e.g. your-name@your-company.com), enhanced security features, and administrative controls. These accounts are often managed by an employer or school.
-        - Google Workspace Account must configure a Google Cloud Project Id to use. This can be done by:
-          - Using gcloud to set `gcloud config set project <your project id>`
-          - Setting the GOOGLE_CLOUD_PROJECT environment variable.
+        - Google Workspace Account must configure a Google Cloud Project Id to use. You can temporarily set the environment variable in your current shell session using the following command:
+        ```bash
+        export GOOGLE_CLOUD_PROJECT_ID="YOUR_PROJECT_ID"
+        ```
+        - For repeated use, you can add the environment variable to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following command adds the environment variable to a `~/.bashrc` file:
+        ```bash
+        echo 'export GOOGLE_CLOUD_PROJECT_ID="YOUR_PROJECT_ID"' >> ~/.bashrc
+        source ~/.bashrc
+        ```
     - During start up, Gemini CLI will look for cached credentials.
       - If it finds Application Default Credentials (set up with `gcloud auth application-default login`) it will use them.
       - Otherwise, if it find unexpired cached Oauth2 credentials it will use them.
