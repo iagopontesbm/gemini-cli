@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OAuth2Client, Credentials, GoogleAuth, AuthClient } from 'google-auth-library';
+import { OAuth2Client, Credentials } from 'google-auth-library';
 import * as http from 'http';
 import url from 'url';
 import crypto from 'crypto';
@@ -39,7 +39,7 @@ export async function clearCachedCredentials(): Promise<void> {
   await fs.rm(getCachedCredentialPath());
 }
 
-export async function getOauthClient(scopes: string[]): Promise<AuthClient> {
+export async function getOauthClient(scopes: string[]): Promise<OAuth2Client> {
   try {
     return await getCachedCredentialClient();
   } catch (_) {
@@ -66,8 +66,8 @@ async function webLoginClient(scopes: string[]): Promise<OAuth2Client> {
     });
     console.log(
       `\n\nCode Assist login required.\n` +
-      `Attempting to open authentication page in your browser.\n` +
-      `Otherwise navigate to:\n\n${authURL}\n\n`,
+        `Attempting to open authentication page in your browser.\n` +
+        `Otherwise navigate to:\n\n${authURL}\n\n`,
     );
     open(authURL);
     console.log('Waiting for authentication...');
@@ -152,10 +152,10 @@ async function getCachedCredentialClient(): Promise<OAuth2Client> {
 
 async function setCachedCredentials(credentials: Credentials) {
   const filePath = getCachedCredentialPath();
-  await fs.mkdir(path.dirname(filePath), { recursive: true, });
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
 
   const credString = JSON.stringify(credentials, null, 2);
-  await fs.writeFile(filePath, credString,);
+  await fs.writeFile(filePath, credString);
 }
 
 function getCachedCredentialPath(): string {
