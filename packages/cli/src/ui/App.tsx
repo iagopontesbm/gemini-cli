@@ -61,8 +61,7 @@ import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
 import { UpdateNotification } from './components/UpdateNotification.js';
-import updateNotifier from 'update-notifier';
-import { readPackageUp } from 'read-package-up';
+import { checkForUpdates } from './utils/updateCheck.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -82,29 +81,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    const checkForUpdates = async () => {
-      const pkgResult = await readPackageUp({ cwd: process.cwd() });
-      if (!pkgResult) {
-        return;
-      }
-
-      const { packageJson } = pkgResult;
-      const notifier = updateNotifier({
-        pkg: {
-          name: packageJson.name,
-          version: packageJson.version,
-        },
-        updateCheckInterval: 0,
-        shouldNotifyInNpmScript: true,
-      });
-
-      if (notifier.update) {
-        setUpdateMessage(
-          `Gemini CLI update available! ${notifier.update.current} → ${notifier.update.latest}\nRun npm install -g ${packageJson.name} to update`,
-        );
-      }
-    };
-    checkForUpdates();
+    checkForUpdates().then(setUpdateMessage);
   }, []);
 
   const { history, addItem, clearItems, loadHistory } = useHistory();
