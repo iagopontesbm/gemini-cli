@@ -5,6 +5,8 @@
  */
 
 import path from 'node:path';
+import os from 'node:os';
+import crypto from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import { Content } from '@google/genai';
 
@@ -95,7 +97,13 @@ export class Logger {
     if (this.initialized) {
       return;
     }
-    this.geminiDir = path.resolve(process.cwd(), GEMINI_DIR);
+
+    const projectHash = crypto
+      .createHash('sha256')
+      .update(process.cwd())
+      .digest('hex');
+
+    this.geminiDir = path.join(os.homedir(), GEMINI_DIR, projectHash);
     this.logFilePath = path.join(this.geminiDir, LOG_FILE_NAME);
     this.checkpointFilePath = path.join(this.geminiDir, CHECKPOINT_FILE_NAME);
 
