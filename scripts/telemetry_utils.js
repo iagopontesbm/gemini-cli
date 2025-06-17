@@ -232,7 +232,7 @@ export async function ensureBinary(
       );
     }
 
-    fs.copyFileSync(foundBinaryPath, executablePath);
+    fs.renameSync(foundBinaryPath, executablePath);
 
     if (platform !== 'windows') {
       fs.chmodSync(executablePath, '755');
