@@ -14,10 +14,7 @@ export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
 ): Promise<ContentGenerator> {
   const authClient = await getAuthClient();
-  const projectId = await setupUser(
-    authClient,
-    authClient.projectId || process.env.GOOGLE_CLOUD_PROJECT,
-  );
+  const projectId = await setupUser(authClient);
   return new CodeAssistServer(authClient, projectId, httpOptions);
 }
 
