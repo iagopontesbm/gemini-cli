@@ -140,7 +140,6 @@ export class Config {
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
-    this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
@@ -178,7 +177,6 @@ export class Config {
       setGeminiMdFilename(params.contextFileName);
     }
 
-    this.geminiClient = new GeminiClient(this);
     this.toolRegistry = createToolRegistry(this);
 
     if (this.telemetrySettings.enabled) {
