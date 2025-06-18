@@ -35,7 +35,7 @@ import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
-import { AuthType } from '../../../core/src/core/contentGenerator.js';
+import { AuthType } from '../core/contentGenerator.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
   config.getTelemetryLogPromptsEnabled() ?? false;
