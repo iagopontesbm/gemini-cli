@@ -33,7 +33,7 @@ export interface AccessibilitySettings {
 
 export interface Settings {
   theme?: string;
-  selectedAuthType: AuthType;
+  selectedAuthType?: AuthType;
   sandbox?: boolean | string;
   coreTools?: string[];
   excludeTools?: string[];
@@ -168,12 +168,8 @@ function resolveEnvVarsInObject<T>(obj: T): T {
  * Project settings override user settings.
  */
 export function loadSettings(workspaceDir: string): LoadedSettings {
-  let userSettings: Settings = {
-    selectedAuthType: AuthType.NONE,
-  };
-  let workspaceSettings: Settings = {
-    selectedAuthType: AuthType.NONE,
-  };
+  let userSettings: Settings = {};
+  let workspaceSettings: Settings = {};
   const settingsErrors: SettingsError[] = [];
 
   // Load user settings

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { HistoryItem, MessageType } from '../types.js';
 import { AuthType, Config } from '@gemini-cli/core';
@@ -14,11 +14,11 @@ async function performAuthFlow(
   addItem: (item: HistoryItem, timestamp: number) => void,
   config: Config,
 ) {
-  config.refreshAuth(authMethod);
+  await config.refreshAuth(authMethod);
   addItem(
     {
       type: MessageType.INFO,
-      text: authMethod,
+      text: `Authentication via "${authMethod}".`,
       id: Date.now(),
     },
     Date.now(),
@@ -32,8 +32,19 @@ export const useAuthCommand = (
   config: Config,
 ) => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
-    settings.merged.selectedAuthType === AuthType.NONE,
+    settings.merged.selectedAuthType === undefined ||
+      settings.merged.selectedAuthType === AuthType.NONE,
   );
+
+  useEffect(() => {
+    if (!isAuthDialogOpen) {
+      performAuthFlow(
+        settings.merged.selectedAuthType as AuthType,
+        addItem,
+        config,
+      );
+    }
+  }, [isAuthDialogOpen, settings, addItem, config]);
 
   const openAuthDialog = useCallback(() => {
     setIsAuthDialogOpen(true);
@@ -43,14 +54,6 @@ export const useAuthCommand = (
     (authMethod: string | undefined, scope: SettingScope) => {
       if (authMethod) {
         settings.setValue(scope, 'selectedAuthType', authMethod);
-        addItem(
-          {
-            type: MessageType.INFO,
-            text: `Authentication method set to "${authMethod}" in ${scope} settings.`,
-            id: Date.now(),
-          },
-          Date.now(),
-        );
         performAuthFlow(authMethod as AuthType, addItem, config);
       }
       setIsAuthDialogOpen(false);

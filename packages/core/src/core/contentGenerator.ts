@@ -137,8 +137,11 @@ export async function createContentGenerator(
       vertexai: config.vertexai,
       httpOptions,
     });
+
     return googleGenAI.models;
   }
 
-  throw new Error(`Unsupported authType: ${config.authType}`);
+  throw new Error(
+    `Error creating contentGenerator: Unsupported authType: ${config.authType}`,
+  );
 }

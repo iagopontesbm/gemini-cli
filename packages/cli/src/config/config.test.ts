@@ -10,6 +10,7 @@ import { loadCliConfig } from './config.js';
 import { Settings } from './settings.js';
 import { Extension } from './extension.js';
 import * as ServerConfig from '@gemini-cli/core';
+import { AuthType } from '@gemini-cli/core';
 
 const MOCK_HOME_DIR = '/mock/home/user';
 
@@ -265,27 +266,9 @@ describe('API Key Handling', () => {
     process.env.GEMINI_API_KEY = 'gemini-key';
     delete process.env.GOOGLE_API_KEY;
 
-    const settings: Settings = {};
+    const settings: Settings = { selectedAuthType: AuthType.USE_GEMINI };
     const result = await loadCliConfig(settings, [], 'test-session');
     expect(result.getContentGeneratorConfig().apiKey).toBe('gemini-key');
-  });
-
-  it('should use GOOGLE_API_KEY and warn when both GOOGLE_API_KEY and GEMINI_API_KEY are set', async () => {
-    const consoleWarnSpy = vi
-      .spyOn(console, 'warn')
-      .mockImplementation(() => {});
-
-    process.env.GEMINI_API_KEY = 'gemini-key';
-    process.env.GOOGLE_API_KEY = 'google-key';
-
-    const settings: Settings = {};
-    const result = await loadCliConfig(settings, [], 'test-session');
-
-    expect(consoleWarnSpy).toHaveBeenCalledWith(
-      '[WARN]',
-      'Both GEMINI_API_KEY and GOOGLE_API_KEY are set. Using GOOGLE_API_KEY.',
-    );
-    expect(result.getContentGeneratorConfig().apiKey).toBe('google-key');
   });
 });
 

@@ -19,6 +19,7 @@ import {
   FileDiscoveryService,
   createContentGeneratorConfig,
   TelemetryTarget,
+  AuthType,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 
@@ -190,7 +191,7 @@ export async function loadCliConfig(
 
   const contentGeneratorConfig = await createContentGeneratorConfig(
     argv.model,
-    settings.selectedAuthType,
+    settings.selectedAuthType || AuthType.NONE,
   );
 
   const mcpServers = mergeMcpServers(settings, extensions);
