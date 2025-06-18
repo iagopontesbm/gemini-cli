@@ -11,12 +11,10 @@ import {
   ToolCallConfirmationDetails,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
-  Config,
 } from '@gemini-cli/core';
 
 export interface ToolConfirmationDetailsProps {
   confirmationDetails: ToolCallConfirmationDetails;
-  config?: Config;
   borderTop?: boolean;
   borderBottom?: boolean;
 }

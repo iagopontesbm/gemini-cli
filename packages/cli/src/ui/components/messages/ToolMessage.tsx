@@ -6,11 +6,14 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
-import { IndividualToolCallDisplay, ToolCallStatus } from '../../types.js';
+import {
+  /* IndividualToolCallDisplay, */ ToolCallStatus,
+} from '../../types.js';
 import { DiffRenderer } from './DiffRenderer.js';
 import { Colors } from '../../colors.js';
 import { MarkdownDisplay } from '../../utils/MarkdownDisplay.js';
 import { GeminiRespondingSpinner } from '../GeminiRespondingSpinner.js';
+import { ToolResultDisplay } from '@gemini-cli/core';
 
 const STATIC_HEIGHT = 1;
 const RESERVED_LINE_COUNT = 5; // for tool name, status, padding etc.
@@ -20,10 +23,14 @@ const MIN_LINES_HIDDEN = 3; // hide at least this many lines (or don't hide any)
 
 export type TextEmphasis = 'high' | 'medium' | 'low';
 
-export interface ToolMessageProps extends IndividualToolCallDisplay {
+export interface ToolMessageProps /* extends IndividualToolCallDisplay */ {
+  name: string;
+  description: string;
+  resultDisplay: ToolResultDisplay | undefined;
+  status: ToolCallStatus;
+  renderOutputAsMarkdown?: boolean;
   availableTerminalHeight: number;
   emphasis?: TextEmphasis;
-  renderOutputAsMarkdown?: boolean;
   borderTop?: boolean;
   borderBottom?: boolean;
 }
@@ -33,9 +40,9 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   description,
   resultDisplay,
   status,
+  renderOutputAsMarkdown = true,
   availableTerminalHeight,
   emphasis = 'medium',
-  renderOutputAsMarkdown = true,
   borderTop = true,
   borderBottom = true,
 }) => {

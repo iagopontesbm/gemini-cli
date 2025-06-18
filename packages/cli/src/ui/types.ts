@@ -10,6 +10,7 @@ import {
 } from '@gemini-cli/core';
 import { CumulativeStats } from './contexts/SessionContext.js';
 import { ReactNode } from 'react';
+import { ToolMessageProps } from './components/messages/ToolMessage.js';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -44,15 +45,15 @@ export interface ToolCallEvent {
   confirmationDetails: ToolCallConfirmationDetails | undefined;
 }
 
-export interface IndividualToolCallDisplay {
-  callId: string;
-  name: string;
-  description: string;
-  resultDisplay: ToolResultDisplay | undefined;
-  status: ToolCallStatus;
-  confirmationDetails: ToolCallConfirmationDetails | undefined;
-  renderOutputAsMarkdown?: boolean;
-}
+// export interface IndividualToolCallDisplay {
+//   callId: string;
+//   name: string;
+//   description: string;
+//   resultDisplay: ToolResultDisplay | undefined;
+//   status: ToolCallStatus;
+//   confirmationDetails: ToolCallConfirmationDetails | undefined;
+//   renderOutputAsMarkdown?: boolean;
+// }
 
 export interface CompressionProps {
   isPending: boolean;
@@ -110,10 +111,10 @@ export type HistoryItemQuit = HistoryItemBase & {
   duration: string;
 };
 
-export type HistoryItemToolGroup = HistoryItemBase & {
-  type: 'tool_group';
-  tools: IndividualToolCallDisplay[];
-};
+// export type HistoryItemToolGroup = HistoryItemBase & {
+//   type: 'tool_group';
+//   tools: IndividualToolCallDisplay[];
+// };
 
 export type HistoryItemUserShell = HistoryItemBase & {
   type: 'user_shell';
@@ -125,21 +126,32 @@ export type HistoryItemCompression = HistoryItemBase & {
   compression: CompressionProps;
 };
 
-export type HistoryItemToolGroupBorder = HistoryItemBase & {
-  type: 'tool_group_border';
-  position: 'top' | 'bottom';
-};
-
 export type HistoryItemToolMessage = HistoryItemBase & {
   type: 'tool_message';
+  // TODO: pass only needed information
+  name: string;
+  description: string;
+  resultDisplay: ToolResultDisplay | undefined;
+  status: ToolCallStatus;
+  renderOutputAsMarkdown?: boolean;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 };
 
 export type HistoryItemToolConfirmationDetails = HistoryItemBase & {
   type: 'tool_confirmation_details';
+  // TODO: pass only needed information
+  confirmationDetails: ToolCallConfirmationDetails;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 };
 
 export type HistoryItemToolConfirmationMessage = HistoryItemBase & {
   type: 'tool_confirmation_message';
+  // TODO: pass only needed information
+  confirmationDetails: ToolCallConfirmationDetails;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 };
 
 // Using Omit<HistoryItem, 'id'> seems to have some issues with typescript's
@@ -154,11 +166,10 @@ export type HistoryItemWithoutId =
   | HistoryItemInfo
   | HistoryItemError
   | HistoryItemAbout
-  | HistoryItemToolGroup
+  // | HistoryItemToolGroup
   | HistoryItemStats
   | HistoryItemQuit
   | HistoryItemCompression
-  | HistoryItemToolGroupBorder
   | HistoryItemToolMessage
   | HistoryItemToolConfirmationDetails
   | HistoryItemToolConfirmationMessage;

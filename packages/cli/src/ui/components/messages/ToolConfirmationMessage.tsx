@@ -4,16 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Box, Text, useInput } from 'ink';
-import { DiffRenderer } from './DiffRenderer.js';
 import { Colors } from '../../colors.js';
 import {
   ToolCallConfirmationDetails,
   ToolConfirmationOutcome,
   ToolExecuteConfirmationDetails,
   ToolMcpConfirmationDetails,
-  Config,
 } from '@gemini-cli/core';
 import {
   RadioButtonSelect,
@@ -22,7 +20,6 @@ import {
 
 export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
-  config?: Config;
   isFocused?: boolean;
   borderTop?: boolean;
   borderBottom?: boolean;
