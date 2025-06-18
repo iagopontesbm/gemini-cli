@@ -78,7 +78,9 @@ export async function getOauthClient(): Promise<OAuth2Client> {
   return client;
 }
 
-async function authWithWeb(client: OAuth2Client): Promise<OauthWebLogin> {
+export async function authWithWeb(
+  client: OAuth2Client,
+): Promise<OauthWebLogin> {
   const port = await getAvailablePort();
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
