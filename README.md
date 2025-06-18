@@ -54,11 +54,8 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
         echo 'export GOOGLE_CLOUD_PROJECT_ID="YOUR_PROJECT_ID"' >> ~/.bashrc
         source ~/.bashrc
         ```
-    - During start up, Gemini CLI will look for cached credentials.
-      - If it finds Application Default Credentials (set up with `gcloud auth application-default login`) it will use them.
-      - Otherwise, if it find unexpired cached Oauth2 credentials it will use them.
-      - Otherwise, it will prompt you to visit a URL to authenticate (using Oauth2). Once authenticated, your Oauth2 credentials will be cached locally. Credentials normally expire after about 20 hours.
-    - Note that the Oauth2 login must be done in a browser that can communicate with the machine Gemini Cli is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
+    - During start up, Gemini CLI will direct you to a webpage for authentication. Once authenticated, your credentials will be cached locally so the web login can be skipped on subsequent runs. Cached credentials last about 20 hours before expiring.
+    - Note that the the web login must be done in a browser that can communicate with the machine Gemini Cli is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
 
 2.  **Gemini API key:**
 
