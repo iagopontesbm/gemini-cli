@@ -24,7 +24,9 @@ export const ReauthDialog = ({ config, onAuthSuccess }: ReauthDialogProps) => {
     if (isAuthenticating) return;
 
     try {
-      const authProcess = await refreshAuth(config.getGeminiClient().getContentGenerator());
+      const authProcess = await refreshAuth(
+        config.getGeminiClient().getContentGenerator(),
+      );
       setAuthUrl(authProcess.authUrl);
       setIsAuthenticating(true);
       await open(authProcess.authUrl);
@@ -49,16 +51,22 @@ export const ReauthDialog = ({ config, onAuthSuccess }: ReauthDialogProps) => {
       marginY={1}
       flexDirection="column"
     >
-      <Text color={Colors.AccentRed}>Authentication error: Your session has expired.</Text>
+      <Text color={Colors.AccentRed}>
+        Authentication error: Your session has expired.
+      </Text>
       {error && <Text color={Colors.AccentRed}>Error: {error}</Text>}
       {!isAuthenticating && !error && <Text>Press Enter to log in again.</Text>}
       {authUrl && (
         <Box flexDirection="column" marginTop={1}>
-          <Text>Please open the following URL in your browser to continue:</Text>
+          <Text>
+            Please open the following URL in your browser to continue:
+          </Text>
           <Text color={Colors.AccentBlue}>{authUrl}</Text>
         </Box>
       )}
-      {isAuthenticating && <Text color={Colors.AccentYellow}>Waiting for authentication...</Text>}
+      {isAuthenticating && (
+        <Text color={Colors.AccentYellow}>Waiting for authentication...</Text>
+      )}
     </Box>
   );
 };

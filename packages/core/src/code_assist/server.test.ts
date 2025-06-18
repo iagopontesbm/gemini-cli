@@ -155,4 +155,26 @@ describe('CodeAssistServer', () => {
       }),
     ).rejects.toThrow();
   });
+
+  it('should throw ReauthNeededError when isAuthError is true for callEndpoint', async () => {
+    const auth = new OAuth2Client();
+    const server = new CodeAssistServer(auth, 'test-project');
+    vi.spyOn(server, 'isAuthError').mockReturnValue(true);
+    vi.spyOn(auth, 'request').mockRejectedValue(new Error('Auth error'));
+
+    await expect(server.callEndpoint('someMethod', {})).rejects.toThrow(
+      'Re-authentication is needed.',
+    );
+  });
+
+  it('should throw ReauthNeededError when isAuthError is true for streamEndpoint', async () => {
+    const auth = new OAuth2Client();
+    const server = new CodeAssistServer(auth, 'test-project');
+    vi.spyOn(server, 'isAuthError').mockReturnValue(true);
+    vi.spyOn(auth, 'request').mockRejectedValue(new Error('Auth error'));
+
+    await expect(server.streamEndpoint('someMethod', {})).rejects.toThrow(
+      'Re-authentication is needed.',
+    );
+  });
 });

@@ -533,6 +533,7 @@ export const useGeminiStream = (
       setInitError,
       geminiClient,
       startNewTurn,
+      onAuthError,
     ],
   );
 
