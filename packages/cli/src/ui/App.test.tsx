@@ -146,6 +146,15 @@ vi.mock('./hooks/useGeminiStream', () => ({
   })),
 }));
 
+vi.mock('./hooks/useAuthCommand', () => ({
+  useAuthCommand: vi.fn(() => ({
+    isAuthDialogOpen: false,
+    openAuthDialog: vi.fn(),
+    handleAuthSelect: vi.fn(),
+    handleAuthHighlight: vi.fn(),
+  })),
+}));
+
 vi.mock('./hooks/useLogger', () => ({
   useLogger: vi.fn(() => ({
     getPreviousUserMessages: vi.fn().mockResolvedValue([]),

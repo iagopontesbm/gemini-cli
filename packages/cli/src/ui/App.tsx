@@ -20,6 +20,7 @@ import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
 import { useThemeCommand } from './hooks/useThemeCommand.js';
+import { useAuthCommand } from './hooks/useAuthCommand.js';
 import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
@@ -31,6 +32,7 @@ import { ShellModeIndicator } from './components/ShellModeIndicator.js';
 import { InputPrompt } from './components/InputPrompt.js';
 import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
+import { AuthDialog } from './components/AuthDialog.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
@@ -101,6 +103,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [debugMessage, setDebugMessage] = useState<string>('');
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [themeError, setThemeError] = useState<string | null>(null);
+  const [authError, setAuthError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
   const [footerHeight, setFooterHeight] = useState<number>(0);
   const [corgiMode, setCorgiMode] = useState(false);
@@ -127,6 +130,13 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleThemeSelect,
     handleThemeHighlight,
   } = useThemeCommand(settings, setThemeError, addItem);
+
+  const {
+    isAuthDialogOpen,
+    openAuthDialog,
+    handleAuthSelect,
+    handleAuthHighlight,
+  } = useAuthCommand(settings, setAuthError, addItem);
 
   const {
     isEditorDialogOpen,
@@ -196,6 +206,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     setShowHelp,
     setDebugMessage,
     openThemeDialog,
+    openAuthDialog,
     openEditorDialog,
     performMemoryRefresh,
     toggleCorgiMode,
@@ -533,6 +544,19 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               <ThemeDialog
                 onSelect={handleThemeSelect}
                 onHighlight={handleThemeHighlight}
+                settings={settings}
+              />
+            </Box>
+          ) : isAuthDialogOpen ? (
+            <Box flexDirection="column">
+              {authError && (
+                <Box marginBottom={1}>
+                  <Text color={Colors.AccentRed}>{authError}</Text>
+                </Box>
+              )}
+              <AuthDialog
+                onSelect={handleAuthSelect}
+                onHighlight={handleAuthHighlight}
                 settings={settings}
               />
             </Box>
