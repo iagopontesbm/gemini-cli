@@ -62,6 +62,7 @@ import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import { checkForUpdates } from './utils/updateCheck.js';
+import { ReauthDialog } from './components/ReauthDialog.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -79,6 +80,7 @@ export const AppWrapper = (props: AppProps) => (
 
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const [isReauthRequired, setIsReauthRequired] = useState(false);
 
   useEffect(() => {
     checkForUpdates().then(setUpdateMessage);
@@ -505,6 +507,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           ))}
         </Box>
         {showHelp && <Help commands={slashCommands} />}
+
+        {isReauthRequired && <ReauthDialog />}
 
         <Box flexDirection="column" ref={mainControlsRef}>
           {startupWarnings.length > 0 && (
