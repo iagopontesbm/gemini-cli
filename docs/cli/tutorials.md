@@ -57,7 +57,7 @@ In your project's root directory, create or open the `.gemini/settings.json` fil
 ##### Set Your GitHub Token
 
 > [!CAUTION]
-> Using a broadly scoped personal access token that has access to personal and private repositories can lead to information from the private repository leaked into the public repository. We recommend using a fine grained access token that doesn't share access to both public and private repositories.
+> Using a broadly scoped personal access token that has access to personal and private repositories can lead to information from the private repository being leaked into the public repository. We recommend using a fine-grained access token that doesn't share access to both public and private repositories.
 
 Use an environment variable to store your PAT.
 
