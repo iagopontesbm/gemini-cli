@@ -42,7 +42,7 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
         echo 'export GEMINI_CODE_ASSIST="true"' >> ~/.bashrc
         source ~/.bashrc
         ```
-    - There are two types of Google Accounts you might use to try to use Gemini Code Assist:
+    - There are two types of Google Accounts you can use with Gemini CLI:
       - **Personal Google Account**: This is the standard, free account you use for services like Gmail, Google Photos, and Google Drive for personal use (e.g. your-name@gmail.com).
       - **Google Workspace Account**: This is a paid service for businesses and organizations that provides a suite of productivity tools, including a custom email domain (e.g. your-name@your-company.com), enhanced security features, and administrative controls. These accounts are often managed by an employer or school.
         - Google Workspace Account must configure a Google Cloud Project Id to use. You can temporarily set the environment variable in your current shell session using the following command:
