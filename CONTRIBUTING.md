@@ -59,10 +59,7 @@ If you'd like to get early feedback on your work, please use GitHub's **Draft Pu
 
 #### 4. Ensure All Checks Pass
 
-Before submitting your PR (and before marking a draft as "Ready for Review"), please ensure that all automated checks are passing. This includes:
-
-- **Tests:** All existing tests must pass, and new code should be accompanied by new tests. Run `npm run test`.
-- **Linting and Style:** Your code must adhere to our project's style guidelines. Run `npm run preflight` to check everything.
+Before submitting your PR, ensure that all automated checks are passing by running `npm run preflight`. This command runs all tests, linting, and other style checks.
 
 #### 5. Update Documentation
 
@@ -76,6 +73,10 @@ Your PR should have a clear, descriptive title and a detailed description of the
 - **Bad PR Title:** `Made some changes`
 
 In the PR description, explain the "why" behind your changes and link to the relevant issue (e.g., `Fixes #123`).
+
+## Forking
+
+If you are forking the repository you will be able to run the Built, Test and Integration test workflows. However in order to make the integration tests run you'll need to add a [Github Repository Secret](<[url](https://docs.github.com/en/actions/security-for-github-actions/security-guides/using-secrets-in-github-actions#creating-secrets-for-a-repository)>) with a value of `GEMII_API_KEY` and set that to a valid API key that you have available. Your key and secret it private to your repo; noone with out access can see your key and you cannot see any secrets related to this repo.
 
 ## Development Setup and Workflow
 
@@ -109,7 +110,7 @@ To build the entire project (all packages):
 npm run build
 ```
 
-This command typically compiles TypeScript to JavaScript, bundles assets, and prepares the packages for execution. Refer to `scripts/build.sh` and `package.json` scripts for more details on what happens during the build.
+This command typically compiles TypeScript to JavaScript, bundles assets, and prepares the packages for execution. Refer to `scripts/build.js` and `package.json` scripts for more details on what happens during the build.
 
 ### Enabling Sandboxing
 
@@ -135,46 +136,53 @@ If you’d like to run the source build outside of the gemini-cli folder you can
 
 ### Running Tests
 
-To execute the test suite for the project:
+This project contains two types of tests: unit tests and integration tests.
+
+#### Unit Tests
+
+To execute the unit test suite for the project:
 
 ```bash
 npm run test
 ```
 
-This will run tests located in the `packages/core` and `packages/cli` directories. Ensure tests pass before submitting any changes.
+This will run tests located in the `packages/core` and `packages/cli` directories. Ensure tests pass before submitting any changes. For a more comprehensive check, it is recommended to run `npm run preflight`.
 
-#### Important Note for Sandbox Users on macOS/Windows
+#### Integration Tests
 
-This project uses native dependencies (e.g., `tree-sitter`) that are compiled for a specific operating system.
+The integration tests are designed to validate the end-to-end functionality of the Gemini CLI. They are not run as part of the default `npm run test` command.
 
-When you run the application in the development sandbox via `npm start`, these dependencies are automatically rebuilt for the container's Linux environment.
-
-Because of this, if you then try to run `npm run test` directly on your host machine (e.g., macOS), the tests will fail with an error similar to `dlopen` or `not a valid mach-o file`. This is because the test runner on your Mac cannot load the Linux-compiled dependencies from your `node_modules` folder.
-
-#### The Solution:
-
-To fix this, you must rebuild the native dependencies for your host machine's architecture before running the tests.
+To run the integration tests, use the following command:
 
 ```bash
-npm rebuild
+npm run test:e2e
 ```
 
-#### Recommended Workflow:
-
-1. After using the sandboxed `npm start`, and before you want to run tests locally, run `npm rebuild` in your terminal.
-2. Then, run `npm run test` as usual.
-
-You will need to repeat the npm rebuild step any time you switch from running the sandboxed application back to running local tests.
+For more detailed information on the integration testing framework, please see the [Integration Tests documentation](./docs/integration-tests.md).
 
 ### Linting and Preflight Checks
 
-To ensure code quality, formatting consistency, and run final checks before committing:
+To ensure code quality and formatting consistency, run the preflight check:
 
 ```bash
 npm run preflight
 ```
 
-This command usually runs ESLint, Prettier, and potentially other checks as defined in the project's `package.json`.
+This command will run ESLint, Prettier, all tests, and other checks as defined in the project's `package.json`.
+
+_ProTip_
+
+after cloning create a git precommit hook file to ensure your commits are always clean.
+
+```bash
+echo "
+# Run npm build and check for errors
+if ! npm run preflight; then
+  echo "npm build failed. Commit aborted."
+  exit 1
+fi
+" > .git/hooks/pre-commit && chmod +x .git/hooks/pre-commit
+```
 
 #### Formatting
 
@@ -214,6 +222,7 @@ For more detailed architecture, see `docs/architecture.md`.
 
 ### VS Code:
 
+0.  Run the CLI to interactively debug in VS Code with `F5`
 1.  Start the CLI in debug mode from the root directory:
     ```bash
     npm run debug
@@ -221,7 +230,7 @@ For more detailed architecture, see `docs/architecture.md`.
     This command runs `node --inspect-brk dist/gemini.js` within the `packages/cli` directory, pausing execution until a debugger attaches. You can then open `chrome://inspect` in your Chrome browser to connect to the debugger.
 2.  In VS Code, use the "Attach" launch configuration (found in `.vscode/launch.json`).
 
-Alternatively, you can use the "Launch Program" configuration in VS Code if you prefer to launch the currently open file directly, but the "Attach" method is generally recommended for debugging the main CLI entry point.
+Alternatively, you can use the "Launch Program" configuration in VS Code if you prefer to launch the currently open file directly, but 'F5' is generally recommended.
 
 To hit a breakpoint inside the sandbox container run:
 
