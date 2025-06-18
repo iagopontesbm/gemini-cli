@@ -12,6 +12,7 @@ import {
   SettingsFile,
   loadSettings,
 } from './config/settings.js';
+import { AuthType } from '@gemini-cli/core';
 
 // Custom error to identify mock process.exit calls
 class MockProcessExitError extends Error {
@@ -106,11 +107,15 @@ describe('gemini.tsx main function', () => {
     };
     const userSettingsFile: SettingsFile = {
       path: '/user/settings.json',
-      settings: {},
+      settings: {
+        selectedAuthType: AuthType.NONE,
+      },
     };
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
-      settings: {},
+      settings: {
+        selectedAuthType: AuthType.NONE,
+      },
     };
     const mockLoadedSettings = new LoadedSettings(
       userSettingsFile,

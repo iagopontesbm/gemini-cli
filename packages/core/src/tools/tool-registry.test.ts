@@ -129,6 +129,7 @@ const baseConfigParams: ConfigParameters = {
     model: 'test-model',
     apiKey: 'test-api-key',
     vertexai: false,
+    authType: AuthType.NONE,
   },
   embeddingModel: 'test-embedding-model',
   sandbox: false,

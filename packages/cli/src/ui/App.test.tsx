@@ -13,6 +13,7 @@ import {
   ApprovalMode,
   ToolRegistry,
   AccessibilitySettings,
+  AuthType,
 } from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
@@ -182,11 +183,16 @@ describe('App UI', () => {
   ): LoadedSettings => {
     const userSettingsFile: SettingsFile = {
       path: '/user/settings.json',
-      settings: {},
+      settings: {
+        selectedAuthType: AuthType.NONE,
+      },
     };
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
-      settings,
+      settings: {
+        ...settings,
+        selectedAuthType: AuthType.NONE,
+      },
     };
     return new LoadedSettings(userSettingsFile, workspaceSettingsFile, []);
   };
@@ -197,6 +203,7 @@ describe('App UI', () => {
       contentGeneratorConfig: {
         apiKey: 'test-key',
         model: 'test-model',
+        authType: AuthType.NONE,
       },
       embeddingModel: 'test-embedding-model',
       sandbox: false,

@@ -12,6 +12,7 @@ import {
   getErrorMessage,
   BugCommandSettings,
   TelemetrySettings,
+  AuthType,
 } from '@gemini-cli/core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
@@ -32,7 +33,7 @@ export interface AccessibilitySettings {
 
 export interface Settings {
   theme?: string;
-  auth?: string;
+  selectedAuthType: AuthType;
   sandbox?: boolean | string;
   coreTools?: string[];
   excludeTools?: string[];
@@ -167,8 +168,12 @@ function resolveEnvVarsInObject<T>(obj: T): T {
  * Project settings override user settings.
  */
 export function loadSettings(workspaceDir: string): LoadedSettings {
-  let userSettings: Settings = {};
-  let workspaceSettings: Settings = {};
+  let userSettings: Settings = {
+    selectedAuthType: AuthType.NONE,
+  };
+  let workspaceSettings: Settings = {
+    selectedAuthType: AuthType.NONE,
+  };
   const settingsErrors: SettingsError[] = [];
 
   // Load user settings

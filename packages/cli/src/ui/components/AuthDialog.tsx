@@ -9,6 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
+import { AuthType } from '@gemini-cli/core';
 
 interface AuthDialogProps {
   onSelect: (authMethod: string | undefined, scope: SettingScope) => void;
@@ -22,18 +23,24 @@ export function AuthDialog({
   settings,
 }: AuthDialogProps): React.JSX.Element {
   const authItems = [
-    { label: 'gcloud application-default credentials', value: 'gcloud' },
-    { label: 'OAuth with a personal account', value: 'oauth-personal' },
     {
-      label: 'OAuth with a enterprise/work account and a GCP project',
-      value: 'oauth-enterprise',
+      label: 'Login w/Google: `gcloud application-default credentials`',
+      value: AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT,
     },
-    { label: 'Gemini API Key', value: 'gemini-api-key' },
-    { label: 'Vertex AI', value: 'vertex-ai' },
+    {
+      label: 'Login w/Google: Personal Account',
+      value: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
+    },
+    {
+      label: 'Login w/Google: Work Account and a GCP project',
+      value: AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE,
+    },
+    { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
+    { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
   ];
 
   let initialAuthIndex = authItems.findIndex(
-    (item) => item.value === settings.merged.auth,
+    (item) => item.value === settings.merged.selectedAuthType,
   );
 
   if (initialAuthIndex === -1) {

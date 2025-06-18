@@ -5,25 +5,31 @@
  */
 
 import { GoogleAuth, AuthClient } from 'google-auth-library';
-import { ContentGenerator } from '../core/contentGenerator.js';
+import { AuthType, ContentGenerator } from '../core/contentGenerator.js';
 import { getOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
 import { CodeAssistServer, HttpOptions } from './server.js';
 
 export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
+  authType: AuthType,
 ): Promise<ContentGenerator> {
-  const authClient = await getAuthClient();
+  const authClient = await getAuthClient(authType);
   const projectId = await setupUser(authClient);
   return new CodeAssistServer(authClient, projectId, httpOptions);
 }
 
-async function getAuthClient(): Promise<AuthClient> {
-  try {
-    // Try for Application Default Credentials.
+async function getAuthClient(authType: AuthType): Promise<AuthClient> {
+  if (authType === AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT) {
     return await new GoogleAuth().getClient();
-  } catch (_) {
-    // No Application Default Credentials so try Oauth.
+  }
+
+  if (
+    authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE ||
+    authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL
+  ) {
     return await getOauthClient();
   }
+
+  throw new Error(`Unsupported authType: ${authType}`);
 }
