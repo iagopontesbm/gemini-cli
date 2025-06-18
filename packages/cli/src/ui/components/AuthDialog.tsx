@@ -36,9 +36,13 @@ export function AuthDialog({
   ];
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
-  const initialAuthIndex = authItems.findIndex(
+  let initialAuthIndex = authItems.findIndex(
     (item) => item.value === settings.merged.auth,
   );
+
+  if (initialAuthIndex === -1) {
+    initialAuthIndex = 0;
+  }
 
   const scopeItems = [
     { label: 'User Settings', value: SettingScope.User },
