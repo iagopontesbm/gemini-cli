@@ -107,7 +107,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Description:** Configures connections to one or more Model-Context Protocol (MCP) servers for discovering and using custom tools. Gemini CLI attempts to connect to each configured MCP server to discover available tools. If multiple MCP servers expose a tool with the same name, the tool names will be prefixed with the server alias you defined in the configuration (e.g., `serverAlias__actualToolName`) to avoid conflicts. Note that the system might strip certain schema properties from MCP tool definitions for compatibility.
   - **Default:** Empty
   - **Properties:**
-    - **`<SERVER_NAME>`** (object): The server paramters for the named server.
+    - **`<SERVER_NAME>`** (object): The server parameters for the named server.
       - `command` (string, required): The command to execute to start the MCP server.
       - `args` (array of strings, optional): Arguments to pass to the command.
       - `env` (object, optional): Environment variables to set for the server process.
