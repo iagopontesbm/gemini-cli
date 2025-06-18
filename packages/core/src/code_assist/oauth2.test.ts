@@ -72,6 +72,7 @@ describe('oauth2', () => {
         if (callback) {
           callback();
         }
+        return mockHttpServer;
       }),
       close: vi.fn((callback?: () => void) => {
         if (callback) {
