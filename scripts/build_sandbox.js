@@ -132,7 +132,7 @@ function buildImage(imageName, dockerfile) {
       console.error(e.stderr.toString());
     }
     process.exit(1);
-  console.log(`built ${imageName}`);
+    console.log(`built ${imageName}`);
   }
 }
 
