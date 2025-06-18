@@ -21,7 +21,7 @@ import {
   TelemetryTarget,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
-import { getEffectiveModel } from '../utils/modelCheck.js';
+import { getEffectiveModel } from '@gemini-cli/core';
 import { Extension } from './extension.js';
 import { getCliVersion } from '../utils/version.js';
 import * as dotenv from 'dotenv';
