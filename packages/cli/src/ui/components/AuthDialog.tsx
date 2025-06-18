@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
@@ -21,10 +21,6 @@ export function AuthDialog({
   onHighlight,
   settings,
 }: AuthDialogProps): React.JSX.Element {
-  const [selectedScope, setSelectedScope] = useState<SettingScope>(
-    SettingScope.User,
-  );
-
   const authItems = [
     { label: 'gcloud application-default credentials', value: 'gcloud' },
     { label: 'OAuth with a personal account', value: 'oauth-personal' },
@@ -33,8 +29,8 @@ export function AuthDialog({
       value: 'oauth-enterprise',
     },
     { label: 'Gemini API Key', value: 'gemini-api-key' },
+    { label: 'Vertex AI', value: 'vertex-ai' },
   ];
-  const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
   let initialAuthIndex = authItems.findIndex(
     (item) => item.value === settings.merged.auth,
@@ -44,90 +40,34 @@ export function AuthDialog({
     initialAuthIndex = 0;
   }
 
-  const scopeItems = [
-    { label: 'User Settings', value: SettingScope.User },
-    { label: 'Workspace Settings', value: SettingScope.Workspace },
-  ];
-
   const handleAuthSelect = (authMethod: string) => {
-    onSelect(authMethod, selectedScope);
+    onSelect(authMethod, SettingScope.User);
   };
 
-  const handleScopeHighlight = (scope: SettingScope) => {
-    setSelectedScope(scope);
-    setSelectInputKey(Date.now());
-  };
-
-  const handleScopeSelect = (scope: SettingScope) => {
-    handleScopeHighlight(scope);
-    setFocusedSection('auth');
-  };
-
-  const [focusedSection, setFocusedSection] = useState<'auth' | 'scope'>(
-    'auth',
-  );
-
-  useInput((input, key) => {
-    if (key.tab) {
-      setFocusedSection((prev) => (prev === 'auth' ? 'scope' : 'auth'));
-    }
+  useInput((_input, key) => {
     if (key.escape) {
-      onSelect(undefined, selectedScope);
+      onSelect(undefined, SettingScope.User);
     }
   });
-
-  let otherScopeModifiedMessage = '';
-  const otherScope =
-    selectedScope === SettingScope.User
-      ? SettingScope.Workspace
-      : SettingScope.User;
-  if (settings.forScope(otherScope).settings.auth !== undefined) {
-    otherScopeModifiedMessage =
-      settings.forScope(selectedScope).settings.auth !== undefined
-        ? `(Also modified in ${otherScope})`
-        : `(Modified in ${otherScope})`;
-  }
 
   return (
     <Box
       borderStyle="round"
       borderColor={Colors.Gray}
-      flexDirection="row"
+      flexDirection="column"
       padding={1}
       width="100%"
     >
-      <Box flexDirection="column" width="100%" paddingRight={2}>
-        <Text bold={focusedSection === 'auth'}>
-          {focusedSection === 'auth' ? '> ' : '  '}Select Auth Method{' '}
-          <Text color={Colors.Gray}>{otherScopeModifiedMessage}</Text>
-        </Text>
-        <RadioButtonSelect
-          key={selectInputKey}
-          items={authItems}
-          initialIndex={initialAuthIndex}
-          onSelect={handleAuthSelect}
-          onHighlight={onHighlight}
-          isFocused={focusedSection === 'auth'}
-        />
-
-        <Box marginTop={1} flexDirection="column">
-          <Text bold={focusedSection === 'scope'}>
-            {focusedSection === 'scope' ? '> ' : '  '}Apply To
-          </Text>
-          <RadioButtonSelect
-            items={scopeItems}
-            initialIndex={0}
-            onSelect={handleScopeSelect}
-            onHighlight={handleScopeHighlight}
-            isFocused={focusedSection === 'scope'}
-          />
-        </Box>
-
-        <Box marginTop={1}>
-          <Text color={Colors.Gray}>
-            (Use Enter to select, Tab to change focus)
-          </Text>
-        </Box>
+      <Text bold>Select Auth Method</Text>
+      <RadioButtonSelect
+        items={authItems}
+        initialIndex={initialAuthIndex}
+        onSelect={handleAuthSelect}
+        onHighlight={onHighlight}
+        isFocused={true}
+      />
+      <Box marginTop={1}>
+        <Text color={Colors.Gray}>(Use Enter to select)</Text>
       </Box>
     </Box>
   );
