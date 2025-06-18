@@ -50,6 +50,14 @@ import {
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
+import { GaxiosError } from 'gaxios';
+
+function isAuthError(error: unknown): boolean {
+  if (error instanceof GaxiosError) {
+    return error.response?.data?.error === 'invalid_grant';
+  }
+  return false;
+}
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   const resultParts: PartListUnion = [];
@@ -87,6 +95,7 @@ export const useGeminiStream = (
   >,
   shellModeActive: boolean,
   getPreferredEditor: () => EditorType | undefined,
+  onAuthError: () => void,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -496,7 +505,9 @@ export const useGeminiStream = (
           setPendingHistoryItem(null);
         }
       } catch (error: unknown) {
-        if (!isNodeError(error) || error.name !== 'AbortError') {
+        if (isAuthError(error)) {
+          onAuthError();
+        } else if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
             {
               type: MessageType.ERROR,
