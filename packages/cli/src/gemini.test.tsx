@@ -8,6 +8,7 @@ import stripAnsi from 'strip-ansi';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { main } from './gemini.js';
 import {
+  AuthType,
   LoadedSettings,
   SettingsFile,
   loadSettings,
@@ -106,11 +107,15 @@ describe('gemini.tsx main function', () => {
     };
     const userSettingsFile: SettingsFile = {
       path: '/user/settings.json',
-      settings: {},
+      settings: {
+        selectedAuthType: AuthType.NONE,
+      },
     };
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
-      settings: {},
+      settings: {
+        selectedAuthType: AuthType.NONE,
+      },
     };
     const mockLoadedSettings = new LoadedSettings(
       userSettingsFile,

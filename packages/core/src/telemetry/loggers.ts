@@ -35,6 +35,7 @@ import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
+import { AuthType } from '../../../core/src/core/contentGenerator.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
   config.getTelemetryLogPromptsEnabled() ?? false;
@@ -83,9 +84,10 @@ export function logCliConfiguration(config: Config): void {
       typeof config.getSandbox() === 'string' ? true : config.getSandbox(),
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
-    api_key_enabled: !!generatorConfig.apiKey,
-    vertex_ai_enabled: !!generatorConfig.vertexai,
-    code_assist_enabled: !!generatorConfig.codeAssist,
+    api_key_enabled:
+      generatorConfig.authType === AuthType.USE_GEMINI ||
+      generatorConfig.authType === AuthType.USE_VERTEX_AI,
+    vertex_ai_enabled: generatorConfig.authType === AuthType.USE_VERTEX_AI,
     log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),

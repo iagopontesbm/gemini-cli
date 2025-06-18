@@ -10,7 +10,7 @@ import {
   shutdownTelemetry,
   isTelemetrySdkInitialized,
 } from './sdk.js';
-import { Config } from '../config/config.js';
+import { Config, AuthType } from '../config/config.js';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import * as loggers from './loggers.js';
 
@@ -29,6 +29,7 @@ describe('telemetry', () => {
       sessionId: 'test-session-id',
       contentGeneratorConfig: {
         model: 'test-model',
+        authType: AuthType.NONE,
       },
       targetDir: '/test/dir',
       debugMode: false,

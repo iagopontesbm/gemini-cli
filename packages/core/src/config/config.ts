@@ -6,7 +6,11 @@
 
 import * as path from 'node:path';
 import process from 'node:process';
-import { ContentGeneratorConfig } from '../core/contentGenerator.js';
+import {
+  AuthType,
+  ContentGeneratorConfig,
+  createContentGeneratorConfig,
+} from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -106,7 +110,7 @@ export interface ConfigParameters {
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
   private readonly sessionId: string;
-  private readonly contentGeneratorConfig: ContentGeneratorConfig;
+  private contentGeneratorConfig: ContentGeneratorConfig;
   private readonly embeddingModel: string;
   private readonly sandbox: boolean | string | undefined;
   private readonly targetDir: string;
@@ -125,7 +129,7 @@ export class Config {
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
-  private readonly geminiClient: GeminiClient;
+  private geminiClient: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
@@ -180,6 +184,16 @@ export class Config {
     if (this.telemetrySettings.enabled) {
       initializeTelemetry(this);
     }
+  }
+
+  async refreshAuth(authMethod: AuthType) {
+    const contentConfig = await createContentGeneratorConfig(
+      this.getModel(),
+      authMethod,
+    );
+
+    this.contentGeneratorConfig = contentConfig;
+    this.geminiClient = new GeminiClient(this);
   }
 
   getSessionId(): string {
