@@ -81,7 +81,7 @@ export class GeminiClient {
     return this.chat;
   }
 
-  private getContentGenerator(): ContentGenerator {
+  getContentGenerator(): ContentGenerator {
     if (!this.contentGenerator) {
       throw new Error('Content generator not initialized');
     }

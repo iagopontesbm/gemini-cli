@@ -513,7 +513,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         </Box>
         {showHelp && <Help commands={slashCommands} />}
 
-        {isReauthRequired && <ReauthDialog />}
+        {isReauthRequired && (
+          <ReauthDialog
+            config={config}
+            onAuthSuccess={() => setIsReauthRequired(false)}
+          />
+        )}
 
         <Box flexDirection="column" ref={mainControlsRef}>
           {startupWarnings.length > 0 && (
