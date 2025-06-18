@@ -15,7 +15,12 @@ import {
   useInput,
   type Key as InkKeyType,
 } from 'ink';
-import { StreamingState, type HistoryItem, MessageType } from './types.js';
+import {
+  StreamingState,
+  type HistoryItem,
+  MessageType,
+  type HistoryItemWithoutId,
+} from './types.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -442,11 +447,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   if (quittingMessages) {
     return (
       <Box flexDirection="column" marginBottom={1}>
-        {quittingMessages.map((item) => (
+        {quittingMessages.map((item, i) => (
           <HistoryItemDisplay
             key={item.id}
             availableTerminalHeight={availableTerminalHeight}
             item={item}
+            previousItem={quittingMessages[i - 1]}
             isPending={false}
             config={config}
           />
@@ -477,32 +483,44 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               <Tips config={config} />
               {updateMessage && <UpdateNotification message={updateMessage} />}
             </Box>,
-            ...history.map((h) => (
-              <HistoryItemDisplay
-                availableTerminalHeight={availableTerminalHeight}
-                key={h.id}
-                item={h}
-                isPending={false}
-                config={config}
-              />
-            )),
+            ...history.map((h, i) => {
+              const nextItem = history[i + 1];
+              return (
+                <HistoryItemDisplay
+                  availableTerminalHeight={availableTerminalHeight}
+                  key={h.id}
+                  item={h}
+                  previousItem={history[i - 1]}
+                  nextItem={nextItem}
+                  isPending={false}
+                  config={config}
+                />
+              );
+            }),
           ]}
         >
           {(item) => item}
         </Static>
         <Box ref={pendingHistoryItemRef}>
-          {pendingHistoryItems.map((item, i) => (
-            <HistoryItemDisplay
-              key={i}
-              availableTerminalHeight={availableTerminalHeight}
-              // TODO(taehykim): It seems like references to ids aren't necessary in
-              // HistoryItemDisplay. Refactor later. Use a fake id for now.
-              item={{ ...item, id: 0 }}
-              isPending={true}
-              config={config}
-              isFocused={!isEditorDialogOpen}
-            />
-          ))}
+          {pendingHistoryItems.map((item, i) => {
+            const previousItem =
+              i === 0
+                ? history[history.length - 1]
+                : pendingHistoryItems[i - 1];
+            const nextItem = pendingHistoryItems[i + 1];
+            return (
+              <HistoryItemDisplay
+                key={i}
+                availableTerminalHeight={availableTerminalHeight}
+                item={item}
+                previousItem={previousItem}
+                nextItem={nextItem}
+                isPending={true}
+                config={config}
+                isFocused={!isEditorDialogOpen}
+              />
+            );
+          })}
         </Box>
         {showHelp && <Help commands={slashCommands} />}
 
@@ -515,7 +533,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               marginY={1}
               flexDirection="column"
             >
-              {startupWarnings.map((warning, index) => (
+              {startupWarnings.map((warning: string, index: number) => (
                 <Text key={index} color={Colors.AccentYellow}>
                   {warning}
                 </Text>

@@ -5,7 +5,7 @@
  */
 
 import React from 'react';
-import type { HistoryItem } from '../types.js';
+import type { HistoryItem, HistoryItemWithoutId } from '../types.js';
 import { UserMessage } from './messages/UserMessage.js';
 import { UserShellMessage } from './messages/UserShellMessage.js';
 import { GeminiMessage } from './messages/GeminiMessage.js';
@@ -21,7 +21,9 @@ import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Config } from '@gemini-cli/core';
 
 interface HistoryItemDisplayProps {
-  item: HistoryItem;
+  item: HistoryItem | HistoryItemWithoutId;
+  previousItem?: HistoryItem | HistoryItemWithoutId;
+  nextItem?: HistoryItem | HistoryItemWithoutId;
   availableTerminalHeight: number;
   isPending: boolean;
   config?: Config;
@@ -30,60 +32,86 @@ interface HistoryItemDisplayProps {
 
 export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
   item,
+  previousItem,
+  nextItem,
   availableTerminalHeight,
   isPending,
   config,
   isFocused = true,
-}) => (
-  <Box flexDirection="column" key={item.id}>
-    {/* Render standard message types */}
-    {item.type === 'user' && <UserMessage text={item.text} />}
-    {item.type === 'user_shell' && <UserShellMessage text={item.text} />}
-    {item.type === 'gemini' && (
-      <GeminiMessage
-        text={item.text}
-        isPending={isPending}
-        availableTerminalHeight={availableTerminalHeight}
-      />
-    )}
-    {item.type === 'gemini_content' && (
-      <GeminiMessageContent
-        text={item.text}
-        isPending={isPending}
-        availableTerminalHeight={availableTerminalHeight}
-      />
-    )}
-    {item.type === 'info' && <InfoMessage text={item.text} />}
-    {item.type === 'error' && <ErrorMessage text={item.text} />}
-    {item.type === 'about' && (
-      <AboutBox
-        cliVersion={item.cliVersion}
-        osVersion={item.osVersion}
-        sandboxEnv={item.sandboxEnv}
-        modelVersion={item.modelVersion}
-      />
-    )}
-    {item.type === 'stats' && (
-      <StatsDisplay
-        stats={item.stats}
-        lastTurnStats={item.lastTurnStats}
-        duration={item.duration}
-      />
-    )}
-    {item.type === 'quit' && (
-      <SessionSummaryDisplay stats={item.stats} duration={item.duration} />
-    )}
-    {item.type === 'tool_group' && (
-      <ToolGroupMessage
-        toolCalls={item.tools}
-        groupId={item.id}
-        availableTerminalHeight={availableTerminalHeight}
-        config={config}
-        isFocused={isFocused}
-      />
-    )}
-    {item.type === 'compression' && (
-      <CompressionMessage compression={item.compression} />
-    )}
-  </Box>
-);
+}) => {
+  const isFirstContent =
+    !previousItem ||
+    previousItem.type === 'user' ||
+    previousItem.type === 'user_shell';
+
+  const isFollowedByToolGroup = nextItem?.type === 'tool_group';
+
+  const suppressMargin =
+    (item.type === 'tool_group' && isFirstContent) ||
+    (item.type === 'tool_group' && previousItem?.type === 'tool_group') ||
+    (item.type === 'tool_group' && previousItem?.type === 'gemini');
+
+  const itemId = 'id' in item ? item.id : undefined;
+
+  return (
+    <Box
+      flexDirection="column"
+      key={itemId}
+      marginTop={suppressMargin ? 0 : 1}
+    >
+      {/* Render standard message types */}
+      {item.type === 'user' && <UserMessage text={item.text} />}
+      {item.type === 'user_shell' && <UserShellMessage text={item.text} />}
+      {item.type === 'gemini' && (
+        <GeminiMessage
+          text={item.text}
+          isPending={isPending}
+          availableTerminalHeight={availableTerminalHeight}
+          isFollowedByToolGroup={isFollowedByToolGroup}
+        />
+      )}
+      {item.type === 'gemini_content' && (
+        <GeminiMessageContent
+          text={item.text}
+          isPending={isPending}
+          availableTerminalHeight={availableTerminalHeight}
+          isFollowedByToolGroup={isFollowedByToolGroup}
+        />
+      )}
+      {item.type === 'info' && <InfoMessage text={item.text} />}
+      {item.type === 'error' && <ErrorMessage text={item.text} />}
+      {item.type === 'about' && (
+        <AboutBox
+          cliVersion={item.cliVersion}
+          osVersion={item.osVersion}
+          sandboxEnv={item.sandboxEnv}
+          modelVersion={item.modelVersion}
+        />
+      )}
+      {item.type === 'stats' && (
+        <StatsDisplay
+          stats={item.stats}
+          lastTurnStats={item.lastTurnStats}
+          duration={item.duration}
+        />
+      )}
+      {item.type === 'quit' && (
+        <SessionSummaryDisplay stats={item.stats} duration={item.duration} />
+      )}
+      {item.type === 'tool_group' && (
+        <ToolGroupMessage
+          toolCalls={item.tools}
+          groupId={itemId}
+          availableTerminalHeight={availableTerminalHeight}
+          config={config}
+          isFocused={isFocused}
+          isFirstContent={isFirstContent}
+          isFollowedByToolGroup={isFollowedByToolGroup}
+        />
+      )}
+      {item.type === 'compression' && (
+        <CompressionMessage compression={item.compression} />
+      )}
+    </Box>
+  );
+};

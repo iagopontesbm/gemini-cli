@@ -234,6 +234,7 @@ export async function loadCliConfig(
     cwd: process.cwd(),
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
+    toolCallDisplay: settings.toolCallDisplay,
   });
 }
 

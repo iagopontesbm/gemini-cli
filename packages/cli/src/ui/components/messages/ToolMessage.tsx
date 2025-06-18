@@ -21,12 +21,17 @@ const MIN_LINES_HIDDEN = 3; // hide at least this many lines (or don't hide any)
 export type TextEmphasis = 'high' | 'medium' | 'low';
 
 export interface ToolMessageProps extends IndividualToolCallDisplay {
+  prefix: React.ReactNode;
+  errorLinePrefix: React.ReactNode;
   availableTerminalHeight: number;
   emphasis?: TextEmphasis;
   renderOutputAsMarkdown?: boolean;
+  displayMode?: 'box' | 'line';
 }
 
 export const ToolMessage: React.FC<ToolMessageProps> = ({
+  prefix,
+  errorLinePrefix,
   name,
   description,
   resultDisplay,
@@ -34,6 +39,7 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   availableTerminalHeight,
   emphasis = 'medium',
   renderOutputAsMarkdown = true,
+  displayMode = 'box',
 }) => {
   const resultIsString =
     typeof resultDisplay === 'string' && resultDisplay.trim().length > 0;
@@ -63,10 +69,59 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   );
   const hiddenLines = Math.max(0, lines.length - contentHeightEstimate);
 
+  if (displayMode === 'line') {
+    const resultIsShortString =
+      typeof resultDisplay === 'string' &&
+      resultDisplay.trim().length > 0 &&
+      resultDisplay.length < 80 &&
+      !resultDisplay.includes('\n');
+
+    return (
+      <Box paddingY={0} flexDirection="column">
+        <Box minHeight={1}>
+          <LineToolStatusIndicator status={status} prefix={prefix} />
+          <ToolInfo
+            name={name}
+            status={status}
+            description={description}
+            emphasis={emphasis}
+          />
+          {resultIsShortString &&
+            (status === ToolCallStatus.Success ||
+              status === ToolCallStatus.Error) && (
+              <Text>
+                {' '}
+                -{' '}
+                <Text color={Colors.Gray}>
+                  {status === ToolCallStatus.Error ? (
+                    <Text color={Colors.AccentRed}>{resultDisplay}</Text>
+                  ) : (
+                    resultDisplay
+                  )}
+                </Text>
+              </Text>
+            )}
+          {emphasis === 'high' && <TrailingIndicator />}
+        </Box>
+        {status === ToolCallStatus.Error &&
+          resultIsString &&
+          !resultIsShortString && (
+            <Box width="100%" flexDirection="row">
+              {errorLinePrefix}
+              <Box>
+                <Text color={Colors.AccentRed}>{resultDisplay}</Text>
+              </Box>
+            </Box>
+          )}
+      </Box>
+    );
+  }
+
   return (
     <Box paddingX={1} paddingY={0} flexDirection="column">
       <Box minHeight={1}>
         <ToolStatusIndicator status={status} />
+
         <ToolInfo
           name={name}
           status={status}
@@ -195,3 +250,48 @@ const ToolInfo: React.FC<ToolInfo> = ({
 const TrailingIndicator: React.FC = () => (
   <Text color={Colors.Foreground}> ←</Text>
 );
+
+type LineToolStatusIndicatorProps = {
+  status: ToolCallStatus;
+  prefix: React.ReactNode;
+};
+
+const LineToolStatusIndicator: React.FC<LineToolStatusIndicatorProps> = ({
+  status,
+  prefix,
+}) => {
+  return (
+    <Box>
+      {status === ToolCallStatus.Pending && (
+        <Text color={Colors.AccentGreen}>{prefix}o </Text>
+      )}
+      {status === ToolCallStatus.Executing && (
+        <Text>
+          {prefix}
+          <GeminiRespondingSpinner
+            spinnerType="toggle"
+            nonRespondingDisplay={'⊷'}
+          />{' '}
+        </Text>
+      )}
+      {status === ToolCallStatus.Success && (
+        <Text color={Colors.AccentGreen}>{prefix}✔</Text>
+      )}
+      {status === ToolCallStatus.Confirming && (
+        <Text color={Colors.AccentYellow}>{prefix}? </Text>
+      )}
+      {status === ToolCallStatus.Canceled && (
+        <Text color={Colors.AccentYellow} bold>
+          {prefix}✘{' '}
+        </Text>
+      )}
+      {status === ToolCallStatus.Error && (
+        <Text color={Colors.AccentRed} bold>
+          {prefix}✘{' '}
+        </Text>
+      )}
+    </Box>
+  );
+};
+
+

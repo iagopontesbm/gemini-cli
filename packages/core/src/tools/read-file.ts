@@ -133,6 +133,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: validationError,
+        isError: true,
       };
     }
 
@@ -147,6 +148,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       return {
         llmContent: result.error, // The detailed error for LLM
         returnDisplay: result.returnDisplay, // User-friendly error
+        isError: true,
       };
     }
 
