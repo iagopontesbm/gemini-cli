@@ -17,16 +17,17 @@ import {
 export interface ToolConfirmationDetailsProps {
   confirmationDetails: ToolCallConfirmationDetails;
   config?: Config;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 }
 
 export const ToolConfirmationDetails: React.FC<
   ToolConfirmationDetailsProps
-> = ({ confirmationDetails }) => {
+> = ({ confirmationDetails, borderTop = true, borderBottom = true }) => {
   let bodyContent: React.ReactNode | null = null;
 
   if (confirmationDetails.type === 'edit') {
     if (confirmationDetails.isModifying) {
-      // TODO: Check if it works well
       return null;
     }
 
@@ -84,10 +85,10 @@ export const ToolConfirmationDetails: React.FC<
       borderStyle="round"
       width="100%"
       marginLeft={1}
-      borderDimColor={true}
+      paddingX={1}
       borderColor={Colors.AccentYellow}
-      borderTop={false}
-      borderBottom={false}
+      borderTop={borderTop}
+      borderBottom={borderBottom}
     >
       <Box flexGrow={1} flexShrink={1} overflow="hidden" marginBottom={1}>
         {bodyContent}

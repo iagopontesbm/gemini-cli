@@ -24,6 +24,8 @@ export interface ToolMessageProps extends IndividualToolCallDisplay {
   availableTerminalHeight: number;
   emphasis?: TextEmphasis;
   renderOutputAsMarkdown?: boolean;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 }
 
 export const ToolMessage: React.FC<ToolMessageProps> = ({
@@ -34,6 +36,8 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   availableTerminalHeight,
   emphasis = 'medium',
   renderOutputAsMarkdown = true,
+  borderTop = true,
+  borderBottom = true,
 }) => {
   const resultIsString =
     typeof resultDisplay === 'string' && resultDisplay.trim().length > 0;
@@ -63,7 +67,12 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
   );
   const hiddenLines = Math.max(0, lines.length - contentHeightEstimate);
 
-  const isPending = status === ToolCallStatus.Success;
+  const isPending = [
+    ToolCallStatus.Pending,
+    ToolCallStatus.Executing,
+    ToolCallStatus.Confirming,
+  ].includes(status);
+
   const borderColor = isPending ? Colors.AccentYellow : Colors.Gray;
 
   return (
@@ -72,10 +81,9 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
       borderStyle="round"
       width="100%"
       marginLeft={1}
-      borderDimColor={isPending}
       borderColor={borderColor}
-      borderTop={false}
-      borderBottom={false}
+      borderTop={borderTop}
+      borderBottom={borderBottom}
     >
       <Box paddingX={1} paddingY={0} flexDirection="column">
         <Box minHeight={1}>

@@ -24,11 +24,18 @@ export interface ToolConfirmationMessageProps {
   confirmationDetails: ToolCallConfirmationDetails;
   config?: Config;
   isFocused?: boolean;
+  borderTop?: boolean;
+  borderBottom?: boolean;
 }
 
 export const ToolConfirmationMessage: React.FC<
   ToolConfirmationMessageProps
-> = ({ confirmationDetails, isFocused = true }) => {
+> = ({
+  confirmationDetails,
+  isFocused = true,
+  borderTop = true,
+  borderBottom = true,
+}) => {
   const { onConfirm } = confirmationDetails;
 
   useInput((_, key) => {
@@ -138,10 +145,10 @@ export const ToolConfirmationMessage: React.FC<
       borderStyle="round"
       width="100%"
       marginLeft={1}
-      borderDimColor={true}
+      paddingX={1}
       borderColor={Colors.AccentYellow}
-      borderTop={false}
-      borderBottom={false}
+      borderTop={borderTop}
+      borderBottom={borderBottom}
     >
       {/* Confirmation Question */}
       <Box marginBottom={1} flexShrink={0}>
