@@ -73,6 +73,14 @@ export function logCliConfiguration(config: Config): void {
   if (!isTelemetrySdkInitialized()) return;
 
   const generatorConfig = config.getContentGeneratorConfig();
+  let useGemini = false;
+  let useVertex = false;
+
+  if (generatorConfig && generatorConfig.authType) {
+    useGemini = generatorConfig.authType === AuthType.USE_GEMINI;
+    useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI
+  }
+
   const mcpServers = config.getMcpServers();
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
@@ -84,9 +92,9 @@ export function logCliConfiguration(config: Config): void {
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
     api_key_enabled:
-      generatorConfig.authType === AuthType.USE_GEMINI ||
-      generatorConfig.authType === AuthType.USE_VERTEX_AI,
-    vertex_ai_enabled: generatorConfig.authType === AuthType.USE_VERTEX_AI,
+      useGemini ||
+      useVertex,
+    vertex_ai_enabled: useVertex,
     log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),
