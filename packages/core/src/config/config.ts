@@ -91,6 +91,7 @@ export interface ConfigParameters {
   excludeTools?: string[];
   toolDiscoveryCommand?: string;
   toolCallCommand?: string;
+  promptReadyCommand?: string;
   mcpServerCommand?: string;
   mcpServers?: Record<string, MCPServerConfig>;
   userMemory?: string;
@@ -122,6 +123,7 @@ export class Config {
   private readonly excludeTools: string[] | undefined;
   private readonly toolDiscoveryCommand: string | undefined;
   private readonly toolCallCommand: string | undefined;
+  private readonly promptReadyCommand: string | undefined;
   private readonly mcpServerCommand: string | undefined;
   private readonly mcpServers: Record<string, MCPServerConfig> | undefined;
   private userMemory: string;
@@ -153,6 +155,7 @@ export class Config {
     this.excludeTools = params.excludeTools;
     this.toolDiscoveryCommand = params.toolDiscoveryCommand;
     this.toolCallCommand = params.toolCallCommand;
+    this.promptReadyCommand = params.promptReadyCommand;
     this.mcpServerCommand = params.mcpServerCommand;
     this.mcpServers = params.mcpServers;
     this.userMemory = params.userMemory ?? '';
@@ -244,6 +247,10 @@ export class Config {
 
   getToolCallCommand(): string | undefined {
     return this.toolCallCommand;
+  }
+
+  getPromptReadyCommand(): string | undefined {
+    return this.promptReadyCommand;
   }
 
   getMcpServerCommand(): string | undefined {
