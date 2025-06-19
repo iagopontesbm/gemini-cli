@@ -13,7 +13,6 @@ import {
   ApprovalMode,
   ToolRegistry,
   AccessibilitySettings,
-  AuthType,
 } from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
@@ -188,7 +187,7 @@ describe('App UI', () => {
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
       settings: {
-        ...settings
+        ...settings,
       },
     };
     return new LoadedSettings(userSettingsFile, workspaceSettingsFile, []);

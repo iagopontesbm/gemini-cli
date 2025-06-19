@@ -13,7 +13,7 @@ import {
   GoogleGenAI,
 } from '@google/genai';
 import { GeminiClient } from './client.js';
-import { ContentGenerator } from './contentGenerator.js';
+import { AuthType, ContentGenerator } from './contentGenerator.js';
 import { GeminiChat } from './geminiChat.js';
 import { Config } from '../config/config.js';
 import { Turn } from './turn.js';
@@ -108,6 +108,7 @@ describe('Gemini Client (client.ts)', () => {
           model: 'test-model',
           apiKey: 'test-key',
           vertexai: false,
+          authType: AuthType.USE_GEMINI
         }),
         getToolRegistry: vi.fn().mockResolvedValue(mockToolRegistry),
         getModel: vi.fn().mockReturnValue('test-model'),

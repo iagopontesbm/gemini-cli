@@ -101,7 +101,7 @@ export async function createContentGeneratorConfig(
 
     return contentGeneratorConfig;
   }
-  
+
   return contentGeneratorConfig;
 }
 

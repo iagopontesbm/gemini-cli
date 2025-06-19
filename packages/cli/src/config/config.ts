@@ -19,7 +19,6 @@ import {
   FileDiscoveryService,
   createContentGeneratorConfig,
   TelemetryTarget,
-  AuthType,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
 

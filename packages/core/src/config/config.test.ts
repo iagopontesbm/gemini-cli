@@ -12,7 +12,6 @@ import {
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
 } from '../telemetry/index.js';
-import { AuthType } from '../core/contentGenerator.js';
 
 // Mock dependencies that might be called during Config construction or createServerConfig
 vi.mock('../tools/tool-registry', () => {
@@ -67,7 +66,7 @@ describe('Server Config (config.ts)', () => {
     cwd: '/tmp',
     contentGeneratorConfig: {
       apiKey: API_KEY,
-      model: MODEL
+      model: MODEL,
     },
     embeddingModel: EMBEDDING_MODEL,
     sandbox: SANDBOX,

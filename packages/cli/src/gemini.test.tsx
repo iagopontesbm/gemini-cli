@@ -12,7 +12,6 @@ import {
   SettingsFile,
   loadSettings,
 } from './config/settings.js';
-import { AuthType } from '@gemini-cli/core';
 
 // Custom error to identify mock process.exit calls
 class MockProcessExitError extends Error {
