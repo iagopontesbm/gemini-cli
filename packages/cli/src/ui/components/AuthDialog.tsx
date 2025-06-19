@@ -30,7 +30,7 @@ export function AuthDialog({
   );
   const authItems = [
     {
-      label: 'Login w/Google: Personal Account',
+      label: 'Login with Google Personal Account',
       value: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
     },
     {
