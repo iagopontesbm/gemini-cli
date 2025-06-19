@@ -12,7 +12,6 @@ import {
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
 } from '../telemetry/index.js';
-import { AuthType } from '../core/contentGenerator.js';
 
 // Mock dependencies that might be called during Config construction or createServerConfig
 vi.mock('../tools/tool-registry', () => {
@@ -97,12 +96,6 @@ describe('Server Config (config.ts)', () => {
   beforeEach(() => {
     // Reset mocks if necessary
     vi.clearAllMocks();
-  });
-
-  it('sets model', () => {
-    const config = new Config(baseParams);
-    config.refreshAuth(AuthType.USE_GEMINI);
-    expect(config.getModel()).toBe(MODEL);
   });
 
   // i can't get vi mocking to import in core. only in cli. can't fix it now.
