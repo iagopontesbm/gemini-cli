@@ -78,7 +78,7 @@ export function logCliConfiguration(config: Config): void {
 
   if (generatorConfig && generatorConfig.authType) {
     useGemini = generatorConfig.authType === AuthType.USE_GEMINI;
-    useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI
+    useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI;
   }
 
   const mcpServers = config.getMcpServers();
@@ -91,9 +91,7 @@ export function logCliConfiguration(config: Config): void {
     sandbox_enabled: !!config.getSandbox(),
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
-    api_key_enabled:
-      useGemini ||
-      useVertex,
+    api_key_enabled: useGemini || useVertex,
     vertex_ai_enabled: useVertex,
     log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
     file_filtering_respect_git_ignore:

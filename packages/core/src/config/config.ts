@@ -192,21 +192,16 @@ export class Config {
   }
 
   async refreshAuth(authMethod: AuthType) {
-    try {
+    const contentConfig = await createContentGeneratorConfig(
+      this.getModel(),
+      authMethod,
+    );
 
-      const contentConfig = await createContentGeneratorConfig(
-        this.getModel(),
-        authMethod,
-      );
-      
-      const gc = new GeminiClient(this);
-      await gc.initialize(contentConfig);
-      this.contentGeneratorConfig = contentConfig;
-      this.geminiClient = gc
-    } catch (e) {
-      console.error(e)
-      throw e;
-    }
+    const gc = new GeminiClient(this);
+    await gc.initialize(contentConfig);
+
+    this.contentGeneratorConfig = contentConfig;
+    this.geminiClient = gc;
   }
 
   getSessionId(): string {
