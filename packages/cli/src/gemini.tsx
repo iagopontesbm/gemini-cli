@@ -165,11 +165,9 @@ async function loadNonInteractiveConfig(
     ...settings.merged,
     excludeTools: newExcludeTools,
   };
-  const newConfig = await loadCliConfig(
+  return await loadCliConfig(
     nonInteractiveSettings,
     extensions,
     config.getSessionId(),
   );
-  await newConfig.getGeminiClient().initialize();
-  return newConfig;
 }
