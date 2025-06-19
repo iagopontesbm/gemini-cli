@@ -72,6 +72,7 @@ export async function main() {
     const sandboxConfig = config.getSandbox();
     if (sandboxConfig) {
       if (settings.merged.selectedAuthType) {
+        // Validate authentication here because the sandbox will interfere with the Oauth2 web redirect.
         const err = validateAuthMethod(settings.merged.selectedAuthType);
         if (err) {
           console.error(err);
