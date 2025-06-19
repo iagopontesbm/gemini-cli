@@ -9,7 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType, clearCachedCredentialFile } from '@gemini-cli/core';
+import { AuthType } from '@gemini-cli/core';
 import { loadEnvironment } from '../../config/config.js';
 
 interface AuthDialogProps {
@@ -46,6 +46,7 @@ export function AuthDialog({
   }
 
   const validateAuthMethod = (authMethod: string): string | null => {
+    loadEnvironment();
     if (authMethod === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
       return null;
     }
@@ -81,8 +82,6 @@ export function AuthDialog({
   };
 
   const handleAuthSelect = (authMethod: string) => {
-    loadEnvironment()
-    clearCachedCredentialFile()
     const error = validateAuthMethod(authMethod);
     if (error) {
       setErrorMessage(error);
