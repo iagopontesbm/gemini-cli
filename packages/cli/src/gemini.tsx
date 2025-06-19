@@ -47,10 +47,6 @@ export async function main() {
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
-  // When using Code Assist this triggers the Oauth login.
-  // Do this now, before sandboxing, so web redirect works.
-  await config.getGeminiClient().initialize();
-
   // Initialize centralized FileDiscoveryService
   config.getFileService();
   if (config.getCheckpointEnabled()) {
