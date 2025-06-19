@@ -18,10 +18,6 @@ export const useAuthCommand = (
   setAuthError: (error: string | null) => void,
   config: Config,
 ) => {
-  const [updatedAuthType, setUpdatedAuthType] = useState(
-    settings.merged.selectedAuthType,
-  );
-  const [originalAuthType] = useState(settings.merged.selectedAuthType);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
     settings.merged.selectedAuthType === undefined,
   );
@@ -30,7 +26,7 @@ export const useAuthCommand = (
     if (!isAuthDialogOpen) {
       performAuthFlow(settings.merged.selectedAuthType as AuthType, config);
     }
-  }, [isAuthDialogOpen, settings, config, originalAuthType, updatedAuthType]);
+  }, [isAuthDialogOpen, settings, config]);
 
   const openAuthDialog = useCallback(() => {
     setIsAuthDialogOpen(true);
@@ -38,15 +34,14 @@ export const useAuthCommand = (
 
   const handleAuthSelect = useCallback(
     async (authMethod: string | undefined, scope: SettingScope) => {
-      if (authMethod && authMethod !== originalAuthType) {
+      if (authMethod) {
         await clearCachedCredentialFile();
         settings.setValue(scope, 'selectedAuthType', authMethod);
-        setUpdatedAuthType(authMethod as AuthType);
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);
     },
-    [settings, setAuthError, originalAuthType],
+    [settings, setAuthError],
   );
 
   const handleAuthHighlight = useCallback((_authMethod: string | undefined) => {
