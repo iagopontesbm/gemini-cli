@@ -119,6 +119,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const ctrlCTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -239,7 +240,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const widthFraction = 0.9;
   const inputWidth = Math.max(
     20,
-    Math.round(terminalWidth * widthFraction) - 3,
+    Math.floor(terminalWidth * widthFraction) - 3,
   );
   const suggestionsWidth = Math.max(60, Math.floor(terminalWidth * 0.8));
 
@@ -301,6 +302,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         return;
       }
       handleExit(ctrlDPressedOnce, setCtrlDPressedOnce, ctrlDTimerRef);
+    } else if (key.ctrl && input === 's') {
+      setConstrainHeight((prev) => !prev);
     }
   });
 
@@ -421,10 +424,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [terminalHeight, consoleMessages, showErrorDetails]);
 
-  const availableTerminalHeight = useMemo(() => {
-    const staticExtraHeight = /* margins and padding */ 3;
-    return terminalHeight - footerHeight - staticExtraHeight;
-  }, [terminalHeight, footerHeight]);
+  const staticExtraHeight = /* margins and padding */ 3;
+  const availableTerminalHeight = useMemo(
+    () => terminalHeight - footerHeight - staticExtraHeight,
+    [terminalHeight, footerHeight],
+  );
 
   useEffect(() => {
     if (!pendingHistoryItems.length) {
@@ -473,7 +477,10 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         {quittingMessages.map((item) => (
           <HistoryItemDisplay
             key={item.id}
-            availableTerminalHeight={availableTerminalHeight}
+            availableTerminalHeight={
+              constrainHeight ? availableTerminalHeight : undefined
+            }
+            terminalWidth={terminalWidth}
             item={item}
             isPending={false}
             config={config}
@@ -482,7 +489,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       </Box>
     );
   }
-
+  const mainAreaWidth = Math.floor(terminalWidth * 0.9);
+  const debugConsoleMaxHeight = Math.max(terminalHeight * 0.2, 5);
+  // Arbitrary threshold to ensure that items in the static area are large
+  // enough but not too large to make the terminal hard to use.
+  const staticAreaMaxItemHeight = Math.max(terminalHeight * 4, 100);
   return (
     <StreamingContext.Provider value={streamingState}>
       <Box flexDirection="column" marginBottom={1} width="90%">
@@ -507,7 +518,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             </Box>,
             ...history.map((h) => (
               <HistoryItemDisplay
-                availableTerminalHeight={availableTerminalHeight}
+                terminalWidth={mainAreaWidth}
+                availableTerminalHeight={staticAreaMaxItemHeight}
                 key={h.id}
                 item={h}
                 isPending={false}
@@ -522,7 +534,10 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           {pendingHistoryItems.map((item, i) => (
             <HistoryItemDisplay
               key={i}
-              availableTerminalHeight={availableTerminalHeight}
+              availableTerminalHeight={
+                constrainHeight ? availableTerminalHeight : undefined
+              }
+              terminalWidth={mainAreaWidth}
               // TODO(taehykim): It seems like references to ids aren't necessary in
               // HistoryItemDisplay. Refactor later. Use a fake id for now.
               item={{ ...item, id: 0 }}
@@ -562,6 +577,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onSelect={handleThemeSelect}
                 onHighlight={handleThemeHighlight}
                 settings={settings}
+                availableTerminalHeight={
+                  constrainHeight
+                    ? terminalHeight - staticExtraHeight
+                    : undefined
+                }
+                terminalWidth={mainAreaWidth}
               />
             </Box>
           ) : isAuthDialogOpen ? (
@@ -646,7 +667,13 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               </Box>
 
               {showErrorDetails && (
-                <DetailedMessagesDisplay messages={filteredConsoleMessages} />
+                <DetailedMessagesDisplay
+                  messages={filteredConsoleMessages}
+                  maxHeight={
+                    constrainHeight ? debugConsoleMaxHeight : undefined
+                  }
+                  width={inputWidth}
+                />
               )}
 
               {isInputActive && (
