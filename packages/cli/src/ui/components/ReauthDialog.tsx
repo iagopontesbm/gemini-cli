@@ -18,23 +18,18 @@ interface ReauthDialogProps {
 export const ReauthDialog = ({ config, onAuthSuccess }: ReauthDialogProps) => {
   const [authUrl, setAuthUrl] = useState<string | null>(null);
   const [isAuthenticating, setIsAuthenticating] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const handleConfirm = useCallback(async () => {
     if (isAuthenticating) return;
 
-    try {
-      const authProcess = await refreshAuth(
-        config.getGeminiClient().getContentGenerator(),
-      );
-      setAuthUrl(authProcess.authUrl);
-      setIsAuthenticating(true);
-      await open(authProcess.authUrl);
-      await authProcess.loginCompletePromise;
-      onAuthSuccess();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'An unknown error occurred.');
-    }
+    const authProcess = await refreshAuth(
+      config.getGeminiClient().getContentGenerator(),
+    );
+    setAuthUrl(authProcess.authUrl);
+    setIsAuthenticating(true);
+    await open(authProcess.authUrl);
+    await authProcess.loginCompletePromise;
+    onAuthSuccess();
   }, [config, onAuthSuccess, isAuthenticating]);
 
   useInput((_input, key) => {
@@ -54,8 +49,7 @@ export const ReauthDialog = ({ config, onAuthSuccess }: ReauthDialogProps) => {
       <Text color={Colors.AccentRed}>
         Authentication error: Your session has expired.
       </Text>
-      {error && <Text color={Colors.AccentRed}>Error: {error}</Text>}
-      {!isAuthenticating && !error && <Text>Press Enter to log in again.</Text>}
+      {!isAuthenticating && <Text>Press Enter to log in again.</Text>}
       {authUrl && (
         <Box flexDirection="column" marginTop={1}>
           <Text>

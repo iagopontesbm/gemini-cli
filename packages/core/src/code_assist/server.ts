@@ -31,6 +31,7 @@ import {
 } from './converter.js';
 import { PassThrough } from 'node:stream';
 import { ReauthNeededError } from './errors.js';
+import { GaxiosError } from 'gaxios';
 
 /** HTTP options to be used in each of the requests. */
 export interface HttpOptions {
@@ -191,8 +192,7 @@ export class CodeAssistServer implements ContentGenerator {
    */
   isAuthError(error: unknown): boolean {
     return (
-      error instanceof Error &&
-      (error.message === 'invalid_grant' || error.message === 'invalid_token')
+      error instanceof GaxiosError && error.response?.data?.error?.code === 401
     );
   }
 }
