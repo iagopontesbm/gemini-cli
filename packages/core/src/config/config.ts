@@ -79,7 +79,6 @@ export class MCPServerConfig {
 
 export interface ConfigParameters {
   sessionId: string;
-  contentGeneratorConfig: ContentGeneratorConfig;
   embeddingModel?: string;
   sandbox?: boolean | string;
   targetDir: string;
@@ -105,6 +104,7 @@ export interface ConfigParameters {
   cwd: string;
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
+  model: string;
 }
 
 export class Config {
@@ -137,10 +137,10 @@ export class Config {
   private readonly proxy: string | undefined;
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
+  private readonly model: string;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
-    this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
@@ -173,6 +173,7 @@ export class Config {
     this.cwd = params.cwd ?? process.cwd();
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
+    this.model = params.model;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -204,7 +205,7 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig.model;
+    return this.contentGeneratorConfig?.model || this.model;
   }
 
   getEmbeddingModel(): string {

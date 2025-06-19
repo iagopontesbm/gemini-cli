@@ -17,7 +17,6 @@ import {
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   FileDiscoveryService,
-  createContentGeneratorConfig,
   TelemetryTarget,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
@@ -188,16 +187,10 @@ export async function loadCliConfig(
     extensionContextFilePaths,
   );
 
-  const contentGeneratorConfig = await createContentGeneratorConfig(
-    argv.model,
-    settings.selectedAuthType,
-  );
-
   const mcpServers = mergeMcpServers(settings, extensions);
 
   return new Config({
     sessionId,
-    contentGeneratorConfig,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     sandbox: argv.sandbox ?? settings.sandbox,
     targetDir: process.cwd(),
@@ -237,6 +230,7 @@ export async function loadCliConfig(
     cwd: process.cwd(),
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
+    model: argv.model!,
   });
 }
 

@@ -196,10 +196,6 @@ describe('App UI', () => {
   beforeEach(() => {
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
-      contentGeneratorConfig: {
-        apiKey: 'test-key',
-        model: 'test-model',
-      },
       embeddingModel: 'test-embedding-model',
       sandbox: false,
       targetDir: '/test/dir',
@@ -209,7 +205,7 @@ describe('App UI', () => {
       showMemoryUsage: false,
       sessionId: 'test-session-id',
       cwd: '/tmp',
-      // Provide other required fields for ConfigParameters if necessary
+      model: 'model',
     }) as unknown as MockServerConfig;
 
     // Ensure the getShowMemoryUsage mock function is specifically set up if not covered by constructor mock
