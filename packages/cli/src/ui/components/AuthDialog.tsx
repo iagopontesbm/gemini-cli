@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { AuthType } from '@gemini-cli/core';
+import { loadEnvironment } from '../../config/config.js';
 
 interface AuthDialogProps {
   onSelect: (authMethod: string | undefined, scope: SettingScope) => void;
@@ -22,6 +23,7 @@ export function AuthDialog({
   onHighlight,
   settings,
 }: AuthDialogProps): React.JSX.Element {
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const authItems = [
     {
       label: 'Login w/Google: Personal Account',
@@ -43,8 +45,50 @@ export function AuthDialog({
     initialAuthIndex = 0;
   }
 
+  const validateAuthMethod = (authMethod: string): string | null => {
+    if (authMethod === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
+      return null;
+    }
+
+    if (authMethod === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE) {
+      if (!process.env.GOOGLE_CLOUD_PROJECT) {
+        return 'GOOGLE_CLOUD_PROJECT environment variable not found. Add that to ~/.env and try again, no reload needed!';
+      }
+      return null;
+    }
+
+    if (authMethod === AuthType.USE_GEMINI) {
+      if (!process.env.GEMINI_API_KEY) {
+        return 'GEMINI_API_KEY environment variable not found. Add that to ~/.env and try again, no reload needed!';
+      }
+      return null;
+    }
+
+    if (authMethod === AuthType.USE_VERTEX_AI) {
+      if (!process.env.GOOGLE_API_KEY) {
+        return 'GOOGLE_API_KEY environment variable must be set.';
+      }
+      if (!process.env.GOOGLE_CLOUD_PROJECT) {
+        return 'GOOGLE_CLOUD_PROJECT environment variable must be set.';
+      }
+      if (!process.env.GOOGLE_CLOUD_LOCATION) {
+        return 'GOOGLE_CLOUD_LOCATION environment variable must be set.';
+      }
+      return null;
+    }
+
+    return 'Invalid auth method selected.';
+  };
+
   const handleAuthSelect = (authMethod: string) => {
-    onSelect(authMethod, SettingScope.User);
+    loadEnvironment()
+    const error = validateAuthMethod(authMethod);
+    if (error) {
+      setErrorMessage(error);
+    } else {
+      setErrorMessage(null);
+      onSelect(authMethod, SettingScope.User);
+    }
   };
 
   useInput((_input, key) => {
@@ -69,6 +113,11 @@ export function AuthDialog({
         onHighlight={onHighlight}
         isFocused={true}
       />
+      {errorMessage && (
+        <Box marginTop={1}>
+          <Text color={Colors.AccentRed}>{errorMessage}</Text>
+        </Box>
+      )}
       <Box marginTop={1}>
         <Text color={Colors.Gray}>(Use Enter to select)</Text>
       </Box>

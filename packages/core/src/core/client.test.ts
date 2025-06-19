@@ -108,7 +108,7 @@ describe('Gemini Client (client.ts)', () => {
           model: 'test-model',
           apiKey: 'test-key',
           vertexai: false,
-          authType: AuthType.USE_GEMINI
+          authType: AuthType.USE_GEMINI,
         }),
         getToolRegistry: vi.fn().mockResolvedValue(mockToolRegistry),
         getModel: vi.fn().mockReturnValue('test-model'),
