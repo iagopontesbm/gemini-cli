@@ -77,10 +77,15 @@ export class MCPServerConfig {
   ) {}
 }
 
+export interface SandboxConfig {
+  command: 'docker' | 'podman' | 'sandbox-exec';
+  image: string;
+}
+
 export interface ConfigParameters {
   sessionId: string;
   embeddingModel?: string;
-  sandbox?: boolean | string;
+  sandbox?: SandboxConfig;
   targetDir: string;
   debugMode: boolean;
   question?: string;
@@ -112,7 +117,7 @@ export class Config {
   private readonly sessionId: string;
   private contentGeneratorConfig!: ContentGeneratorConfig;
   private readonly embeddingModel: string;
-  private readonly sandbox: boolean | string | undefined;
+  private readonly sandbox: SandboxConfig | undefined;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
   private readonly question: string | undefined;
@@ -212,7 +217,7 @@ export class Config {
     return this.embeddingModel;
   }
 
-  getSandbox(): boolean | string | undefined {
+  getSandbox(): SandboxConfig | undefined {
     return this.sandbox;
   }
 

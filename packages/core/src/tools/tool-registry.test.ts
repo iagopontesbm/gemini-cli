@@ -127,7 +127,7 @@ const baseConfigParams: ConfigParameters = {
   cwd: '/tmp',
   model: 'test-model',
   embeddingModel: 'test-embedding-model',
-  sandbox: false,
+  sandbox: undefined,
   targetDir: '/test/dir',
   debugMode: false,
   userMemory: '',
