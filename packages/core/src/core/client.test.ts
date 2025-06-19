@@ -102,14 +102,17 @@ describe('Gemini Client (client.ts)', () => {
     };
     const fileService = new FileDiscoveryService('/test/dir');
     const MockedConfig = vi.mocked(Config, true);
+    const contentGeneratorConfig = {
+      model: 'test-model',
+      apiKey: 'test-key',
+      vertexai: false,
+      authType: AuthType.USE_GEMINI,
+    };
     MockedConfig.mockImplementation(() => {
       const mock = {
-        getContentGeneratorConfig: vi.fn().mockReturnValue({
-          model: 'test-model',
-          apiKey: 'test-key',
-          vertexai: false,
-          authType: AuthType.USE_GEMINI,
-        }),
+        getContentGeneratorConfig: vi
+          .fn()
+          .mockReturnValue(contentGeneratorConfig),
         getToolRegistry: vi.fn().mockResolvedValue(mockToolRegistry),
         getModel: vi.fn().mockReturnValue('test-model'),
         getEmbeddingModel: vi.fn().mockReturnValue('test-embedding-model'),
@@ -132,7 +135,7 @@ describe('Gemini Client (client.ts)', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockConfig = new Config({} as any);
     client = new GeminiClient(mockConfig);
-    await client.initialize();
+    await client.initialize(contentGeneratorConfig);
   });
 
   afterEach(() => {

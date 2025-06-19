@@ -199,6 +199,7 @@ export class Config {
 
     this.contentGeneratorConfig = contentConfig;
     this.geminiClient = new GeminiClient(this);
+    await this.geminiClient.initialize(this.contentGeneratorConfig);
   }
 
   getSessionId(): string {

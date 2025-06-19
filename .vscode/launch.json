@@ -14,8 +14,7 @@
       "cwd": "${workspaceFolder}",
       "env": {
         "GEMINI_SANDBOX": "false"
-      },
-      "console": "externalTerminal"
+      }
     },
     {
       "type": "node",
