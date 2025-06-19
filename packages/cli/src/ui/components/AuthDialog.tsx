@@ -24,10 +24,6 @@ export function AuthDialog({
 }: AuthDialogProps): React.JSX.Element {
   const authItems = [
     {
-      label: 'Login w/Google: `gcloud application-default credentials`',
-      value: AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT,
-    },
-    {
       label: 'Login w/Google: Personal Account',
       value: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
     },

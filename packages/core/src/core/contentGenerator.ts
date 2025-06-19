@@ -36,7 +36,6 @@ export interface ContentGenerator {
 
 export enum AuthType {
   NONE = '',
-  LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT = 'gcloud',
   LOGIN_WITH_GOOGLE_PERSONAL = 'oauth-personal',
   LOGIN_WITH_GOOGLE_ENTERPRISE = 'oauth-enterprise',
   USE_GEMINI = 'gemini-api-key',
@@ -65,10 +64,7 @@ export async function createContentGeneratorConfig(
   };
 
   // if we are using google auth nothing else to validate for now
-  if (
-    authType === AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT ||
-    authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL
-  ) {
+  if (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
     return contentGeneratorConfig;
   }
 
@@ -121,7 +117,6 @@ export async function createContentGenerator(
     },
   };
   if (
-    config.authType === AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT ||
     config.authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
     config.authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE
   ) {

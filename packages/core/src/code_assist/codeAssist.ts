@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GoogleAuth, AuthClient } from 'google-auth-library';
+import { AuthClient } from 'google-auth-library';
 import { AuthType, ContentGenerator } from '../core/contentGenerator.js';
 import { getOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
@@ -20,10 +20,6 @@ export async function createCodeAssistContentGenerator(
 }
 
 async function getAuthClient(authType: AuthType): Promise<AuthClient> {
-  if (authType === AuthType.LOGIN_WITH_GOOGLE_APPLICATION_DEFAULT) {
-    return await new GoogleAuth().getClient();
-  }
-
   if (
     authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE ||
     authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL
