@@ -22,20 +22,20 @@ export const validateAuthMethod = (authMethod: string): string | null => {
 
   if (authMethod === AuthType.USE_GEMINI) {
     if (!process.env.GEMINI_API_KEY) {
-      return 'GEMINI_API_KEY  environment variable not found. Add that to your .env and try again, no reload needed!';
+      return 'GEMINI_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     return null;
   }
 
   if (authMethod === AuthType.USE_VERTEX_AI) {
     if (!process.env.GOOGLE_API_KEY) {
-      return 'GOOGLE_API_KEY  environment variable not found. Add that to your .env and try again, no reload needed!';
+      return 'GOOGLE_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     if (!process.env.GOOGLE_CLOUD_PROJECT) {
-      return 'GOOGLE_CLOUD_PROJECT  environment variable not found. Add that to your .env and try again, no reload needed!';
+      return 'GOOGLE_CLOUD_PROJECT environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     if (!process.env.GOOGLE_CLOUD_LOCATION) {
-      return 'GOOGLE_CLOUD_LOCATION  environment variable not found. Add that to your .env and try again, no reload needed!';
+      return 'GOOGLE_CLOUD_LOCATION environment variable not found. Add that to your .env and try again, no reload needed!';
     }
     return null;
   }
