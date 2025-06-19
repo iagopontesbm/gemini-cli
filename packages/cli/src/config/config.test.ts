@@ -247,31 +247,6 @@ describe('loadCliConfig telemetry', () => {
   });
 });
 
-describe('API Key Handling', () => {
-  const originalEnv = { ...process.env };
-  const originalArgv = process.argv;
-
-  beforeEach(() => {
-    vi.resetAllMocks();
-    process.argv = ['node', 'script.js'];
-  });
-
-  afterEach(() => {
-    process.env = originalEnv;
-    process.argv = originalArgv;
-  });
-
-  // mocking.
-  // it('should use GEMINI_API_KEY from env', async () => {
-  //   process.env.GEMINI_API_KEY = 'gemini-key';
-  //   delete process.env.GOOGLE_API_KEY;
-
-  //   const settings: Settings = { selectedAuthType: AuthType.USE_GEMINI };
-  //   const result = await loadCliConfig(settings, [], 'test-session');
-  //   expect(result.getContentGeneratorConfig().apiKey).toBe('gemini-key');
-  // });
-});
-
 describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
   beforeEach(() => {
     vi.resetAllMocks();
