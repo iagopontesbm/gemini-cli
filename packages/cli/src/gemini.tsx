@@ -71,6 +71,14 @@ export async function main() {
   if (!process.env.SANDBOX) {
     const sandboxConfig = config.getSandbox();
     if (sandboxConfig) {
+      if (settings.merged.selectedAuthType) {
+        const err = validateAuthMethod(settings.merged.selectedAuthType);
+        if (err) {
+          console.error(err);
+          process.exit(1);
+        }
+        await config.refreshAuth(settings.merged.selectedAuthType);
+      }
       await start_sandbox(sandboxConfig);
       process.exit(0);
     }
