@@ -30,7 +30,6 @@ import {
   CaCountTokenResponse,
 } from './converter.js';
 import { PassThrough } from 'node:stream';
-import { GaxiosError } from 'gaxios';
 import { ReauthNeededError } from './errors.js';
 
 /** HTTP options to be used in each of the requests. */
@@ -187,10 +186,13 @@ export class CodeAssistServer implements ContentGenerator {
     }
   }
 
+  /**
+   * Returns true if the error indicates the token was revoked or expired.
+   */
   isAuthError(error: unknown): boolean {
-    if (error instanceof GaxiosError) {
-      return error.response?.data?.error === 'invalid_grant';
-    }
-    return false;
+    return (
+      error instanceof Error &&
+      (error.message === 'invalid_grant' || error.message === 'invalid_token')
+    );
   }
 }

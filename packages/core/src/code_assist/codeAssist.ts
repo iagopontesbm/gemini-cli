@@ -23,8 +23,5 @@ export async function refreshAuth(
   if (!(contentGenerator instanceof CodeAssistServer)) {
     throw Error("Cannot refresh auth if you're not using CodeAssistServer");
   }
-  if (!(contentGenerator.auth instanceof OAuth2Client)) {
-    throw Error("Cannot refresh auth if you're not using OAuth2Client");
-  }
   return authWithWeb(contentGenerator.auth);
 }

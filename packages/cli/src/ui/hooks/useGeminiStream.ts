@@ -22,6 +22,7 @@ import {
   GitService,
   EditorType,
   ThoughtSummary,
+  ReauthNeededError,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -50,14 +51,6 @@ import {
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
 import { useSessionStats } from '../contexts/SessionContext.js';
-import { GaxiosError } from 'gaxios';
-
-function isAuthError(error: unknown): boolean {
-  if (error instanceof GaxiosError) {
-    return error.response?.data?.error === 'invalid_grant';
-  }
-  return false;
-}
 
 export function mergePartListUnions(list: PartListUnion[]): PartListUnion {
   const resultParts: PartListUnion = [];
@@ -505,7 +498,7 @@ export const useGeminiStream = (
           setPendingHistoryItem(null);
         }
       } catch (error: unknown) {
-        if (isAuthError(error)) {
+        if (error instanceof ReauthNeededError) {
           onAuthError();
         } else if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
