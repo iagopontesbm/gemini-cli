@@ -50,7 +50,7 @@ export type ContentGeneratorConfig = {
 
 export async function createContentGeneratorConfig(
   model: string | undefined,
-  authType: AuthType,
+  authType: AuthType | undefined,
 ): Promise<ContentGeneratorConfig> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -101,8 +101,7 @@ export async function createContentGeneratorConfig(
 
     return contentGeneratorConfig;
   }
-
-  contentGeneratorConfig.authType = AuthType.NONE;
+  
   return contentGeneratorConfig;
 }
 

@@ -32,8 +32,7 @@ export const useAuthCommand = (
   config: Config,
 ) => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
-    settings.merged.selectedAuthType === undefined ||
-      settings.merged.selectedAuthType === AuthType.NONE,
+    settings.merged.selectedAuthType === undefined
   );
 
   useEffect(() => {

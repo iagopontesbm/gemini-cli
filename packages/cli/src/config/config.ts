@@ -191,7 +191,7 @@ export async function loadCliConfig(
 
   const contentGeneratorConfig = await createContentGeneratorConfig(
     argv.model,
-    settings.selectedAuthType || AuthType.NONE,
+    settings.selectedAuthType,
   );
 
   const mcpServers = mergeMcpServers(settings, extensions);

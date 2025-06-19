@@ -67,8 +67,7 @@ describe('Server Config (config.ts)', () => {
     cwd: '/tmp',
     contentGeneratorConfig: {
       apiKey: API_KEY,
-      model: MODEL,
-      authType: AuthType.NONE,
+      model: MODEL
     },
     embeddingModel: EMBEDDING_MODEL,
     sandbox: SANDBOX,

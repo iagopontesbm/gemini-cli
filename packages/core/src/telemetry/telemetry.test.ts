@@ -13,7 +13,6 @@ import {
 import { Config } from '../config/config.js';
 import { NodeSDK } from '@opentelemetry/sdk-node';
 import * as loggers from './loggers.js';
-import { AuthType } from '../core/contentGenerator.js';
 
 vi.mock('@opentelemetry/sdk-node');
 vi.mock('../config/config.js');

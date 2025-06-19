@@ -107,15 +107,11 @@ describe('gemini.tsx main function', () => {
     };
     const userSettingsFile: SettingsFile = {
       path: '/user/settings.json',
-      settings: {
-        selectedAuthType: AuthType.NONE,
-      },
+      settings: {},
     };
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
-      settings: {
-        selectedAuthType: AuthType.NONE,
-      },
+      settings: {},
     };
     const mockLoadedSettings = new LoadedSettings(
       userSettingsFile,
