@@ -34,7 +34,7 @@ export function AuthDialog({
       value: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
     },
     {
-      label: 'Login w/Google: Work Account and a GCP project',
+      label: 'Login with GCP Project and Google Work Account',
       value: AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE,
     },
     { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
