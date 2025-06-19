@@ -35,7 +35,6 @@ export interface ContentGenerator {
 }
 
 export enum AuthType {
-  NONE = '',
   LOGIN_WITH_GOOGLE_PERSONAL = 'oauth-personal',
   LOGIN_WITH_GOOGLE_ENTERPRISE = 'oauth-enterprise',
   USE_GEMINI = 'gemini-api-key',
@@ -46,7 +45,7 @@ export type ContentGeneratorConfig = {
   model: string;
   apiKey?: string;
   vertexai?: boolean;
-  authType: AuthType;
+  authType?: AuthType | undefined;
 };
 
 export async function createContentGeneratorConfig(

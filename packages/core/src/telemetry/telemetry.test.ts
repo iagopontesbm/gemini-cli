@@ -30,7 +30,6 @@ describe('telemetry', () => {
       sessionId: 'test-session-id',
       contentGeneratorConfig: {
         model: 'test-model',
-        authType: AuthType.NONE,
       },
       targetDir: '/test/dir',
       debugMode: false,
