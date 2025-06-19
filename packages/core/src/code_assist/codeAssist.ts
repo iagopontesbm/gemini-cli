@@ -13,15 +13,14 @@ export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
   authType: AuthType,
 ): Promise<ContentGenerator> {
-if (
+  if (
     authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE ||
     authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL
-  ) {  
-
-const authClient = await getOauthClient();
-  const projectId = await setupUser(authClient);
-  return new CodeAssistServer(authClient, projectId, httpOptions);
-}
+  ) {
+    const authClient = await getOauthClient();
+    const projectId = await setupUser(authClient);
+    return new CodeAssistServer(authClient, projectId, httpOptions);
+  }
 
   throw new Error(`Unsupported authType: ${authType}`);
 }

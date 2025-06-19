@@ -10,7 +10,6 @@ import { loadCliConfig } from './config.js';
 import { Settings } from './settings.js';
 import { Extension } from './extension.js';
 import * as ServerConfig from '@gemini-cli/core';
-import { AuthType } from '@gemini-cli/core';
 
 const MOCK_HOME_DIR = '/mock/home/user';
 
