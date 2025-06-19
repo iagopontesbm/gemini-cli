@@ -18,7 +18,7 @@ exports[`Core System Prompt (prompts.ts) > should append userMemory with separat
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -194,7 +194,7 @@ exports[`Core System Prompt (prompts.ts) > should include git instructions when 
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -380,7 +380,7 @@ exports[`Core System Prompt (prompts.ts) > should include non-sandbox instructio
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -551,7 +551,7 @@ exports[`Core System Prompt (prompts.ts) > should include sandbox-specific instr
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -722,7 +722,7 @@ exports[`Core System Prompt (prompts.ts) > should include seatbelt-specific inst
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -893,7 +893,7 @@ exports[`Core System Prompt (prompts.ts) > should not include git instructions w
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -1064,7 +1064,7 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when no
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -1235,7 +1235,7 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when us
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications
@@ -1406,7 +1406,7 @@ exports[`Core System Prompt (prompts.ts) > should return the base prompt when us
 ## Software Engineering Tasks
 When requested to perform tasks like fixing bugs, adding features, refactoring, or explaining code, follow this sequence:
 1. **Understand:** Think about the user's request and the relevant codebase context. Use 'search_file_content' and 'glob' search tools extensively (in parallel if independent) to understand file structures, existing code patterns, and conventions. Use 'read_file' and 'read_many_files' to understand context and validate any assumptions you may have.
-2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process.
+2. **Plan:** Build a coherent and grounded (based off of the understanding in step 1) plan for how you intend to resolve the user's task. Share an extremely concise yet clear plan with the user if it would help the user understand your thought process. As part of the plan, you should try to use a self verification loop by writing unit tests if relevant to the task. Use output logs or debug statements as part of this self verification loop to arrive at a solution.
 3. **Implement:** Use the available tools (e.g., 'replace', 'write_file' 'run_shell_command' ...) to act on the plan, strictly adhering to the project's established conventions (detailed under 'Core Mandates').
 
 ## New Applications

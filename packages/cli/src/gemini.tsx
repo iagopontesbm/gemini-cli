@@ -30,7 +30,6 @@ import {
 export async function main() {
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
-  setWindowTitle(basename(workspaceRoot), settings);
 
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {
@@ -47,6 +46,10 @@ export async function main() {
 
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
+
+  // When using Code Assist this triggers the Oauth login.
+  // Do this now, before sandboxing, so web redirect works.
+  await config.getGeminiClient().initialize();
 
   // Initialize centralized FileDiscoveryService
   config.getFileService();
@@ -66,10 +69,6 @@ export async function main() {
     }
   }
 
-  // When using Code Assist this triggers the Oauth login.
-  // Do this now, before sandboxing, so web redirect works.
-  await config.getGeminiClient().getChat();
-
   // hop into sandbox if we are outside and sandboxing is enabled
   if (!process.env.SANDBOX) {
     const sandboxConfig = config.getSandbox();
@@ -84,6 +83,7 @@ export async function main() {
 
   // Render UI, passing necessary config values. Check that there is no command line question.
   if (process.stdin.isTTY && input?.length === 0) {
+    setWindowTitle(basename(workspaceRoot), settings);
     render(
       <React.StrictMode>
         <AppWrapper
