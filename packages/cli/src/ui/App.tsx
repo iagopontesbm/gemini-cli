@@ -53,6 +53,7 @@ import {
   isEditorAvailable,
   EditorType,
 } from '@gemini-cli/core';
+import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
 import {
@@ -137,6 +138,16 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthSelect,
     handleAuthHighlight,
   } = useAuthCommand(settings, setAuthError, config);
+
+  useEffect(() => {
+    if (settings.merged.selectedAuthType) {
+      const error = validateAuthMethod(settings.merged.selectedAuthType);
+      if (error) {
+        setAuthError(error);
+        openAuthDialog();
+      }
+    }
+  }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
 
   const {
     isEditorDialogOpen,
@@ -558,6 +569,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onSelect={handleAuthSelect}
                 onHighlight={handleAuthHighlight}
                 settings={settings}
+                initialErrorMessage={authError}
               />
             </Box>
           ) : isEditorDialogOpen ? (

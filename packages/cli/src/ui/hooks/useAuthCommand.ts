@@ -18,7 +18,9 @@ export const useAuthCommand = (
   setAuthError: (error: string | null) => void,
   config: Config,
 ) => {
-  const [updatedAuthType, setUpdatedAuthType] = useState(settings.merged.selectedAuthType)
+  const [updatedAuthType, setUpdatedAuthType] = useState(
+    settings.merged.selectedAuthType,
+  );
   const [originalAuthType] = useState(settings.merged.selectedAuthType);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
     settings.merged.selectedAuthType === undefined,
@@ -36,11 +38,10 @@ export const useAuthCommand = (
 
   const handleAuthSelect = useCallback(
     async (authMethod: string | undefined, scope: SettingScope) => {
-
       if (authMethod && authMethod !== originalAuthType) {
         await clearCachedCredentialFile();
         settings.setValue(scope, 'selectedAuthType', authMethod);
-        setUpdatedAuthType(authMethod as AuthType)
+        setUpdatedAuthType(authMethod as AuthType);
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);

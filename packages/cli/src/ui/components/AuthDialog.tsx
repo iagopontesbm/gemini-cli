@@ -10,20 +10,24 @@ import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { AuthType } from '@gemini-cli/core';
-import { loadEnvironment } from '../../config/config.js';
+import { validateAuthMethod } from '../../config/auth.js';
 
 interface AuthDialogProps {
   onSelect: (authMethod: string | undefined, scope: SettingScope) => void;
   onHighlight: (authMethod: string | undefined) => void;
   settings: LoadedSettings;
+  initialErrorMessage?: string | null;
 }
 
 export function AuthDialog({
   onSelect,
   onHighlight,
   settings,
+  initialErrorMessage,
 }: AuthDialogProps): React.JSX.Element {
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(
+    initialErrorMessage || null,
+  );
   const authItems = [
     {
       label: 'Login w/Google: Personal Account',
@@ -44,42 +48,6 @@ export function AuthDialog({
   if (initialAuthIndex === -1) {
     initialAuthIndex = 0;
   }
-
-  const validateAuthMethod = (authMethod: string): string | null => {
-    loadEnvironment();
-    if (authMethod === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
-      return null;
-    }
-
-    if (authMethod === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE) {
-      if (!process.env.GOOGLE_CLOUD_PROJECT) {
-        return 'GOOGLE_CLOUD_PROJECT environment variable not found. Add that to your .env and try again, no reload needed!';
-      }
-      return null;
-    }
-
-    if (authMethod === AuthType.USE_GEMINI) {
-      if (!process.env.GEMINI_API_KEY) {
-        return 'GEMINI_API_KEY  environment variable not found. Add that to your .env and try again, no reload needed!';
-      }
-      return null;
-    }
-
-    if (authMethod === AuthType.USE_VERTEX_AI) {
-      if (!process.env.GOOGLE_API_KEY) {
-        return 'GOOGLE_API_KEY  environment variable not found. Add that to your .env and try again, no reload needed!';
-      }
-      if (!process.env.GOOGLE_CLOUD_PROJECT) {
-        return 'GOOGLE_CLOUD_PROJECT  environment variable not found. Add that to your .env and try again, no reload needed!';
-      }
-      if (!process.env.GOOGLE_CLOUD_LOCATION) {
-        return 'GOOGLE_CLOUD_LOCATION  environment variable not found. Add that to your .env and try again, no reload needed!';
-      }
-      return null;
-    }
-
-    return 'Invalid auth method selected.';
-  };
 
   const handleAuthSelect = (authMethod: string) => {
     const error = validateAuthMethod(authMethod);

@@ -168,10 +168,17 @@ function getCachedCredentialPath(): string {
 export async function clearCachedCredentialFile() {
   try {
     const fileList = await fs.readdir(path.join(os.homedir(), GEMINI_DIR));
-    console.log('----------- Listing Files and folders in the directory before clear:', fileList);
+    console.log(
+      '----------- Listing Files and folders in the directory before clear:',
+      fileList,
+    );
     await fs.rm(getCachedCredentialPath());
     const fl = await fs.readdir(path.join(os.homedir(), GEMINI_DIR));
-    console.log('----------- Listing Files and folders in the directory after clear:', fl);
-
-  } catch (_) { /* empty */ }
+    console.log(
+      '----------- Listing Files and folders in the directory after clear:',
+      fl,
+    );
+  } catch (_) {
+    /* empty */
+  }
 }
