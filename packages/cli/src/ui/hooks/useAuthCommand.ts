@@ -6,29 +6,19 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { HistoryItem, MessageType } from '../types.js';
 import { AuthType, Config } from '@gemini-cli/core';
 
 async function performAuthFlow(
   authMethod: AuthType,
-  addItem: (item: HistoryItem, timestamp: number) => void,
   config: Config,
 ) {
   await config.refreshAuth(authMethod);
-  addItem(
-    {
-      type: MessageType.INFO,
-      text: `Authentication via "${authMethod}".`,
-      id: Date.now(),
-    },
-    Date.now(),
-  );
+  console.error(`Authenticated via "${authMethod}".`);
 }
 
 export const useAuthCommand = (
   settings: LoadedSettings,
   setAuthError: (error: string | null) => void,
-  addItem: (item: HistoryItem, timestamp: number) => void,
   config: Config,
 ) => {
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(
@@ -39,11 +29,10 @@ export const useAuthCommand = (
     if (!isAuthDialogOpen) {
       performAuthFlow(
         settings.merged.selectedAuthType as AuthType,
-        addItem,
         config,
       );
     }
-  }, [isAuthDialogOpen, settings, addItem, config]);
+  }, [isAuthDialogOpen, settings, config]);
 
   const openAuthDialog = useCallback(() => {
     setIsAuthDialogOpen(true);
@@ -53,12 +42,12 @@ export const useAuthCommand = (
     (authMethod: string | undefined, scope: SettingScope) => {
       if (authMethod) {
         settings.setValue(scope, 'selectedAuthType', authMethod);
-        performAuthFlow(authMethod as AuthType, addItem, config);
+        performAuthFlow(authMethod as AuthType, config);
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);
     },
-    [settings, addItem, setAuthError, config],
+    [settings, setAuthError, config],
   );
 
   const handleAuthHighlight = useCallback((_authMethod: string | undefined) => {

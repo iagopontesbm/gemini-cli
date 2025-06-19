@@ -164,3 +164,9 @@ async function setCachedCredentials(credentials: Credentials) {
 function getCachedCredentialPath(): string {
   return path.join(os.homedir(), GEMINI_DIR, CREDENTIAL_FILENAME);
 }
+
+export async function clearCachedCredentialFile() {
+  try {
+    await fs.rm(getCachedCredentialPath());
+  } catch (_) { /* empty */ }
+}

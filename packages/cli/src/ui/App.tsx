@@ -136,7 +136,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     openAuthDialog,
     handleAuthSelect,
     handleAuthHighlight,
-  } = useAuthCommand(settings, setAuthError, addItem, config);
+  } = useAuthCommand(settings, setAuthError, config);
 
   const {
     isEditorDialogOpen,
