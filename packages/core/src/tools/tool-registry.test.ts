@@ -30,6 +30,7 @@ import {
   Type,
 } from '@google/genai';
 import { execSync } from 'node:child_process';
+import { AuthType } from '../core/contentGenerator.js';
 
 // Use vi.hoisted to define the mock function so it can be used in the vi.mock factory
 const mockDiscoverMcpTools = vi.hoisted(() => vi.fn());

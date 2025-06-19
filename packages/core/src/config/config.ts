@@ -110,7 +110,7 @@ export interface ConfigParameters {
 export class Config {
   private toolRegistry: Promise<ToolRegistry>;
   private readonly sessionId: string;
-  private contentGeneratorConfig: ContentGeneratorConfig;
+  private contentGeneratorConfig!: ContentGeneratorConfig;
   private readonly embeddingModel: string;
   private readonly sandbox: boolean | string | undefined;
   private readonly targetDir: string;
@@ -129,7 +129,7 @@ export class Config {
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
-  private geminiClient: GeminiClient;
+  private geminiClient!: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
@@ -140,6 +140,7 @@ export class Config {
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
+    this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
