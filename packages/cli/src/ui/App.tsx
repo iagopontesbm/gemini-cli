@@ -589,11 +589,13 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               />
             </Box>
           ) : isAuthenticating ? (
-            <AuthInProgress onTimeout={() => {
-              setAuthError('Authentication timed out. Please try again.');
-              cancelAuthentication();
-              openAuthDialog();
-            }} />
+            <AuthInProgress
+              onTimeout={() => {
+                setAuthError('Authentication timed out. Please try again.');
+                cancelAuthentication();
+                openAuthDialog();
+              }}
+            />
           ) : isAuthDialogOpen ? (
             <Box flexDirection="column">
               <AuthDialog

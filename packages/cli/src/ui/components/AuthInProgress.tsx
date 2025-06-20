@@ -13,7 +13,9 @@ interface AuthInProgressProps {
   onTimeout: () => void;
 }
 
-export function AuthInProgress({ onTimeout }: AuthInProgressProps): React.JSX.Element {
+export function AuthInProgress({
+  onTimeout,
+}: AuthInProgressProps): React.JSX.Element {
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
@@ -34,7 +36,9 @@ export function AuthInProgress({ onTimeout }: AuthInProgressProps): React.JSX.El
       width="100%"
     >
       {timedOut ? (
-        <Text color={Colors.AccentRed}>Authentication timed out. Please try again.</Text>
+        <Text color={Colors.AccentRed}>
+          Authentication timed out. Please try again.
+        </Text>
       ) : (
         <Box>
           <Text>
