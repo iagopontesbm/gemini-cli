@@ -78,11 +78,16 @@ Message: ${getErrorMessage(e)}`
     // For now, we don't do anything on highlight.
   }, []);
 
+  const cancelAuthentication = useCallback(() => {
+    setIsAuthenticating(false);
+  }, []);
+
   return {
     isAuthDialogOpen,
     openAuthDialog,
     handleAuthSelect,
     handleAuthHighlight,
     isAuthenticating,
+    cancelAuthentication,
   };
 };

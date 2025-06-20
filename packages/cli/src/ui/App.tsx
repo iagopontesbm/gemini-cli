@@ -140,6 +140,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthSelect,
     handleAuthHighlight,
     isAuthenticating,
+    cancelAuthentication,
   } = useAuthCommand(settings, setAuthError, config);
 
   useEffect(() => {
@@ -588,7 +589,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               />
             </Box>
           ) : isAuthenticating ? (
-            <AuthInProgress />
+            <AuthInProgress onTimeout={() => {
+              setAuthError('Authentication timed out. Please try again.');
+              cancelAuthentication();
+              openAuthDialog();
+            }} />
           ) : isAuthDialogOpen ? (
             <Box flexDirection="column">
               <AuthDialog
