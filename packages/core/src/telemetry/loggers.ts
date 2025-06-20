@@ -20,6 +20,9 @@ import {
   ApiErrorEvent,
   ApiRequestEvent,
   ApiResponseEvent,
+  getDecisionFromOutcome,
+  StartSessionEvent,
+  ToolCallDecision,
   ToolCallEvent,
   UserPromptEvent,
 } from './types.js';
@@ -35,70 +38,42 @@ import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
-import { AuthType } from '../core/contentGenerator.js';
+import { ClearcutLogger } from './data-collection/clearcut-logging.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
-  config.getTelemetryLogPromptsEnabled() ?? false;
+  config.getTelemetryLogUserPromptsEnabled() ?? false;
 
-function getCommonAttributes(config: Config): LogAttributes {
+function getCommonAttributes(config: Config): Record<string, any> {
   return {
     'session.id': config.getSessionId(),
   };
 }
 
-export enum ToolCallDecision {
-  ACCEPT = 'accept',
-  REJECT = 'reject',
-  MODIFY = 'modify',
-}
-
-export function getDecisionFromOutcome(
-  outcome: ToolConfirmationOutcome,
-): ToolCallDecision {
-  switch (outcome) {
-    case ToolConfirmationOutcome.ProceedOnce:
-    case ToolConfirmationOutcome.ProceedAlways:
-    case ToolConfirmationOutcome.ProceedAlwaysServer:
-    case ToolConfirmationOutcome.ProceedAlwaysTool:
-      return ToolCallDecision.ACCEPT;
-    case ToolConfirmationOutcome.ModifyWithEditor:
-      return ToolCallDecision.MODIFY;
-    case ToolConfirmationOutcome.Cancel:
-    default:
-      return ToolCallDecision.REJECT;
-  }
-}
-
-export function logCliConfiguration(config: Config): void {
+export function logCliConfiguration(config: Config, event: StartSessionEvent): void {
+  ClearcutLogger.getInstance(config)?.logStartSessionEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
-  const generatorConfig = config.getContentGeneratorConfig();
-  let useGemini = false;
-  let useVertex = false;
-
-  if (generatorConfig && generatorConfig.authType) {
-    useGemini = generatorConfig.authType === AuthType.USE_GEMINI;
-    useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI;
-  }
-
-  const mcpServers = config.getMcpServers();
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
     'event.name': EVENT_CLI_CONFIG,
     'event.timestamp': new Date().toISOString(),
-    model: config.getModel(),
-    embedding_model: config.getEmbeddingModel(),
-    sandbox_enabled: !!config.getSandbox(),
-    core_tools_enabled: (config.getCoreTools() ?? []).join(','),
-    approval_mode: config.getApprovalMode(),
-    api_key_enabled: useGemini || useVertex,
-    vertex_ai_enabled: useVertex,
-    log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
+    model: event.model,
+    embedding_model: event.embedding_model,
+    sandbox_enabled: event.sandbox_enabled,
+    core_tools_enabled: event.core_tools_enabled,
+    approval_mode: event.approval_mode,
+    api_key_enabled: event.api_key_enabled,
+    vertex_ai_enabled: event.vertex_ai_enabled,
+    code_assist_enabled: event.code_assist_enabled,
+    log_user_prompts_enabled: event.telemetry_log_user_prompts_enabled,
     file_filtering_respect_git_ignore:
-      config.getFileFilteringRespectGitIgnore(),
-    debug_mode: config.getDebugMode(),
-    mcp_servers: mcpServers ? Object.keys(mcpServers).join(',') : '',
-  };
+      event.file_filtering_respect_git_ignore,
+    file_filtering_allow_build_artifacts:
+      event.file_filtering_allow_build_artifacts,
+    debug_mode: event.debug_enabled,
+    mcp_servers: event.mcp_servers,
+  };  
+
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
     body: 'CLI configuration loaded.',
@@ -109,10 +84,9 @@ export function logCliConfiguration(config: Config): void {
 
 export function logUserPrompt(
   config: Config,
-  event: Omit<UserPromptEvent, 'event.name' | 'event.timestamp' | 'prompt'> & {
-    prompt: string;
-  },
+  event: UserPromptEvent,
 ): void {
+  ClearcutLogger.getInstance(config)?.logNewPromptEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
   const attributes: LogAttributes = {
@@ -136,12 +110,10 @@ export function logUserPrompt(
 
 export function logToolCall(
   config: Config,
-  event: Omit<ToolCallEvent, 'event.name' | 'event.timestamp' | 'decision'>,
-  outcome?: ToolConfirmationOutcome,
+  event: ToolCallEvent,
 ): void {
+  ClearcutLogger.getInstance(config)?.logToolCallEvent(event);
   if (!isTelemetrySdkInitialized()) return;
-
-  const decision = outcome ? getDecisionFromOutcome(outcome) : undefined;
 
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
@@ -149,7 +121,6 @@ export function logToolCall(
     'event.name': EVENT_TOOL_CALL,
     'event.timestamp': new Date().toISOString(),
     function_args: JSON.stringify(event.function_args, null, 2),
-    decision,
   };
   if (event.error) {
     attributes['error.message'] = event.error;
@@ -157,9 +128,10 @@ export function logToolCall(
       attributes['error.type'] = event.error_type;
     }
   }
+
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `Tool call: ${event.function_name}${decision ? `. Decision: ${decision}` : ''}. Success: ${event.success}. Duration: ${event.duration_ms}ms.`,
+    body: `Tool call: ${event.function_name}${event.decision ? `. Decision: ${event.decision}` : ''}. Success: ${event.success}. Duration: ${event.duration_ms}ms.`,
     attributes,
   };
   logger.emit(logRecord);
@@ -168,21 +140,24 @@ export function logToolCall(
     event.function_name,
     event.duration_ms,
     event.success,
-    decision,
+    event.decision,
   );
 }
 
 export function logApiRequest(
   config: Config,
-  event: Omit<ApiRequestEvent, 'event.name' | 'event.timestamp'>,
+  event: ApiRequestEvent
 ): void {
+  ClearcutLogger.getInstance(config)?.logApiRequestEvent(event);
   if (!isTelemetrySdkInitialized()) return;
+
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_API_REQUEST,
     'event.timestamp': new Date().toISOString(),
   };
+
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
     body: `API request to ${event.model}.`,
@@ -193,15 +168,19 @@ export function logApiRequest(
 
 export function logApiError(
   config: Config,
-  event: Omit<ApiErrorEvent, 'event.name' | 'event.timestamp'>,
+  event: ApiErrorEvent
 ): void {
+  ClearcutLogger.getInstance(config)?.logApiErrorEvent(event);
   if (!isTelemetrySdkInitialized()) return;
+
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
     ...event,
     'event.name': EVENT_API_ERROR,
     'event.timestamp': new Date().toISOString(),
     ['error.message']: event.error,
+    'model_name': event.model,
+    'duration': event.duration_ms,
   };
 
   if (event.error_type) {
@@ -228,8 +207,9 @@ export function logApiError(
 
 export function logApiResponse(
   config: Config,
-  event: Omit<ApiResponseEvent, 'event.name' | 'event.timestamp'>,
+  event: ApiResponseEvent,
 ): void {
+  ClearcutLogger.getInstance(config)?.logApiResponseEvent(event);
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
@@ -288,14 +268,42 @@ export function logApiResponse(
   recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
 }
 
-export function getFinalUsageMetadata(
+export function combinedUsageMetadata(
   chunks: GenerateContentResponse[],
-): GenerateContentResponseUsageMetadata | undefined {
-  // Only the last streamed item has the final token count.
-  const lastChunkWithMetadata = chunks
-    .slice()
-    .reverse()
-    .find((chunk) => chunk.usageMetadata);
+): GenerateContentResponseUsageMetadata {
+  const metadataKeys: Array<keyof GenerateContentResponseUsageMetadata> = [
+    'promptTokenCount',
+    'candidatesTokenCount',
+    'cachedContentTokenCount',
+    'thoughtsTokenCount',
+    'toolUsePromptTokenCount',
+    'totalTokenCount',
+  ];
 
-  return lastChunkWithMetadata?.usageMetadata;
+  const totals: Record<keyof GenerateContentResponseUsageMetadata, number> = {
+    promptTokenCount: 0,
+    candidatesTokenCount: 0,
+    cachedContentTokenCount: 0,
+    thoughtsTokenCount: 0,
+    toolUsePromptTokenCount: 0,
+    totalTokenCount: 0,
+    cacheTokensDetails: 0,
+    candidatesTokensDetails: 0,
+    promptTokensDetails: 0,
+    toolUsePromptTokensDetails: 0,
+    trafficType: 0,
+  };
+
+  for (const chunk of chunks) {
+    if (chunk.usageMetadata) {
+      for (const key of metadataKeys) {
+        const chunkValue = chunk.usageMetadata[key];
+        if (typeof chunkValue === 'number') {
+          totals[key] += chunkValue;
+        }
+      }
+    }
+  }
+
+  return totals as unknown as GenerateContentResponseUsageMetadata;
 }
