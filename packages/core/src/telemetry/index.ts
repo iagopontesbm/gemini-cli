@@ -25,7 +25,6 @@ export {
   logApiRequest,
   logApiError,
   logApiResponse,
-  getFinalUsageMetadata,
 } from './loggers.js';
 export {
   StartSessionEvent,
