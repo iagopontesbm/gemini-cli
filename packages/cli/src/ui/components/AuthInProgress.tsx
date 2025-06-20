@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Box, Text } from 'ink';
+import { Box, Text, useInput } from 'ink';
 import Spinner from 'ink-spinner';
 import { Colors } from '../colors.js';
 
@@ -17,6 +17,12 @@ export function AuthInProgress({
   onTimeout,
 }: AuthInProgressProps): React.JSX.Element {
   const [timedOut, setTimedOut] = useState(false);
+
+  useInput((_, key) => {
+    if (key.escape) {
+      onTimeout();
+    }
+  });
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -42,7 +48,7 @@ export function AuthInProgress({
       ) : (
         <Box>
           <Text>
-            <Spinner type="dots" /> Waiting for auth...
+            <Spinner type="dots" /> Waiting for auth... (Press ESC to cancel)
           </Text>
         </Box>
       )}
