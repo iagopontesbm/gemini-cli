@@ -10,7 +10,7 @@ These tests are located in the `integration-tests` directory and are run using a
 
 ## Running the tests
 
-The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run test:integration:sandbox:none` script.
+The integration tests are not run as part of the default `npm run test` command. They must be run explicitly using the `npm run test:integration:all` script.
 
 The integration tests can also be run using the following shortcut:
 
