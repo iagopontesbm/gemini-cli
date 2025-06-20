@@ -291,7 +291,7 @@ export function logApiResponse(
 export function getFinalUsageMetadata(
   chunks: GenerateContentResponse[],
 ): GenerateContentResponseUsageMetadata | undefined {
-  //
+  // Only the last streamed item has the final token count.
   const lastChunkWithMetadata = chunks
     .slice()
     .reverse()
