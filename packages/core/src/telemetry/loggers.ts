@@ -38,12 +38,13 @@ import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
-import { ClearcutLogger } from './data-collection/clearcut-logging.js';
+import { AuthType } from '../core/contentGenerator.js';
+import { ClearcutLogger } from './clearcut-logger/clearcut-logger.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
-  config.getTelemetryLogUserPromptsEnabled() ?? false;
+  config.getTelemetryLogPromptsEnabled();
 
-function getCommonAttributes(config: Config): Record<string, any> {
+function getCommonAttributes(config: Config): LogAttributes {
   return {
     'session.id': config.getSessionId(),
   };
@@ -268,7 +269,7 @@ export function logApiResponse(
   recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
 }
 
-export function combinedUsageMetadata(
+function combinedUsageMetadata(
   chunks: GenerateContentResponse[],
 ): GenerateContentResponseUsageMetadata {
   const metadataKeys: Array<keyof GenerateContentResponseUsageMetadata> = [

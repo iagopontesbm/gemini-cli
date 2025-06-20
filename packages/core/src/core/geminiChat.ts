@@ -383,6 +383,17 @@ export class GeminiChat {
     this.history = history;
   }
 
+  getFinalUsageMetadata(
+    chunks: GenerateContentResponse[]
+  ) : GenerateContentResponseUsageMetadata | undefined {
+    const lastChunkWithMetadata = chunks
+      .slice()
+      .reverse()
+      .find((chunk) => chunk.usageMetadata);
+
+    return lastChunkWithMetadata?.usageMetadata;
+  }
+
   private async *processStreamResponse(
     streamResponse: AsyncGenerator<GenerateContentResponse>,
     inputContent: Content,
@@ -425,7 +436,7 @@ export class GeminiChat {
       const fullText = getStructuredResponseFromParts(allParts);
       await this._logApiResponse(
         durationMs,
-        getFinalUsageMetadata(chunks),
+        this.getFinalUsageMetadata(chunks),
         fullText,
       );
     }

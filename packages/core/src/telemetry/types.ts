@@ -8,6 +8,7 @@ import { GenerateContentResponseUsageMetadata } from '@google/genai';
 import { Config } from '../config/config.js';
 import { CompletedToolCall } from '../core/coreToolScheduler.js';
 import { ToolConfirmationOutcome } from '../tools/tools.js';
+import { AuthType } from '../core/contentGenerator.js';
 
 export enum ToolCallDecision {
   ACCEPT = 'accept',
@@ -56,22 +57,26 @@ export class StartSessionEvent {
     const generatorConfig = config.getContentGeneratorConfig();
     const mcpServers = config.getMcpServers();
 
+    let useGemini = false;
+    let useVertex = false;
+    if (generatorConfig && generatorConfig.authType) {
+      useGemini = generatorConfig.authType === AuthType.USE_GEMINI;
+      useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI;
+    }
+
     this['event.name'] = 'cli_config';
-    this['event.timestamp'] = new Date().toISOString();
     this.model = config.getModel();
     this.embedding_model = config.getEmbeddingModel();
     this.sandbox_enabled = typeof config.getSandbox() === 'string' || !!config.getSandbox();
     this.core_tools_enabled = (config.getCoreTools() ?? []).join(',');
     this.approval_mode = config.getApprovalMode();
-    this.api_key_enabled = !!generatorConfig.apiKey;
-    this.vertex_ai_enabled = generatorConfig.vertexai ?? false;
-    this.code_assist_enabled = !!generatorConfig.codeAssist;
+    this.api_key_enabled = useGemini || useVertex;
+    this.vertex_ai_enabled = useVertex;
     this.debug_enabled = config.getDebugMode();
     this.mcp_servers = mcpServers ? Object.keys(mcpServers).join(',') : '';
     this.telemetry_enabled = config.getTelemetryEnabled();
-    this.telemetry_log_user_prompts_enabled = config.getTelemetryLogUserPromptsEnabled();
+    this.telemetry_log_user_prompts_enabled = config.getTelemetryLogPromptsEnabled();
     this.file_filtering_respect_git_ignore = config.getFileFilteringRespectGitIgnore();
-    this.file_filtering_allow_build_artifacts = config.getFileFilteringAllowBuildArtifacts();
   }
 }
 

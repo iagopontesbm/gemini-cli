@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CompletedToolCall, ContentGeneratorConfig, EditTool, ErroredToolCall, GeminiClient, ToolConfirmationOutcome, ToolRegistry } from '../index.js';
+import { AuthType, CompletedToolCall, ContentGeneratorConfig, EditTool, ErroredToolCall, GeminiClient, ToolConfirmationOutcome, ToolRegistry } from '../index.js';
 import { logs } from '@opentelemetry/api-logs';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { Config } from '../config/config.js';
@@ -60,12 +60,11 @@ describe('loggers', () => {
         getContentGeneratorConfig: () => ({
           model: 'test-model',
           apiKey: 'test-api-key',
-          vertexai: true,
-          codeAssist: false,
+          authType: AuthType.USE_VERTEX_AI,
         }),
         getTelemetryEnabled: () => true,
         getDisableDataCollection: () => false,
-        getTelemetryLogUserPromptsEnabled: () => true,
+        getTelemetryLogPromptsEnabled: () => true,
         getFileFilteringRespectGitIgnore: () => true,
         getFileFilteringAllowBuildArtifacts: () => false,
         getDebugMode: () => true,
@@ -95,10 +94,8 @@ describe('loggers', () => {
           approval_mode: 'default',
           api_key_enabled: true,
           vertex_ai_enabled: true,
-          code_assist_enabled: false,
           log_user_prompts_enabled: true,
           file_filtering_respect_git_ignore: true,
-          file_filtering_allow_build_artifacts: false,
           debug_mode: true,
           mcp_servers: 'test-server',
         },
@@ -109,7 +106,8 @@ describe('loggers', () => {
   describe('logUserPrompt', () => {
     const mockConfig = {
       getSessionId: () => 'test-session-id',
-      getTelemetryLogUserPromptsEnabled: () => true,
+      getTelemetryEnabled: () => true,
+      getTelemetryLogPromptsEnabled: () => true,
       getDisableDataCollection: () => false,
     } as unknown as Config;
 
@@ -133,7 +131,8 @@ describe('loggers', () => {
     it('should not log prompt if disabled', () => {
       const mockConfig = {
         getSessionId: () => 'test-session-id',
-        getTelemetryLogUserPromptsEnabled: () => false,
+        getTelemetryEnabled: () => true,
+        getTelemetryLogPromptsEnabled: () => false,
         getTargetDir: () => 'target-dir',
         getDisableDataCollection: () => false,
       } as unknown as Config;
@@ -158,6 +157,8 @@ describe('loggers', () => {
       getSessionId: () => 'test-session-id',
       getTargetDir: () => 'target-dir',
       getDisableDataCollection: () => false,
+      getTelemetryEnabled: () => true,
+      getTelemetryLogPromptsEnabled: () => true,
     } as Config;
 
     const mockMetrics = {
@@ -251,6 +252,8 @@ describe('loggers', () => {
       getSessionId: () => 'test-session-id',
       getTargetDir: () => 'target-dir',
       getDisableDataCollection: () => false,
+      getTelemetryEnabled: () => true,
+      getTelemetryLogPromptsEnabled: () => true,
     } as Config;
 
     it('should log an API request with request_text', () => {
@@ -304,7 +307,7 @@ describe('loggers', () => {
       getSandbox: () => true,
       getCoreTools: () => ['ls', 'read-file'],
       getApprovalMode: () => 'default',
-      getTelemetryLogUserPromptsEnabled: () => true,
+      getTelemetryLogPromptsEnabled: () => true,
       getFileFilteringRespectGitIgnore: () => true,
       getFileFilteringAllowBuildArtifacts: () => false,
       getDebugMode: () => true,
@@ -325,6 +328,8 @@ describe('loggers', () => {
       getTargetDir: () => 'target-dir',
       getGeminiClient: () => mockGeminiClient,
       getDisableDataCollection: () => false,
+      getTelemetryEnabled: () => true,
+      getTelemetryLogPromptsEnabled: () => true,
     } as Config;
 
     const mockMetrics = {

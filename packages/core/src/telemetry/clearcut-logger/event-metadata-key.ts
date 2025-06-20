@@ -28,116 +28,110 @@ export enum EventMetadataKey {
   // Logs whether the Vertex API was used in the session.
   GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED = 7,
 
-  // Logs whether Code Assist was enabled in the session.
-  GEMINI_CLI_START_SESSION_CODE_ASSIST_ENABLED = 8,
-
   // Logs whether debug mode was enabled in the session.
-  GEMINI_CLI_START_SESSION_DEBUG_MODE_ENABLED = 9,
+  GEMINI_CLI_START_SESSION_DEBUG_MODE_ENABLED = 8,
 
   // Logs the MCP servers that were enabled in the session.
-  GEMINI_CLI_START_SESSION_MCP_SERVERS = 10,
+  GEMINI_CLI_START_SESSION_MCP_SERVERS = 9,
 
   // Logs whether user-collected telemetry was enabled in the session.
-  GEMINI_CLI_START_SESSION_TELEMETRY_ENABLED = 11,
+  GEMINI_CLI_START_SESSION_TELEMETRY_ENABLED = 10,
 
   // Logs whether prompt collection was enabled for user-collected telemetry.
-  GEMINI_CLI_START_SESSION_TELEMETRY_LOG_USER_PROMPTS_ENABLED = 12,
+  GEMINI_CLI_START_SESSION_TELEMETRY_LOG_USER_PROMPTS_ENABLED = 11,
 
   // Logs whether the session was configured to respect gitignore files.
-  GEMINI_CLI_START_SESSION_RESPECT_GITIGNORE = 13,
-
-  // Logs whether build artifacts were allowed during the session.
-  GEMINI_CLI_START_SESSION_ALLOW_BUILD_ARTIFACTS = 14,
+  GEMINI_CLI_START_SESSION_RESPECT_GITIGNORE = 12,
 
   // ==========================================================================
   // User Prompt Event Keys
   // ===========================================================================
 
   // Logs the length of the prompt.
-  GEMINI_CLI_USER_PROMPT_LENGTH = 15,
+  GEMINI_CLI_USER_PROMPT_LENGTH = 13,
 
   // ==========================================================================
   // Tool Call Event Keys
   // ===========================================================================
 
   // Logs the function name.
-  GEMINI_CLI_TOOL_CALL_NAME = 16,
+  GEMINI_CLI_TOOL_CALL_NAME = 14,
 
   // Logs the user's decision about how to handle the tool call.
-  GEMINI_CLI_TOOL_CALL_DECISION = 17,
+  GEMINI_CLI_TOOL_CALL_DECISION = 15,
 
   // Logs whether the tool call succeeded.
-  GEMINI_CLI_TOOL_CALL_SUCCESS = 18,
+  GEMINI_CLI_TOOL_CALL_SUCCESS = 16,
 
   // Logs the tool call duration in milliseconds.
-  GEMINI_CLI_TOOL_CALL_DURATION_MS = 19,
+  GEMINI_CLI_TOOL_CALL_DURATION_MS = 17,
 
   // Logs the tool call error message, if any.
-  GEMINI_CLI_TOOL_ERROR_MESSAGE = 20,
+  GEMINI_CLI_TOOL_ERROR_MESSAGE = 18,
 
   // Logs the tool call error type, if any.
-  GEMINI_CLI_TOOL_CALL_ERROR_TYPE = 21,
+  GEMINI_CLI_TOOL_CALL_ERROR_TYPE = 19,
 
   // ==========================================================================
   // GenAI API Request Event Keys
   // ===========================================================================
 
   // Logs the model id of the request.
-  GEMINI_CLI_API_REQUEST_MODEL = 22,
+  GEMINI_CLI_API_REQUEST_MODEL = 20,
 
   // ==========================================================================
   // GenAI API Response Event Keys
   // ===========================================================================
 
   // Logs the model id of the API call.
-  GEMINI_CLI_API_RESPONSE_MODEL = 23,
+  GEMINI_CLI_API_RESPONSE_MODEL = 21,
 
   // Logs the status code of the response.
-  GEMINI_CLI_API_RESPONSE_STATUS_CODE = 24,
+  GEMINI_CLI_API_RESPONSE_STATUS_CODE = 22,
 
   // Logs the duration of the API call in milliseconds.
-  GEMINI_CLI_API_RESPONSE_DURATION_MS = 25,
+  GEMINI_CLI_API_RESPONSE_DURATION_MS = 23,
 
   // Logs the error message of the API call, if any.
-  GEMINI_CLI_API_ERROR_MESSAGE = 26,
+  GEMINI_CLI_API_ERROR_MESSAGE = 24,
 
   // Logs the input token count of the API call.
-  GEMINI_CLI_API_RESPONSE_INPUT_TOKEN_COUNT = 27,
+  GEMINI_CLI_API_RESPONSE_INPUT_TOKEN_COUNT = 25,
 
   // Logs the output token count of the API call.
-  GEMINI_CLI_API_RESPONSE_OUTPUT_TOKEN_COUNT = 28,
+  GEMINI_CLI_API_RESPONSE_OUTPUT_TOKEN_COUNT = 26,
 
   // Logs the cached token count of the API call.
-  GEMINI_CLI_API_RESPONSE_CACHED_TOKEN_COUNT = 29,
+  GEMINI_CLI_API_RESPONSE_CACHED_TOKEN_COUNT = 27,
 
   // Logs the thinking token count of the API call.
-  GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT = 30,
+  GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT = 28,
 
   // Logs the tool use token count of the API call.
-  GEMINI_CLI_API_RESPONSE_TOOL_TOKEN_COUNT = 31,
+  GEMINI_CLI_API_RESPONSE_TOOL_TOKEN_COUNT = 29,
 
   // ==========================================================================
   // GenAI API Error Event Keys
   // ===========================================================================
 
   // Logs the model id of the API call.
-  GEMINI_CLI_API_ERROR_MODEL = 32,
+  GEMINI_CLI_API_ERROR_MODEL = 30,
 
   // Logs the error type.
-  GEMINI_CLI_API_ERROR_TYPE = 33,
+  GEMINI_CLI_API_ERROR_TYPE = 31,
 
   // Logs the status code of the error response.
-  GEMINI_CLI_API_ERROR_STATUS_CODE = 34,
+  GEMINI_CLI_API_ERROR_STATUS_CODE = 32,
 
   // Logs the duration of the API call in milliseconds.
-  GEMINI_CLI_API_ERROR_DURATION_MS = 35,
+  GEMINI_CLI_API_ERROR_DURATION_MS = 33,
 
   // ==========================================================================
   // End Session Event Keys
   // ===========================================================================
 
   // Logs the end of a session.
-  GEMINI_CLI_END_SESSION_ID = 36,
+  GEMINI_CLI_END_SESSION_ID = 34,
 }
 
 export function getEventMetadataKey(keyName: string): EventMetadataKey | undefined {

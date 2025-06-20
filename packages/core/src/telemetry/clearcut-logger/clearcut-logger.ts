@@ -144,13 +144,10 @@ export class ClearcutLogger {
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_APPROVAL_MODE, event.approval_mode);
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_API_KEY_ENABLED, event.api_key_enabled.toString());
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED, event.vertex_ai_enabled.toString());
-    data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_CODE_ASSIST_ENABLED, event.code_assist_enabled.toString());
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_DEBUG_MODE_ENABLED, event.debug_enabled.toString());
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_MCP_SERVERS, event.mcp_servers);
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_ENABLED, event.telemetry_enabled.toString());
     data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_LOG_USER_PROMPTS_ENABLED, event.telemetry_log_user_prompts_enabled.toString());
-    data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_RESPECT_GITIGNORE, event.file_filtering_respect_git_ignore.toString());
-    data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_ALLOW_BUILD_ARTIFACTS, event.file_filtering_allow_build_artifacts.toString());
 
     this.enqueueLogEvent(this.createLogEvent(start_session_event_name, data));
     this.flushIfNeeded();
