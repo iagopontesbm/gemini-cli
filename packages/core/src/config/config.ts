@@ -6,7 +6,11 @@
 
 import * as path from 'node:path';
 import process from 'node:process';
-import { ContentGeneratorConfig } from '../core/contentGenerator.js';
+import {
+  AuthType,
+  ContentGeneratorConfig,
+  createContentGeneratorConfig,
+} from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -23,6 +27,7 @@ import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
+import { getProjectTempDir } from '../utils/paths.js';
 import {
   initializeTelemetry,
   DEFAULT_TELEMETRY_TARGET,
@@ -80,7 +85,6 @@ export interface SandboxConfig {
 
 export interface ConfigParameters {
   sessionId: string;
-  contentGeneratorConfig: ContentGeneratorConfig;
   embeddingModel?: string;
   sandbox?: SandboxConfig;
   targetDir: string;
@@ -101,17 +105,18 @@ export interface ConfigParameters {
   accessibility?: AccessibilitySettings;
   telemetry?: TelemetrySettings;
   fileFilteringRespectGitIgnore?: boolean;
-  checkpoint?: boolean;
+  checkpointing?: boolean;
   proxy?: string;
   cwd: string;
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
+  model: string;
 }
 
 export class Config {
-  private toolRegistry: Promise<ToolRegistry>;
+  private toolRegistry!: ToolRegistry;
   private readonly sessionId: string;
-  private readonly contentGeneratorConfig: ContentGeneratorConfig;
+  private contentGeneratorConfig!: ContentGeneratorConfig;
   private readonly embeddingModel: string;
   private readonly sandbox: SandboxConfig | undefined;
   private readonly targetDir: string;
@@ -130,18 +135,18 @@ export class Config {
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
-  private readonly geminiClient: GeminiClient;
+  private geminiClient!: GeminiClient;
   private readonly fileFilteringRespectGitIgnore: boolean;
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
-  private readonly checkpoint: boolean;
+  private readonly checkpointing: boolean;
   private readonly proxy: string | undefined;
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
+  private readonly model: string;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
-    this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
@@ -169,22 +174,33 @@ export class Config {
 
     this.fileFilteringRespectGitIgnore =
       params.fileFilteringRespectGitIgnore ?? true;
-    this.checkpoint = params.checkpoint ?? false;
+    this.checkpointing = params.checkpointing ?? false;
     this.proxy = params.proxy;
     this.cwd = params.cwd ?? process.cwd();
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
+    this.model = params.model;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
     }
 
-    this.geminiClient = new GeminiClient(this);
-    this.toolRegistry = createToolRegistry(this);
-
     if (this.telemetrySettings.enabled) {
       initializeTelemetry(this);
     }
+  }
+
+  async refreshAuth(authMethod: AuthType) {
+    const contentConfig = await createContentGeneratorConfig(
+      this.getModel(),
+      authMethod,
+    );
+
+    const gc = new GeminiClient(this);
+    this.geminiClient = gc;
+    this.toolRegistry = await createToolRegistry(this);
+    await gc.initialize(contentConfig);
+    this.contentGeneratorConfig = contentConfig;
   }
 
   getSessionId(): string {
@@ -196,7 +212,7 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig.model;
+    return this.contentGeneratorConfig?.model || this.model;
   }
 
   getEmbeddingModel(): string {
@@ -215,8 +231,8 @@ export class Config {
     return this.targetDir;
   }
 
-  async getToolRegistry(): Promise<ToolRegistry> {
-    return this.toolRegistry;
+  getToolRegistry(): Promise<ToolRegistry> {
+    return Promise.resolve(this.toolRegistry);
   }
 
   getDebugMode(): boolean {
@@ -310,12 +326,16 @@ export class Config {
     return path.join(this.targetDir, GEMINI_DIR);
   }
 
+  getProjectTempDir(): string {
+    return getProjectTempDir(this.getProjectRoot());
+  }
+
   getFileFilteringRespectGitIgnore(): boolean {
     return this.fileFilteringRespectGitIgnore;
   }
 
-  getCheckpointEnabled(): boolean {
-    return this.checkpoint;
+  getCheckpointingEnabled(): boolean {
+    return this.checkpointing;
   }
 
   getProxy(): string | undefined {
