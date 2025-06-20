@@ -282,6 +282,7 @@ describe('useGeminiStream', () => {
       getProjectRoot: vi.fn(() => '/test/dir'),
       getCheckpointingEnabled: vi.fn(() => false),
       getGeminiClient: mockGetGeminiClient,
+      getDisableDataCollection: () => false,
       addHistory: vi.fn(),
     } as unknown as Config;
     mockOnDebugMessage = vi.fn();
