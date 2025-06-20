@@ -147,7 +147,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
-  private readonly disableDataCollection: boolean = false;
+  private readonly disableDataCollection: boolean = true;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -184,7 +184,7 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.disableDataCollection = params.disableDataCollection ?? false;
+    this.disableDataCollection = params.disableDataCollection ?? true;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
