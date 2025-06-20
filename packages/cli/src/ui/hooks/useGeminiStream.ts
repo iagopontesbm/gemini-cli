@@ -22,6 +22,7 @@ import {
   GitService,
   EditorType,
   ThoughtSummary,
+  isAuthError,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -87,6 +88,7 @@ export const useGeminiStream = (
   >,
   shellModeActive: boolean,
   getPreferredEditor: () => EditorType | undefined,
+  onAuthError: () => void,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -153,7 +155,12 @@ export const useGeminiStream = (
         (tc) =>
           tc.status === 'executing' ||
           tc.status === 'scheduled' ||
-          tc.status === 'validating',
+          tc.status === 'validating' ||
+          ((tc.status === 'success' ||
+            tc.status === 'error' ||
+            tc.status === 'cancelled') &&
+            !(tc as TrackedCompletedToolCall | TrackedCancelledToolCall)
+              .responseSubmittedToGemini),
       )
     ) {
       return StreamingState.Responding;
@@ -451,8 +458,9 @@ export const useGeminiStream = (
   const submitQuery = useCallback(
     async (query: PartListUnion, options?: { isContinuation: boolean }) => {
       if (
-        streamingState === StreamingState.Responding ||
-        streamingState === StreamingState.WaitingForConfirmation
+        (streamingState === StreamingState.Responding ||
+          streamingState === StreamingState.WaitingForConfirmation) &&
+        !options?.isContinuation
       )
         return;
 
@@ -496,7 +504,9 @@ export const useGeminiStream = (
           setPendingHistoryItem(null);
         }
       } catch (error: unknown) {
-        if (!isNodeError(error) || error.name !== 'AbortError') {
+        if (isAuthError(error)) {
+          onAuthError();
+        } else if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
             {
               type: MessageType.ERROR,
@@ -522,6 +532,7 @@ export const useGeminiStream = (
       setInitError,
       geminiClient,
       startNewTurn,
+      onAuthError,
     ],
   );
 
@@ -627,7 +638,7 @@ export const useGeminiStream = (
 
   useEffect(() => {
     const saveRestorableToolCalls = async () => {
-      if (!config.getCheckpointEnabled()) {
+      if (!config.getCheckpointingEnabled()) {
         return;
       }
       const restorableToolCalls = toolCalls.filter(
@@ -638,8 +649,8 @@ export const useGeminiStream = (
       );
 
       if (restorableToolCalls.length > 0) {
-        const checkpointDir = config.getGeminiDir()
-          ? path.join(config.getGeminiDir(), 'checkpoints')
+        const checkpointDir = config.getProjectTempDir()
+          ? path.join(config.getProjectTempDir(), 'checkpoints')
           : undefined;
 
         if (!checkpointDir) {

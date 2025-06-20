@@ -12,6 +12,7 @@ import {
   getErrorMessage,
   BugCommandSettings,
   TelemetrySettings,
+  AuthType,
 } from '@gemini-cli/core';
 import stripJsonComments from 'strip-json-comments';
 import { DefaultLight } from '../ui/themes/default-light.js';
@@ -26,12 +27,17 @@ export enum SettingScope {
   Workspace = 'Workspace',
 }
 
+export interface CheckpointingSettings {
+  enabled?: boolean;
+}
+
 export interface AccessibilitySettings {
   disableLoadingPhrases?: boolean;
 }
 
 export interface Settings {
   theme?: string;
+  selectedAuthType?: AuthType;
   sandbox?: boolean | string;
   coreTools?: string[];
   excludeTools?: string[];
@@ -45,6 +51,7 @@ export interface Settings {
   telemetry?: TelemetrySettings;
   preferredEditor?: string;
   bugCommand?: BugCommandSettings;
+  checkpointing?: CheckpointingSettings;
 
   // Git-aware file filtering settings
   fileFiltering?: {
