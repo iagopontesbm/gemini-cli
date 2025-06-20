@@ -34,6 +34,11 @@ export async function main() {
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
 
+  // set default fallback to gemini api key
+  settings.merged.selectedAuthType ||= process.env.GEMINI_API_KEY
+    ? AuthType.USE_GEMINI
+    : undefined;
+
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
