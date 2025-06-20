@@ -22,7 +22,7 @@ export function AuthInProgress({
     const timer = setTimeout(() => {
       setTimedOut(true);
       onTimeout();
-    }, 30000);
+    }, 180000);
 
     return () => clearTimeout(timer);
   }, [onTimeout]);
