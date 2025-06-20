@@ -68,6 +68,7 @@ export const useSlashCommandProcessor = (
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
+  openAuthDialog: () => void,
   openEditorDialog: () => void,
   performMemoryRefresh: () => Promise<void>,
   toggleCorgiMode: () => void,
@@ -195,6 +196,13 @@ export const useSlashCommandProcessor = (
         description: 'change the theme',
         action: (_mainCommand, _subCommand, _args) => {
           openThemeDialog();
+        },
+      },
+      {
+        name: 'auth',
+        description: 'change the auth method',
+        action: (_mainCommand, _subCommand, _args) => {
+          openAuthDialog();
         },
       },
       {
@@ -639,7 +647,7 @@ Add any other context about the problem here.
         description:
           'resume from conversation checkpoint. Usage: /resume [tag]',
         completion: async () => {
-          const geminiDir = config?.getGeminiDir();
+          const geminiDir = config?.getProjectTempDir();
           if (!geminiDir) {
             return [];
           }
@@ -797,14 +805,30 @@ Add any other context about the problem here.
       },
     ];
 
-    if (config?.getCheckpointEnabled()) {
+    if (config?.getCheckpointingEnabled()) {
       commands.push({
         name: 'restore',
         description:
           'restore a tool call. This will reset the conversation and file history to the state it was in when the tool call was suggested',
+        completion: async () => {
+          const checkpointDir = config?.getProjectTempDir()
+            ? path.join(config.getProjectTempDir(), 'checkpoints')
+            : undefined;
+          if (!checkpointDir) {
+            return [];
+          }
+          try {
+            const files = await fs.readdir(checkpointDir);
+            return files
+              .filter((file) => file.endsWith('.json'))
+              .map((file) => file.replace('.json', ''));
+          } catch (_err) {
+            return [];
+          }
+        },
         action: async (_mainCommand, subCommand, _args) => {
-          const checkpointDir = config?.getGeminiDir()
-            ? path.join(config.getGeminiDir(), 'checkpoints')
+          const checkpointDir = config?.getProjectTempDir()
+            ? path.join(config.getProjectTempDir(), 'checkpoints')
             : undefined;
 
           if (!checkpointDir) {
@@ -907,6 +931,7 @@ Add any other context about the problem here.
     setShowHelp,
     refreshStatic,
     openThemeDialog,
+    openAuthDialog,
     openEditorDialog,
     clearItems,
     performMemoryRefresh,
