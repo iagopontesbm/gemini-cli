@@ -123,7 +123,7 @@ vi.mock('@gemini-cli/core', async (importOriginal) => {
         getAccessibility: vi.fn(() => opts.accessibility ?? {}),
         getProjectRoot: vi.fn(() => opts.projectRoot),
         getGeminiClient: vi.fn(() => ({})),
-        getCheckpointEnabled: vi.fn(() => opts.checkpoint ?? true),
+        getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
         getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
       };
     });
@@ -142,6 +142,15 @@ vi.mock('./hooks/useGeminiStream', () => ({
     submitQuery: vi.fn(),
     initError: null,
     pendingHistoryItems: [],
+  })),
+}));
+
+vi.mock('./hooks/useAuthCommand', () => ({
+  useAuthCommand: vi.fn(() => ({
+    isAuthDialogOpen: false,
+    openAuthDialog: vi.fn(),
+    handleAuthSelect: vi.fn(),
+    handleAuthHighlight: vi.fn(),
   })),
 }));
 
@@ -176,7 +185,9 @@ describe('App UI', () => {
     };
     const workspaceSettingsFile: SettingsFile = {
       path: '/workspace/.gemini/settings.json',
-      settings,
+      settings: {
+        ...settings,
+      },
     };
     return new LoadedSettings(userSettingsFile, workspaceSettingsFile, []);
   };
@@ -184,10 +195,6 @@ describe('App UI', () => {
   beforeEach(() => {
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
-      contentGeneratorConfig: {
-        apiKey: 'test-key',
-        model: 'test-model',
-      },
       embeddingModel: 'test-embedding-model',
       sandbox: undefined,
       targetDir: '/test/dir',
@@ -197,7 +204,7 @@ describe('App UI', () => {
       showMemoryUsage: false,
       sessionId: 'test-session-id',
       cwd: '/tmp',
-      // Provide other required fields for ConfigParameters if necessary
+      model: 'model',
     }) as unknown as MockServerConfig;
 
     // Ensure the getShowMemoryUsage mock function is specifically set up if not covered by constructor mock
