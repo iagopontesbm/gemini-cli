@@ -11,7 +11,11 @@ import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { basename } from 'node:path';
 import { start_sandbox } from './utils/sandbox.js';
-import { LoadedSettings, loadSettings } from './config/settings.js';
+import {
+  LoadedSettings,
+  loadSettings,
+  SettingScope,
+} from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
@@ -34,11 +38,6 @@ export async function main() {
   const workspaceRoot = process.cwd();
   const settings = loadSettings(workspaceRoot);
 
-  // set default fallback to gemini api key
-  settings.merged.selectedAuthType ||= process.env.GEMINI_API_KEY
-    ? AuthType.USE_GEMINI
-    : undefined;
-
   await cleanupCheckpoints();
   if (settings.errors.length > 0) {
     for (const error of settings.errors) {
@@ -54,6 +53,12 @@ export async function main() {
 
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
+
+  // set default fallback to gemini api key
+  // this has to go after load cli becuase thats where the env is set
+  if (!settings.merged.selectedAuthType && process.env.GEMINI_API_KEY) {
+    settings.setValue(SettingScope.User, 'selectedAuthType', 'gemini-api-key');
+  }
 
   setMaxSizedBoxDebugging(config.getDebugMode());
 
