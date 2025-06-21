@@ -38,8 +38,7 @@ const MockedGeminiClientClass = vi.hoisted(() =>
 );
 
 const MockedUserPromptEvent = vi.hoisted(() =>
-  vi.fn().mockImplementation(function (this: any, _config: any) {
-  }),
+  vi.fn().mockImplementation(function (this: any, _config: any) {}),
 );
 
 vi.mock('@gemini-cli/core', async (importOriginal) => {

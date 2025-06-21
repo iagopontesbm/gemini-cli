@@ -1,4 +1,3 @@
-
 // Defines valid event metadata keys for Clearcut logging.
 export enum EventMetadataKey {
   GEMINI_CLI_KEY_UNKNOWN = 0,
@@ -134,7 +133,9 @@ export enum EventMetadataKey {
   GEMINI_CLI_END_SESSION_ID = 34,
 }
 
-export function getEventMetadataKey(keyName: string): EventMetadataKey | undefined {
+export function getEventMetadataKey(
+  keyName: string,
+): EventMetadataKey | undefined {
   // Access the enum member by its string name
   const key = EventMetadataKey[keyName as keyof typeof EventMetadataKey];
 

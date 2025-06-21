@@ -50,7 +50,10 @@ function getCommonAttributes(config: Config): LogAttributes {
   };
 }
 
-export function logCliConfiguration(config: Config, event: StartSessionEvent): void {
+export function logCliConfiguration(
+  config: Config,
+  event: StartSessionEvent,
+): void {
   ClearcutLogger.getInstance(config)?.logStartSessionEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -67,13 +70,12 @@ export function logCliConfiguration(config: Config, event: StartSessionEvent): v
     vertex_ai_enabled: event.vertex_ai_enabled,
     code_assist_enabled: event.code_assist_enabled,
     log_user_prompts_enabled: event.telemetry_log_user_prompts_enabled,
-    file_filtering_respect_git_ignore:
-      event.file_filtering_respect_git_ignore,
+    file_filtering_respect_git_ignore: event.file_filtering_respect_git_ignore,
     file_filtering_allow_build_artifacts:
       event.file_filtering_allow_build_artifacts,
     debug_mode: event.debug_enabled,
     mcp_servers: event.mcp_servers,
-  };  
+  };
 
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
@@ -83,10 +85,7 @@ export function logCliConfiguration(config: Config, event: StartSessionEvent): v
   logger.emit(logRecord);
 }
 
-export function logUserPrompt(
-  config: Config,
-  event: UserPromptEvent,
-): void {
+export function logUserPrompt(config: Config, event: UserPromptEvent): void {
   ClearcutLogger.getInstance(config)?.logNewPromptEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -109,10 +108,7 @@ export function logUserPrompt(
   logger.emit(logRecord);
 }
 
-export function logToolCall(
-  config: Config,
-  event: ToolCallEvent,
-): void {
+export function logToolCall(config: Config, event: ToolCallEvent): void {
   ClearcutLogger.getInstance(config)?.logToolCallEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -145,10 +141,7 @@ export function logToolCall(
   );
 }
 
-export function logApiRequest(
-  config: Config,
-  event: ApiRequestEvent
-): void {
+export function logApiRequest(config: Config, event: ApiRequestEvent): void {
   ClearcutLogger.getInstance(config)?.logApiRequestEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -167,10 +160,7 @@ export function logApiRequest(
   logger.emit(logRecord);
 }
 
-export function logApiError(
-  config: Config,
-  event: ApiErrorEvent
-): void {
+export function logApiError(config: Config, event: ApiErrorEvent): void {
   ClearcutLogger.getInstance(config)?.logApiErrorEvent(event);
   if (!isTelemetrySdkInitialized()) return;
 
@@ -180,8 +170,8 @@ export function logApiError(
     'event.name': EVENT_API_ERROR,
     'event.timestamp': new Date().toISOString(),
     ['error.message']: event.error,
-    'model_name': event.model,
-    'duration': event.duration_ms,
+    model_name: event.model,
+    duration: event.duration_ms,
   };
 
   if (event.error_type) {
@@ -206,10 +196,7 @@ export function logApiError(
   );
 }
 
-export function logApiResponse(
-  config: Config,
-  event: ApiResponseEvent,
-): void {
+export function logApiResponse(config: Config, event: ApiResponseEvent): void {
   ClearcutLogger.getInstance(config)?.logApiResponseEvent(event);
   if (!isTelemetrySdkInitialized()) return;
   const attributes: LogAttributes = {

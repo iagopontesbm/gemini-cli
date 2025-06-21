@@ -67,7 +67,8 @@ export class StartSessionEvent {
     this['event.name'] = 'cli_config';
     this.model = config.getModel();
     this.embedding_model = config.getEmbeddingModel();
-    this.sandbox_enabled = typeof config.getSandbox() === 'string' || !!config.getSandbox();
+    this.sandbox_enabled =
+      typeof config.getSandbox() === 'string' || !!config.getSandbox();
     this.core_tools_enabled = (config.getCoreTools() ?? []).join(',');
     this.approval_mode = config.getApprovalMode();
     this.api_key_enabled = useGemini || useVertex;
@@ -75,8 +76,10 @@ export class StartSessionEvent {
     this.debug_enabled = config.getDebugMode();
     this.mcp_servers = mcpServers ? Object.keys(mcpServers).join(',') : '';
     this.telemetry_enabled = config.getTelemetryEnabled();
-    this.telemetry_log_user_prompts_enabled = config.getTelemetryLogPromptsEnabled();
-    this.file_filtering_respect_git_ignore = config.getFileFilteringRespectGitIgnore();
+    this.telemetry_log_user_prompts_enabled =
+      config.getTelemetryLogPromptsEnabled();
+    this.file_filtering_respect_git_ignore =
+      config.getFileFilteringRespectGitIgnore();
   }
 }
 
@@ -102,10 +105,7 @@ export interface UserPromptEvent {
 }
 
 export class UserPromptEvent {
-  constructor(
-    prompt_length: number,
-    prompt?: string,
-  ) {
+  constructor(prompt_length: number, prompt?: string) {
     this['event.name'] = 'user_prompt';
     this['event.timestamp'] = new Date().toISOString();
     this.prompt_length = prompt_length;
@@ -133,7 +133,9 @@ export class ToolCallEvent {
     this.function_args = call.request.args;
     this.duration_ms = call.durationMs ?? 0;
     this.success = call.status === 'success';
-    this.decision = call.outcome ? getDecisionFromOutcome(call.outcome) : undefined;
+    this.decision = call.outcome
+      ? getDecisionFromOutcome(call.outcome)
+      : undefined;
     this.error = call.response.error?.message;
     this.error_type = call.response.error?.name;
   }
@@ -147,10 +149,7 @@ export interface ApiRequestEvent {
 }
 
 export class ApiRequestEvent {
-  constructor(
-    model: string,
-    request_text?: string,
-  ) {
+  constructor(model: string, request_text?: string) {
     this['event.name'] = 'api_request';
     this['event.timestamp'] = new Date().toISOString();
     this.model = model;
@@ -174,7 +173,7 @@ export class ApiErrorEvent {
     error: string,
     duration_ms: number,
     error_type?: string,
-    status_code?: number | string,    
+    status_code?: number | string,
   ) {
     this['event.name'] = 'api_error';
     this['event.timestamp'] = new Date().toISOString();

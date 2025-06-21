@@ -29,7 +29,11 @@ import {
   getStructuredResponse,
   getStructuredResponseFromParts,
 } from '../utils/generateContentResponseUtilities.js';
-import { ApiErrorEvent, ApiRequestEvent, ApiResponseEvent } from '../telemetry/types.js';
+import {
+  ApiErrorEvent,
+  ApiRequestEvent,
+  ApiResponseEvent,
+} from '../telemetry/types.js';
 
 /**
  * Returns true if the response is valid, false otherwise.
@@ -164,7 +168,10 @@ export class GeminiChat {
     usageMetadata?: GenerateContentResponseUsageMetadata,
     responseText?: string,
   ): Promise<void> {
-    logApiResponse(this.config, new ApiResponseEvent(this.model, durationMs, usageMetadata, responseText));
+    logApiResponse(
+      this.config,
+      new ApiResponseEvent(this.model, durationMs, usageMetadata, responseText),
+    );
   }
 
   private _logApiError(durationMs: number, error: unknown): void {
@@ -172,7 +179,10 @@ export class GeminiChat {
     const errorType = error instanceof Error ? error.name : 'unknown';
     const statusCode = 'unknown';
 
-    logApiError(this.config, new ApiErrorEvent(this.model, errorMessage, durationMs, errorType));
+    logApiError(
+      this.config,
+      new ApiErrorEvent(this.model, errorMessage, durationMs, errorType),
+    );
   }
 
   /**
@@ -384,8 +394,8 @@ export class GeminiChat {
   }
 
   getFinalUsageMetadata(
-    chunks: GenerateContentResponse[]
-  ) : GenerateContentResponseUsageMetadata | undefined {
+    chunks: GenerateContentResponse[],
+  ): GenerateContentResponseUsageMetadata | undefined {
     const lastChunkWithMetadata = chunks
       .slice()
       .reverse()

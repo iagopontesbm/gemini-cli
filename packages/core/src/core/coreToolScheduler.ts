@@ -16,7 +16,7 @@ import {
   EditorType,
   Config,
   logToolCall,
-  ToolCallEvent
+  ToolCallEvent,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
 import { getResponseTextFromParts } from '../utils/generateContentResponseUtilities.js';

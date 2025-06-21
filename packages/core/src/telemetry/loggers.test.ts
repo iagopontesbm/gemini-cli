@@ -4,7 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType, CompletedToolCall, ContentGeneratorConfig, EditTool, ErroredToolCall, GeminiClient, ToolConfirmationOutcome, ToolRegistry } from '../index.js';
+import {
+  AuthType,
+  CompletedToolCall,
+  ContentGeneratorConfig,
+  EditTool,
+  ErroredToolCall,
+  GeminiClient,
+  ToolConfirmationOutcome,
+  ToolRegistry,
+} from '../index.js';
 import { logs } from '@opentelemetry/api-logs';
 import { SemanticAttributes } from '@opentelemetry/semantic-conventions';
 import { Config } from '../config/config.js';
@@ -22,7 +31,14 @@ import {
   logUserPrompt,
   logToolCall,
 } from './loggers.js';
-import { ApiRequestEvent, ApiResponseEvent, StartSessionEvent, ToolCallDecision, ToolCallEvent, UserPromptEvent } from './types.js';
+import {
+  ApiRequestEvent,
+  ApiResponseEvent,
+  StartSessionEvent,
+  ToolCallDecision,
+  ToolCallEvent,
+  UserPromptEvent,
+} from './types.js';
 import * as metrics from './metrics.js';
 import * as sdk from './sdk.js';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
@@ -70,7 +86,7 @@ describe('loggers', () => {
         getProxy: () => 'http://test.proxy.com:8080',
       } as unknown as Config;
 
-      const startSessionEvent = new StartSessionEvent(mockConfig)
+      const startSessionEvent = new StartSessionEvent(mockConfig);
       logCliConfiguration(mockConfig, startSessionEvent);
 
       expect(mockLogger.emit).toHaveBeenCalledWith({
@@ -174,8 +190,13 @@ describe('loggers', () => {
         cachedContentTokenCount: 10,
         thoughtsTokenCount: 5,
         toolUsePromptTokenCount: 2,
-      }
-      const event = new ApiResponseEvent('test-model', 100, usageData, 'test-response');
+      };
+      const event = new ApiResponseEvent(
+        'test-model',
+        100,
+        usageData,
+        'test-response',
+      );
 
       logApiResponse(mockConfig, event);
 
@@ -221,8 +242,14 @@ describe('loggers', () => {
         cachedContentTokenCount: 10,
         thoughtsTokenCount: 5,
         toolUsePromptTokenCount: 2,
-      }
-      const event = new ApiResponseEvent('test-model', 100, usageData, 'test-response', 'test-error');
+      };
+      const event = new ApiResponseEvent(
+        'test-model',
+        100,
+        usageData,
+        'test-response',
+        'test-error',
+      );
 
       logApiResponse(mockConfig, event);
 
@@ -292,10 +319,11 @@ describe('loggers', () => {
       getSessionId: () => 'test-session-id',
       getTargetDir: () => 'target-dir',
       getProxy: () => 'http://test.proxy.com:8080',
-      getContentGeneratorConfig: () => ({ model: "test-model" }) as ContentGeneratorConfig,
-      getModel: () => "test-model",
-      getEmbeddingModel: () => "test-embedding-model",
-      getWorkingDir: () => "test-working-dir",
+      getContentGeneratorConfig: () =>
+        ({ model: 'test-model' }) as ContentGeneratorConfig,
+      getModel: () => 'test-model',
+      getEmbeddingModel: () => 'test-embedding-model',
+      getWorkingDir: () => 'test-working-dir',
       getSandbox: () => true,
       getCoreTools: () => ['ls', 'read-file'],
       getApprovalMode: () => 'default',
@@ -347,10 +375,10 @@ describe('loggers', () => {
           callId: 'test-call-id',
         },
         response: {
-          callId: "test-call-id",
-            responseParts: "test-response",
-            resultDisplay: undefined,
-            error: undefined,
+          callId: 'test-call-id',
+          responseParts: 'test-response',
+          resultDisplay: undefined,
+          error: undefined,
         },
         tool: new EditTool(mockConfig),
         durationMs: 100,
@@ -401,10 +429,10 @@ describe('loggers', () => {
           callId: 'test-call-id',
         },
         response: {
-          callId: "test-call-id",
-            responseParts: "test-response",
-            resultDisplay: undefined,
-            error: undefined,
+          callId: 'test-call-id',
+          responseParts: 'test-response',
+          resultDisplay: undefined,
+          error: undefined,
         },
         durationMs: 100,
         outcome: ToolConfirmationOutcome.Cancel,
@@ -455,8 +483,8 @@ describe('loggers', () => {
           callId: 'test-call-id',
         },
         response: {
-          callId: "test-call-id",
-          responseParts: "test-response",
+          callId: 'test-call-id',
+          responseParts: 'test-response',
           resultDisplay: undefined,
           error: undefined,
         },
@@ -510,10 +538,10 @@ describe('loggers', () => {
           callId: 'test-call-id',
         },
         response: {
-          callId: "test-call-id",
-            responseParts: "test-response",
-            resultDisplay: undefined,
-            error: undefined,
+          callId: 'test-call-id',
+          responseParts: 'test-response',
+          resultDisplay: undefined,
+          error: undefined,
         },
         tool: new EditTool(mockConfig),
         durationMs: 100,
@@ -563,8 +591,8 @@ describe('loggers', () => {
           callId: 'test-call-id',
         },
         response: {
-          callId: "test-call-id",
-          responseParts: "test-response",
+          callId: 'test-call-id',
+          responseParts: 'test-response',
           resultDisplay: undefined,
           error: {
             name: 'test-error-type',

@@ -33,7 +33,7 @@ import {
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
   TelemetryTarget,
-  StartSessionEvent
+  StartSessionEvent,
 } from '../telemetry/index.js';
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
@@ -195,7 +195,9 @@ export class Config {
     }
 
     if (!this.disableDataCollection) {
-      ClearcutLogger.getInstance(this)?.enqueueLogEvent(new StartSessionEvent(this));
+      ClearcutLogger.getInstance(this)?.enqueueLogEvent(
+        new StartSessionEvent(this),
+      );
     }
   }
 
