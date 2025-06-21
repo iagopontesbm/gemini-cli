@@ -28,14 +28,6 @@ import * as sdk from './sdk.js';
 import { vi, describe, beforeEach, it, expect } from 'vitest';
 import { GenerateContentResponseUsageMetadata } from '@google/genai';
 
-vi.mock('@gemini-cli/cli/dist/src/utils/version', () => ({
-  getCliVersion: () => 'test-version',
-}));
-
-vi.mock('@gemini-cli/cli/dist/src/config/settings', () => ({
-  getTheme: () => 'test-theme',
-}));
-
 describe('loggers', () => {
   const mockLogger = {
     emit: vi.fn(),
