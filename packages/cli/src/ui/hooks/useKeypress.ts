@@ -21,7 +21,7 @@ export interface Key {
  * A hook that listens for keypress events from stdin, providing a
  * key object that mirrors the one from Node's `readline` module,
  * adding a 'paste' flag for characters input as part of a bracketed
- * paste.
+ * paste (when enabled).
  *
  * Pastes are currently sent as a single key event where the full paste
  * is in the sequence field.
@@ -47,12 +47,8 @@ export function useKeypress(
     }
 
     setRawMode(true);
-    // Enable bracketed paste mode.
-    process.stdout.write('\x1B[?2004h');
 
     return () => {
-      // Disable bracketed paste mode.
-      process.stdout.write('\x1B[?2004l');
       setRawMode(false);
     };
   }, [isActive, setRawMode]);
