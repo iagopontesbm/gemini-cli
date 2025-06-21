@@ -57,6 +57,7 @@ export interface TelemetrySettings {
   target?: TelemetryTarget;
   otlpEndpoint?: string;
   logPrompts?: boolean;
+  disableDataCollection?: boolean;
 }
 
 export class MCPServerConfig {
@@ -147,7 +148,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
-  private readonly disableDataCollection: boolean = true;
+  private readonly disableDataCollection: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -184,7 +185,8 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.disableDataCollection = params.disableDataCollection ?? true;
+    this.disableDataCollection =
+      params.telemetry?.disableDataCollection ?? true;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
