@@ -10,7 +10,6 @@ import { renderHook, act } from '@testing-library/react';
 import { useCompletion } from './useCompletion.js';
 import * as fs from 'fs/promises';
 import { FileDiscoveryService } from '@gemini-cli/core';
-import { glob } from 'glob';
 
 // Mock dependencies
 vi.mock('fs/promises');
@@ -25,7 +24,6 @@ vi.mock('@gemini-cli/core', async () => {
     getErrorMessage: vi.fn((error) => error.message),
   };
 });
-vi.mock('glob');
 
 describe('useCompletion git-aware filtering integration', () => {
   let mockFileDiscoveryService: Mocked<FileDiscoveryService>;
