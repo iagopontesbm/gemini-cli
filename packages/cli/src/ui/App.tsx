@@ -12,6 +12,7 @@ import {
   Static,
   Text,
   useStdin,
+  useStdout,
   useInput,
   type Key as InkKeyType,
 } from 'ink';
@@ -66,6 +67,7 @@ import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
 import { UpdateNotification } from './components/UpdateNotification.js';
 import { checkForUpdates } from './utils/updateCheck.js';
+import ansiEscapes from 'ansi-escapes';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -83,6 +85,7 @@ export const AppWrapper = (props: AppProps) => (
 
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const { stdout } = useStdout();
 
   useEffect(() => {
     checkForUpdates().then(setUpdateMessage);
@@ -98,8 +101,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [staticNeedsRefresh, setStaticNeedsRefresh] = useState(false);
   const [staticKey, setStaticKey] = useState(0);
   const refreshStatic = useCallback(() => {
+    stdout.write(ansiEscapes.clearTerminal);
     setStaticKey((prev) => prev + 1);
-  }, [setStaticKey]);
+  }, [setStaticKey, stdout]);
 
   const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0);
   const [debugMessage, setDebugMessage] = useState<string>('');
@@ -168,7 +172,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     addItem(
       {
         type: MessageType.INFO,
-        text: 'Refreshing hierarchical memory (GEMINI.md files)...',
+        text: 'Refreshing hierarchical memory (GEMINI.md or other context files)...',
       },
       Date.now(),
     );
@@ -213,6 +217,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     pendingHistoryItems: pendingSlashCommandHistoryItems,
   } = useSlashCommandProcessor(
     config,
+    settings,
     history,
     addItem,
     clearItems,
@@ -231,6 +236,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
   const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
+  const lastTerminalWidth = useRef(terminalWidth);
+  const isInitialMount = useRef(true);
   const { stdin, setRawMode } = useStdin();
   const isValidPath = useCallback((filePath: string): boolean => {
     try {
@@ -432,6 +439,26 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     () => terminalHeight - footerHeight - staticExtraHeight,
     [terminalHeight, footerHeight],
   );
+
+  useEffect(() => {
+    // skip refreshing Static during first mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    // debounce so it doesn't fire up too often during resize
+    const handler = setTimeout(() => {
+      if (terminalWidth < lastTerminalWidth.current) {
+        setStaticNeedsRefresh(true);
+      }
+      lastTerminalWidth.current = terminalWidth;
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [terminalWidth]);
 
   useEffect(() => {
     if (!pendingHistoryItems.length) {
