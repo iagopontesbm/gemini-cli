@@ -93,6 +93,7 @@ export function useKeypress(
           paste: true,
           sequence: pasteBuffer.toString(),
         });
+        pasteBuffer = Buffer.alloc(0);
       }
     };
   }, [isActive, stdin, setRawMode]);
