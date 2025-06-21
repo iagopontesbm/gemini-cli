@@ -35,7 +35,7 @@ export function AuthDialog({
     },
     { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
     {
-      label: 'Login with GCP Project and Google Work Account',
+      label: 'Login with Google Cloud project and Google Work Account',
       value: AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE,
     },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
