@@ -48,7 +48,10 @@ export function getPersistentUserId(): string {
 
     return userId;
   } catch (error) {
-    console.error('Error accessing persistent user ID file, generating ephemeral ID:', error);
-    return "123456789";
+    console.error(
+      'Error accessing persistent user ID file, generating ephemeral ID:',
+      error,
+    );
+    return '123456789';
   }
 }
