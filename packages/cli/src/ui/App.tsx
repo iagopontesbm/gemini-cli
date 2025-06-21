@@ -438,6 +438,17 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   );
 
   useEffect(() => {
+    // debounce so it doesn't fire up too often during resize
+    const handler = setTimeout(() => {
+      setStaticNeedsRefresh(true);
+    }, 300);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [terminalHeight, terminalWidth]);
+
+  useEffect(() => {
     if (!pendingHistoryItems.length) {
       return;
     }
