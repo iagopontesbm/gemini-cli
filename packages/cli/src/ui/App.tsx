@@ -168,7 +168,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     addItem(
       {
         type: MessageType.INFO,
-        text: 'Refreshing hierarchical memory (GEMINI.md files)...',
+        text: 'Refreshing hierarchical memory (GEMINI.md or other context files)...',
       },
       Date.now(),
     );
@@ -213,6 +213,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     pendingHistoryItems: pendingSlashCommandHistoryItems,
   } = useSlashCommandProcessor(
     config,
+    settings,
     history,
     addItem,
     clearItems,
