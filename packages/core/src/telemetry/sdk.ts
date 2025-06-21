@@ -71,6 +71,7 @@ export function initializeTelemetry(config: Config): void {
     [SemanticResourceAttributes.SERVICE_NAME]: SERVICE_NAME,
     [SemanticResourceAttributes.SERVICE_VERSION]: process.version,
     'session.id': config.getSessionId(),
+    'user.id': config.getUserId(),
   });
 
   const otlpEndpoint = config.getTelemetryOtlpEndpoint();

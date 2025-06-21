@@ -28,13 +28,15 @@ import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import { getProjectTempDir } from '../utils/paths.js';
+import { getPersistentUserId } from '../utils/user_id.js';
 import {
   initializeTelemetry,
+  shutdownTelemetry,
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
   TelemetryTarget,
-  StartSessionEvent,
 } from '../telemetry/index.js';
+import { StartSessionEvent } from '../telemetry/types.js';
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
 
@@ -148,6 +150,7 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private readonly disableDataCollection: boolean = true;
+  private readonly userId: string;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -185,6 +188,7 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.disableDataCollection = params.disableDataCollection ?? true;
+    this.userId = getPersistentUserId();
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -351,6 +355,10 @@ export class Config {
 
   getProxy(): string | undefined {
     return this.proxy;
+  }
+
+  getUserId(): string {
+    return this.userId;
   }
 
   getWorkingDir(): string {
