@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStdin } from 'ink';
 import readline from 'readline';
 import { PassThrough } from 'stream';
@@ -31,6 +31,11 @@ export function useKeypress(
   { isActive }: { isActive: boolean },
 ) {
   const { stdin, setRawMode } = useStdin();
+  const onKeypressRef = useRef(onKeypress);
+
+  useEffect(() => {
+    onKeypressRef.current = onKeypress;
+  }, [onKeypress]);
 
   useEffect(() => {
     if (!isActive) {
@@ -56,7 +61,7 @@ export function useKeypress(
     });
 
     const handleKeypress = (_: unknown, key: Key) => {
-      onKeypress(key);
+      onKeypressRef.current(key);
     };
 
     const handleData = (data: Buffer) => {
@@ -64,7 +69,7 @@ export function useKeypress(
 
       // Any data chunk that is longer than 6 characters is treated as a paste.
       if (sequence.length > 6) {
-        onKeypress({
+        onKeypressRef.current({
           name: '',
           ctrl: false,
           meta: false,
@@ -86,5 +91,5 @@ export function useKeypress(
       stdin.removeListener('data', handleData);
       rl.close();
     };
-  }, [isActive, stdin, onKeypress]);
+  }, [isActive, stdin]);
 }
