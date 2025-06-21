@@ -42,21 +42,11 @@ export function useKeypress(
   }, [onKeypress]);
 
   useEffect(() => {
-    if (!isActive) {
+    if (!isActive || !stdin.isTTY) {
       return;
     }
 
     setRawMode(true);
-
-    return () => {
-      setRawMode(false);
-    };
-  }, [isActive, setRawMode]);
-
-  useEffect(() => {
-    if (!isActive || !stdin.isTTY) {
-      return;
-    }
 
     const rl = readline.createInterface({ input: stdin });
     let isPaste = false;
@@ -91,6 +81,19 @@ export function useKeypress(
     return () => {
       stdin.removeListener('keypress', handleKeypress);
       rl.close();
+      setRawMode(false);
+
+      // If we are in the middle of a paste, send what we have.
+      if (isPaste) {
+        onKeypressRef.current({
+          name: '',
+          ctrl: false,
+          meta: false,
+          shift: false,
+          paste: true,
+          sequence: pasteBuffer.toString(),
+        });
+      }
     };
-  }, [isActive, stdin]);
+  }, [isActive, stdin, setRawMode]);
 }
