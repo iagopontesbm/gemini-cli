@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import { render } from 'ink-testing-library';
 import { AppWrapper as App } from './App.js';
+import { StreamingState } from './types.js';
 import {
   Config as ServerConfig,
   MCPServerConfig,
@@ -17,6 +18,7 @@ import {
 } from '@gemini-cli/core';
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
+import { useGeminiStream } from './hooks/useGeminiStream.js';
 
 // Define a more complete mock server config based on actual Config
 interface MockServerConfig {
@@ -121,7 +123,7 @@ vi.mock('@gemini-cli/core', async (importOriginal) => {
         getVertexAI: vi.fn(() => opts.vertexai),
         getShowMemoryUsage: vi.fn(() => opts.showMemoryUsage ?? false),
         getAccessibility: vi.fn(() => opts.accessibility ?? {}),
-        getProjectRoot: vi.fn(() => opts.projectRoot),
+        getProjectRoot: vi.fn(() => opts.targetDir || '/test/dir'),
         getGeminiClient: vi.fn(() => ({})),
         getCheckpointEnabled: vi.fn(() => opts.checkpoint ?? true),
         getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
@@ -138,10 +140,11 @@ vi.mock('@gemini-cli/core', async (importOriginal) => {
 // Mock heavy dependencies or those with side effects
 vi.mock('./hooks/useGeminiStream', () => ({
   useGeminiStream: vi.fn(() => ({
-    streamingState: 'Idle',
+    streamingState: StreamingState.Idle,
     submitQuery: vi.fn(),
     initError: null,
     pendingHistoryItems: [],
+    thought: null,
   })),
 }));
 
@@ -421,6 +424,54 @@ describe('App UI', () => {
         'Theme configuration unavailable due to NO_COLOR env variable.',
       );
       expect(lastFrame()).not.toContain('Select Theme');
+    });
+  });
+
+  describe('with initial input', () => {
+    it('should call submitQuery with the initial input', async () => {
+      const submitQuery = vi.fn();
+      vi.mocked(useGeminiStream).mockReturnValue({
+        streamingState: StreamingState.Idle,
+        submitQuery,
+        initError: null,
+        pendingHistoryItems: [],
+        thought: null,
+      });
+
+      const { unmount } = render(
+        <App
+          config={mockConfig as unknown as ServerConfig}
+          settings={mockSettings}
+          input="initial prompt"
+        />,
+      );
+      currentUnmount = unmount;
+
+      expect(submitQuery).toHaveBeenCalledExactlyOnceWith('initial prompt');
+    });
+  });
+
+  describe('with piped input and interactive flag', () => {
+    it('should call submitQuery with the piped input', async () => {
+      const submitQuery = vi.fn();
+      vi.mocked(useGeminiStream).mockReturnValue({
+        streamingState: StreamingState.Idle,
+        submitQuery,
+        initError: null,
+        pendingHistoryItems: [],
+        thought: null,
+      });
+
+      const { unmount } = render(
+        <App
+          config={mockConfig as unknown as ServerConfig}
+          settings={mockSettings}
+          input="piped input"
+        />,
+      );
+      currentUnmount = unmount;
+
+      expect(submitQuery).toHaveBeenCalledExactlyOnceWith('piped input');
     });
   });
 });

@@ -50,6 +50,13 @@ export async function main() {
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
+  if (config.getInteractive() && !process.stdin.isTTY) {
+    console.error(
+      'Error: The --interactive flag is not supported when piping input from stdin.',
+    );
+    process.exit(1);
+  }
+
   // Initialize centralized FileDiscoveryService
   config.getFileService();
   if (config.getCheckpointEnabled()) {
@@ -87,10 +94,23 @@ export async function main() {
   }
 
   let input = resolvePromptFromFile(config.getQuestion() ?? '', workspaceRoot);
+  if (!process.stdin.isTTY) {
+    input += await readStdin();
+  }
   const startupWarnings = await getStartupWarnings();
 
+  const shouldBeInteractive =
+    config.getInteractive() || (process.stdin.isTTY && input.length === 0);
+
+  if (config.getInteractive() && !process.stdin.isTTY) {
+    console.error(
+      'Error: The --interactive flag is not supported when piping input from stdin.',
+    );
+    process.exit(1);
+  }
+
   // Render UI, passing necessary config values. Check that there is no command line question.
-  if (process.stdin.isTTY && input?.length === 0) {
+  if (shouldBeInteractive) {
     setWindowTitle(basename(workspaceRoot), settings);
     render(
       <React.StrictMode>
@@ -98,17 +118,14 @@ export async function main() {
           config={config}
           settings={settings}
           startupWarnings={startupWarnings}
+          input={input}
         />
       </React.StrictMode>,
       { exitOnCtrlC: false },
     );
     return;
   }
-  // If not a TTY, read from stdin
-  // This is for cases where the user pipes input directly into the command
-  if (!process.stdin.isTTY) {
-    input += await readStdin();
-  }
+
   if (!input) {
     console.error('No input provided via stdin.');
     process.exit(1);

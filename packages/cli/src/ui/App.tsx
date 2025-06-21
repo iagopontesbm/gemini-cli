@@ -72,6 +72,7 @@ interface AppProps {
   config: Config;
   settings: LoadedSettings;
   startupWarnings?: string[];
+  input?: string;
 }
 
 export const AppWrapper = (props: AppProps) => (
@@ -80,8 +81,9 @@ export const AppWrapper = (props: AppProps) => (
   </SessionStatsProvider>
 );
 
-const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
+const App = ({ config, settings, startupWarnings = [], input }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
+  const initialPromptSubmitted = useRef(false);
 
   useEffect(() => {
     checkForUpdates().then(setUpdateMessage);
@@ -351,6 +353,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     getPreferredEditor,
     onAuthError,
   );
+
+  useEffect(() => {
+    if (input && !initialPromptSubmitted.current) {
+      submitQuery(input);
+      initialPromptSubmitted.current = true;
+    }
+  }, [input, submitQuery]);
+
   pendingHistoryItems.push(...pendingGeminiHistoryItems);
   const { elapsedTime, currentLoadingPhrase } =
     useLoadingIndicator(streamingState);

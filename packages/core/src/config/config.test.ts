@@ -268,4 +268,29 @@ describe('Server Config (config.ts)', () => {
       expect(config.getTelemetryOtlpEndpoint()).toBe(DEFAULT_OTLP_ENDPOINT);
     });
   });
+
+  describe('Interactive Flag', () => {
+    it('should set interactive to true when provided as true', () => {
+      const paramsWithInteractive: ConfigParameters = {
+        ...baseParams,
+        interactive: true,
+      };
+      const config = new Config(paramsWithInteractive);
+      expect(config.getInteractive()).toBe(true);
+    });
+
+    it('should set interactive to false when provided as false', () => {
+      const paramsWithInteractive: ConfigParameters = {
+        ...baseParams,
+        interactive: false,
+      };
+      const config = new Config(paramsWithInteractive);
+      expect(config.getInteractive()).toBe(false);
+    });
+
+    it('should default interactive to false if not provided', () => {
+      const config = new Config(baseParams);
+      expect(config.getInteractive()).toBe(false);
+    });
+  });
 });

@@ -247,6 +247,44 @@ describe('loadCliConfig telemetry', () => {
   });
 });
 
+describe('loadCliConfig interactive flag', () => {
+  const originalArgv = process.argv;
+  const originalEnv = { ...process.env };
+
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(os.homedir).mockReturnValue(MOCK_HOME_DIR);
+    process.env.GEMINI_API_KEY = 'test-api-key';
+  });
+
+  afterEach(() => {
+    process.argv = originalArgv;
+    process.env = originalEnv;
+    vi.restoreAllMocks();
+  });
+
+  it('should set interactive to true when --interactive flag is present', async () => {
+    process.argv = ['node', 'script.js', '--interactive'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], 'test-session');
+    expect(config.getInteractive()).toBe(true);
+  });
+
+  it('should set interactive to true when -i flag is present', async () => {
+    process.argv = ['node', 'script.js', '-i'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], 'test-session');
+    expect(config.getInteractive()).toBe(true);
+  });
+
+  it('should set interactive to false when flag is not present', async () => {
+    process.argv = ['node', 'script.js'];
+    const settings: Settings = {};
+    const config = await loadCliConfig(settings, [], 'test-session');
+    expect(config.getInteractive()).toBe(false);
+  });
+});
+
 describe('Hierarchical Memory Loading (config.ts) - Placeholder Suite', () => {
   beforeEach(() => {
     vi.resetAllMocks();
