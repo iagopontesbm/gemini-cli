@@ -13,6 +13,13 @@ import { useOverflowActions } from '../../contexts/OverflowContext.js';
 
 let enableDebugLog = false;
 
+/**
+ * Minimum height for the MaxSizedBox component.
+ * This ensures there is room for at least one line of content as well as the
+ * message that content was truncated.
+ */
+export const MINIMUM_MAX_HEIGHT = 2;
+
 export function setMaxSizedBoxDebugging(value: boolean) {
   enableDebugLog = value;
 }
@@ -99,10 +106,19 @@ export const MaxSizedBox: React.FC<MaxSizedBoxProps> = ({
   const id = useId();
   const { addOverflowingId, removeOverflowingId } = useOverflowActions() || {};
 
-  // Hooks must be called unconditionally.
-  // The layout logic is memoized or calculated, and then the effect is called.
   const laidOutStyledText: StyledText[][] = [];
+  // When maxHeight is not set, we render the content normally rather
+  // than using our custom layout logic. This should slightly improve
+  // performance for the case where there is no height limit and is
+  // a useful debugging tool to ensure that our layouts are consist
+  // with the expected layout when there is no height limit.
+  // In the future we might choose to still apply our layout logic
+  // even in this case particularlly if there are cases where we
+  // intentionally diverse how certain layouts are rendered.
+  let targetMaxHeight;
   if (maxHeight !== undefined) {
+    targetMaxHeight = Math.max(Math.round(maxHeight), MINIMUM_MAX_HEIGHT);
+
     if (maxWidth === undefined) {
       throw new Error('maxWidth must be defined when maxHeight is set.');
     }
@@ -126,12 +142,13 @@ export const MaxSizedBox: React.FC<MaxSizedBoxProps> = ({
   }
 
   const contentWillOverflow =
-    (maxHeight !== undefined &&
-      laidOutStyledText.length > maxHeight &&
-      maxHeight > 0) ||
+    (targetMaxHeight !== undefined &&
+      laidOutStyledText.length > targetMaxHeight) ||
     additionalHiddenLinesCount > 0;
   const visibleContentHeight =
-    contentWillOverflow && maxHeight !== undefined ? maxHeight - 1 : maxHeight;
+    contentWillOverflow && targetMaxHeight !== undefined
+      ? targetMaxHeight - 1
+      : targetMaxHeight;
 
   const hiddenLinesCount =
     visibleContentHeight !== undefined
@@ -162,9 +179,7 @@ export const MaxSizedBox: React.FC<MaxSizedBoxProps> = ({
   const visibleStyledText =
     hiddenLinesCount > 0
       ? overflowDirection === 'top'
-        ? laidOutStyledText.slice(
-            laidOutStyledText.length - (visibleContentHeight || 0),
-          )
+        ? laidOutStyledText.slice(hiddenLinesCount, laidOutStyledText.length)
         : laidOutStyledText.slice(0, visibleContentHeight)
       : laidOutStyledText;
 
