@@ -3,6 +3,7 @@ import * as https from 'https';
 import { StartSessionEvent, EndSessionEvent, UserPromptEvent, ToolCallEvent, ApiRequestEvent, ApiResponseEvent, ApiErrorEvent } from '../types.js';
 import { EventMetadataKey } from './event-metadata-key.js';
 import { Config } from '../../config/config.js';
+import { Logger, MessageSenderType } from '../../core/logger.js';
 
 const start_session_event_name = 'start_session';
 const new_prompt_event_name = 'new_prompt';
@@ -92,7 +93,8 @@ export class ClearcutLogger {
       try {
         this.events.length = 0;
         return this.decodeLogResponse(buf) || {};
-      } catch {
+      } catch (error: unknown) {
+        console.error('Error flushing log events:', error);
         return {};
       }
     });
@@ -100,6 +102,7 @@ export class ClearcutLogger {
 
   // Visible for testing. Decodes protobuf-encoded response from Clearcut server.
   decodeLogResponse(buf: Buffer): LogResponse | undefined {
+    // TODO(obrienowen): return specific errors to facilitate debugging.
     if (buf.length < 1) {
       return undefined;
     }
