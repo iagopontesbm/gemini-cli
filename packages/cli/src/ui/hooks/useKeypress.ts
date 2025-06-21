@@ -59,10 +59,7 @@ export function useKeypress(
       return;
     }
 
-    const rl = readline.createInterface({
-      input: stdin,
-      escapeCodeTimeout: 50,
-    });
+    const rl = readline.createInterface({ input: stdin });
     let isPaste = false;
 
     const handleKeypress = (_: unknown, key: Key) => {
