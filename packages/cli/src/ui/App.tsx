@@ -85,7 +85,7 @@ export const AppWrapper = (props: AppProps) => (
 
 const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [updateMessage, setUpdateMessage] = useState<string | null>(null);
-  const {stdout} = useStdout();
+  const { stdout } = useStdout();
 
   useEffect(() => {
     checkForUpdates().then(setUpdateMessage);
