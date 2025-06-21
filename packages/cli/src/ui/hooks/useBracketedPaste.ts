@@ -9,8 +9,6 @@ import { useEffect } from 'react';
 const ENABLE_BRACKETED_PASTE = '\x1b[?2004h';
 const DISABLE_BRACKETED_PASTE = '\x1b[?2004l';
 
-let isCleanedUp = false;
-
 /**
  * Enables and disables bracketed paste mode in the terminal.
  *
@@ -19,11 +17,7 @@ let isCleanedUp = false;
  */
 export const useBracketedPaste = () => {
   const cleanup = () => {
-    if (isCleanedUp) {
-      return;
-    }
     process.stdout.write(DISABLE_BRACKETED_PASTE);
-    isCleanedUp = true;
   };
 
   useEffect(() => {
