@@ -30,12 +30,11 @@ import { GitService } from '../services/gitService.js';
 import { getProjectTempDir } from '../utils/paths.js';
 import {
   initializeTelemetry,
-  shutdownTelemetry,
   DEFAULT_TELEMETRY_TARGET,
   DEFAULT_OTLP_ENDPOINT,
   TelemetryTarget,
+  StartSessionEvent,
 } from '../telemetry/index.js';
-import { StartSessionEvent } from '../telemetry/types.js';
 import { DEFAULT_GEMINI_EMBEDDING_MODEL } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
 
@@ -115,6 +114,7 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
+  disableDataCollection?: boolean;
 }
 
 export class Config {
@@ -148,7 +148,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
-  private readonly disableDataCollection: boolean = true;
+  private readonly disableDataCollection: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
