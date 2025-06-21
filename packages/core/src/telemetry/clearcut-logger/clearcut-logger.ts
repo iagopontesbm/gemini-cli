@@ -17,6 +17,7 @@ import {
 } from '../types.js';
 import { EventMetadataKey } from './event-metadata-key.js';
 import { Config } from '../../config/config.js';
+import { getPersistentUserId } from '../../utils/user_id.js';
 
 const start_session_event_name = 'start_session';
 const new_prompt_event_name = 'new_prompt';
@@ -67,6 +68,7 @@ export class ClearcutLogger {
     return {
       Application: 'GEMINI_CLI',
       event_name: name,
+      client_install_id: getPersistentUserId(),
       event_metadata: [data] as object[],
     };
   }

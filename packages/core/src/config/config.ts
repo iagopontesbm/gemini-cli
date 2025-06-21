@@ -28,7 +28,6 @@ import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
 import { getProjectTempDir } from '../utils/paths.js';
-import { getPersistentUserId } from '../utils/user_id.js';
 import {
   initializeTelemetry,
   shutdownTelemetry,
@@ -59,6 +58,7 @@ export interface TelemetrySettings {
   target?: TelemetryTarget;
   otlpEndpoint?: string;
   logPrompts?: boolean;
+  disableDataCollection?: boolean;
 }
 
 export class MCPServerConfig {
@@ -115,7 +115,6 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
-  disableDataCollection?: boolean;
 }
 
 export class Config {
@@ -150,7 +149,6 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private readonly disableDataCollection: boolean = true;
-  private readonly userId: string;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -187,8 +185,8 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.disableDataCollection = params.disableDataCollection ?? true;
-    this.userId = getPersistentUserId();
+    this.disableDataCollection =
+      params.telemetry?.disableDataCollection ?? true;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -355,10 +353,6 @@ export class Config {
 
   getProxy(): string | undefined {
     return this.proxy;
-  }
-
-  getUserId(): string {
-    return this.userId;
   }
 
   getWorkingDir(): string {
