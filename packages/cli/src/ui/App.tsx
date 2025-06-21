@@ -129,6 +129,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
+  const initialPromptSubmitted = useRef(false);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -379,6 +380,27 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     },
     [submitQuery],
   );
+
+  useEffect(() => {
+    const prompt = config.getQuestion();
+    if (
+      prompt &&
+      !initialPromptSubmitted.current &&
+      !isAuthenticating &&
+      !isAuthDialogOpen &&
+      !isThemeDialogOpen &&
+      config.getGeminiClient()?.getChatSafe?.()
+    ) {
+      submitQuery(prompt);
+      initialPromptSubmitted.current = true;
+    }
+  }, [
+    submitQuery,
+    isAuthenticating,
+    isAuthDialogOpen,
+    isThemeDialogOpen,
+    config,
+  ]);
 
   const logger = useLogger();
   const [userMessages, setUserMessages] = useState<string[]>([]);
