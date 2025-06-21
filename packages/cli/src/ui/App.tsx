@@ -235,6 +235,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
   const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
+  const lastTerminalWidth = useRef(terminalWidth);
+  const isInitialMount = useRef(true);
   const { stdin, setRawMode } = useStdin();
   const isValidPath = useCallback((filePath: string): boolean => {
     try {
@@ -438,15 +440,24 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   );
 
   useEffect(() => {
+    // skip refreshing Static during first mount
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
     // debounce so it doesn't fire up too often during resize
     const handler = setTimeout(() => {
-      setStaticNeedsRefresh(true);
+      if (terminalWidth < lastTerminalWidth.current) {
+        setStaticNeedsRefresh(true);
+      }
+      lastTerminalWidth.current = terminalWidth;
     }, 300);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [terminalHeight, terminalWidth]);
+  }, [terminalWidth]);
 
   useEffect(() => {
     if (!pendingHistoryItems.length) {
