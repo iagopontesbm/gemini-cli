@@ -31,10 +31,6 @@ import {
   recordToolCallMetrics,
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
-import {
-  GenerateContentResponse,
-  GenerateContentResponseUsageMetadata,
-} from '@google/genai';
 import { ClearcutLogger } from './clearcut-logger/clearcut-logger.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
