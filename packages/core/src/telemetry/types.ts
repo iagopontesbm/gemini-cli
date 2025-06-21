@@ -48,6 +48,7 @@ export class StartSessionEvent {
   telemetry_enabled: boolean;
   telemetry_log_user_prompts_enabled: boolean;
   file_filtering_respect_git_ignore: boolean;
+  user_id: string;
 
   constructor(config: Config) {
     const generatorConfig = config.getContentGeneratorConfig();
@@ -76,6 +77,7 @@ export class StartSessionEvent {
       config.getTelemetryLogPromptsEnabled();
     this.file_filtering_respect_git_ignore =
       config.getFileFilteringRespectGitIgnore();
+    this.user_id = config.getUserId();
   }
 }
 
@@ -83,11 +85,13 @@ export class EndSessionEvent {
   'event.name': 'end_session';
   'event.timestamp': string; // ISO 8601
   session_id?: string;
+  user_id?: string;
 
   constructor(config?: Config) {
     this['event.name'] = 'end_session';
     this['event.timestamp'] = new Date().toISOString();
     this.session_id = config?.getSessionId();
+    this.user_id = config?.getUserId();
   }
 }
 
