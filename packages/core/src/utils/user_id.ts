@@ -32,7 +32,7 @@ function writeUserIdToFile(userId: string) {
 
 /**
  * Retrieves the persistent user ID from a file, creating it if it doesn't exist.
- * This ID is used for unique user tracking in telemetry.
+ * This ID is used for unique user tracking.
  * @returns A UUID string for the user.
  */
 export function getPersistentUserId(): string {
@@ -47,8 +47,6 @@ export function getPersistentUserId(): string {
 
     return userId;
   } catch (error) {
-    // In case of any error (e.g., permissions),
-    // generate a UUID for the session but don't persist it.
     console.error('Error accessing persistent user ID file, generating ephemeral ID:', error);
     return "123456789";
   }
