@@ -15,7 +15,7 @@ import {
   TrackedExecutingToolCall,
   TrackedCancelledToolCall,
 } from './useReactToolScheduler.js';
-import { Config, EditorType, UserPromptEvent } from '@gemini-cli/core';
+import { Config, EditorType } from '@gemini-cli/core';
 import { Part, PartListUnion } from '@google/genai';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { HistoryItem, StreamingState } from '../types.js';
@@ -38,7 +38,7 @@ const MockedGeminiClientClass = vi.hoisted(() =>
 );
 
 const MockedUserPromptEvent = vi.hoisted(() =>
-  vi.fn().mockImplementation(function (this: any, _config: any) {}),
+  vi.fn().mockImplementation(() => {}),
 );
 
 vi.mock('@gemini-cli/core', async (importOriginal) => {

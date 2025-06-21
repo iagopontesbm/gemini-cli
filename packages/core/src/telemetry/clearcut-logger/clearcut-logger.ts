@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { Buffer } from 'buffer';
 import * as https from 'https';
 import {
@@ -11,7 +17,6 @@ import {
 } from '../types.js';
 import { EventMetadataKey } from './event-metadata-key.js';
 import { Config } from '../../config/config.js';
-import { Logger, MessageSenderType } from '../../core/logger.js';
 
 const start_session_event_name = 'start_session';
 const new_prompt_event_name = 'new_prompt';
@@ -38,8 +43,8 @@ export class ClearcutLogger {
     this.config = config;
   }
 
-  public static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config == undefined || config?.getDisableDataCollection())
+  static getInstance(config?: Config): ClearcutLogger | undefined {
+    if (config === undefined || config?.getDisableDataCollection())
       return undefined;
     if (!ClearcutLogger.instance) {
       ClearcutLogger.instance = new ClearcutLogger(config);

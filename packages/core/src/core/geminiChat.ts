@@ -156,9 +156,6 @@ export class GeminiChat {
     contents: Content[],
     model: string,
   ): Promise<void> {
-    const shouldLogUserPrompts = (config: Config): boolean =>
-      config.getTelemetryLogPromptsEnabled() ?? false;
-
     const requestText = this._getRequestTextFromContents(contents);
     logApiRequest(this.config, new ApiRequestEvent(model, requestText));
   }
@@ -177,7 +174,6 @@ export class GeminiChat {
   private _logApiError(durationMs: number, error: unknown): void {
     const errorMessage = error instanceof Error ? error.message : String(error);
     const errorType = error instanceof Error ? error.name : 'unknown';
-    const statusCode = 'unknown';
 
     logApiError(
       this.config,

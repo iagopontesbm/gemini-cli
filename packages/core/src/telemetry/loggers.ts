@@ -20,9 +20,7 @@ import {
   ApiErrorEvent,
   ApiRequestEvent,
   ApiResponseEvent,
-  getDecisionFromOutcome,
   StartSessionEvent,
-  ToolCallDecision,
   ToolCallEvent,
   UserPromptEvent,
 } from './types.js';
@@ -33,12 +31,10 @@ import {
   recordToolCallMetrics,
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
-import { ToolConfirmationOutcome } from '../tools/tools.js';
 import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
-import { AuthType } from '../core/contentGenerator.js';
 import { ClearcutLogger } from './clearcut-logger/clearcut-logger.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
@@ -68,11 +64,8 @@ export function logCliConfiguration(
     approval_mode: event.approval_mode,
     api_key_enabled: event.api_key_enabled,
     vertex_ai_enabled: event.vertex_ai_enabled,
-    code_assist_enabled: event.code_assist_enabled,
     log_user_prompts_enabled: event.telemetry_log_user_prompts_enabled,
     file_filtering_respect_git_ignore: event.file_filtering_respect_git_ignore,
-    file_filtering_allow_build_artifacts:
-      event.file_filtering_allow_build_artifacts,
     debug_mode: event.debug_enabled,
     mcp_servers: event.mcp_servers,
   };
@@ -254,44 +247,4 @@ export function logApiResponse(config: Config, event: ApiResponseEvent): void {
     'thought',
   );
   recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
-}
-
-function combinedUsageMetadata(
-  chunks: GenerateContentResponse[],
-): GenerateContentResponseUsageMetadata {
-  const metadataKeys: Array<keyof GenerateContentResponseUsageMetadata> = [
-    'promptTokenCount',
-    'candidatesTokenCount',
-    'cachedContentTokenCount',
-    'thoughtsTokenCount',
-    'toolUsePromptTokenCount',
-    'totalTokenCount',
-  ];
-
-  const totals: Record<keyof GenerateContentResponseUsageMetadata, number> = {
-    promptTokenCount: 0,
-    candidatesTokenCount: 0,
-    cachedContentTokenCount: 0,
-    thoughtsTokenCount: 0,
-    toolUsePromptTokenCount: 0,
-    totalTokenCount: 0,
-    cacheTokensDetails: 0,
-    candidatesTokensDetails: 0,
-    promptTokensDetails: 0,
-    toolUsePromptTokensDetails: 0,
-    trafficType: 0,
-  };
-
-  for (const chunk of chunks) {
-    if (chunk.usageMetadata) {
-      for (const key of metadataKeys) {
-        const chunkValue = chunk.usageMetadata[key];
-        if (typeof chunkValue === 'number') {
-          totals[key] += chunkValue;
-        }
-      }
-    }
-  }
-
-  return totals as unknown as GenerateContentResponseUsageMetadata;
 }

@@ -33,7 +33,7 @@ export function getDecisionFromOutcome(
   }
 }
 
-export interface StartSessionEvent {
+export class StartSessionEvent {
   'event.name': 'cli_config';
   'event.timestamp': string; // ISO 8601
   model: string;
@@ -43,16 +43,12 @@ export interface StartSessionEvent {
   approval_mode: string;
   api_key_enabled: boolean;
   vertex_ai_enabled: boolean;
-  code_assist_enabled: boolean;
   debug_enabled: boolean;
   mcp_servers: string;
   telemetry_enabled: boolean;
   telemetry_log_user_prompts_enabled: boolean;
   file_filtering_respect_git_ignore: boolean;
-  file_filtering_allow_build_artifacts: boolean;
-}
 
-export class StartSessionEvent {
   constructor(config: Config) {
     const generatorConfig = config.getContentGeneratorConfig();
     const mcpServers = config.getMcpServers();
@@ -83,28 +79,24 @@ export class StartSessionEvent {
   }
 }
 
-export interface EndSessionEvent {
+export class EndSessionEvent {
   'event.name': 'end_session';
   'event.timestamp': string; // ISO 8601
   session_id?: string;
-}
 
-export class EndSessionEvent {
-  constructor(config?: Config, session_duration_sec?: number) {
+  constructor(config?: Config) {
     this['event.name'] = 'end_session';
     this['event.timestamp'] = new Date().toISOString();
     this.session_id = config?.getSessionId();
   }
 }
 
-export interface UserPromptEvent {
+export class UserPromptEvent {
   'event.name': 'user_prompt';
   'event.timestamp': string; // ISO 8601
   prompt_length: number;
   prompt?: string;
-}
 
-export class UserPromptEvent {
   constructor(prompt_length: number, prompt?: string) {
     this['event.name'] = 'user_prompt';
     this['event.timestamp'] = new Date().toISOString();
@@ -113,7 +105,7 @@ export class UserPromptEvent {
   }
 }
 
-export interface ToolCallEvent {
+export class ToolCallEvent {
   'event.name': 'tool_call';
   'event.timestamp': string; // ISO 8601
   function_name: string;
@@ -123,9 +115,7 @@ export interface ToolCallEvent {
   decision?: ToolCallDecision;
   error?: string;
   error_type?: string;
-}
 
-export class ToolCallEvent {
   constructor(call: CompletedToolCall) {
     this['event.name'] = 'tool_call';
     this['event.timestamp'] = new Date().toISOString();
@@ -141,14 +131,12 @@ export class ToolCallEvent {
   }
 }
 
-export interface ApiRequestEvent {
+export class ApiRequestEvent {
   'event.name': 'api_request';
   'event.timestamp': string; // ISO 8601
   model: string;
   request_text?: string;
-}
 
-export class ApiRequestEvent {
   constructor(model: string, request_text?: string) {
     this['event.name'] = 'api_request';
     this['event.timestamp'] = new Date().toISOString();
@@ -157,7 +145,7 @@ export class ApiRequestEvent {
   }
 }
 
-export interface ApiErrorEvent {
+export class ApiErrorEvent {
   'event.name': 'api_error';
   'event.timestamp': string; // ISO 8601
   model: string;
@@ -165,9 +153,7 @@ export interface ApiErrorEvent {
   error_type?: string;
   status_code?: number | string;
   duration_ms: number;
-}
 
-export class ApiErrorEvent {
   constructor(
     model: string,
     error: string,
@@ -185,7 +171,7 @@ export class ApiErrorEvent {
   }
 }
 
-export interface ApiResponseEvent {
+export class ApiResponseEvent {
   'event.name': 'api_response';
   'event.timestamp': string; // ISO 8601
   model: string;
@@ -198,9 +184,7 @@ export interface ApiResponseEvent {
   thoughts_token_count: number;
   tool_token_count: number;
   response_text?: string;
-}
-
-export class ApiResponseEvent {
+  
   constructor(
     model: string,
     duration_ms: number,
