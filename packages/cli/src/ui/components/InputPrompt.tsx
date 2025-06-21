@@ -294,7 +294,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         const [row, col] = buffer.cursor;
         const line = buffer.lines[row];
         const charBefore = col > 0 ? cpSlice(line, col - 1, col) : '';
-        if (key.ctrl || charBefore === '\\') {
+        if (key.ctrl || charBefore === '\\' || key.paste) {
           // Ctrl+Enter or escaped newline
           if (charBefore === '\\') {
             buffer.backspace();

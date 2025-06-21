@@ -7,20 +7,21 @@
 import { useEffect, useRef } from 'react';
 import { useStdin } from 'ink';
 import readline from 'readline';
-import { PassThrough } from 'stream';
 
 export interface Key {
   name: string;
   ctrl: boolean;
   meta: boolean;
   shift: boolean;
+  paste: boolean;
   sequence: string;
 }
 
 /**
  * A hook that listens for keypress events from stdin, providing a
- * key object that mirrors the one from Node's `readline` module.
- * It handles multi-line pastes as a single event.
+ * key object that mirrors the one from Node's `readline` module,
+ * adding a 'paste' flag for characters input as part of a bracketed
+ * paste.
  *
  * @param onKeypress - The callback function to execute on each keypress.
  * @param options - Options to control the hook's behavior.
@@ -43,8 +44,12 @@ export function useKeypress(
     }
 
     setRawMode(true);
+    // Enable bracketed paste mode.
+    process.stdout.write('\x1B[?2004h');
 
     return () => {
+      // Disable bracketed paste mode.
+      process.stdout.write('\x1B[?2004l');
       setRawMode(false);
     };
   }, [isActive, setRawMode]);
@@ -54,41 +59,27 @@ export function useKeypress(
       return;
     }
 
-    const keypressStream = new PassThrough();
     const rl = readline.createInterface({
-      input: keypressStream,
+      input: stdin,
       escapeCodeTimeout: 50,
     });
+    let isPaste = false;
 
     const handleKeypress = (_: unknown, key: Key) => {
-      onKeypressRef.current(key);
-    };
-
-    const handleData = (data: Buffer) => {
-      const sequence = data.toString('utf8');
-
-      // Any data chunk that is longer than 6 characters is treated as a paste.
-      if (sequence.length > 6) {
-        onKeypressRef.current({
-          name: '',
-          ctrl: false,
-          meta: false,
-          shift: false,
-          sequence,
-        });
-        return;
+      if (key.name === 'paste-start') {
+        isPaste = true;
+      } else if (key.name === 'paste-end') {
+        isPaste = false;
+      } else {
+        onKeypressRef.current({ ...key, paste: isPaste });
       }
-      // Otherwise, we push it to readline to handle charcater by character.
-      keypressStream.write(data);
     };
 
-    readline.emitKeypressEvents(keypressStream, rl);
-    keypressStream.on('keypress', handleKeypress);
-    stdin.on('data', handleData);
+    readline.emitKeypressEvents(stdin, rl);
+    stdin.on('keypress', handleKeypress);
 
     return () => {
-      keypressStream.removeListener('keypress', handleKeypress);
-      stdin.removeListener('data', handleData);
+      stdin.removeListener('keypress', handleKeypress);
       rl.close();
     };
   }, [isActive, stdin]);

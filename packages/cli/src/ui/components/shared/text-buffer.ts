@@ -1225,6 +1225,7 @@ export function useTextBuffer({
       ctrl: boolean;
       meta: boolean;
       shift: boolean;
+      paste: boolean;
       sequence: string;
     }): boolean => {
       const { sequence: input } = key;
@@ -1490,6 +1491,7 @@ export interface TextBuffer {
     ctrl: boolean;
     meta: boolean;
     shift: boolean;
+    paste: boolean;
     sequence: string;
   }) => boolean;
   /**
