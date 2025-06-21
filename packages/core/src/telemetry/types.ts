@@ -184,7 +184,7 @@ export class ApiResponseEvent {
   thoughts_token_count: number;
   tool_token_count: number;
   response_text?: string;
-  
+
   constructor(
     model: string,
     duration_ms: number,
