@@ -202,7 +202,7 @@ export class Config {
       initializeTelemetry(this);
     }
 
-    if (!this.telemetrySettings.disableDataCollection) {
+    if (!this.getDisableDataCollection()) {
       ClearcutLogger.getInstance(this)?.enqueueLogEvent(
         new StartSessionEvent(this),
       );
