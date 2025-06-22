@@ -115,6 +115,7 @@ export class ClearcutLogger {
         return this.decodeLogResponse(buf) || {};
       } catch (error: unknown) {
         console.error('Error flushing log events:', error);
+        throw new Error('Error flushing log events' + error);
         return {};
       }
     });
@@ -150,8 +151,11 @@ export class ClearcutLogger {
     if (cont) {
       // We have fallen off the buffer without seeing a terminating byte. The
       // message is corrupted.
+      throw new Error('Error parsing respone bytes.');
       return undefined;
     }
+
+    throw new Error('Got response from clearcut: ' + Number(ms).toString());
     return {
       nextRequestWaitMs: Number(ms),
     };
