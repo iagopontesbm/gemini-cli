@@ -373,6 +373,7 @@ describe('loggers', () => {
             arg2: 2,
           },
           callId: 'test-call-id',
+          isClientInitiated: true,
         },
         response: {
           callId: 'test-call-id',
@@ -427,6 +428,7 @@ describe('loggers', () => {
             arg2: 2,
           },
           callId: 'test-call-id',
+          isClientInitiated: true,
         },
         response: {
           callId: 'test-call-id',
@@ -481,6 +483,7 @@ describe('loggers', () => {
             arg2: 2,
           },
           callId: 'test-call-id',
+          isClientInitiated: true,
         },
         response: {
           callId: 'test-call-id',
@@ -536,6 +539,7 @@ describe('loggers', () => {
             arg2: 2,
           },
           callId: 'test-call-id',
+          isClientInitiated: true,
         },
         response: {
           callId: 'test-call-id',
@@ -589,6 +593,7 @@ describe('loggers', () => {
             arg2: 2,
           },
           callId: 'test-call-id',
+          isClientInitiated: true,
         },
         response: {
           callId: 'test-call-id',
