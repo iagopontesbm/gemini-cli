@@ -43,12 +43,12 @@ Slash commands provide meta-level control over the CLI itself.
 
   - **Description:** Manage the AI's instructional context (hierarchical memory loaded from `GEMINI.md` files).
   - **Sub-commands:**
+    - **`add`**:
+      - **Description:** Adds the following text to the AI's memory. Usage: `/memory add <text to remember>`
     - **`show`**:
       - **Description:** Display the full, concatenated content of the current hierarchical memory that has been loaded from all `GEMINI.md` files. This lets you inspect the instructional context being provided to the Gemini model.
     - **`refresh`**:
       - **Description:** Reload the hierarchical instructional memory from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the model with the latest `GEMINI.md` content.
-    - **`add`**:
-      - **Description:** Adds the following text to the AI's memory. Usage: /memory add <text to remember>
     - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
 - **`/stats`**
@@ -82,7 +82,7 @@ Slash commands provide meta-level control over the CLI itself.
 
 ## Checkpointing Commands
 
-Checkpointing allows you to save and restore the state of your conversation and files.
+Checkpointing allows you to save and restore the state of your conversation and files. This is disabled by default, you must explicitly enable checkpointing using the `--checkpointing` argument or via [settings](./configuration.md).
 
 - **`/save`**
 
