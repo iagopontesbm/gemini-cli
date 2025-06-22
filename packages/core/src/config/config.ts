@@ -381,6 +381,16 @@ export class Config {
   }
 
   getDisableDataCollection(): boolean {
+    if (this.telemetrySettings === undefined)
+    {
+      throw new Error('telemetry.disableDataCollection is undefined.');
+    }
+    if (this.telemetrySettings.disableDataCollection === undefined) {
+      throw new Error('telemetry.disableDataCollection is undefined.');
+    }
+    if (this.telemetrySettings.disableDataCollection) {
+      throw new Error('telemetry.disableDataCollection is true.');
+    }
     return this.telemetrySettings.disableDataCollection ?? false;
   }
 
