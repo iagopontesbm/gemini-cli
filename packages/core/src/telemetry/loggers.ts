@@ -30,11 +30,12 @@ import {
   recordToolCallMetrics,
 } from './metrics.js';
 import { isTelemetrySdkInitialized } from './sdk.js';
-import { ToolConfirmationOutcome } from '../index.js';
+import { ToolConfirmationOutcome } from '../tools/tools.js';
 import {
   GenerateContentResponse,
   GenerateContentResponseUsageMetadata,
 } from '@google/genai';
+import { AuthType } from '../core/contentGenerator.js';
 
 const shouldLogUserPrompts = (config: Config): boolean =>
   config.getTelemetryLogPromptsEnabled() ?? false;
@@ -72,6 +73,14 @@ export function logCliConfiguration(config: Config): void {
   if (!isTelemetrySdkInitialized()) return;
 
   const generatorConfig = config.getContentGeneratorConfig();
+  let useGemini = false;
+  let useVertex = false;
+
+  if (generatorConfig && generatorConfig.authType) {
+    useGemini = generatorConfig.authType === AuthType.USE_GEMINI;
+    useVertex = generatorConfig.authType === AuthType.USE_VERTEX_AI;
+  }
+
   const mcpServers = config.getMcpServers();
   const attributes: LogAttributes = {
     ...getCommonAttributes(config),
@@ -82,9 +91,8 @@ export function logCliConfiguration(config: Config): void {
     sandbox_enabled: !!config.getSandbox(),
     core_tools_enabled: (config.getCoreTools() ?? []).join(','),
     approval_mode: config.getApprovalMode(),
-    api_key_enabled: !!generatorConfig.apiKey,
-    vertex_ai_enabled: !!generatorConfig.vertexai,
-    code_assist_enabled: !!generatorConfig.codeAssist,
+    api_key_enabled: useGemini || useVertex,
+    vertex_ai_enabled: useVertex,
     log_user_prompts_enabled: config.getTelemetryLogPromptsEnabled(),
     file_filtering_respect_git_ignore:
       config.getFileFilteringRespectGitIgnore(),
@@ -280,42 +288,14 @@ export function logApiResponse(
   recordTokenUsageMetrics(config, event.model, event.tool_token_count, 'tool');
 }
 
-export function combinedUsageMetadata(
+export function getFinalUsageMetadata(
   chunks: GenerateContentResponse[],
-): GenerateContentResponseUsageMetadata {
-  const metadataKeys: Array<keyof GenerateContentResponseUsageMetadata> = [
-    'promptTokenCount',
-    'candidatesTokenCount',
-    'cachedContentTokenCount',
-    'thoughtsTokenCount',
-    'toolUsePromptTokenCount',
-    'totalTokenCount',
-  ];
+): GenerateContentResponseUsageMetadata | undefined {
+  // Only the last streamed item has the final token count.
+  const lastChunkWithMetadata = chunks
+    .slice()
+    .reverse()
+    .find((chunk) => chunk.usageMetadata);
 
-  const totals: Record<keyof GenerateContentResponseUsageMetadata, number> = {
-    promptTokenCount: 0,
-    candidatesTokenCount: 0,
-    cachedContentTokenCount: 0,
-    thoughtsTokenCount: 0,
-    toolUsePromptTokenCount: 0,
-    totalTokenCount: 0,
-    cacheTokensDetails: 0,
-    candidatesTokensDetails: 0,
-    promptTokensDetails: 0,
-    toolUsePromptTokensDetails: 0,
-    trafficType: 0,
-  };
-
-  for (const chunk of chunks) {
-    if (chunk.usageMetadata) {
-      for (const key of metadataKeys) {
-        const chunkValue = chunk.usageMetadata[key];
-        if (typeof chunkValue === 'number') {
-          totals[key] += chunkValue;
-        }
-      }
-    }
-  }
-
-  return totals as unknown as GenerateContentResponseUsageMetadata;
+  return lastChunkWithMetadata?.usageMetadata;
 }
