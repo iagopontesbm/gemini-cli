@@ -70,8 +70,7 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
     - Note that the web login must be done in a browser that can communicate with the machine Gemini CLI is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
 
 4.  **Vertex AI:**
-    - This can be configured with "express mode" or without.
-    - **Normal mode**
+    - If not using express mode:
       - Ensure you have a Google Cloud project and have enabled the Vertex AI API.
       - Set up Application Default Credentials (ADC), using the following command:
         ```bash
@@ -86,24 +85,25 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
           export GOOGLE_GENAI_USE_VERTEXAI=true
           ```
         - For repeated use, you can add the environment variables to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following commands adds the environment variables to a `~/.bashrc` file:
+            ```bash
+            echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc
+            echo 'export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"' >> ~/.bashrc
+            echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
+            source ~/.bashrc
+            ```
+    - If using express mode:
+      - Set the `GOOGLE_API_KEY` environment variables. In the following methods, replace `YOUR_GOOGLE_API_KEY` with your Vertex AI API key provided by express mode:
+        - You can temporarily set these environment variables in your current shell session using the following commands:
           ```bash
-          echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc
-          echo 'export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"' >> ~/.bashrc
+          export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
+          export GOOGLE_GENAI_USE_VERTEXAI=true
+          ```
+        - For repeated use, you can add the environment variables to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following commands adds the environment variables to a `~/.bashrc` file:
+          ```bash
+          echo 'export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"' >> ~/.bashrc
           echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
           source ~/.bashrc
           ```
-    - **Express mode**
-    - You can use a general Google Cloud API key if it has been enabled for the Gemini API or Vertex AI.
-    - Set the `GOOGLE_API_KEY` environment variables. In the following methods, replace `YOUR_GOOGLE_API_KEY` with your Google Cloud API key:
-      - You can temporarily set these environment variables in your current shell session using the following commands:
-        ```bash
-        export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
-        ```
-      - For repeated use, you can add the environment variables to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following commands adds the environment variables to a `~/.bashrc` file:
-        ```bash
-        echo 'export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"' >> ~/.bashrc
-        source ~/.bashrc
-        ```
 
 ### Next Steps
 
