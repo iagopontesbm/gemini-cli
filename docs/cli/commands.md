@@ -55,7 +55,7 @@ Slash commands provide meta-level control over the CLI itself.
 
   - **Description:** Display detailed statistics for the current Gemini CLI session, such as the session duration.
 
-- **`/theme`**
+- [**`/theme`**](./themes.md)
 
   - **Description:** Open a dialog that lets you change the visual theme of Gemini CLI.
 
@@ -67,7 +67,7 @@ Slash commands provide meta-level control over the CLI itself.
 
   - **Description:** Show version info. Please share this information when filing issues.
 
-- **`/tools`**
+- [**`/tools`**](../tools/index.md)
 
   - **Description:** Display a list of tools that are currently available within Gemini CLI.
   - **Sub-commands:**
