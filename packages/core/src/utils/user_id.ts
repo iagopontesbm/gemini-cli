@@ -10,7 +10,7 @@ import * as path from 'path';
 import { randomUUID } from 'crypto';
 import { GEMINI_DIR } from './paths.js';
 
-const homeDir = os.homedir() ?? "";
+const homeDir = os.homedir() ?? '';
 const geminiDir = path.join(homeDir, GEMINI_DIR);
 const userIdFile = path.join(geminiDir, 'user_id');
 
