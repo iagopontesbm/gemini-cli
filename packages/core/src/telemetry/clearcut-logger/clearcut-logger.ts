@@ -85,7 +85,6 @@ export class ClearcutLogger {
   }
 
   flushToClearcut(): Promise<LogResponse> {
-    throw new Error('Flushing to clearcut.');
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
