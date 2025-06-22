@@ -391,6 +391,9 @@ export class Config {
     if (this.telemetrySettings.disableDataCollection) {
       throw new Error('telemetry.disableDataCollection is true.');
     }
+    if (!this.telemetrySettings.disableDataCollection) {
+      throw new Error('telemetry.disableDataCollection is: ' + this.telemetrySettings.disableDataCollection);
+    }
     return this.telemetrySettings.disableDataCollection ?? false;
   }
 
