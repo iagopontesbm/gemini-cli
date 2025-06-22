@@ -230,7 +230,8 @@ export async function loadCliConfig(
     // Git-aware file filtering settings
     fileFiltering: {
       respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-      enableRecursiveFileSearch: settings.fileFiltering?.enableRecursiveFileSearch,
+      enableRecursiveFileSearch:
+        settings.fileFiltering?.enableRecursiveFileSearch,
     },
     checkpointing: argv.checkpointing || settings.checkpointing?.enabled,
     proxy:
