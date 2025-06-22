@@ -28,16 +28,11 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   }
 
   if (authMethod === AuthType.USE_VERTEX_AI) {
-    if (!process.env.GOOGLE_API_KEY) {
-      return 'GOOGLE_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
+    const hasVertexProjectLocationConfig = !!process.env.GOOGLE_CLOUD_PROJECT && !!process.env.GOOGLE_CLOUD_LOCATION;
+    const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
+    if (!hasVertexProjectLocationConfig || !hasGoogleApiKey) {
+      return 'Must specify GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION or GOOGLE_API_KEY environment variables. Add that to your .env and try again, no reload needed!';
     }
-    if (
-      !process.env.GOOGLE_CLOUD_PROJECT &&
-      !process.env.GOOGLE_CLOUD_LOCATION
-    ) {
-      return 'Neither GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_LOCATION environment variables set. Add one of those to your .env and try again, no reload needed!';
-    }
-
     return null;
   }
 
