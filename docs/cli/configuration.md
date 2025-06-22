@@ -36,7 +36,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 
 - **`contextFileName`** (string or array of strings):
 
-  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`). Can be a single filename or a list of accepted filenames. To use `AGENTS.md` instead of the default `GEMINI.md`, you would set this value to `"AGENTS.md"`.
+  - **Description:** Specifies the filename for context files (e.g., `GEMINI.md`, `AGENTS.md`). Can be a single filename or a list of accepted filenames.
   - **Default:** `GEMINI.md`
   - **Example:** `"contextFileName": "AGENTS.md"`
 
