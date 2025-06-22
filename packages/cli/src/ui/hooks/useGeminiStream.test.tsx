@@ -371,6 +371,7 @@ describe('useGeminiStream', () => {
           props.shellModeActive,
           () => 'vscode' as EditorType,
           () => {},
+          () => Promise.resolve(),
         );
       },
       {
@@ -501,6 +502,7 @@ describe('useGeminiStream', () => {
         false,
         () => 'vscode' as EditorType,
         () => {},
+        () => Promise.resolve(),
       ),
     );
 
@@ -565,6 +567,7 @@ describe('useGeminiStream', () => {
         false,
         () => 'vscode' as EditorType,
         () => {},
+        () => Promise.resolve(),
       ),
     );
 
@@ -933,6 +936,7 @@ describe('useGeminiStream', () => {
           false,
           () => 'vscode' as EditorType,
           () => {},
+          () => Promise.resolve(),
         ),
       );
 
@@ -962,6 +966,63 @@ describe('useGeminiStream', () => {
         ]);
         // Crucially, no message should be sent to the Gemini API
         expect(mockSendMessageStream).not.toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('Memory Refresh on save_memory', () => {
+    it('should call performMemoryRefresh when a save_memory tool call completes successfully', async () => {
+      const mockPerformMemoryRefresh = vi.fn();
+      const completedToolCall: TrackedCompletedToolCall = {
+        request: {
+          callId: 'save-mem-call-1',
+          name: 'save_memory',
+          args: { fact: 'test' },
+          isClientInitiated: true,
+        },
+        status: 'success',
+        responseSubmittedToGemini: false,
+        response: {
+          callId: 'save-mem-call-1',
+          responseParts: [{ text: 'Memory saved' }],
+          resultDisplay: 'Success: Memory saved',
+          error: undefined,
+        },
+        tool: {
+          name: 'save_memory',
+          description: 'Saves memory',
+          getDescription: vi.fn(),
+        } as any,
+      };
+
+      mockUseReactToolScheduler.mockReturnValue([
+        [completedToolCall],
+        mockScheduleToolCalls,
+        mockMarkToolsAsSubmitted,
+      ]);
+
+      const { rerender } = renderHook(() =>
+        useGeminiStream(
+          new MockedGeminiClientClass(mockConfig),
+          [],
+          mockAddItem,
+          mockSetShowHelp,
+          mockConfig,
+          mockOnDebugMessage,
+          mockHandleSlashCommand,
+          false,
+          () => 'vscode' as EditorType,
+          () => {},
+          mockPerformMemoryRefresh,
+        ),
+      );
+
+      act(() => {
+        rerender();
+      });
+
+      await waitFor(() => {
+        expect(mockPerformMemoryRefresh).toHaveBeenCalledTimes(1);
       });
     });
   });

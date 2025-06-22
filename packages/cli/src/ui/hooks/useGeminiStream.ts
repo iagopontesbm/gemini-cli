@@ -89,6 +89,7 @@ export const useGeminiStream = (
   shellModeActive: boolean,
   getPreferredEditor: () => EditorType | undefined,
   onAuthError: () => void,
+  performMemoryRefresh: () => Promise<void>,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -97,6 +98,7 @@ export const useGeminiStream = (
   const [thought, setThought] = useState<ThoughtSummary | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
     useStateAndRef<HistoryItemWithoutId | null>(null);
+  const processedMemoryToolsRef = useRef<Set<string>>(new Set());
   const logger = useLogger();
   const { startNewTurn, addUsage } = useSessionStats();
   const gitService = useMemo(() => {
@@ -602,6 +604,23 @@ export const useGeminiStream = (
         markToolsAsSubmitted(clientTools.map((t) => t.request.callId));
       }
 
+      // Identify new, successful save_memory calls that we haven't processed yet.
+      const newSuccessfulMemorySaves = completedAndReadyToSubmitTools.filter(
+        (t) =>
+          t.request.name === 'save_memory' &&
+          t.status === 'success' &&
+          !processedMemoryToolsRef.current.has(t.request.callId),
+      );
+
+      if (newSuccessfulMemorySaves.length > 0) {
+        // Perform the refresh only if there are new ones.
+        void performMemoryRefresh();
+        // Mark them as processed so we don't do this again on the next render.
+        newSuccessfulMemorySaves.forEach((t) =>
+          processedMemoryToolsRef.current.add(t.request.callId),
+        );
+      }
+
       // Only proceed with submitting to Gemini if ALL tools are complete.
       const allToolsAreComplete =
         toolCalls.length > 0 &&
@@ -674,6 +693,7 @@ export const useGeminiStream = (
     markToolsAsSubmitted,
     addItem,
     geminiClient,
+    performMemoryRefresh,
   ]);
 
   const pendingHistoryItems = [
