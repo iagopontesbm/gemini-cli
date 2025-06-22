@@ -7,6 +7,7 @@
 import {
   ToolCallConfirmationDetails,
   ToolResultDisplay,
+  AuthType,
 } from '@gemini-cli/core';
 import { CumulativeStats } from './contexts/SessionContext.js';
 
@@ -101,6 +102,7 @@ export type HistoryItemStats = HistoryItemBase & {
   stats: CumulativeStats;
   lastTurnStats: CumulativeStats;
   duration: string;
+  authType?: AuthType;
 };
 
 export type HistoryItemQuit = HistoryItemBase & {
@@ -177,6 +179,7 @@ export type Message =
       stats: CumulativeStats;
       lastTurnStats: CumulativeStats;
       duration: string;
+      authType?: AuthType;
       content?: string;
     }
   | {

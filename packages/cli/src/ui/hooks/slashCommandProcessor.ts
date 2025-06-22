@@ -110,6 +110,7 @@ export const useSlashCommandProcessor = (
           stats: message.stats,
           lastTurnStats: message.lastTurnStats,
           duration: message.duration,
+          authType: message.authType,
         };
       } else if (message.type === MessageType.QUIT) {
         historyItemContent = {
@@ -250,6 +251,7 @@ export const useSlashCommandProcessor = (
             stats: cumulative,
             lastTurnStats: currentTurn,
             duration: formatDuration(wallDuration),
+            authType: config?.getAuthType(),
             timestamp: new Date(),
           });
         },

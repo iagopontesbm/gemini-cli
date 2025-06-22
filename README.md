@@ -113,6 +113,24 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
         source ~/.bashrc
         ```
 
+## Token Caching and Cost Optimization
+
+Gemini CLI automatically optimizes token usage through system instruction caching, but the availability of this feature depends on your authentication method:
+
+### API Key Users (Gemini and Vertex AI)
+
+- ✅ **Automatic caching enabled:** System instructions are cached on Google's servers
+- ✅ **Token savings:** Subsequent requests reuse cached content, reducing token costs
+- ✅ **Cached token display:** The `/stats` command shows cached token counts and savings
+
+### OAuth Users (Google Personal/Enterprise Accounts)
+
+- ❌ **No caching available:** The Code Assist API does not support server-side content caching at this time
+- ❌ **No token savings:** System instructions are included in every request
+- ❌ **No cached token display:** The `/stats` command hides cached token metrics for accuracy
+
+**Cost Impact:** API key users benefit from reduced token usage on longer conversations with consistent system instructions, while OAuth users pay full token costs for each request. Consider using an API key for cost-sensitive applications or extended conversations.
+
 ### Next Steps
 
 - Learn how to [contribute to or build from the source](./CONTRIBUTING.md).

@@ -72,6 +72,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
         stats={item.stats}
         lastTurnStats={item.lastTurnStats}
         duration={item.duration}
+        authType={item.authType}
       />
     )}
     {item.type === 'quit' && (

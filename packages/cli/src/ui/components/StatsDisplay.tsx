@@ -10,6 +10,8 @@ import { Colors } from '../colors.js';
 import { formatDuration } from '../utils/formatters.js';
 import { CumulativeStats } from '../contexts/SessionContext.js';
 import { FormattedStats, StatRow, StatsColumn } from './Stats.js';
+import { AuthType } from '@gemini-cli/core';
+import { shouldShowCachedTokens } from '../utils/authUtils.js';
 
 // --- Constants ---
 
@@ -21,6 +23,7 @@ interface StatsDisplayProps {
   stats: CumulativeStats;
   lastTurnStats: CumulativeStats;
   duration: string;
+  authType?: AuthType;
 }
 
 // --- Main Component ---
@@ -29,7 +32,10 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
   stats,
   lastTurnStats,
   duration,
+  authType,
 }) => {
+  const showCached = shouldShowCachedTokens(authType);
+
   const lastTurnFormatted: FormattedStats = {
     inputTokens: lastTurnStats.promptTokenCount,
     outputTokens: lastTurnStats.candidatesTokenCount,
@@ -65,12 +71,14 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
           title="Last Turn"
           stats={lastTurnFormatted}
           width={COLUMN_WIDTH}
+          showCachedTokens={showCached}
         />
         <StatsColumn
           title={`Cumulative (${stats.turnCount} Turns)`}
           stats={cumulativeFormatted}
           isCumulative={true}
           width={COLUMN_WIDTH}
+          showCachedTokens={showCached}
         />
       </Box>
 
