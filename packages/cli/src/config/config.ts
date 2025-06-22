@@ -229,7 +229,11 @@ export async function loadCliConfig(
       disableDataCollection: settings.telemetry?.disableDataCollection ?? true,
     },
     // Git-aware file filtering settings
-    fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+    fileFiltering: {
+      respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+      enableRecursiveFileSearch:
+        settings.fileFiltering?.enableRecursiveFileSearch,
+    },
     checkpointing: argv.checkpointing || settings.checkpointing?.enabled,
     proxy:
       process.env.HTTPS_PROXY ||
