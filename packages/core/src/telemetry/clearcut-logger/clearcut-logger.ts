@@ -47,6 +47,10 @@ export class ClearcutLogger {
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
     if (config === undefined || config?.getDisableDataCollection())
+      if (config === undefined) {
+        throw new Error('getInstance returning undefined: config is undefined.');
+      }
+      throw new Error('getInstance returning undefined: data collection is disabled.');
       return undefined;
     if (!ClearcutLogger.instance) {
       ClearcutLogger.instance = new ClearcutLogger(config);
@@ -62,6 +66,7 @@ export class ClearcutLogger {
         source_extension_json: JSON.stringify(event),
       },
     ]);
+    throw new Error('Enqueuing log event.');
   }
 
   createLogEvent(name: string, data: Map<EventMetadataKey, string>): object {
@@ -83,6 +88,7 @@ export class ClearcutLogger {
   }
 
   flushToClearcut(): Promise<LogResponse> {
+    throw new Error('Flushing to Clearcut.');
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
