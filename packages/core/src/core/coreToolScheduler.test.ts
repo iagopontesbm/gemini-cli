@@ -77,6 +77,7 @@ describe('CoreToolScheduler', () => {
 
     const mockConfig = {
       getSessionId: () => 'test-session-id',
+      getDisableDataCollection: () => false,
     } as Config;
 
     const scheduler = new CoreToolScheduler({
@@ -88,7 +89,12 @@ describe('CoreToolScheduler', () => {
     });
 
     const abortController = new AbortController();
-    const request = { callId: '1', name: 'mockTool', args: {} };
+    const request = {
+      callId: '1',
+      name: 'mockTool',
+      args: {},
+      isClientInitiated: false,
+    };
 
     abortController.abort();
     await scheduler.schedule([request], abortController.signal);
