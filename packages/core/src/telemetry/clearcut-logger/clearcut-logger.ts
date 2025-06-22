@@ -68,7 +68,6 @@ export class ClearcutLogger {
         source_extension_json: JSON.stringify(event),
       },
     ]);
-    throw new Error('Enqueuing log event.');
   }
 
   createLogEvent(name: string, data: Map<EventMetadataKey, string>): object {
@@ -90,7 +89,7 @@ export class ClearcutLogger {
   }
 
   flushToClearcut(): Promise<LogResponse> {
-    throw new Error('Flushing to Clearcut.');
+    //throw new Error('Flushing to Clearcut.');
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
