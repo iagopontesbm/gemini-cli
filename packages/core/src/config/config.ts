@@ -117,7 +117,6 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
-  disableDataCollection?: boolean;
 }
 
 export class Config {
@@ -154,7 +153,6 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
-  private readonly disableDataCollection: boolean;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -181,6 +179,7 @@ export class Config {
       target: params.telemetry?.target ?? DEFAULT_TELEMETRY_TARGET,
       otlpEndpoint: params.telemetry?.otlpEndpoint ?? DEFAULT_OTLP_ENDPOINT,
       logPrompts: params.telemetry?.logPrompts ?? true,
+      disableDataCollection: params.telemetry?.disableDataCollection ?? false,
     };
 
     this.fileFiltering = {
@@ -194,8 +193,6 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.disableDataCollection =
-      params.telemetry?.disableDataCollection ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -205,7 +202,7 @@ export class Config {
       initializeTelemetry(this);
     }
 
-    if (!this.disableDataCollection) {
+    if (!this.telemetrySettings.disableDataCollection) {
       ClearcutLogger.getInstance(this)?.enqueueLogEvent(
         new StartSessionEvent(this),
       );
@@ -384,7 +381,7 @@ export class Config {
   }
 
   getDisableDataCollection(): boolean {
-    return this.disableDataCollection;
+    return this.telemetrySettings.disableDataCollection ?? false;
   }
 
   async getGitService(): Promise<GitService> {
