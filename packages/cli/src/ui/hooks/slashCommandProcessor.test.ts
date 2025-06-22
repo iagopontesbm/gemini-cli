@@ -62,14 +62,15 @@ import {
 } from './slashCommandProcessor.js';
 import { MessageType } from '../types.js';
 import {
-  type Config,
-  MCPServerStatus,
-  getMCPServerStatus,
+  Config,
   MCPDiscoveryState,
+  MCPServerStatus,
   getMCPDiscoveryState,
+  getMCPServerStatus,
   GeminiClient,
 } from '@gemini-cli/core';
 import { useSessionStats } from '../contexts/SessionContext.js';
+import { LoadedSettings } from '../../config/settings.js';
 
 vi.mock('@gemini-code/core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@gemini-code/core')>();
@@ -103,6 +104,7 @@ describe('useSlashCommandProcessor', () => {
   let mockSetShowHelp: ReturnType<typeof vi.fn>;
   let mockOnDebugMessage: ReturnType<typeof vi.fn>;
   let mockOpenThemeDialog: ReturnType<typeof vi.fn>;
+  let mockOpenAuthDialog: ReturnType<typeof vi.fn>;
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
@@ -120,6 +122,7 @@ describe('useSlashCommandProcessor', () => {
     mockSetShowHelp = vi.fn();
     mockOnDebugMessage = vi.fn();
     mockOpenThemeDialog = vi.fn();
+    mockOpenAuthDialog = vi.fn();
     mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
@@ -133,7 +136,7 @@ describe('useSlashCommandProcessor', () => {
       getSandbox: vi.fn(() => 'test-sandbox'),
       getModel: vi.fn(() => 'test-model'),
       getProjectRoot: vi.fn(() => '/test/dir'),
-      getCheckpointEnabled: vi.fn(() => true),
+      getCheckpointingEnabled: vi.fn(() => true),
       getBugCommand: vi.fn(() => undefined),
     } as unknown as Config;
     mockCorgiMode = vi.fn();
@@ -159,10 +162,16 @@ describe('useSlashCommandProcessor', () => {
     process.env = { ...globalThis.process.env };
   });
 
-  const getProcessorHook = (showToolDescriptions: boolean = false) =>
-    renderHook(() =>
+  const getProcessorHook = (showToolDescriptions: boolean = false) => {
+    const settings = {
+      merged: {
+        contextFileName: 'GEMINI.md',
+      },
+    } as LoadedSettings;
+    return renderHook(() =>
       useSlashCommandProcessor(
         mockConfig,
+        settings,
         [],
         mockAddItem,
         mockClearItems,
@@ -171,6 +180,7 @@ describe('useSlashCommandProcessor', () => {
         mockSetShowHelp,
         mockOnDebugMessage,
         mockOpenThemeDialog,
+        mockOpenAuthDialog,
         mockOpenEditorDialog,
         mockPerformMemoryRefresh,
         mockCorgiMode,
@@ -178,6 +188,7 @@ describe('useSlashCommandProcessor', () => {
         mockSetQuittingMessages,
       ),
     );
+  };
 
   const getProcessor = (showToolDescriptions: boolean = false) =>
     getProcessorHook(showToolDescriptions).result.current;
@@ -250,7 +261,11 @@ describe('useSlashCommandProcessor', () => {
       });
       expect(
         ShowMemoryCommandModule.createShowMemoryAction,
-      ).toHaveBeenCalledWith(mockConfig, expect.any(Function));
+      ).toHaveBeenCalledWith(
+        mockConfig,
+        expect.any(Object),
+        expect.any(Function),
+      );
       expect(mockReturnedShowAction).toHaveBeenCalled();
       expect(commandResult).toBe(true);
     });

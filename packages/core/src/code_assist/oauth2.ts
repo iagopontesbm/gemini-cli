@@ -57,6 +57,9 @@ export async function getOauthClient(): Promise<OAuth2Client> {
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_SECRET,
   });
+  client.on('tokens', async (tokens: Credentials) => {
+    await cacheCredentials(tokens);
+  });
 
   if (await loadCachedCredentials(client)) {
     // Found valid cached credentials.
@@ -191,4 +194,12 @@ async function cacheCredentials(credentials: Credentials) {
 
 function getCachedCredentialPath(): string {
   return path.join(os.homedir(), GEMINI_DIR, CREDENTIAL_FILENAME);
+}
+
+export async function clearCachedCredentialFile() {
+  try {
+    await fs.rm(getCachedCredentialPath());
+  } catch (_) {
+    /* empty */
+  }
 }
