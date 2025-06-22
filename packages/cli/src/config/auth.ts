@@ -31,12 +31,13 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     if (!process.env.GOOGLE_API_KEY) {
       return 'GOOGLE_API_KEY environment variable not found. Add that to your .env and try again, no reload needed!';
     }
-    if (!process.env.GOOGLE_CLOUD_PROJECT) {
-      return 'GOOGLE_CLOUD_PROJECT environment variable not found. Add that to your .env and try again, no reload needed!';
+    if (
+      !process.env.GOOGLE_CLOUD_PROJECT &&
+      !process.env.GOOGLE_CLOUD_LOCATION
+    ) {
+      return 'Neither GOOGLE_CLOUD_PROJECT or GOOGLE_CLOUD_LOCATION environment variables set. Add one of those to your .env and try again, no reload needed!';
     }
-    if (!process.env.GOOGLE_CLOUD_LOCATION) {
-      return 'GOOGLE_CLOUD_LOCATION environment variable not found. Add that to your .env and try again, no reload needed!';
-    }
+
     return null;
   }
 
