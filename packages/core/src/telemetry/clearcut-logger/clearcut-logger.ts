@@ -47,10 +47,6 @@ export class ClearcutLogger {
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
     if (config === undefined || config?.getDisableDataCollection()) {
-      if (config === undefined) {
-        throw new Error('getInstance returning undefined: config is undefined.');
-      }
-      throw new Error('getInstance returning undefined: data collection is disabled.');
       return undefined;
     }
 
@@ -89,7 +85,6 @@ export class ClearcutLogger {
   }
 
   flushToClearcut(): Promise<LogResponse> {
-    //throw new Error('Flushing to Clearcut.');
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
@@ -122,7 +117,6 @@ export class ClearcutLogger {
         return this.decodeLogResponse(buf) || {};
       } catch (error: unknown) {
         console.error('Error flushing log events:', error);
-        throw new Error('Error flushing log events' + error);
         return {};
       }
     });
@@ -158,11 +152,10 @@ export class ClearcutLogger {
     if (cont) {
       // We have fallen off the buffer without seeing a terminating byte. The
       // message is corrupted.
-      throw new Error('Error parsing respone bytes.');
+      console.error('Error parsing respone bytes from Clearcut.');
       return undefined;
     }
 
-    throw new Error('Got response from clearcut: ' + Number(ms).toString());
     return {
       nextRequestWaitMs: Number(ms),
     };
