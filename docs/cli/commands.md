@@ -53,7 +53,8 @@ Slash commands provide meta-level control over the CLI itself.
 
 - **`/stats`**
 
-  - **Description:** Display detailed statistics for the current Gemini CLI session, such as the session duration.
+  - **Description:** Display detailed statistics for the current Gemini CLI session, including token usage, session duration, and API time.
+  - **Token caching:** For API key users (Gemini and Vertex AI), cached tokens are displayed and can help reduce costs by reusing system instructions. OAuth users (Google Personal/Enterprise accounts) do not see cached token counts as the Code Assist API does not support server-side content caching at this time.
 
 - [**`/theme`**](./themes.md)
 
