@@ -47,17 +47,27 @@ Slash commands provide meta-level control over the CLI itself.
       - **Description:** Display the full, concatenated content of the current hierarchical memory that has been loaded from all `GEMINI.md` files. This lets you inspect the instructional context being provided to the Gemini model.
     - **`refresh`**:
       - **Description:** Reload the hierarchical instructional memory from all `GEMINI.md` files found in the configured locations (global, project/ancestors, and sub-directories). This command updates the model with the latest `GEMINI.md` content.
+    - **`add`**:
+      - **Description:** Adds the following text to the AI's memory. Usage: /memory add <text to remember>
     - **Note:** For more details on how `GEMINI.md` files contribute to hierarchical memory, see the [CLI Configuration documentation](./configuration.md#4-geminimd-files-hierarchical-instructional-context).
 
 - **`/stats`**
 
   - **Description:** Display detailed statistics for the current Gemini CLI session, such as the session duration.
 
-- [**`/theme`**](./themes.md)
+- **`/theme`**
 
   - **Description:** Open a dialog that lets you change the visual theme of Gemini CLI.
 
-- [**`/tools`**](../tools/index.md)
+- **`/auth`**
+
+  - **Description:** Open a dialog that lets you change the authentication method.
+
+- **`/about`**
+
+  - **Description:** Show version info. Please share this information when filing issues.
+
+- **`/tools`**
 
   - **Description:** Display a list of tools that are currently available within Gemini CLI.
   - **Sub-commands:**
@@ -69,6 +79,25 @@ Slash commands provide meta-level control over the CLI itself.
 - **`/quit`** (or **`/exit`**)
 
   - **Description:** Exit Gemini CLI.
+
+## Checkpointing Commands
+
+Checkpointing allows you to save and restore the state of your conversation and files.
+
+- **`/save`**
+
+  - **Description:** Saves a checkpoint of the current conversation history. You can optionally add a `[tag]` to easily identify it later.
+  - **Usage:** `/save [tag]`
+
+- **`/resume`**
+
+  - **Description:** Resumes a conversation from a previously saved checkpoint. If you don't provide a `[tag]`, it will attempt to load the latest checkpoint.
+  - **Usage:** `/resume [tag]`
+
+- **`/restore`**
+
+  - **Description:** Restores the project files to the state they were in just before a tool was executed. This is particularly useful for undoing file edits made by a tool. If run without a tool call ID, it will list available checkpoints to restore from.
+  - **Usage:** `/restore [tool_call_id]`
 
 ## At commands (`@`)
 
