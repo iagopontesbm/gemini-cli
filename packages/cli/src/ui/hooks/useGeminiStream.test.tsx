@@ -728,7 +728,7 @@ describe('useGeminiStream', () => {
     // 5. After submission, the state should remain Responding.
     expect(result.current.streamingState).toBe(StreamingState.Responding);
   });
-  
+
   describe('User Cancellation', () => {
     let useInputCallback: (input: string, key: any) => void;
     const mockUseInput = useInput as Mock;
