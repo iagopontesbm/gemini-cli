@@ -30,7 +30,7 @@ export const validateAuthMethod = (authMethod: string): string | null => {
   if (authMethod === AuthType.USE_VERTEX_AI) {
     const hasVertexProjectLocationConfig = !!process.env.GOOGLE_CLOUD_PROJECT && !!process.env.GOOGLE_CLOUD_LOCATION;
     const hasGoogleApiKey = !!process.env.GOOGLE_API_KEY;
-    if (!hasVertexProjectLocationConfig || !hasGoogleApiKey) {
+    if (!hasVertexProjectLocationConfig && !hasGoogleApiKey) {
       return 'Must specify GOOGLE_CLOUD_PROJECT and GOOGLE_CLOUD_LOCATION or GOOGLE_API_KEY environment variables. Add that to your .env and try again, no reload needed!';
     }
     return null;
