@@ -237,6 +237,10 @@ export class Config {
     return this.contentGeneratorConfig?.model || this.model;
   }
 
+  getAuthType(): AuthType | undefined {
+    return this.contentGeneratorConfig?.authType;
+  }
+
   getEmbeddingModel(): string {
     return this.embeddingModel;
   }

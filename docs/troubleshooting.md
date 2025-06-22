@@ -12,6 +12,10 @@ This guide provides solutions to common issues and debugging tips.
 
   - A: The CLI configuration is stored within two `settings.json` files: one in your home directory and one in your project's root directory. In both locations, `settings.json` is found in the `.gemini/` folder. Refer to [CLI Configuration](./cli/configuration.md) for more details.
 
+- **Q: Why don't I see cached token counts when using OAuth authentication?**
+
+  - A: OAuth users (Google Personal/Enterprise accounts) don't see cached token information because the Code Assist API does not support cached content creation at this time. This feature is only available for API key users (Gemini API key or Vertex AI). You can still view your total token usage with the `/stats` command.
+
 ## Common error messages and solutions
 
 - **Error: `EADDRINUSE` (Address already in use) when starting an MCP server.**

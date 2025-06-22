@@ -43,8 +43,16 @@ export const StatsColumn: React.FC<{
   stats: FormattedStats;
   isCumulative?: boolean;
   width?: string | number;
+  showCachedTokens?: boolean;
   children?: React.ReactNode;
-}> = ({ title, stats, isCumulative = false, width, children }) => {
+}> = ({
+  title,
+  stats,
+  isCumulative = false,
+  width,
+  showCachedTokens = true,
+  children,
+}) => {
   const cachedDisplay =
     isCumulative && stats.totalTokens > 0
       ? `${stats.cachedTokens.toLocaleString()} (${((stats.cachedTokens / stats.totalTokens) * 100).toFixed(1)}%)`
@@ -76,11 +84,13 @@ export const StatsColumn: React.FC<{
           label="Thoughts Tokens"
           value={stats.thoughtsTokens.toLocaleString()}
         />
-        <StatRow
-          label="Cached Tokens"
-          value={cachedDisplay}
-          valueColor={cachedColor}
-        />
+        {showCachedTokens && (
+          <StatRow
+            label="Cached Tokens"
+            value={cachedDisplay}
+            valueColor={cachedColor}
+          />
+        )}
         {/* Divider Line */}
         <Box
           borderTop={true}
