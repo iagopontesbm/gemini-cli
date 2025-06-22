@@ -39,7 +39,7 @@ export class ClearcutLogger {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Clearcut expects this format.
   private readonly events: any = [];
   private last_flush_time: number = Date.now();
-  private flush_interval_ms: number = 100; // Wait at least a minute before flushing events.
+  private flush_interval_ms: number = 1000 * 60; // Wait at least a minute before flushing events.
 
   private constructor(config?: Config) {
     this.config = config;
