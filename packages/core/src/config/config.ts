@@ -195,7 +195,7 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.disableDataCollection =
-      params.telemetry?.disableDataCollection ?? true;
+      params.telemetry?.disableDataCollection ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
