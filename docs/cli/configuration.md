@@ -164,7 +164,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 
 - **`telemetry`** (object):
   - **Description:** Configures telemetry and usage statistics. For more information, see [Telemetry](../core/telemetry.md).
-  - **Default:** `{"enabled": false, "target": "local", "otlpEndpoint": "http://localhost:4317", "logPrompts": true}`  
+  - **Default:** `{"enabled": false, "target": "local", "otlpEndpoint": "http://localhost:4317", "logPrompts": true}`
   - **Properties:**
     - **`enabled`** (boolean): Enables or disables all telemetry data collection.
     - **`target`** (string): Specifies the telemetry backend. Can be "local" or "gcp".
