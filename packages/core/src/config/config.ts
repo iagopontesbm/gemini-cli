@@ -203,9 +203,11 @@ export class Config {
     }
 
     if (!this.getDisableDataCollection()) {
-      ClearcutLogger.getInstance(this)?.enqueueLogEvent(
+      ClearcutLogger.getInstance(this)?.logStartSessionEvent(
         new StartSessionEvent(this),
       );
+    } else {
+      console.log('Data collection is disabled.');
     }
   }
 
