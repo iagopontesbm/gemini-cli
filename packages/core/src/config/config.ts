@@ -57,7 +57,7 @@ export interface TelemetrySettings {
   target?: TelemetryTarget;
   otlpEndpoint?: string;
   logPrompts?: boolean;
-  disableDataCollection?: boolean;
+  usageStatisticsEnabled?: boolean;
 }
 
 export class MCPServerConfig {
@@ -117,7 +117,7 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
-  disableDataCollection?: boolean;
+  extensionContextFilePaths?: string[];
 }
 
 export class Config {
@@ -154,7 +154,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
-  private readonly disableDataCollection: boolean;
+  private readonly extensionContextFilePaths: string[];
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -181,6 +181,7 @@ export class Config {
       target: params.telemetry?.target ?? DEFAULT_TELEMETRY_TARGET,
       otlpEndpoint: params.telemetry?.otlpEndpoint ?? DEFAULT_OTLP_ENDPOINT,
       logPrompts: params.telemetry?.logPrompts ?? true,
+      usageStatisticsEnabled: params.telemetry?.usageStatisticsEnabled ?? true,
     };
 
     this.fileFiltering = {
@@ -194,8 +195,7 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
-    this.disableDataCollection =
-      params.telemetry?.disableDataCollection ?? true;
+    this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -205,10 +205,12 @@ export class Config {
       initializeTelemetry(this);
     }
 
-    if (!this.disableDataCollection) {
-      ClearcutLogger.getInstance(this)?.enqueueLogEvent(
+    if (this.getUsageStatisticsEnabled()) {
+      ClearcutLogger.getInstance(this)?.logStartSessionEvent(
         new StartSessionEvent(this),
       );
+    } else {
+      console.log('Data collection is disabled.');
     }
   }
 
@@ -383,8 +385,12 @@ export class Config {
     return this.fileDiscoveryService;
   }
 
-  getDisableDataCollection(): boolean {
-    return this.disableDataCollection;
+  getUsageStatisticsEnabled(): boolean {
+    return this.telemetrySettings.usageStatisticsEnabled ?? true;
+  }
+
+  getExtensionContextFilePaths(): string[] {
+    return this.extensionContextFilePaths;
   }
 
   async getGitService(): Promise<GitService> {
