@@ -306,6 +306,12 @@ export function useCompletion(
             value: escapePath(relativePath),
           };
         })
+        .filter((s) => {
+          if (fileDiscoveryService) {
+            return !fileDiscoveryService.shouldGitIgnoreFile(s.label); // relative path
+          }
+          return true;
+        })
         .slice(0, maxResults);
 
       return suggestions;
@@ -316,10 +322,16 @@ export function useCompletion(
       let fetchedSuggestions: Suggestion[] = [];
 
       const fileDiscoveryService = config ? config.getFileService() : null;
+      const enableRecursiveSearch =
+        config?.getEnableRecursiveFileSearch() ?? true;
 
       try {
         // If there's no slash, or it's the root, do a recursive search from cwd
-        if (partialPath.indexOf('/') === -1 && prefix) {
+        if (
+          partialPath.indexOf('/') === -1 &&
+          prefix &&
+          enableRecursiveSearch
+        ) {
           if (fileDiscoveryService) {
             fetchedSuggestions = await findFilesWithGlob(
               prefix,

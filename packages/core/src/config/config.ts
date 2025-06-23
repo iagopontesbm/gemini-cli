@@ -6,7 +6,11 @@
 
 import * as path from 'node:path';
 import process from 'node:process';
-import { ContentGeneratorConfig } from '../core/contentGenerator.js';
+import {
+  AuthType,
+  ContentGeneratorConfig,
+  createContentGeneratorConfig,
+} from '../core/contentGenerator.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -23,6 +27,7 @@ import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
 import { GitService } from '../services/gitService.js';
+import { getProjectTempDir } from '../utils/paths.js';
 import {
   initializeTelemetry,
   DEFAULT_TELEMETRY_TARGET,
@@ -73,11 +78,24 @@ export class MCPServerConfig {
   ) {}
 }
 
+export const SUPPORTED_SANDBOX_COMMANDS = [
+  'docker',
+  'podman',
+  'sandbox-exec',
+] as const;
+
+export type SupportedSandboxCommand =
+  (typeof SUPPORTED_SANDBOX_COMMANDS)[number];
+
+export interface SandboxConfig {
+  command: SupportedSandboxCommand;
+  image: string;
+}
+
 export interface ConfigParameters {
   sessionId: string;
-  contentGeneratorConfig: ContentGeneratorConfig;
   embeddingModel?: string;
-  sandbox?: boolean | string;
+  sandbox?: SandboxConfig;
   targetDir: string;
   debugMode: boolean;
   question?: string;
@@ -95,20 +113,24 @@ export interface ConfigParameters {
   contextFileName?: string | string[];
   accessibility?: AccessibilitySettings;
   telemetry?: TelemetrySettings;
-  fileFilteringRespectGitIgnore?: boolean;
-  checkpoint?: boolean;
+  fileFiltering?: {
+    respectGitIgnore?: boolean;
+    enableRecursiveFileSearch?: boolean;
+  };
+  checkpointing?: boolean;
   proxy?: string;
   cwd: string;
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
+  model: string;
 }
 
 export class Config {
-  private toolRegistry: Promise<ToolRegistry>;
+  private toolRegistry!: ToolRegistry;
   private readonly sessionId: string;
-  private readonly contentGeneratorConfig: ContentGeneratorConfig;
+  private contentGeneratorConfig!: ContentGeneratorConfig;
   private readonly embeddingModel: string;
-  private readonly sandbox: boolean | string | undefined;
+  private readonly sandbox: SandboxConfig | undefined;
   private readonly targetDir: string;
   private readonly debugMode: boolean;
   private readonly question: string | undefined;
@@ -125,18 +147,21 @@ export class Config {
   private readonly showMemoryUsage: boolean;
   private readonly accessibility: AccessibilitySettings;
   private readonly telemetrySettings: TelemetrySettings;
-  private readonly geminiClient: GeminiClient;
-  private readonly fileFilteringRespectGitIgnore: boolean;
+  private geminiClient!: GeminiClient;
+  private readonly fileFiltering: {
+    respectGitIgnore: boolean;
+    enableRecursiveFileSearch: boolean;
+  };
   private fileDiscoveryService: FileDiscoveryService | null = null;
   private gitService: GitService | undefined = undefined;
-  private readonly checkpoint: boolean;
+  private readonly checkpointing: boolean;
   private readonly proxy: string | undefined;
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
+  private readonly model: string;
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
-    this.contentGeneratorConfig = params.contentGeneratorConfig;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
     this.sandbox = params.sandbox;
@@ -162,24 +187,38 @@ export class Config {
       logPrompts: params.telemetry?.logPrompts ?? true,
     };
 
-    this.fileFilteringRespectGitIgnore =
-      params.fileFilteringRespectGitIgnore ?? true;
-    this.checkpoint = params.checkpoint ?? false;
+    this.fileFiltering = {
+      respectGitIgnore: params.fileFiltering?.respectGitIgnore ?? true,
+      enableRecursiveFileSearch:
+        params.fileFiltering?.enableRecursiveFileSearch ?? true,
+    };
+    this.checkpointing = params.checkpointing ?? false;
     this.proxy = params.proxy;
     this.cwd = params.cwd ?? process.cwd();
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
+    this.model = params.model;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
     }
 
-    this.geminiClient = new GeminiClient(this);
-    this.toolRegistry = createToolRegistry(this);
-
     if (this.telemetrySettings.enabled) {
       initializeTelemetry(this);
     }
+  }
+
+  async refreshAuth(authMethod: AuthType) {
+    const contentConfig = await createContentGeneratorConfig(
+      this.getModel(),
+      authMethod,
+    );
+
+    const gc = new GeminiClient(this);
+    this.geminiClient = gc;
+    this.toolRegistry = await createToolRegistry(this);
+    await gc.initialize(contentConfig);
+    this.contentGeneratorConfig = contentConfig;
   }
 
   getSessionId(): string {
@@ -191,14 +230,14 @@ export class Config {
   }
 
   getModel(): string {
-    return this.contentGeneratorConfig.model;
+    return this.contentGeneratorConfig?.model || this.model;
   }
 
   getEmbeddingModel(): string {
     return this.embeddingModel;
   }
 
-  getSandbox(): boolean | string | undefined {
+  getSandbox(): SandboxConfig | undefined {
     return this.sandbox;
   }
 
@@ -210,8 +249,8 @@ export class Config {
     return this.targetDir;
   }
 
-  async getToolRegistry(): Promise<ToolRegistry> {
-    return this.toolRegistry;
+  getToolRegistry(): Promise<ToolRegistry> {
+    return Promise.resolve(this.toolRegistry);
   }
 
   getDebugMode(): boolean {
@@ -305,12 +344,20 @@ export class Config {
     return path.join(this.targetDir, GEMINI_DIR);
   }
 
-  getFileFilteringRespectGitIgnore(): boolean {
-    return this.fileFilteringRespectGitIgnore;
+  getProjectTempDir(): string {
+    return getProjectTempDir(this.getProjectRoot());
   }
 
-  getCheckpointEnabled(): boolean {
-    return this.checkpoint;
+  getEnableRecursiveFileSearch(): boolean {
+    return this.fileFiltering.enableRecursiveFileSearch;
+  }
+
+  getFileFilteringRespectGitIgnore(): boolean {
+    return this.fileFiltering.respectGitIgnore;
+  }
+
+  getCheckpointingEnabled(): boolean {
+    return this.checkpointing;
   }
 
   getProxy(): string | undefined {

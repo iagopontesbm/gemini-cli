@@ -17,11 +17,15 @@ With the Gemini CLI you can:
 
 ## Quickstart
 
-1. [Install Node 20+](https://nodejs.org/en/download).
-2. [Get an API key from Google AI Studio](https://aistudio.google.com/apikey).
-3. Set the API key in your shell using the following command, replacing `YOUR_API_KEY` with the API key you obtained: `export GEMINI_API_KEY="YOUR_API_KEY"`.
-4. Run the Gemini CLI from your shell using the following command: `npx https://github.com/google-gemini/gemini-cli#early-access`
-5. Enjoy!
+1. [Install Node 18+](https://nodejs.org/en/download).
+2. Run the Gemini CLI from your shell using the following command: `npx https://github.com/google-gemini/gemini-cli`
+3. When prompted, sign in with your Google account
+4. Enjoy!
+
+When you login with your Google account, you get up to 60 model requests per minute and 1,000 model requests per day using Gemini 2.5 Pro. Alternatively, if you prefer to use a specific model or need more capacity, you can:
+
+- [Get an API key from Google AI Studio](https://aistudio.google.com/apikey).
+- Set the API key in your shell using the following command, replacing `YOUR_API_KEY` with the API key you obtained: `export GEMINI_API_KEY="YOUR_API_KEY"` or store it in an .env file.
 
 ## Examples
 
@@ -51,19 +55,29 @@ The Gemini CLI requires you to authenticate with Google's AI services. You'll ne
 1.  **Gemini Code Assist:**
 
     - To enable this mode you only need set the GEMINI_CODE_ASSIST environment variable to true.
-    - Enterprise users must also provide a GOOGLE_CLOUD_PROJECT environment variable specifying their Google Cloud project.
-      In the following methods, replace `GOOGLE_CLOUD_PROJECT` with the relevant values for your project:
       - You can temporarily set the environment variable in your current shell session using the following command:
         ```bash
         export GEMINI_CODE_ASSIST="true"
-        export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID" // Enterprise users only.
         ```
       - For repeated use, you can add the environment variable to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following command adds the environment variable to a `~/.bashrc` file:
         ```bash
         echo 'export GEMINI_CODE_ASSIST="true"' >> ~/.bashrc
-        echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc # Enterprise users only.
         source ~/.bashrc
         ```
+    - There are two types of Google Accounts you can use with Gemini CLI:
+      - **Personal Google Account**: This is the standard, free account you use for services like Gmail, Google Photos, and Google Drive for personal use (e.g. your-name@gmail.com).
+      - **Google Workspace Account**: This is a paid service for businesses and organizations that provides a suite of productivity tools, including a custom email domain (e.g. your-name@your-company.com), enhanced security features, and administrative controls. These accounts are often managed by an employer or school.
+        - Google Workspace Account must configure a Google Cloud Project Id to use. You can temporarily set the environment variable in your current shell session using the following command:
+        ```bash
+        export GOOGLE_CLOUD_PROJECT_ID="YOUR_PROJECT_ID"
+        ```
+        - For repeated use, you can add the environment variable to your `.env` file (located in the project directory or user home directory) or your shell's configuration file (like `~/.bashrc`, `~/.zshrc`, or `~/.profile`). For example, the following command adds the environment variable to a `~/.bashrc` file:
+        ```bash
+        echo 'export GOOGLE_CLOUD_PROJECT_ID="YOUR_PROJECT_ID"' >> ~/.bashrc
+        source ~/.bashrc
+        ```
+    - During start up, Gemini CLI will direct you to a webpage for authentication. Once authenticated, your credentials will be cached locally so the web login can be skipped on subsequent runs. Cached credentials last about 20 hours before expiring.
+    - Note that the the web login must be done in a browser that can communicate with the machine Gemini Cli is being run from. (Specifically, the browser will be redirected to a localhost url that Gemini CLI will be listening on).
 
 2.  **Gemini API key:**
 

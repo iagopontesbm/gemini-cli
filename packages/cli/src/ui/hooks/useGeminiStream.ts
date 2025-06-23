@@ -22,6 +22,7 @@ import {
   GitService,
   EditorType,
   ThoughtSummary,
+  isAuthError,
 } from '@gemini-cli/core';
 import { type Part, type PartListUnion } from '@google/genai';
 import {
@@ -87,9 +88,11 @@ export const useGeminiStream = (
   >,
   shellModeActive: boolean,
   getPreferredEditor: () => EditorType | undefined,
+  onAuthError: () => void,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+  const turnCancelledRef = useRef(false);
   const [isResponding, setIsResponding] = useState<boolean>(false);
   const [thought, setThought] = useState<ThoughtSummary | null>(null);
   const [pendingHistoryItemRef, setPendingHistoryItem] =
@@ -153,7 +156,12 @@ export const useGeminiStream = (
         (tc) =>
           tc.status === 'executing' ||
           tc.status === 'scheduled' ||
-          tc.status === 'validating',
+          tc.status === 'validating' ||
+          ((tc.status === 'success' ||
+            tc.status === 'error' ||
+            tc.status === 'cancelled') &&
+            !(tc as TrackedCompletedToolCall | TrackedCancelledToolCall)
+              .responseSubmittedToGemini),
       )
     ) {
       return StreamingState.Responding;
@@ -161,15 +169,25 @@ export const useGeminiStream = (
     return StreamingState.Idle;
   }, [isResponding, toolCalls]);
 
-  useEffect(() => {
-    if (streamingState === StreamingState.Idle) {
-      abortControllerRef.current = null;
-    }
-  }, [streamingState]);
-
   useInput((_input, key) => {
-    if (streamingState !== StreamingState.Idle && key.escape) {
+    if (streamingState === StreamingState.Responding && key.escape) {
+      if (turnCancelledRef.current) {
+        return;
+      }
+      turnCancelledRef.current = true;
       abortControllerRef.current?.abort();
+      if (pendingHistoryItemRef.current) {
+        addItem(pendingHistoryItemRef.current, Date.now());
+      }
+      addItem(
+        {
+          type: MessageType.INFO,
+          text: 'Request cancelled.',
+        },
+        Date.now(),
+      );
+      setPendingHistoryItem(null);
+      setIsResponding(false);
     }
   });
 
@@ -182,6 +200,9 @@ export const useGeminiStream = (
       queryToSend: PartListUnion | null;
       shouldProceed: boolean;
     }> => {
+      if (turnCancelledRef.current) {
+        return { queryToSend: null, shouldProceed: false };
+      }
       if (typeof query === 'string' && query.trim().length === 0) {
         return { queryToSend: null, shouldProceed: false };
       }
@@ -278,6 +299,10 @@ export const useGeminiStream = (
       currentGeminiMessageBuffer: string,
       userMessageTimestamp: number,
     ): string => {
+      if (turnCancelledRef.current) {
+        // Prevents additional output after a user initiated cancel.
+        return '';
+      }
       let newGeminiMessageBuffer = currentGeminiMessageBuffer + eventValue;
       if (
         pendingHistoryItemRef.current?.type !== 'gemini' &&
@@ -328,6 +353,9 @@ export const useGeminiStream = (
 
   const handleUserCancelledEvent = useCallback(
     (userMessageTimestamp: number) => {
+      if (turnCancelledRef.current) {
+        return;
+      }
       if (pendingHistoryItemRef.current) {
         if (pendingHistoryItemRef.current.type === 'tool_group') {
           const updatedTools = pendingHistoryItemRef.current.tools.map(
@@ -451,8 +479,9 @@ export const useGeminiStream = (
   const submitQuery = useCallback(
     async (query: PartListUnion, options?: { isContinuation: boolean }) => {
       if (
-        streamingState === StreamingState.Responding ||
-        streamingState === StreamingState.WaitingForConfirmation
+        (streamingState === StreamingState.Responding ||
+          streamingState === StreamingState.WaitingForConfirmation) &&
+        !options?.isContinuation
       )
         return;
 
@@ -461,6 +490,7 @@ export const useGeminiStream = (
 
       abortControllerRef.current = new AbortController();
       const abortSignal = abortControllerRef.current.signal;
+      turnCancelledRef.current = false;
 
       const { queryToSend, shouldProceed } = await prepareQueryForGemini(
         query,
@@ -496,7 +526,9 @@ export const useGeminiStream = (
           setPendingHistoryItem(null);
         }
       } catch (error: unknown) {
-        if (!isNodeError(error) || error.name !== 'AbortError') {
+        if (isAuthError(error)) {
+          onAuthError();
+        } else if (!isNodeError(error) || error.name !== 'AbortError') {
           addItem(
             {
               type: MessageType.ERROR,
@@ -522,6 +554,7 @@ export const useGeminiStream = (
       setInitError,
       geminiClient,
       startNewTurn,
+      onAuthError,
     ],
   );
 
@@ -627,7 +660,7 @@ export const useGeminiStream = (
 
   useEffect(() => {
     const saveRestorableToolCalls = async () => {
-      if (!config.getCheckpointEnabled()) {
+      if (!config.getCheckpointingEnabled()) {
         return;
       }
       const restorableToolCalls = toolCalls.filter(
@@ -638,8 +671,8 @@ export const useGeminiStream = (
       );
 
       if (restorableToolCalls.length > 0) {
-        const checkpointDir = config.getGeminiDir()
-          ? path.join(config.getGeminiDir(), 'checkpoints')
+        const checkpointDir = config.getProjectTempDir()
+          ? path.join(config.getProjectTempDir(), 'checkpoints')
           : undefined;
 
         if (!checkpointDir) {

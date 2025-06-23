@@ -13,7 +13,6 @@ import {
   setGeminiMdFilename as setServerGeminiMdFilename,
   getCurrentGeminiMdFilename,
   ApprovalMode,
-  ContentGeneratorConfig,
   GEMINI_CONFIG_DIR as GEMINI_DIR,
   DEFAULT_GEMINI_MODEL,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
@@ -21,13 +20,20 @@ import {
   TelemetryTarget,
 } from '@gemini-cli/core';
 import { Settings } from './settings.js';
-import { getEffectiveModel } from '../utils/modelCheck.js';
+
 import { Extension } from './extension.js';
 import { getCliVersion } from '../utils/version.js';
 import * as dotenv from 'dotenv';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
+import {
+  loadSandboxConfig,
+  SANDBOX_OPTIONS,
+  SANDBOX_LEGACY_OPTIONS,
+  SandboxOption,
+  SandboxLegacyOption,
+} from './sandboxConfig.js';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -41,14 +47,15 @@ const logger = {
 
 interface CliArgs {
   model: string | undefined;
-  sandbox: boolean | string | undefined;
+  sandbox?: Exclude<SandboxOption, SandboxLegacyOption>;
+  'sandbox-image'?: string;
   debug: boolean | undefined;
   prompt: string | undefined;
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
   yolo: boolean | undefined;
   telemetry: boolean | undefined;
-  checkpoint: boolean | undefined;
+  checkpointing: boolean | undefined;
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
@@ -69,8 +76,17 @@ async function parseArguments(): Promise<CliArgs> {
     })
     .option('sandbox', {
       alias: 's',
-      type: 'boolean',
-      description: 'Run in sandbox?',
+      type: 'string',
+      choices: SANDBOX_OPTIONS.filter(
+        (o): o is Exclude<SandboxOption, SandboxLegacyOption> =>
+          !SANDBOX_LEGACY_OPTIONS.find((lo) => lo === o),
+      ),
+      description:
+        "Set the sandboxing command for tool execution. Use 'auto' to autodetect a supported platform, or specify one directly (e.g., 'docker', 'podman').",
+    })
+    .option('sandbox-image', {
+      type: 'string',
+      description: 'Sandbox image URI.',
     })
     .option('debug', {
       alias: 'd',
@@ -117,7 +133,7 @@ async function parseArguments(): Promise<CliArgs> {
       description:
         'Enable or disable logging of user prompts for telemetry. Overrides settings files.',
     })
-    .option('checkpoint', {
+    .option('checkpointing', {
       alias: 'c',
       type: 'boolean',
       description: 'Enables checkpointing of file edits',
@@ -188,16 +204,20 @@ export async function loadCliConfig(
     extensionContextFilePaths,
   );
 
-  const contentGeneratorConfig = await createContentGeneratorConfig(argv);
-
   const mcpServers = mergeMcpServers(settings, extensions);
   const excludeTools = mergeExcludeTools(settings, extensions);
 
+  const sandboxConfig = await loadSandboxConfig(settings, argv).catch(
+    (e: Error) => {
+      console.error(e.message);
+      process.exit(1);
+    },
+  );
+
   return new Config({
     sessionId,
-    contentGeneratorConfig,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
-    sandbox: argv.sandbox ?? settings.sandbox,
+    sandbox: sandboxConfig,
     targetDir: process.cwd(),
     debugMode,
     question: argv.prompt || '',
@@ -225,8 +245,12 @@ export async function loadCliConfig(
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
     },
     // Git-aware file filtering settings
-    fileFilteringRespectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-    checkpoint: argv.checkpoint,
+    fileFiltering: {
+      respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
+      enableRecursiveFileSearch:
+        settings.fileFiltering?.enableRecursiveFileSearch,
+    },
+    checkpointing: argv.checkpointing || settings.checkpointing?.enabled,
     proxy:
       process.env.HTTPS_PROXY ||
       process.env.https_proxy ||
@@ -235,6 +259,7 @@ export async function loadCliConfig(
     cwd: process.cwd(),
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
+    model: argv.model!,
   });
 }
 
@@ -320,6 +345,7 @@ async function createContentGeneratorConfig(
 
   return config;
 }
+
 
 function findEnvFile(startDir: string): string | null {
   let currentDir = path.resolve(startDir);

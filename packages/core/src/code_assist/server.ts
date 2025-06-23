@@ -22,9 +22,12 @@ import {
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
 import {
-  CodeAssistResponse,
-  toCodeAssistRequest,
-  fromCodeAsistResponse,
+  CaGenerateContentResponse,
+  toGenerateContentRequest,
+  fromGenerateContentResponse,
+  toCountTokenRequest,
+  fromCountTokenResponse,
+  CaCountTokenResponse,
 } from './converter.js';
 import { PassThrough } from 'node:stream';
 
@@ -36,13 +39,12 @@ export interface HttpOptions {
 
 // TODO: Use production endpoint once it supports our methods.
 export const CODE_ASSIST_ENDPOINT =
-  process.env.CODE_ASSIST_ENDPOINT ??
-  'https://staging-cloudcode-pa.sandbox.googleapis.com';
+  process.env.CODE_ASSIST_ENDPOINT ?? 'https://cloudcode-pa.googleapis.com';
 export const CODE_ASSIST_API_VERSION = 'v1internal';
 
 export class CodeAssistServer implements ContentGenerator {
   constructor(
-    readonly auth: OAuth2Client,
+    readonly client: OAuth2Client,
     readonly projectId?: string,
     readonly httpOptions: HttpOptions = {},
   ) {}
@@ -50,14 +52,14 @@ export class CodeAssistServer implements ContentGenerator {
   async generateContentStream(
     req: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
-    const resps = await this.streamEndpoint<CodeAssistResponse>(
+    const resps = await this.streamEndpoint<CaGenerateContentResponse>(
       'streamGenerateContent',
-      toCodeAssistRequest(req, this.projectId),
+      toGenerateContentRequest(req, this.projectId),
       req.config?.abortSignal,
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
       for await (const resp of resps) {
-        yield fromCodeAsistResponse(resp);
+        yield fromGenerateContentResponse(resp);
       }
     })();
   }
@@ -65,12 +67,12 @@ export class CodeAssistServer implements ContentGenerator {
   async generateContent(
     req: GenerateContentParameters,
   ): Promise<GenerateContentResponse> {
-    const resp = await this.callEndpoint<CodeAssistResponse>(
+    const resp = await this.callEndpoint<CaGenerateContentResponse>(
       'generateContent',
-      toCodeAssistRequest(req, this.projectId),
+      toGenerateContentRequest(req, this.projectId),
       req.config?.abortSignal,
     );
-    return fromCodeAsistResponse(resp);
+    return fromGenerateContentResponse(resp);
   }
 
   async onboardUser(
@@ -91,8 +93,12 @@ export class CodeAssistServer implements ContentGenerator {
     );
   }
 
-  async countTokens(_req: CountTokensParameters): Promise<CountTokensResponse> {
-    return { totalTokens: 0 };
+  async countTokens(req: CountTokensParameters): Promise<CountTokensResponse> {
+    const resp = await this.callEndpoint<CaCountTokenResponse>(
+      'countTokens',
+      toCountTokenRequest(req),
+    );
+    return fromCountTokenResponse(resp);
   }
 
   async embedContent(
@@ -106,8 +112,8 @@ export class CodeAssistServer implements ContentGenerator {
     req: object,
     signal?: AbortSignal,
   ): Promise<T> {
-    const res = await this.auth.request({
-      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
+    const res = await this.client.request({
+      url: this.getMethodUrl(method),
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -125,8 +131,8 @@ export class CodeAssistServer implements ContentGenerator {
     req: object,
     signal?: AbortSignal,
   ): Promise<AsyncGenerator<T>> {
-    const res = await this.auth.request({
-      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
+    const res = await this.client.request({
+      url: this.getMethodUrl(method),
       method: 'POST',
       params: {
         alt: 'sse',
@@ -162,5 +168,10 @@ export class CodeAssistServer implements ContentGenerator {
         }
       }
     })();
+  }
+
+  getMethodUrl(method: string): string {
+    const endpoint = process.env.CODE_ASSIST_ENDPOINT ?? CODE_ASSIST_ENDPOINT;
+    return `${endpoint}/${CODE_ASSIST_API_VERSION}:${method}`;
   }
 }
