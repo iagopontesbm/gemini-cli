@@ -19,7 +19,7 @@ This documentation is organized into the following sections:
   - **[Extensions](./extension.md):** How to extend the CLI with new functionality.
 - **Core Details:** Documentation for `packages/core`.
   - **[Core Introduction](./core/index.md):** Overview of the core component.
-  - **[Configuration](./core/configuration.md):** Information on configuring the core component.
+  - **[Telemetry and Usage Statistics](./core/telemetry.md):** Details on configuring telemetry and usage statistics.
   - **[Tools API](./core/tools-api.md):** Information on how the core manages and exposes tools.
 - **Tools:**
   - **[Tools Overview](./tools/index.md):** Overview of the available tools.
