@@ -239,7 +239,6 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
   const { rows: terminalHeight, columns: terminalWidth } = useTerminalSize();
-  const lastTerminalWidth = useRef(terminalWidth);
   const isInitialMount = useRef(true);
   const { stdin, setRawMode } = useStdin();
   const isValidPath = useCallback((filePath: string): boolean => {
@@ -319,11 +318,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
     if (key.ctrl && input === 'o') {
       setShowErrorDetails((prev) => !prev);
-      refreshStatic();
     } else if (key.ctrl && input === 't') {
       const newValue = !showToolDescriptions;
       setShowToolDescriptions(newValue);
-      refreshStatic();
 
       const mcpServers = config.getMcpServers();
       if (Object.keys(mcpServers || {}).length > 0) {
@@ -475,16 +472,13 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
     // debounce so it doesn't fire up too often during resize
     const handler = setTimeout(() => {
-      if (terminalWidth < lastTerminalWidth.current) {
-        setStaticNeedsRefresh(true);
-      }
-      lastTerminalWidth.current = terminalWidth;
+      refreshStatic();
     }, 300);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [terminalWidth]);
+  }, [terminalWidth, terminalHeight, refreshStatic]);
 
   useEffect(() => {
     if (!pendingHistoryItems.length) {
@@ -680,7 +674,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               <LoadingIndicator
                 thought={
                   streamingState === StreamingState.WaitingForConfirmation ||
-                  config.getAccessibility()?.disableLoadingPhrases
+                    config.getAccessibility()?.disableLoadingPhrases
                     ? undefined
                     : thought
                 }
