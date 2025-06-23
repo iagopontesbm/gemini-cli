@@ -19,7 +19,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
     <Box flexDirection="column" marginBottom={1}>
       <Text color={Colors.Foreground}>Tips for getting started:</Text>
       <Text color={Colors.Foreground}>
-        1. Ask questions, edit code or run commands.
+        1. Ask questions, edit files, or run commands.
       </Text>
       <Text color={Colors.Foreground}>
         2. Be specific for the best results.
@@ -38,8 +38,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
         <Text bold color={Colors.AccentPurple}>
           /help
         </Text>{' '}
-        for more information. Full documentation can be found at
-        https://github.com/google-gemini/gemini-cli/blob/main/docs/index.md.
+        for more information.
       </Text>
     </Box>
   );
