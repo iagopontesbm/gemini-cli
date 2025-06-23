@@ -472,6 +472,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
     // debounce so it doesn't fire up too often during resize
     const handler = setTimeout(() => {
+      setStaticNeedsRefresh(false);
       refreshStatic();
     }, 300);
 
