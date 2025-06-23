@@ -46,7 +46,7 @@ export class ClearcutLogger {
   }
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config === undefined || config?.getDisableDataCollection())
+    if (config === undefined || !config?.getUsageStatisticsEnabled())
       return undefined;
     if (!ClearcutLogger.instance) {
       ClearcutLogger.instance = new ClearcutLogger(config);
@@ -81,7 +81,6 @@ export class ClearcutLogger {
     }
 
     this.flushToClearcut();
-    this.last_flush_time = Date.now();
   }
 
   flushToClearcut(): Promise<LogResponse> {
@@ -117,6 +116,7 @@ export class ClearcutLogger {
     }).then((buf: Buffer) => {
       try {
         this.events.length = 0;
+        this.last_flush_time = Date.now();
         return this.decodeLogResponse(buf) || {};
       } catch (error: unknown) {
         console.error('Error flushing log events:', error);
@@ -285,7 +285,7 @@ export class ClearcutLogger {
     ];
 
     this.enqueueLogEvent(this.createLogEvent(api_request_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logApiResponseEvent(event: ApiResponseEvent): void {
