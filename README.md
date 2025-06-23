@@ -46,10 +46,6 @@ Or ask it to perform a task using its tools:
 
 Take a look at some [popular tasks](#popular-tasks) for more inspiration.
 
-## Authentication
-
-For details on how to set up authentication, please see the [Authentication Setup](./docs/cli/authentication.md) guide.
-
 ## Popular tasks
 
 ### Explore a new codebase
