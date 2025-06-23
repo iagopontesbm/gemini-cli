@@ -169,7 +169,7 @@ export async function loadCliConfig(
   loadEnvironment();
 
   const argv = await parseArguments();
-  const debugMode = argv.debug || false;
+  const debugMode = argv.debug || true;
 
   // Set the context filename in the server's memoryTool module BEFORE loading memory
   // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
@@ -227,7 +227,7 @@ export async function loadCliConfig(
         settings.telemetry?.otlpEndpoint,
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
       usageStatisticsEnabled:
-        settings.telemetry?.usageStatisticsEnabled ?? true,
+      settings.telemetry?.usageStatisticsEnabled ?? true,
     },
     // Git-aware file filtering settings
     fileFiltering: {
