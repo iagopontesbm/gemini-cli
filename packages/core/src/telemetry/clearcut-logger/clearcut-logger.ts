@@ -202,8 +202,7 @@ export class ClearcutLogger {
         value: event.core_tools_enabled,
       },
       {
-        gemini_cli_key:
-          EventMetadataKey.GEMINI_CLI_START_SESSION_APPROVAL_MODE,
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_START_SESSION_APPROVAL_MODE,
         value: event.approval_mode,
       },
       {
@@ -254,10 +253,9 @@ export class ClearcutLogger {
   logNewPromptEvent(event: UserPromptEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_USER_PROMPT_LENGTH,
-      value: JSON.stringify(event.prompt_length),
-    },
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_USER_PROMPT_LENGTH,
+        value: JSON.stringify(event.prompt_length),
+      },
     ];
 
     this.enqueueLogEvent(this.createLogEvent(new_prompt_event_name, data));
@@ -267,34 +265,28 @@ export class ClearcutLogger {
   logToolCallEvent(event: ToolCallEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_CALL_NAME,
-      value: JSON.stringify(event.function_name),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_CALL_NAME,
+        value: JSON.stringify(event.function_name),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_CALL_DECISION,
-      value: JSON.stringify(event.decision),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_CALL_DECISION,
+        value: JSON.stringify(event.decision),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_CALL_SUCCESS,
-      value: JSON.stringify(event.success),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_CALL_SUCCESS,
+        value: JSON.stringify(event.success),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_CALL_DURATION_MS,
-      value: JSON.stringify(event.duration_ms),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_CALL_DURATION_MS,
+        value: JSON.stringify(event.duration_ms),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_ERROR_MESSAGE,
-      value: JSON.stringify(event.error),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_ERROR_MESSAGE,
+        value: JSON.stringify(event.error),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_TOOL_CALL_ERROR_TYPE,
-      value: JSON.stringify(event.error_type),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_TOOL_CALL_ERROR_TYPE,
+        value: JSON.stringify(event.error_type),
       },
     ];
 
@@ -305,9 +297,8 @@ export class ClearcutLogger {
   logApiRequestEvent(event: ApiRequestEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_REQUEST_MODEL,
-      value: JSON.stringify(event.model),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_REQUEST_MODEL,
+        value: JSON.stringify(event.model),
       },
     ];
 
@@ -318,52 +309,47 @@ export class ClearcutLogger {
   logApiResponseEvent(event: ApiResponseEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_MODEL,
-      value: JSON.stringify(event.model),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_RESPONSE_MODEL,
+        value: JSON.stringify(event.model),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_STATUS_CODE,
-      value: JSON.stringify(event.status_code),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_RESPONSE_STATUS_CODE,
+        value: JSON.stringify(event.status_code),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_DURATION_MS,
-      value: JSON.stringify(event.duration_ms),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_RESPONSE_DURATION_MS,
+        value: JSON.stringify(event.duration_ms),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_ERROR_MESSAGE,
-      value: JSON.stringify(event.error),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_ERROR_MESSAGE,
+        value: JSON.stringify(event.error),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_INPUT_TOKEN_COUNT,
-      value: JSON.stringify(event.input_token_count),
+        gemini_cli_key:
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_INPUT_TOKEN_COUNT,
+        value: JSON.stringify(event.input_token_count),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_OUTPUT_TOKEN_COUNT,
-      value: JSON.stringify(event.output_token_count),
+        gemini_cli_key:
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_OUTPUT_TOKEN_COUNT,
+        value: JSON.stringify(event.output_token_count),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_CACHED_TOKEN_COUNT,
-      value: JSON.stringify(event.cached_content_token_count),
+        gemini_cli_key:
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_CACHED_TOKEN_COUNT,
+        value: JSON.stringify(event.cached_content_token_count),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT,
-      value: JSON.stringify(event.thoughts_token_count),
+        gemini_cli_key:
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT,
+        value: JSON.stringify(event.thoughts_token_count),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT,
-      value: JSON.stringify(event.tool_token_count),
+        gemini_cli_key:
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT,
+        value: JSON.stringify(event.tool_token_count),
       },
     ];
-
 
     this.enqueueLogEvent(this.createLogEvent(api_response_event_name, data));
     this.flushToClearcut();
@@ -372,24 +358,20 @@ export class ClearcutLogger {
   logApiErrorEvent(event: ApiErrorEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_ERROR_MODEL,
-      value: JSON.stringify(event.model),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_ERROR_MODEL,
+        value: JSON.stringify(event.model),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_ERROR_TYPE,
-      value: JSON.stringify(event.error_type),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_ERROR_TYPE,
+        value: JSON.stringify(event.error_type),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_ERROR_STATUS_CODE,
-      value: JSON.stringify(event.status_code),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_ERROR_STATUS_CODE,
+        value: JSON.stringify(event.status_code),
       },
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_API_ERROR_DURATION_MS,
-      value: JSON.stringify(event.duration_ms),
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_API_ERROR_DURATION_MS,
+        value: JSON.stringify(event.duration_ms),
       },
     ];
 
@@ -400,9 +382,8 @@ export class ClearcutLogger {
   logEndSessionEvent(event: EndSessionEvent): void {
     const data = [
       {
-      gemini_cli_key:
-        EventMetadataKey.GEMINI_CLI_END_SESSION_ID,
-      value: event?.session_id?.toString() ?? '',
+        gemini_cli_key: EventMetadataKey.GEMINI_CLI_END_SESSION_ID,
+        value: event?.session_id?.toString() ?? '',
       },
     ];
 
