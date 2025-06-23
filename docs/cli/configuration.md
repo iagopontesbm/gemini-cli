@@ -30,7 +30,6 @@ Gemini CLI uses `settings.json` files for persistent configuration. There are tw
 In addition to a project settings file, a project's `.gemini` directory can contain other project-specific files related to Gemini CLI's operation, such as:
 
 - [Custom sandbox profiles](#sandboxing) (e.g., `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
-- [Telemtry configurations](../core/telemetry.md#running-an-otel-collector) (e.g., `.gemini/otel/`).
 
 ### Available settings in `settings.json`:
 
@@ -162,6 +161,25 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Default:** `vscode`
   - **Example:** `"preferredEditor": "vscode"`
 
+- **`telemetry`** (object)
+  - **Description:** Configures logging and metrics collection for Gemini CLI. For more information, see [Telemetry](../core/telemetry.md).
+  - **Default:** `{"enabled": false, "target": "local", "otlpEndpoint": "http://localhost:4317", "logPrompts": true}`
+  - **Properties:**
+    - **`enabled`** (boolean): Whether or not telemtery is enabled.
+    - **`target`** (string): The destination for collected telemetry. Supported values are `local` and `gcp`.
+    - **`otlpEndpoint`** (string): The endpoint for the OTLP Exporter.
+    - **`logPrompts`** (boolean): Whether or not to include the content of user prompts in the logs.
+    - **`usageStatisticsEnabled`** (boolean): Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
+  - **Example:**
+    ```json
+    "telemetry": {
+      "enabled": true,
+      "target": "local",
+      "otlpEndpoint": "http://localhost:16686",
+      "logPrompts": false
+    }
+    ```
+
 ### Example `settings.json`:
 
 ```json
@@ -178,6 +196,13 @@ In addition to a project settings file, a project's `.gemini` directory can cont
       "command": "node",
       "args": ["mcp_server.js", "--verbose"]
     }
+  },
+  "telemetry": {
+    "enabled": true,
+    "target": "local",
+    "otlpEndpoint": "http://localhost:4317",
+    "logPrompts": true,
+    "usageStatisticsEnabled": false
   }
 }
 ```
@@ -356,4 +381,42 @@ When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX` environmen
 
 ```bash
 BUILD_SANDBOX=1 gemini -s
+```
+
+## Usage Statistics
+
+To help us improve the Gemini CLI, we collect anonymized usage statistics. This data helps us understand how the CLI is used, identify common issues, and prioritize new features.
+
+**What we collect:**
+
+- **Tool Calls:** We log the names of the tools that are called, whether they succeed or fail, and how long they take to execute. We do not collect the arguments passed to the tools or any data returned by them.
+- **API Requests:** We log the Gemini model used for each request, the duration of the request, and whether it was successful. We do not collect the content of the prompts or responses.
+- **Session Information:** We collect information about the configuration of the CLI, such as the enabled tools and the approval mode.
+
+**What we DON'T collect:**
+
+- **Personally Identifiable Information (PII):** We do not collect any personal information, such as your name, email address, or API keys.
+- **Prompt and Response Content:** We do not log the content of your prompts or the responses from the Gemini model.
+- **File Content:** We do not log the content of any files that are read or written by the CLI.
+
+**How to opt out:**
+
+You can opt out of usage statistics collection at any time by setting the `usageStatisticsEnabled` property to `false` in your `settings.json` file:
+
+```json
+{
+  "telemetry": {
+    "usageStatisticsEnabled": false
+  }
+}
+```
+
+You can also disable all telemetry data collection by setting the `enabled` property to `false`:
+
+```json
+{
+  "telemetry": {
+    "enabled": false
+  }
+}
 ```

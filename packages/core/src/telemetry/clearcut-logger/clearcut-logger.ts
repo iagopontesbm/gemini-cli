@@ -46,7 +46,7 @@ export class ClearcutLogger {
   }
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config === undefined || config?.getDisableDataCollection())
+    if (config === undefined || !config?.getUsageStatisticsEnabled())
       return undefined;
     if (!ClearcutLogger.instance) {
       ClearcutLogger.instance = new ClearcutLogger(config);
@@ -79,7 +79,6 @@ export class ClearcutLogger {
     }
 
     this.flushToClearcut();
-    this.last_flush_time = Date.now();
   }
 
   flushToClearcut(): Promise<LogResponse> {
@@ -121,6 +120,7 @@ export class ClearcutLogger {
     }).then((buf: Buffer) => {
       try {
         this.events.length = 0;
+        this.last_flush_time = Date.now();
         return this.decodeLogResponse(buf) || {};
       } catch (error: unknown) {
         console.error('Error flushing log events:', error);
@@ -249,7 +249,7 @@ export class ClearcutLogger {
     );
 
     this.enqueueLogEvent(this.createLogEvent(new_prompt_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logToolCallEvent(event: ToolCallEvent): void {
@@ -278,7 +278,7 @@ export class ClearcutLogger {
     );
 
     this.enqueueLogEvent(this.createLogEvent(tool_call_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logApiRequestEvent(event: ApiRequestEvent): void {
@@ -287,7 +287,7 @@ export class ClearcutLogger {
     data.set(EventMetadataKey.GEMINI_CLI_API_REQUEST_MODEL, event.model);
 
     this.enqueueLogEvent(this.createLogEvent(api_request_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logApiResponseEvent(event: ApiResponseEvent): void {
@@ -328,7 +328,7 @@ export class ClearcutLogger {
     );
 
     this.enqueueLogEvent(this.createLogEvent(api_response_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logApiErrorEvent(event: ApiErrorEvent): void {
@@ -349,7 +349,7 @@ export class ClearcutLogger {
     );
 
     this.enqueueLogEvent(this.createLogEvent(api_error_event_name, data));
-    this.flushIfNeeded();
+    this.flushToClearcut();
   }
 
   logEndSessionEvent(event: EndSessionEvent): void {
