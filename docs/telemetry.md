@@ -4,7 +4,7 @@ Telemetry provides data about Gemini CLI's performance, health, and usage. By en
 
 Gemini CLI's telemtry system is built on the **[OpenTelemetry] (OTEL)** standard, allowing you to send data to any compatible backend.
 
-[OpenTelemetry]: https://opentelemetry.io/
+[OpenTelemetry]: https://opentelemetry.io/ 
 
 ## Enabling telemetry
 
