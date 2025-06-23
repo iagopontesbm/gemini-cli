@@ -11,12 +11,10 @@ export function isNodeError(error: unknown): error is NodeJS.ErrnoException {
 export function getErrorMessage(error: unknown): string {
   if (error instanceof Error) {
     return error.message;
-  } else {
-    try {
-      const errorMessage = String(error);
-      return errorMessage;
-    } catch {
-      return 'Failed to get error details';
-    }
+  }
+  try {
+    return String(error);
+  } catch {
+    return 'Failed to get error details';
   }
 }

@@ -30,6 +30,7 @@ import {
   CaCountTokenResponse,
 } from './converter.js';
 import { PassThrough } from 'node:stream';
+import { toFriendlyError } from './errors.js';
 
 /** HTTP options to be used in each of the requests. */
 export interface HttpOptions {
@@ -112,18 +113,22 @@ export class CodeAssistServer implements ContentGenerator {
     req: object,
     signal?: AbortSignal,
   ): Promise<T> {
-    const res = await this.auth.request({
-      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.httpOptions.headers,
-      },
-      responseType: 'json',
-      body: JSON.stringify(req),
-      signal,
-    });
-    return res.data as T;
+    try {
+      const res = await this.auth.request({
+        url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.httpOptions.headers,
+        },
+        responseType: 'json',
+        body: JSON.stringify(req),
+        signal,
+      });
+      return res.data as T;
+    } catch (error) {
+      throw toFriendlyError(error);
+    }
   }
 
   async streamEndpoint<T>(
@@ -131,42 +136,45 @@ export class CodeAssistServer implements ContentGenerator {
     req: object,
     signal?: AbortSignal,
   ): Promise<AsyncGenerator<T>> {
-    const res = await this.auth.request({
-      url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
-      method: 'POST',
-      params: {
-        alt: 'sse',
-      },
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.httpOptions.headers,
-      },
-      responseType: 'stream',
-      body: JSON.stringify(req),
-      signal,
-    });
-
-    return (async function* (): AsyncGenerator<T> {
-      const rl = readline.createInterface({
-        input: res.data as PassThrough,
-        crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
+    try {
+      const res = await this.auth.request({
+        url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
+        method: 'POST',
+        params: {
+          alt: 'sse',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          ...this.httpOptions.headers,
+        },
+        responseType: 'stream',
+        body: JSON.stringify(req),
+        signal,
       });
+      return (async function* (): AsyncGenerator<T> {
+        const rl = readline.createInterface({
+          input: res.data as PassThrough,
+          crlfDelay: Infinity, // Recognizes '\r\n' and '\n' as line breaks
+        });
 
-      let bufferedLines: string[] = [];
-      for await (const line of rl) {
-        // blank lines are used to separate JSON objects in the stream
-        if (line === '') {
-          if (bufferedLines.length === 0) {
-            continue; // no data to yield
+        let bufferedLines: string[] = [];
+        for await (const line of rl) {
+          // blank lines are used to separate JSON objects in the stream
+          if (line === '') {
+            if (bufferedLines.length === 0) {
+              continue; // no data to yield
+            }
+            yield JSON.parse(bufferedLines.join('\n')) as T;
+            bufferedLines = []; // Reset the buffer after yielding
+          } else if (line.startsWith('data: ')) {
+            bufferedLines.push(line.slice(6).trim());
+          } else {
+            throw new Error(`Unexpected line format in response: ${line}`);
           }
-          yield JSON.parse(bufferedLines.join('\n')) as T;
-          bufferedLines = []; // Reset the buffer after yielding
-        } else if (line.startsWith('data: ')) {
-          bufferedLines.push(line.slice(6).trim());
-        } else {
-          throw new Error(`Unexpected line format in response: ${line}`);
         }
-      }
-    })();
+      })();
+    } catch (error) {
+      throw toFriendlyError(error);
+    }
   }
 }

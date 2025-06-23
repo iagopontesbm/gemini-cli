@@ -6,8 +6,42 @@
 
 import { GaxiosError } from 'gaxios';
 
-export function isAuthError(error: unknown): boolean {
-  return (
-    error instanceof GaxiosError && error.response?.data?.error?.code === 401
-  );
+export class ForbiddenError extends Error {}
+export class UnauthorizedError extends Error {}
+export class BadRequestError extends Error {}
+
+interface ResponseData {
+  error?: {
+    code?: number;
+    message?: string;
+  };
+}
+
+export function toFriendlyError(error: unknown): unknown {
+  if (error instanceof GaxiosError) {
+    const data = parseResponseData(error);
+    if (data.error && data.error.message && data.error.code) {
+      switch (data.error.code) {
+        case 400:
+          return new BadRequestError(data.error.message);
+        case 401:
+          return new UnauthorizedError(data.error.message);
+        case 403:
+          // It's import to pass the message here since it might
+          // explain the cause like "the cloud project you're
+          // using doesn't have code assist enabled".
+          return new ForbiddenError(data.error.message);
+        default:
+      }
+    }
+  }
+  return error;
+}
+
+function parseResponseData(error: GaxiosError): ResponseData {
+  // Inexplicably, Gaxios sometimes doesn't JSONify the response data.
+  if (typeof error.response?.data === 'string') {
+    return JSON.parse(error.response?.data) as ResponseData;
+  }
+  return typeof error.response?.data as ResponseData;
 }

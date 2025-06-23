@@ -20,7 +20,7 @@ import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { reportError } from '../utils/errorReporting.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { GeminiChat } from './geminiChat.js';
-import { isAuthError } from '../code_assist/errors.js';
+import { UnauthorizedError } from '../code_assist/errors.js';
 
 // Define a structure for tools passed to the server
 export interface ServerTool {
@@ -225,7 +225,7 @@ export class Turn {
         };
       }
     } catch (error) {
-      if (isAuthError(error)) {
+      if (error instanceof UnauthorizedError) {
         throw error;
       }
       if (signal.aborted) {
