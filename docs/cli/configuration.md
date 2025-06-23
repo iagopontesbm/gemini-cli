@@ -161,15 +161,24 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Default:** `vscode`
   - **Example:** `"preferredEditor": "vscode"`
 
-- **`telemetry`** (object):
-  - **Description:** Configures telemetry and usage statistics. For more information, see [Telemetry](../core/telemetry.md).
+- **`telemetry`** (object)
+  - **Description:** Configures logging and metrics collection for Gemini CLI. For more information, see [Telemetry](../core/telemetry.md).
   - **Default:** `{"enabled": false, "target": "local", "otlpEndpoint": "http://localhost:4317", "logPrompts": true}`
   - **Properties:**
-    - **`enabled`** (boolean): Enables or disables all telemetry data collection.
-    - **`target`** (string): Specifies the telemetry backend. Can be "local" or "gcp".
-    - **`otlpEndpoint`** (string): The OTLP endpoint for the telemetry collector.
-    - **`logPrompts`** (boolean): Whether to include user prompts in telemetry data.
+    - **`enabled`** (boolean): Whether or not telemtery is enabled.
+    - **`target`** (string): The destination for collected telemetry. Supported values are `local` and `gcp`.
+    - **`otlpEndpoint`** (string): The endpoint for the OTLP Exporter.
+    - **`logPrompts`** (boolean): Whether or not to include the content of user prompts in the logs.
     - **`usageStatisticsEnabled`** (boolean): Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
+  - **Example:**
+    ```json
+    "telemetry": {
+      "enabled": true,
+      "target": "local",
+      "otlpEndpoint": "http://localhost:16686",
+      "logPrompts": false
+    }
+    ```
 
 ### Example `settings.json`:
 
