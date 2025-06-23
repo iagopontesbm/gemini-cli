@@ -85,9 +85,6 @@ export class ClearcutLogger {
   }
 
   flushToClearcut(): Promise<LogResponse> {
-    if (this.config?.getDebugMode()) {
-      console.log('Flushing log events to Clearcut.');
-    }
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
@@ -97,7 +94,7 @@ export class ClearcutLogger {
         },
       ];
       const body = JSON.stringify(request);
-      if (this.config?.getDebugMode()) {
+      if (this.config?.getDebugMode() ?? false) {
         console.log('Clearcut POST request body:', body);
       }
       const options = {
@@ -114,9 +111,6 @@ export class ClearcutLogger {
         });
       });
       req.on('error', (e) => {
-        if (this.config?.getDebugMode()) {
-          console.log('Clearcut POST request error: ', e);
-        }
         reject(e);
       });
       req.end(body);
@@ -135,9 +129,6 @@ export class ClearcutLogger {
   decodeLogResponse(buf: Buffer): LogResponse | undefined {
     // TODO(obrienowen): return specific errors to facilitate debugging.
     if (buf.length < 1) {
-      if (this.config?.getDebugMode()) {
-        console.log('Clearcut response empty.');
-      }
       return undefined;
     }
 
@@ -146,9 +137,6 @@ export class ClearcutLogger {
     // means field 1 is missing or the message is corrupted. Either way, we return
     // undefined.
     if (buf.readUInt8(0) !== 8) {
-      if (this.config?.getDebugMode()) {
-        console.log('Clearcut response error: field 1 is missing.');
-      }
       return undefined;
     }
 
@@ -167,18 +155,12 @@ export class ClearcutLogger {
     if (cont) {
       // We have fallen off the buffer without seeing a terminating byte. The
       // message is corrupted.
-      if (this.config?.getDebugMode()) {
-        console.log('Clearcut response error: corrupted message.');
-      }
       return undefined;
     }
 
     const returnVal = {
       nextRequestWaitMs: Number(ms),
     };
-    if (this.config?.getDebugMode()) {
-      console.log('Clearcut response: ', returnVal);
-    }
     return returnVal;
   }
 
