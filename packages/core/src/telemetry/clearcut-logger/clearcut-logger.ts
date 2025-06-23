@@ -46,7 +46,7 @@ export class ClearcutLogger {
   }
 
   static getInstance(config?: Config): ClearcutLogger | undefined {
-    if (config === undefined || config?.getDisableDataCollection())
+    if (config === undefined || !config?.getUsageStatisticsEnabled())
       return undefined;
     if (!ClearcutLogger.instance) {
       ClearcutLogger.instance = new ClearcutLogger(config);
@@ -64,7 +64,7 @@ export class ClearcutLogger {
     ]);
   }
 
-  createLogEvent(name: string, data: Map<EventMetadataKey, string>): object {
+  createLogEvent(name: string, data: object): object {
     return {
       Application: 'GEMINI_CLI',
       event_name: name,
@@ -79,10 +79,12 @@ export class ClearcutLogger {
     }
 
     this.flushToClearcut();
-    this.last_flush_time = Date.now();
   }
 
   flushToClearcut(): Promise<LogResponse> {
+    if (this.config?.getDebugMode()) {
+      console.log('Flushing log events to Clearcut.');
+    }
     return new Promise<Buffer>((resolve, reject) => {
       const request = [
         {
@@ -92,6 +94,9 @@ export class ClearcutLogger {
         },
       ];
       const body = JSON.stringify(request);
+      if (this.config?.getDebugMode()) {
+        console.log('Clearcut POST request body:', body);
+      }
       const options = {
         hostname: 'play.googleapis.com',
         path: '/log',
@@ -106,12 +111,16 @@ export class ClearcutLogger {
         });
       });
       req.on('error', (e) => {
+        if (this.config?.getDebugMode()) {
+          console.log('Clearcut POST request error: ', e);
+        }
         reject(e);
       });
       req.end(body);
     }).then((buf: Buffer) => {
       try {
         this.events.length = 0;
+        this.last_flush_time = Date.now();
         return this.decodeLogResponse(buf) || {};
       } catch (error: unknown) {
         console.error('Error flushing log events:', error);
@@ -152,58 +161,83 @@ export class ClearcutLogger {
       // message is corrupted.
       return undefined;
     }
-    return {
+
+    const returnVal = {
       nextRequestWaitMs: Number(ms),
     };
+    if (this.config?.getDebugMode()) {
+      console.log('Clearcut response: ', returnVal);
+    }
+    return returnVal;
   }
 
   logStartSessionEvent(event: StartSessionEvent): void {
-    const data: Map<EventMetadataKey, string> = new Map();
-
-    data.set(EventMetadataKey.GEMINI_CLI_START_SESSION_MODEL, event.model);
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_EMBEDDING_MODEL,
-      event.embedding_model,
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_SANDBOX,
-      event.sandbox_enabled.toString(),
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_CORE_TOOLS,
-      event.core_tools_enabled,
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_APPROVAL_MODE,
-      event.approval_mode,
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_API_KEY_ENABLED,
-      event.api_key_enabled.toString(),
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED,
-      event.vertex_ai_enabled.toString(),
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_DEBUG_MODE_ENABLED,
-      event.debug_enabled.toString(),
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_MCP_SERVERS,
-      event.mcp_servers,
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_ENABLED,
-      event.telemetry_enabled.toString(),
-    );
-    data.set(
-      EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_LOG_USER_PROMPTS_ENABLED,
-      event.telemetry_log_user_prompts_enabled.toString(),
-    );
-
+    const data = [
+      {
+        EventMetadataKey: EventMetadataKey.GEMINI_CLI_START_SESSION_MODEL,
+        value: event.model,
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_EMBEDDING_MODEL,
+        value: event.embedding_model,
+      },
+      {
+        EventMetadataKey: EventMetadataKey.GEMINI_CLI_START_SESSION_SANDBOX,
+        value: event.sandbox_enabled.toString(),
+      },
+      {
+        EventMetadataKey: EventMetadataKey.GEMINI_CLI_START_SESSION_CORE_TOOLS,
+        value: event.core_tools_enabled,
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_APPROVAL_MODE,
+        value: event.approval_mode,
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_API_KEY_ENABLED,
+        value: event.api_key_enabled.toString(),
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED,
+        value: event.vertex_ai_enabled.toString(),
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_DEBUG_MODE_ENABLED,
+        value: event.debug_enabled.toString(),
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED,
+        value: event.vertex_ai_enabled.toString(),
+      },
+      {
+        EventMetadataKey: EventMetadataKey.GEMINI_CLI_START_SESSION_MCP_SERVERS,
+        value: event.mcp_servers,
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_VERTEX_API_ENABLED,
+        value: event.vertex_ai_enabled.toString(),
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_ENABLED,
+        value: event.telemetry_enabled.toString(),
+      },
+      {
+        EventMetadataKey:
+          EventMetadataKey.GEMINI_CLI_START_SESSION_TELEMETRY_LOG_USER_PROMPTS_ENABLED,
+        value: event.telemetry_log_user_prompts_enabled.toString(),
+      },
+    ];
     this.enqueueLogEvent(this.createLogEvent(start_session_event_name, data));
-    this.flushIfNeeded();
+    // Flush start event immediately
+    this.flushToClearcut();
   }
 
   logNewPromptEvent(event: UserPromptEvent): void {

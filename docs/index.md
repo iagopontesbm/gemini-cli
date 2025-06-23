@@ -18,6 +18,7 @@ This documentation is organized into the following sections:
   - **[Configuration](./cli/configuration.md):** Information on configuring the CLI.
   - **[Checkpointing](./checkpointing.md):** Documentation for the checkpointing feature.
   - **[Extensions](./extension.md):** How to extend the CLI with new functionality.
+  - **[Telemetry](./telemetry.md):** Overview of telemetry in the CLI.
 - **Core Details:** Documentation for `packages/core`.
   - **[Core Introduction](./core/index.md):** Overview of the core component.
   - **[Configuration](./core/configuration.md):** Information on configuring the core component.

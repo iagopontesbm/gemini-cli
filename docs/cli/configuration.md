@@ -30,7 +30,6 @@ Gemini CLI uses `settings.json` files for persistent configuration. There are tw
 In addition to a project settings file, a project's `.gemini` directory can contain other project-specific files related to Gemini CLI's operation, such as:
 
 - [Custom sandbox profiles](#sandboxing) (e.g., `.gemini/sandbox-macos-custom.sb`, `.gemini/sandbox.Dockerfile`).
-- [Telemtry configurations](../core/telemetry.md#running-an-otel-collector) (e.g., `.gemini/otel/`).
 
 ### Available settings in `settings.json`:
 
@@ -151,10 +150,10 @@ In addition to a project settings file, a project's `.gemini` directory can cont
 
 - **`checkpointing`** (object):
 
-  - **Description:** Configures the checkpointing feature, which allows you to save and restore conversation and file states. See the [Checkpointing Commands](./commands.md#checkpointing-commands) for more details.
+  - **Description:** Configures the checkpointing feature, which allows you to save and restore conversation and file states. See the [Checkpointing documentation](../checkpointing.md) for more details.
   - **Default:** `{"enabled": false}`
   - **Properties:**
-    - **`enabled`** (boolean): When `true`, the `/save`, `/resume`, and `/restore` commands are available.
+    - **`enabled`** (boolean): When `true`, the `/restore` command is available.
 
 - **`preferredEditor`** (string):
 
