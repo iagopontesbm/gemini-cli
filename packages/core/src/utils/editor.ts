@@ -74,27 +74,18 @@ export function getDiffCommand(
   newPath: string,
   editor: EditorType,
 ): DiffCommand | null {
+  if (!isValidEditorType(editor)) {
+    return null;
+  }
+  const commandConfig = editorCommands[editor];
+  const command =
+    process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
   switch (editor) {
     case 'vscode':
-      return {
-        command: 'code',
-        args: ['--wait', '--diff', oldPath, newPath],
-      };
     case 'windsurf':
-      return {
-        command: 'windsurf',
-        args: ['--wait', '--diff', oldPath, newPath],
-      };
     case 'cursor':
-      return {
-        command: 'cursor',
-        args: ['--wait', '--diff', oldPath, newPath],
-      };
     case 'zed':
-      return {
-        command: 'zed',
-        args: ['--wait', '--diff', oldPath, newPath],
-      };
+      return { command, args: ['--wait', '--diff', oldPath, newPath] };
     case 'vim':
       return {
         command: 'vim',

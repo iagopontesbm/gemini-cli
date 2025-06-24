@@ -106,37 +106,36 @@ describe('editor utils', () => {
   });
 
   describe('getDiffCommand', () => {
-    it('should return the correct command for vscode', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'vscode');
-      expect(command).toEqual({
-        command: 'code',
-        args: ['--wait', '--diff', 'old.txt', 'new.txt'],
-      });
-    });
+    const guiEditors: Array<{
+      editor: EditorType;
+      command: string;
+      win32Command: string;
+    }> = [
+      { editor: 'vscode', command: 'code', win32Command: 'code.cmd' },
+      { editor: 'windsurf', command: 'windsurf', win32Command: 'windsurf' },
+      { editor: 'cursor', command: 'cursor', win32Command: 'cursor' },
+      { editor: 'zed', command: 'zed', win32Command: 'zed' },
+    ];
 
-    it('should return the correct command for windsurf', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'windsurf');
-      expect(command).toEqual({
-        command: 'windsurf',
-        args: ['--wait', '--diff', 'old.txt', 'new.txt'],
+    for (const { editor, command, win32Command } of guiEditors) {
+      it(`should return the correct command for ${editor} on non-windows`, () => {
+        Object.defineProperty(process, 'platform', { value: 'linux' });
+        const diffCommand = getDiffCommand('old.txt', 'new.txt', editor);
+        expect(diffCommand).toEqual({
+          command,
+          args: ['--wait', '--diff', 'old.txt', 'new.txt'],
+        });
       });
-    });
 
-    it('should return the correct command for cursor', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'cursor');
-      expect(command).toEqual({
-        command: 'cursor',
-        args: ['--wait', '--diff', 'old.txt', 'new.txt'],
+      it(`should return the correct command for ${editor} on windows`, () => {
+        Object.defineProperty(process, 'platform', { value: 'win32' });
+        const diffCommand = getDiffCommand('old.txt', 'new.txt', editor);
+        expect(diffCommand).toEqual({
+          command: win32Command,
+          args: ['--wait', '--diff', 'old.txt', 'new.txt'],
+        });
       });
-    });
-
-    it('should return the correct command for zed', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'zed');
-      expect(command).toEqual({
-        command: 'zed',
-        args: ['--wait', '--diff', 'old.txt', 'new.txt'],
-      });
-    });
+    }
 
     it('should return the correct command for vim', () => {
       const command = getDiffCommand('old.txt', 'new.txt', 'vim');
