@@ -29,11 +29,11 @@ class EditorSettingsManager {
 
   constructor() {
     const editorTypes: EditorType[] = [
+      'zed',
       'vscode',
       'windsurf',
       'cursor',
       'vim',
-      'zed',
     ];
     this.availableEditors = [
       {
