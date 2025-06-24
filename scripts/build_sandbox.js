@@ -114,15 +114,11 @@ function buildImage(imageName, dockerfile) {
       ? `${sandboxCommand} build --authfile=<(echo '{}')`
       : `${sandboxCommand} build`;
 
-  const npmPackageVersion = JSON.parse(
-    readFileSync(join(process.cwd(), 'package.json'), 'utf-8'),
-  ).version;
-
   try {
     execSync(
       `${buildCommand} ${
         process.env.BUILD_SANDBOX_FLAGS || ''
-      } --build-arg CLI_VERSION_ARG=${npmPackageVersion} -f "${dockerfile}" -t "${imageName}" .`,
+      } -f "${dockerfile}" -t "${imageName}" .`,
       { stdio: buildStdout, shell: '/bin/bash' },
     );
   } catch (e) {
@@ -136,8 +132,8 @@ function buildImage(imageName, dockerfile) {
       console.error(e.stderr.toString());
     }
     process.exit(1);
+    console.log(`built ${imageName}`);
   }
-  console.log(`built ${imageName}`);
 }
 
 if (baseImage && baseDockerfile) {
