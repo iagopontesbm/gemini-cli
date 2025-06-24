@@ -1,10 +1,10 @@
 # MCP servers with the Gemini CLI
 
-This document provides a comprehensive guide to configuring, using, and creating Model Context Protocol (MCP) servers with the Gemini CLI. It covers both the user perspective for integrating existing MCP servers and the developer perspective for building custom servers.
+This document provides a  guide to configuring and using Model Context Protocol (MCP) servers with the Gemini CLI. 
 
 ## What is an MCP server?
 
-An MCP server is an application that exposes tools and resources to the Gemini CLI through the Model Context Protocol, allowing it to interact with external systems and data sources. MCP servers act as a bridge between the Gemini model and your local environment or other services.
+An MCP server is an application that exposes tools and resources to the Gemini CLI through the Model Context Protocol, allowing it to interact with external systems and data sources. MCP servers act as a bridge between the Gemini model and your local environment or other services like APIs.
 
 An MCP server enables the Gemini CLI to:
 
@@ -51,14 +51,14 @@ The Gemini CLI uses the `mcpServers` configuration in your `settings.json` file 
 
 ### Configure the MCP server in settings.json
 
-In your project's root directory, create or open the `.gemini/settings.json` file. Within the file, add the `mcpServers` configuration block.
+You can configure MCP servers at the global level in the `~/.gemini/settings.json` file or in your project's root directory, create or open the `.gemini/settings.json` file. Within the file, add the `mcpServers` configuration block.
 
 ### Configuration Structure
 
 Add an `mcpServers` object to your `settings.json` file:
 
 ```json
-{
+{ ...file contains other config objects
   "mcpServers": {
     "serverName": {
       "command": "path/to/server",
@@ -400,11 +400,5 @@ The MCP integration tracks several states:
 - **Property stripping:** The system automatically removes certain schema properties (`$schema`, `additionalProperties`) for Gemini API compatibility
 - **Name sanitization:** Tool names are automatically sanitized to meet API requirements
 - **Conflict resolution:** Tool name conflicts between servers are resolved through automatic prefixing
-
-### Development Workflow
-
-- **Iterative development:** Use the `/mcp` command to monitor server status during development
-- **Hot reloading:** Restart the CLI to pick up server changes (connections are re-established)
-- **Testing:** Consider creating integration tests for your MCP servers using the patterns in `integration-tests/`
 
 This comprehensive integration makes MCP servers a powerful way to extend the Gemini CLI's capabilities while maintaining security, reliability, and ease of use.
