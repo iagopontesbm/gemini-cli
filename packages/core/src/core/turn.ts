@@ -20,7 +20,7 @@ import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { reportError } from '../utils/errorReporting.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { GeminiChat } from './geminiChat.js';
-import { UnauthorizedError } from '../code_assist/errors.js';
+import { UnauthorizedError, toFriendlyError } from '../utils/errors.js';
 
 // Define a structure for tools passed to the server
 export interface ServerTool {
@@ -224,7 +224,8 @@ export class Turn {
           value: { ...this.lastUsageMetadata, apiTimeMs: durationMs },
         };
       }
-    } catch (error) {
+    } catch (e) {
+      const error = toFriendlyError(e);
       if (error instanceof UnauthorizedError) {
         throw error;
       }
