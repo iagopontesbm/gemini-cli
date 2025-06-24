@@ -22,6 +22,7 @@ esbuild
     platform: 'node',
     format: 'esm',
     define: {
+      'process.env.CLI_NAME': JSON.stringify(pkg.name),
       'process.env.CLI_VERSION': JSON.stringify(pkg.version),
     },
     banner: {
