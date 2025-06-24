@@ -54,6 +54,7 @@ import {
   ApprovalMode,
   isEditorAvailable,
   EditorType,
+  isAuthError,
 } from '@gemini-cli/core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
@@ -389,6 +390,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       !isAuthenticating &&
       !isAuthDialogOpen &&
       !isThemeDialogOpen &&
+      !isAuthError &&
       config.getGeminiClient()?.getChatSafe?.()
     ) {
       submitQuery(prompt);
