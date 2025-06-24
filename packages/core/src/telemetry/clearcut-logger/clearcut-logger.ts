@@ -70,8 +70,7 @@ export class ClearcutLogger {
       application: 102,
       event_name: name,
       client_install_id: getPersistentUserId(),
-      // TODO(obrienowen): re-enable metadata logging once cl/774854491 has propagated to prod.
-      //event_metadata: [data] as object[],
+      event_metadata: [data] as object[],
     };
   }
 
