@@ -1,8 +1,10 @@
-# Sandboxing in Gemini CLI
+# Sandboxing in the Gemini CLI
+
+This document provides a guide to sandboxing in the Gemini CLI, including prerequisites, quickstart, and configuration.
 
 ## Prerequisites
 
-Before using sandboxing, you need to install and set up Gemini CLI:
+Before using sandboxing, you need to install and set up the Gemini CLI:
 
 ```bash
 #install gemini-cli with npm
@@ -12,18 +14,20 @@ npm install -g @google/gemini-cli
 gemini --version
 ```
 
-## Overview
+## Overview of sandboxing
 
-Sandboxing isolates potentially dangerous operations (shell commands, file modifications) from your host system, providing a security barrier between AI operations and your environment.
+Sandboxing isolates potentially dangerous operations (such as shell commands or file modifications) from your host system, providing a security barrier between AI operations and your environment.
 
-## Why Use Sandboxing?
+The benefits of sandboxing include:
 
-- **Security**: Prevents accidental system damage or data loss
-- **Isolation**: Limits file system access to project directory
-- **Consistency**: Ensures reproducible environments across different systems
-- **Safety**: Ideal when working with untrusted code or experimental commands
+- **Security**: Prevent accidental system damage or data loss.
+- **Isolation**: Limit file system access to project directory.
+- **Consistency**: Ensure reproducible environments across different systems.
+- **Safety**: Reduce risk when working with untrusted code or experimental commands.
 
-## Sandboxing Methods
+## Sandboxing methods
+
+Your ideal method of sandboxing may differ depending on your platform and your preferred container solution.
 
 ### 1. macOS Seatbelt (macOS only)
 
@@ -37,7 +41,7 @@ Cross-platform sandboxing with complete process isolation.
 
 **Note**: Requires building the sandbox image locally or using a published image from your organization's registry.
 
-## Quick Start
+## Quickstart
 
 ```bash
 # Enable sandboxing with command flag
@@ -55,26 +59,25 @@ gemini -p "run the test suite"
 
 ## Configuration
 
-### Enable Sandboxing (in order of precedence)
+### Enable sandboxing (in order of precedence)
 
 1. **Command flag**: `-s` or `--sandbox`
 2. **Environment variable**: `GEMINI_SANDBOX=true|docker|podman|sandbox-exec`
 3. **Settings file**: `"sandbox": true` in `settings.json`
 
-### macOS Seatbelt Profiles
+### macOS Seatbelt profiles
 
 Built-in profiles (set via `SEATBELT_PROFILE` env var):
 
-- `permissive-open` (default) - Write restrictions, network allowed
-- `permissive-closed` - Write restrictions, no network
-- `permissive-proxied` - Write restrictions, network via proxy
-- `restrictive-open` - Strict restrictions, network allowed
-- `restrictive-closed` - Maximum restrictions
+- `permissive-open` (default): Write restrictions, network allowed
+- `permissive-closed`: Write restrictions, no network
+- `permissive-proxied`: Write restrictions, network via proxy
+- `restrictive-open`: Strict restrictions, network allowed
+- `restrictive-closed`: Maximum restrictions
 
+## Linux UID/GID handling
 
-## Linux UID/GID Handling
-
-The sandbox automatically handles user permissions on Linux. Override with:
+The sandbox automatically handles user permissions on Linux. Override these permissions with:
 
 ```bash
 export SANDBOX_SET_UID_GID=true   # Force host UID/GID
@@ -83,30 +86,30 @@ export SANDBOX_SET_UID_GID=false  # Disable UID/GID mapping
 
 ## Troubleshooting
 
-### Common Issues
+### Common issues
 
 **"Operation not permitted"**
 
-- Operation requires access outside sandbox
-- Try more permissive profile or add mount points
+- Operation requires access outside sandbox.
+- Try more permissive profile or add mount points.
 
 **Missing commands**
 
-- Add to custom Dockerfile
-- Install via sandbox.bashrc
+- Add to custom Dockerfile.
+- Install via `sandbox.bashrc`.
 
 **Network issues**
 
-- Check sandbox profile allows network
-- Verify proxy configuration
+- Check sandbox profile allows network.
+- Verify proxy configuration.
 
-### Debug Mode
+### Debug mode
 
 ```bash
 DEBUG=1 gemini -s -p "debug command"
 ```
 
-### Inspect Sandbox
+### Inspect sandbox
 
 ```bash
 # Check environment
@@ -116,15 +119,15 @@ gemini -s -p "run shell command: env | grep SANDBOX"
 gemini -s -p "run shell command: mount | grep workspace"
 ```
 
-## Security Notes
+## Security notes
 
-- Sandboxing reduces but doesn't eliminate all risks
-- Use the most restrictive profile that allows your work
-- Container overhead is minimal after first build
-- GUI applications may not work in sandboxes
+- Sandboxing reduces but doesn't eliminate all risks.
+- Use the most restrictive profile that allows your work.
+- Container overhead is minimal after first build.
+- GUI applications may not work in sandboxes.
 
-## Related Documentation
+## Related documentation
 
-- [Configuration](./cli/configuration.md) - Full configuration options
-- [Commands](./cli/commands.md) - Available commands
-- [Troubleshooting](./troubleshooting.md) - General troubleshooting
+- [Configuration](./cli/configuration.md): Full configuration options.
+- [Commands](./cli/commands.md): Available commands.
+- [Troubleshooting](./troubleshooting.md): General troubleshooting.
