@@ -76,21 +76,6 @@ Built-in profiles (set via `SEATBELT_PROFILE` env var):
 - `restrictive-open` - Strict restrictions, network allowed
 - `restrictive-closed` - Maximum restrictions
 
-### Container-based Configuration
-
-#### Building the Sandbox Image
-
-First time setup:
-
-```bash
-# From gemini-cli repository
-npm install
-npm run build:sandbox
-
-# Or with gemini installed globally
-BUILD_SANDBOX=1 gemini -s
-```
-
 ## Linux UID/GID Handling
 
 The sandbox automatically handles user permissions on Linux. Override with:
