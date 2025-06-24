@@ -1,6 +1,6 @@
 # MCP servers with the Gemini CLI
 
-This document provides a  guide to configuring and using Model Context Protocol (MCP) servers with the Gemini CLI. 
+This document provides a guide to configuring and using Model Context Protocol (MCP) servers with the Gemini CLI.
 
 ## What is an MCP server?
 
@@ -78,13 +78,13 @@ Add an `mcpServers` object to your `settings.json` file:
 
 Each server configuration supports the following properties:
 
-#### Required (one of the following):
+#### Required (one of the following)
 
 - **`command`** (string): Path to the executable for Stdio transport
 - **`url`** (string): SSE endpoint URL (e.g., `"http://localhost:8080/sse"`)
 - **`httpUrl`** (string): HTTP streaming endpoint URL
 
-#### Optional:
+#### Optional
 
 - **`args`** (string[]): Command-line arguments for Stdio transport
 - **`env`** (object): Environment variables for the server process. Values can reference environment variables using `$VAR_NAME` or `${VAR_NAME}` syntax
@@ -95,6 +95,7 @@ Each server configuration supports the following properties:
 ### Example Configurations
 
 #### Python MCP Server (Stdio)
+
 ```json
 {
   "mcpServers": {
@@ -113,6 +114,7 @@ Each server configuration supports the following properties:
 ```
 
 #### Node.js MCP Server (Stdio)
+
 ```json
 {
   "mcpServers": {
@@ -127,15 +129,20 @@ Each server configuration supports the following properties:
 ```
 
 #### Docker-based MCP Server
+
 ```json
 {
   "mcpServers": {
     "dockerizedServer": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-e", "API_KEY",
-        "-v", "${PWD}:/workspace",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "API_KEY",
+        "-v",
+        "${PWD}:/workspace",
         "my-mcp-server:latest"
       ],
       "env": {
@@ -147,6 +154,7 @@ Each server configuration supports the following properties:
 ```
 
 #### HTTP-based MCP Server
+
 ```json
 {
   "mcpServers": {
@@ -169,7 +177,7 @@ For each configured server in `mcpServers`:
 1. **Status tracking begins:** Server status is set to `CONNECTING`
 2. **Transport selection:** Based on configuration properties:
    - `httpUrl` → `StreamableHTTPClientTransport`
-   - `url` → `SSEClientTransport`  
+   - `url` → `SSEClientTransport`
    - `command` → `StdioClientTransport`
 3. **Connection establishment:** The MCP client attempts to connect with the configured timeout
 4. **Error handling:** Connection failures are logged and the server status is set to `DISCONNECTED`
@@ -216,6 +224,7 @@ When the Gemini model decides to use an MCP tool, the following execution flow o
 ### 1. Tool Invocation
 
 The model generates a `FunctionCall` with:
+
 - **Tool name:** The registered name (potentially prefixed)
 - **Arguments:** JSON object matching the tool's parameter schema
 
@@ -224,6 +233,7 @@ The model generates a `FunctionCall` with:
 Each `DiscoveredMCPTool` implements sophisticated confirmation logic:
 
 #### Trust-based Bypass
+
 ```typescript
 if (this.trust) {
   return false; // No confirmation needed
@@ -231,12 +241,16 @@ if (this.trust) {
 ```
 
 #### Dynamic Allow-listing
+
 The system maintains internal allow-lists for:
+
 - **Server-level:** `serverName` → All tools from this server are trusted
 - **Tool-level:** `serverName.toolName` → This specific tool is trusted
 
 #### User Choice Handling
+
 When confirmation is required, users can choose:
+
 - **Proceed once:** Execute this time only
 - **Always allow this tool:** Add to tool-level allow-list
 - **Always allow this server:** Add to server-level allow-list
@@ -248,21 +262,24 @@ Upon confirmation (or trust bypass):
 
 1. **Parameter preparation:** Arguments are validated against the tool's schema
 2. **MCP call:** The underlying `CallableTool` invokes the server with:
+
    ```typescript
-   const functionCalls = [{
-     name: this.serverToolName, // Original server tool name
-     args: params
-   }];
+   const functionCalls = [
+     {
+       name: this.serverToolName, // Original server tool name
+       args: params,
+     },
+   ];
    ```
+
 3. **Response processing:** Results are formatted for both LLM context and user display
 
 ### 4. Response Handling
 
 The execution result contains:
+
 - **`llmContent`:** Raw response parts for the language model's context
 - **`returnDisplay`:** Formatted output for user display (often JSON in markdown code blocks)
-
-
 
 ## How to interact with your MCP server
 
@@ -275,6 +292,7 @@ The `/mcp` command provides comprehensive information about your MCP server setu
 ```
 
 This displays:
+
 - **Server list:** All configured MCP servers
 - **Connection status:** `CONNECTED`, `CONNECTING`, or `DISCONNECTED`
 - **Server details:** Configuration summary (excluding sensitive data)
@@ -319,11 +337,13 @@ Once discovered, MCP tools are available to the Gemini model like built-in tools
 The MCP integration tracks several states:
 
 #### Server Status (`MCPServerStatus`)
+
 - **`DISCONNECTED`:** Server is not connected or has errors
 - **`CONNECTING`:** Connection attempt in progress
 - **`CONNECTED`:** Server is connected and ready
 
 #### Discovery State (`MCPDiscoveryState`)
+
 - **`NOT_STARTED`:** Discovery hasn't begun
 - **`IN_PROGRESS`:** Currently discovering servers
 - **`COMPLETED`:** Discovery finished (with or without errors)
@@ -335,6 +355,7 @@ The MCP integration tracks several states:
 **Symptoms:** Server shows `DISCONNECTED` status
 
 **Troubleshooting:**
+
 1. **Check configuration:** Verify `command`, `args`, and `cwd` are correct
 2. **Test manually:** Run the server command directly to ensure it works
 3. **Check dependencies:** Ensure all required packages are installed
@@ -346,6 +367,7 @@ The MCP integration tracks several states:
 **Symptoms:** Server connects but no tools are available
 
 **Troubleshooting:**
+
 1. **Verify tool registration:** Ensure your server actually registers tools
 2. **Check MCP protocol:** Confirm your server implements the MCP tool listing correctly
 3. **Review server logs:** Check stderr output for server-side errors
@@ -356,6 +378,7 @@ The MCP integration tracks several states:
 **Symptoms:** Tools are discovered but fail during execution
 
 **Troubleshooting:**
+
 1. **Parameter validation:** Ensure your tool accepts the expected parameters
 2. **Schema compatibility:** Verify your input schemas are valid JSON Schema
 3. **Error handling:** Check if your tool is throwing unhandled exceptions
@@ -366,6 +389,7 @@ The MCP integration tracks several states:
 **Symptoms:** MCP servers fail when sandboxing is enabled
 
 **Solutions:**
+
 1. **Docker-based servers:** Use Docker containers that include all dependencies
 2. **Path accessibility:** Ensure server executables are available in the sandbox
 3. **Network access:** Configure sandbox to allow necessary network connections
