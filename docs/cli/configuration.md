@@ -153,7 +153,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Description:** Configures the checkpointing feature, which allows you to save and restore conversation and file states. See the [Checkpointing Commands](./commands.md#checkpointing-commands) for more details.
   - **Default:** `{"enabled": false}`
   - **Properties:**
-    - **`enabled`** (boolean): When `true`, the `/save`, `/resume`, and `/restore` commands are available.
+    - **`enabled`** (boolean): When `true`, the `/restore` command is available.
 
 - **`preferredEditor`** (string):
 
@@ -169,7 +169,6 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     - **`target`** (string): The destination for collected telemetry. Supported values are `local` and `gcp`.
     - **`otlpEndpoint`** (string): The endpoint for the OTLP Exporter.
     - **`logPrompts`** (boolean): Whether or not to include the content of user prompts in the logs.
-    - **`usageStatisticsEnabled`** (boolean): Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
   - **Example:**
     ```json
     "telemetry": {
@@ -178,6 +177,13 @@ In addition to a project settings file, a project's `.gemini` directory can cont
       "otlpEndpoint": "http://localhost:16686",
       "logPrompts": false
     }
+    ```
+- **`usageStatisticsEnabled`** (boolean):
+  - **Description:** Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
+  - **Default:** `true`
+  - **Example:**
+    ```json
+    "usageStatisticsEnabled": false
     ```
 
 ### Example `settings.json`:
@@ -201,9 +207,9 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     "enabled": true,
     "target": "local",
     "otlpEndpoint": "http://localhost:4317",
-    "logPrompts": true,
-    "usageStatisticsEnabled": false
-  }
+    "logPrompts": true
+  },
+  "usageStatisticsEnabled": true
 }
 ```
 
@@ -281,19 +287,37 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
 
 Arguments passed directly when running the CLI can override other configurations for that specific session.
 
-- **`--model <model_name>`** (or **`-m <model_name>`**):
+- **`--model <model_name>`** (**`-m <model_name>`**):
   - Specifies the Gemini model to use for this session.
   - Example: `npm start -- --model gemini-1.5-pro-latest`
-- **`--sandbox`** (or **`-s`**):
-  - Enables sandbox mode for this session. The exact behavior might depend on other sandbox configurations (environment variables, settings files).
-- **`--debug_mode`** (or **`-d`**):
+- **`--prompt <your_prompt>`** (**`-p <your_prompt>`**):
+  - Used to pass a prompt directly to the command. This invokes Gemini CLI in a non-interactive mode.
+- **`--sandbox`** (**`-s`**):
+  - Enables sandbox mode for this session.
+- **`--sandbox-image`**:
+  - Sets the sandbox image URI.
+- **`--debug_mode`** (**`-d`**):
   - Enables debug mode for this session, providing more verbose output.
-- **`--question <your_question>`** (or **`-q <your_question>`**):
-  - Used to pass a question directly to the command, especially when piping input to the CLI.
-- **`--all_files`** (or **`-a`**):
+- **`--all_files`** (**`-a`**):
   - If set, recursively includes all files within the current directory as context for the prompt.
 - **`--help`** (or **`-h`**):
   - Displays help information about command-line arguments.
+- **`--show_memory_usage`**:
+  - Displays the current memory usage.
+- **`--yolo`**:
+  - Enables YOLO mode, which automatically approves all tool calls.
+- **`--telemetry`**:
+  - Enables [telemetry](../core/telemetry.md).
+- **`--telemetry-target`**:
+  - Sets the telemetry target. See [telemetry](../core/telemetry.md) for more information.
+- **`--telemetry-otlp-endpoint`**:
+  - Sets the OTLP endpoint for telemetry. See [telemetry](../core/telemetry.md) for more information.
+- **`--telemetry-log-prompts`**:
+  - Enables logging of prompts for telemetry. See [telemetry](../core/telemetry.md) for more information.
+- **`--checkpointing`**:
+  - Enables [checkpointing](./commands.md#checkpointing-commands).
+- **`--version`**:
+  - Displays the version of the CLI.
 
 ## Context Files (Hierarchical Instructional Context)
 
@@ -405,18 +429,6 @@ You can opt out of usage statistics collection at any time by setting the `usage
 
 ```json
 {
-  "telemetry": {
-    "usageStatisticsEnabled": false
-  }
-}
-```
-
-You can also disable all telemetry data collection by setting the `enabled` property to `false`:
-
-```json
-{
-  "telemetry": {
-    "enabled": false
-  }
+  "usageStatisticsEnabled": false
 }
 ```
