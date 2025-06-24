@@ -5,8 +5,13 @@
 Before using sandboxing, you need to install and set up Gemini CLI:
 
 ```bash
-#install gemini-cli with npm
-npm install -g @google/gemini-cli
+# Clone and install
+git clone https://github.com/google-gemini/gemini-cli.git
+cd gemini-cli
+npm install
+
+# Link the gemini command globally
+npm link
 
 # Verify installation
 gemini --version
@@ -70,6 +75,7 @@ Built-in profiles (set via `SEATBELT_PROFILE` env var):
 - `permissive-proxied` - Write restrictions, network via proxy
 - `restrictive-open` - Strict restrictions, network allowed
 - `restrictive-closed` - Maximum restrictions
+
 
 ## Linux UID/GID Handling
 
