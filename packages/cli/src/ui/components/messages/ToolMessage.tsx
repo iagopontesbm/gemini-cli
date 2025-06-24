@@ -44,6 +44,11 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
       )
     : undefined;
 
+  // TODO: Fix markdown display to respect max height
+  if (availableHeight) {
+    renderOutputAsMarkdown = false;
+  }
+
   const childWidth = terminalWidth - 3; // account for padding.
 
   return (
