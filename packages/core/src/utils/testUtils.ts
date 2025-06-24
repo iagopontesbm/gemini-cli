@@ -5,7 +5,7 @@
  */
 
 /**
- * Testing utilities for simulating 429 errors and other API failures
+ * Testing utilities for simulating 429 errors in unit tests
  */
 
 let requestCounter = 0;
@@ -13,25 +13,6 @@ let simulate429Enabled = false;
 let simulate429AfterRequests = 0;
 let simulate429ForAuthType: string | undefined;
 let fallbackOccurred = false;
-
-/**
- * Initialize 429 simulation based on environment variables
- */
-export function initializeTestSimulation(): void {
-  simulate429Enabled = process.env.GEMINI_CLI_SIMULATE_429 === 'true';
-  simulate429AfterRequests = parseInt(
-    process.env.SIMULATE_429_AFTER_N_REQUESTS || '0',
-    10,
-  );
-  simulate429ForAuthType = process.env.SIMULATE_429_FOR_AUTH_TYPE;
-
-  if (simulate429Enabled && process.env.DEBUG_FALLBACK_FLOW === 'true') {
-    console.log('[DEBUG] 429 simulation enabled:', {
-      afterRequests: simulate429AfterRequests,
-      forAuthType: simulate429ForAuthType,
-    });
-  }
-}
 
 /**
  * Check if we should simulate a 429 error for the current request
@@ -69,9 +50,6 @@ export function resetRequestCounter(): void {
  */
 export function disableSimulationAfterFallback(): void {
   fallbackOccurred = true;
-  if (process.env.DEBUG_FALLBACK_FLOW === 'true') {
-    console.log('[DEBUG] 429 simulation disabled after successful fallback');
-  }
 }
 
 /**
@@ -91,20 +69,19 @@ export function createSimulated429Error(): Error {
 export function resetSimulationState(): void {
   fallbackOccurred = false;
   resetRequestCounter();
-  if (process.env.DEBUG_FALLBACK_FLOW === 'true') {
-    console.log('[DEBUG] Simulation state reset for auth method switch');
-  }
 }
 
 /**
  * Enable/disable 429 simulation programmatically (for tests)
  */
-export function setSimulate429(enabled: boolean, afterRequests = 0): void {
+export function setSimulate429(
+  enabled: boolean,
+  afterRequests = 0,
+  forAuthType?: string,
+): void {
   simulate429Enabled = enabled;
   simulate429AfterRequests = afterRequests;
+  simulate429ForAuthType = forAuthType;
   fallbackOccurred = false; // Reset fallback state when simulation is re-enabled
   resetRequestCounter();
 }
-
-// Initialize on module load
-initializeTestSimulation();

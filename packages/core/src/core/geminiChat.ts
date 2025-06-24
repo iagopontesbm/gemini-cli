@@ -35,7 +35,6 @@ import {
   ApiResponseEvent,
 } from '../telemetry/types.js';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
-import { disableSimulationAfterFallback } from '../utils/testUtils.js';
 
 /**
  * Returns true if the response is valid, false otherwise.
@@ -211,7 +210,6 @@ export class GeminiChat {
         const accepted = await fallbackHandler(currentModel, fallbackModel);
         if (accepted) {
           this.config.setModel(fallbackModel);
-          disableSimulationAfterFallback();
           return fallbackModel;
         }
       } catch (error) {

@@ -39,7 +39,6 @@ import {
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
 import { AuthType } from './contentGenerator.js';
-import { disableSimulationAfterFallback } from '../utils/testUtils.js';
 
 function isThinkingSupported(model: string) {
   if (model.startsWith('gemini-2.5')) return true;
@@ -529,7 +528,6 @@ export class GeminiClient {
         if (accepted) {
           this.config.setModel(fallbackModel);
           this.model = fallbackModel;
-          disableSimulationAfterFallback();
           return fallbackModel;
         }
       } catch (error) {

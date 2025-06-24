@@ -40,7 +40,6 @@ import {
   DEFAULT_GEMINI_FLASH_MODEL,
 } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
-import { resetSimulationState } from '../utils/testUtils.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -229,7 +228,7 @@ export class Config {
   async refreshAuth(authMethod: AuthType) {
     // Check if this is actually a switch to a different auth method
     const previousAuthType = this.contentGeneratorConfig?.authType;
-    const isAuthMethodSwitch =
+    const _isAuthMethodSwitch =
       previousAuthType && previousAuthType !== authMethod;
 
     // Always use the original default model when switching auth methods
@@ -256,11 +255,7 @@ export class Config {
     // Reset the session flag since we're explicitly changing auth and using default model
     this.modelSwitchedDuringSession = false;
 
-    // Only reset 429 simulation state when actually switching between auth methods,
-    // not on initial startup
-    if (isAuthMethodSwitch) {
-      resetSimulationState();
-    }
+    // Note: In the future, we may want to reset any cached state when switching auth methods
   }
 
   getSessionId(): string {

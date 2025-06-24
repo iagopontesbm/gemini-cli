@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { shouldSimulate429, createSimulated429Error } from './testUtils.js';
 import { AuthType } from '../core/contentGenerator.js';
 
 export interface RetryOptions {
@@ -83,11 +82,6 @@ export async function retryWithBackoff<T>(
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      // Check if we should simulate a 429 error for testing
-      if (shouldSimulate429(authType)) {
-        throw createSimulated429Error();
-      }
-
       return await fn();
     } catch (error) {
       const errorStatus = getErrorStatus(error);
