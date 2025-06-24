@@ -144,6 +144,7 @@ export async function openDiff(
       return new Promise((resolve, reject) => {
         const process = spawn(diffCommand.command, diffCommand.args, {
           stdio: 'inherit',
+          shell: true
         });
 
         process.on('close', (code) => {
