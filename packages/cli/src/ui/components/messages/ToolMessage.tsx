@@ -44,6 +44,9 @@ export const ToolMessage: React.FC<ToolMessageProps> = ({
       )
     : undefined;
 
+  // Long tool call response in MarkdownDisplay doesn't repect availableTerminalHeight properly,
+  // we're forcing it to not render as markdown when the response is too long, it will fallback
+  // to render as plain text, which is contained within the terminal using MaxSizedBox
   if (availableHeight) {
     renderOutputAsMarkdown = false;
   }
