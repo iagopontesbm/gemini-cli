@@ -176,7 +176,7 @@ describe('editor utils', () => {
       expect(spawn).toHaveBeenCalledWith(
         'code',
         ['--wait', '--diff', 'old.txt', 'new.txt'],
-        { stdio: 'inherit', shell: true, },
+        { stdio: 'inherit', shell: true },
       );
       expect(mockSpawn.on).toHaveBeenCalledWith('close', expect.any(Function));
       expect(mockSpawn.on).toHaveBeenCalledWith('error', expect.any(Function));
