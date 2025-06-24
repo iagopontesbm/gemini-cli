@@ -153,7 +153,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
   - **Description:** Configures the checkpointing feature, which allows you to save and restore conversation and file states. See the [Checkpointing Commands](./commands.md#checkpointing-commands) for more details.
   - **Default:** `{"enabled": false}`
   - **Properties:**
-    - **`enabled`** (boolean): When `true`, the `/save`, `/resume`, and `/restore` commands are available.
+    - **`enabled`** (boolean): When `true`, the `/restore` command is available.
 
 - **`preferredEditor`** (string):
 
