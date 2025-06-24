@@ -24,9 +24,20 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
       <Text color={Colors.Foreground}>
         2. Be specific for the best results.
       </Text>
+      <Text color={Colors.Foreground}>
+        3. Use{' '}
+        <Text bold color={Colors.AccentPurple}>
+          Alt+Enter
+        </Text>{' '}
+        or{' '}
+        <Text bold color={Colors.AccentPurple}>
+          Shift+Enter
+        </Text>{' '}
+        for multi-line input.
+      </Text>
       {geminiMdFileCount === 0 && (
         <Text color={Colors.Foreground}>
-          3. Create{' '}
+          4. Create{' '}
           <Text bold color={Colors.AccentPurple}>
             GEMINI.md
           </Text>{' '}
@@ -34,7 +45,7 @@ export const Tips: React.FC<TipsProps> = ({ config }) => {
         </Text>
       )}
       <Text color={Colors.Foreground}>
-        {geminiMdFileCount === 0 ? '4.' : '3.'}{' '}
+        {geminiMdFileCount === 0 ? '5.' : '4.'}{' '}
         <Text bold color={Colors.AccentPurple}>
           /help
         </Text>{' '}

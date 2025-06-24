@@ -9,7 +9,7 @@ import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
 import { SuggestionsDisplay } from './SuggestionsDisplay.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
-import { TextBuffer } from './shared/text-buffer.js';
+import { TextBuffer, NEWLINE_INPUT_SEQUENCES } from './shared/text-buffer.js';
 import { cpSlice, cpLen } from '../utils/textUtils.js';
 import chalk from 'chalk';
 import stringWidth from 'string-width';
@@ -273,8 +273,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         console.log('[InputPromptCombined] event', { key });
       }
 
+      const { sequence: input } = key;
       // Ctrl+Enter for newline, Enter for submit
-      if (key.name === 'return') {
+      if (
+        key.name === 'return' &&
+        !key.ctrl &&
+        !key.shift &&
+        !NEWLINE_INPUT_SEQUENCES.includes(input || '')
+      ) {
         const [row, col] = buffer.cursor;
         const line = buffer.lines[row];
         const charBefore = col > 0 ? cpSlice(line, col - 1, col) : '';
@@ -367,7 +373,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         <Text
           color={shellModeActive ? Colors.AccentYellow : Colors.AccentPurple}
         >
-          {shellModeActive ? '! ' : '> '}
+          {shellModeActive ? '! ' : buffer.lines.length > 1 ? '» ' : '> '}
         </Text>
         <Box flexGrow={1} flexDirection="column">
           {buffer.text.length === 0 && placeholder ? (
