@@ -6,7 +6,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 
 ## 1. `list_directory` (ReadFolder)
 
-
 `list_directory` lists the names of files and subdirectories directly within a specified directory path. It can optionally ignore entries matching provided glob patterns.
 
 - **Tool name:** `list_directory`
@@ -37,7 +36,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Confirmation:** No.
 
 ## 2. `read_file` (ReadFile)
-
 
 `read_file` reads and returns the content of a specified file. This tool handles text, images (PNG, JPG, GIF, WEBP, SVG, BMP), and PDF files. For text files, it can read specific line ranges. Other binary file types are generally skipped.
 
@@ -76,7 +74,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 
 ## 3. `write_file` (WriteFile)
 
-
 `write_file` writes content to a specified file. If the file exists, it will be overwritten. If the file doesn't exist, it (and any necessary parent directories) will be created.
 
 - **Tool name:** `write_file`
@@ -103,7 +100,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Confirmation:** Yes. Shows a diff of changes and asks for user approval before writing.
 
 ## 4. `glob` (FindFiles)
-
 
 `glob` finds files matching specific glob patterns (e.g., `src/**/*.ts`, `*.md`), returning absolute paths sorted by modification time (newest first).
 
@@ -137,7 +133,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Confirmation:** No.
 
 ## 5. `search_file_content` (SearchText)
-
 
 `search_file_content` searches for a regular expression pattern within the content of files in a specified directory. Can filter files by a glob pattern. Returns the lines containing matches, along with their file paths and line numbers.
 
@@ -178,7 +173,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Confirmation:** No.
 
 ## 6. `replace` (Edit)
-
 
 `replace` replaces text within a file. By default, replaces a single occurrence, but can replace multiple occurrences when `expected_replacements` is specified. This tool is designed for precise, targeted changes and requires significant context around the `old_string` to ensure it modifies the correct location.
 
