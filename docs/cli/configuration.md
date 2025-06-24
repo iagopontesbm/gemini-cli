@@ -434,4 +434,4 @@ You can opt out of usage statistics collection at any time by setting the `usage
 ```
 
 **Privacy Policy:**
-Data collected is subject to https://policies.google.com/privacy. 
+Data collected is subject to the [Google Privacy Policy](https://policies.google.com/privacy). 
