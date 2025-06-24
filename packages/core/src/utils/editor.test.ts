@@ -171,7 +171,6 @@ describe('editor utils', () => {
   });
 
   describe('openDiff', () => {
-
     const spawnEditors: EditorType[] = ['vscode', 'windsurf', 'cursor', 'zed'];
     for (const editor of spawnEditors) {
       it(`should call spawn for ${editor}`, async () => {
