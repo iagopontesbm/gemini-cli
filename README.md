@@ -79,6 +79,11 @@ $ gemini
 - For more comprehensive documentation, see the [full documentation](./docs/index.md).
 - Take a look at some [popular tasks](#popular-tasks) for more inspiration.
 
+### Troubleshooting
+
+Head over to the [troubleshooting](docs/troubleshooting.md) guide if you're
+having issues.
+
 ## Popular tasks
 
 ### Explore a new codebase
@@ -124,6 +129,7 @@ Use MCP servers to integrate your local system tools with your enterprise collab
 ```text
 > Organise my PDF invoices by month of expenditure.
 ```
+
 
 ## Gemini APIs
 
