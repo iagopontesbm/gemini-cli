@@ -2,8 +2,6 @@
 
 [![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
 
-This repository contains the Gemini CLI tool.
-
 ![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
 
 This repository contains the Gemini CLI, a command-line AI workflow tool that connects to your
