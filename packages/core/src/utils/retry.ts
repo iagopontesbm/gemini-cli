@@ -63,17 +63,11 @@ export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options?: Partial<RetryOptions>,
 ): Promise<T> {
-  const {
-    maxAttempts,
-    initialDelayMs,
-    maxDelayMs,
-    shouldRetry,
-    onPersistent429,
-    authType,
-  } = {
-    ...DEFAULT_RETRY_OPTIONS,
-    ...options,
-  };
+  const { maxAttempts, initialDelayMs, maxDelayMs, onPersistent429, authType } =
+    {
+      ...DEFAULT_RETRY_OPTIONS,
+      ...options,
+    };
 
   let attempt = 0;
   let currentDelay = initialDelayMs;
@@ -94,30 +88,30 @@ export async function retryWithBackoff<T>(
       }
 
       // Check if we've exhausted retries or shouldn't retry
-      if (attempt >= maxAttempts || !shouldRetry(error as Error)) {
-        // If we have persistent 429s and a fallback callback for OAuth
-        if (
-          consecutive429Count >= 2 &&
-          onPersistent429 &&
-          (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
-            authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE)
-        ) {
-          try {
-            const fallbackModel = await onPersistent429(authType);
-            if (fallbackModel) {
-              // Reset attempt counter and try with new model
-              attempt = 0;
-              consecutive429Count = 0;
-              currentDelay = initialDelayMs;
-              continue;
-            }
-          } catch (fallbackError) {
-            // If fallback fails, continue with original error
-            console.warn('Fallback to Flash model failed:', fallbackError);
+      //if (attempt >= maxAttempts || !shouldRetry(error as Error)) {
+      // If we have persistent 429s and a fallback callback for OAuth
+      if (
+        consecutive429Count >= 1 &&
+        onPersistent429 &&
+        (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
+          authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE)
+      ) {
+        try {
+          const fallbackModel = await onPersistent429(authType);
+          if (fallbackModel) {
+            // Reset attempt counter and try with new model
+            attempt = 0;
+            consecutive429Count = 0;
+            currentDelay = initialDelayMs;
+            break;
           }
+        } catch (fallbackError) {
+          // If fallback fails, continue with original error
+          console.warn('Fallback to Flash model failed:', fallbackError);
         }
-        throw error;
       }
+      throw error;
+      //}
 
       const { delayDurationMs, errorStatus: delayErrorStatus } =
         getDelayDurationAndStatus(error);
