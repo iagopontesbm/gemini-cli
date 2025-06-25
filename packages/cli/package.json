@@ -1,11 +1,11 @@
 {
-  "name": "@google/gemini-cli",
+  "name": "@croissant/cli",
   "version": "0.1.1",
-  "description": "Gemini CLI",
+  "description": "Croissant CLI",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "gemini": "dist/index.js"
+    "croissant": "dist/index.js"
   },
   "scripts": {
     "build": "node ../../scripts/build_package.js",
@@ -25,10 +25,10 @@
     "dist"
   ],
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.1"
+    "sandboxImageUri": "us-docker.pkg.dev/croissant-chat/croissant-cli/sandbox:0.1.1"
   },
   "dependencies": {
-    "@google/gemini-cli-core": "0.1.1",
+    "@croissant/cli-core": "0.1.1",
     "@types/update-notifier": "^6.0.8",
     "command-exists": "^1.2.9",
     "diff": "^7.0.0",

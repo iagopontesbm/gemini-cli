@@ -1,0 +1,60 @@
+{
+  "defaultProvider": "openrouter-main",
+  "providers": [
+    {
+      "id": "openrouter-main",
+      "name": "OpenRouter (Primary)",
+      "type": "openrouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "auth": {
+        "apiKey": "YOUR_OPENROUTER_API_KEY",
+        "headers": {
+          "HTTP-Referer": "https://your-site.com",
+          "X-Title": "Croissant CLI"
+        }
+      },
+      "models": {
+        "chat": "anthropic/claude-3.5-sonnet",
+        "fast": "anthropic/claude-3.5-haiku",
+        "embedding": "text-embedding-3-small",
+        "code": "anthropic/claude-3.5-sonnet"
+      },
+      "settings": {
+        "timeout": 60000,
+        "maxRetries": 3,
+        "rateLimit": {
+          "requestsPerMinute": 100,
+          "tokensPerMinute": 500000
+        }
+      }
+    },
+    {
+      "id": "openrouter-coding",
+      "name": "OpenRouter (Coding)",
+      "type": "openrouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "auth": {
+        "apiKey": "YOUR_OPENROUTER_API_KEY",
+        "headers": {
+          "HTTP-Referer": "https://your-site.com",
+          "X-Title": "Croissant CLI"
+        }
+      },
+      "models": {
+        "chat": "deepseek/deepseek-coder",
+        "fast": "deepseek/deepseek-coder",
+        "code": "deepseek/deepseek-coder"
+      },
+      "settings": {
+        "timeout": 60000,
+        "maxRetries": 3
+      }
+    }
+  ],
+  "modelRouting": {
+    "chat": "openrouter-main",
+    "fast": "openrouter-main", 
+    "code": "openrouter-coding",
+    "embedding": "openrouter-main"
+  }
+}

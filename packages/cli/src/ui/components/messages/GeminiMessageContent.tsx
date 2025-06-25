@@ -27,7 +27,7 @@ export const GeminiMessageContent: React.FC<GeminiMessageContentProps> = ({
   availableTerminalHeight,
   terminalWidth,
 }) => {
-  const originalPrefix = '✦ ';
+  const originalPrefix = '🥐 ';
   const prefixWidth = originalPrefix.length;
 
   return (

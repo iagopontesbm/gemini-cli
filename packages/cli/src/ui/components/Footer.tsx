@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
-import { shortenPath, tildeifyPath, tokenLimit } from '@google/gemini-cli-core';
+import { shortenPath, tildeifyPath, tokenLimit } from '@croissant/cli-core';
 import { ConsoleSummaryDisplay } from './ConsoleSummaryDisplay.js';
 import process from 'node:process';
 import { MemoryUsageDisplay } from './MemoryUsageDisplay.js';
@@ -41,6 +41,14 @@ export const Footer: React.FC<FooterProps> = ({
 }) => {
   const limit = tokenLimit(model);
   const percentage = totalTokenCount / limit;
+  
+  // Convert model name for display
+  const getDisplayModelName = (modelName: string): string => {
+    if (modelName.startsWith('gemini-')) {
+      return modelName.replace('gemini-', '🥐croissant-');
+    }
+    return modelName;
+  };
 
   return (
     <Box marginTop={1} justifyContent="space-between" width="100%">
@@ -83,7 +91,7 @@ export const Footer: React.FC<FooterProps> = ({
       <Box alignItems="center">
         <Text color={Colors.AccentBlue}>
           {' '}
-          {model}{' '}
+          {getDisplayModelName(model)}{' '}
           <Text color={Colors.Gray}>
             ({((1 - percentage) * 100).toFixed(0)}% context left)
           </Text>

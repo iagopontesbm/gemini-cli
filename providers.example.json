@@ -1,0 +1,73 @@
+{
+  "defaultProvider": "openrouter",
+  "providers": [
+    {
+      "id": "openrouter",
+      "name": "OpenRouter",
+      "type": "openrouter",
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "auth": {
+        "apiKey": "YOUR_OPENROUTER_API_KEY",
+        "headers": {
+          "HTTP-Referer": "https://your-site.com",
+          "X-Title": "Croissant CLI"
+        }
+      },
+      "models": {
+        "chat": "anthropic/claude-3.5-sonnet",
+        "fast": "anthropic/claude-3.5-haiku",
+        "embedding": "text-embedding-3-small",
+        "code": "anthropic/claude-3.5-sonnet"
+      },
+      "settings": {
+        "timeout": 60000,
+        "maxRetries": 3,
+        "rateLimit": {
+          "requestsPerMinute": 100,
+          "tokensPerMinute": 500000
+        }
+      }
+    },
+    {
+      "id": "deepseek",
+      "name": "DeepSeek",
+      "type": "deepseek",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "auth": {
+        "apiKey": "YOUR_DEEPSEEK_API_KEY"
+      },
+      "models": {
+        "chat": "deepseek-chat",
+        "fast": "deepseek-chat",
+        "code": "deepseek-coder"
+      },
+      "settings": {
+        "timeout": 30000,
+        "maxRetries": 3,
+        "parameters": {
+          "max_tokens": 4096
+        }
+      }
+    },
+    {
+      "id": "gemini-fallback",
+      "name": "Google Gemini (Fallback)",
+      "type": "gemini",
+      "baseUrl": "https://generativelanguage.googleapis.com/v1beta",
+      "auth": {
+        "apiKey": "YOUR_GEMINI_API_KEY"
+      },
+      "models": {
+        "chat": "gemini-2.5-pro",
+        "fast": "gemini-2.5-flash",
+        "embedding": "gemini-embedding-001"
+      }
+    }
+  ],
+  "modelRouting": {
+    "chat": "openrouter",
+    "fast": "deepseek",
+    "embedding": "gemini-fallback",
+    "code": "deepseek"
+  }
+}

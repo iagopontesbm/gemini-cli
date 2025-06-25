@@ -11,6 +11,7 @@ import {
   ContentGeneratorConfig,
   createContentGeneratorConfig,
 } from '../core/contentGenerator.js';
+import { ProviderConfigManager } from './providerConfig.js';
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -126,6 +127,11 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  // Multi-provider configuration
+  providersConfigPath?: string;
+  useMultiProvider?: boolean;
+  defaultProvider?: string;
+  taskType?: 'chat' | 'fast' | 'embedding' | 'code';
 }
 
 export class Config {
@@ -166,6 +172,11 @@ export class Config {
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
+  // Multi-provider support
+  private providerConfigManager?: ProviderConfigManager;
+  private readonly useMultiProvider: boolean;
+  private readonly defaultProvider: string | undefined;
+  private readonly taskType: 'chat' | 'fast' | 'embedding' | 'code';
 
   constructor(params: ConfigParameters) {
     this.sessionId = params.sessionId;
@@ -207,6 +218,16 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    
+    // Multi-provider initialization
+    this.useMultiProvider = params.useMultiProvider ?? false;
+    this.defaultProvider = params.defaultProvider;
+    this.taskType = params.taskType ?? 'chat';
+    
+    // Load provider configuration if specified
+    if (params.providersConfigPath && this.useMultiProvider) {
+      this.initializeProviderConfig(params.providersConfigPath);
+    }
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -452,6 +473,70 @@ export class Config {
       await this.gitService.initialize();
     }
     return this.gitService;
+  }
+
+  // Multi-provider configuration methods
+  private async initializeProviderConfig(configPath: string): Promise<void> {
+    try {
+      this.providerConfigManager = await ProviderConfigManager.fromFile(configPath);
+    } catch (error) {
+      console.warn(`Failed to load provider configuration from ${configPath}:`, error);
+      this.providerConfigManager = undefined;
+    }
+  }
+
+  getProviderConfigManager(): ProviderConfigManager | undefined {
+    return this.providerConfigManager;
+  }
+
+  getUseMultiProvider(): boolean {
+    return this.useMultiProvider && !!this.providerConfigManager;
+  }
+
+  getDefaultProvider(): string | undefined {
+    return this.defaultProvider;
+  }
+
+  getTaskType(): 'chat' | 'fast' | 'embedding' | 'code' {
+    return this.taskType;
+  }
+
+  setTaskType(taskType: 'chat' | 'fast' | 'embedding' | 'code'): void {
+    (this.taskType as any) = taskType;
+  }
+
+  async setProviderConfigFromPath(configPath: string): Promise<void> {
+    await this.initializeProviderConfig(configPath);
+  }
+
+  setProviderConfigManager(manager: ProviderConfigManager): void {
+    this.providerConfigManager = manager;
+  }
+
+  // Get available providers for display/selection
+  getAvailableProviders(): Array<{ id: string; name: string; type: string }> {
+    if (!this.providerConfigManager) {
+      return [];
+    }
+    
+    return this.providerConfigManager.getAllProviders().map(provider => ({
+      id: provider.id,
+      name: provider.name,
+      type: provider.type,
+    }));
+  }
+
+  // Get model for current task type from current provider
+  getModelForCurrentTask(): string {
+    if (!this.useMultiProvider || !this.providerConfigManager) {
+      return this.getModel();
+    }
+    
+    try {
+      return this.providerConfigManager.getModelForTask(this.taskType);
+    } catch {
+      return this.getModel();
+    }
   }
 }
 

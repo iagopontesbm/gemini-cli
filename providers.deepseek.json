@@ -1,0 +1,38 @@
+{
+  "defaultProvider": "deepseek-main",
+  "providers": [
+    {
+      "id": "deepseek-main",
+      "name": "DeepSeek",
+      "type": "deepseek",
+      "baseUrl": "https://api.deepseek.com/v1",
+      "auth": {
+        "apiKey": "YOUR_DEEPSEEK_API_KEY"
+      },
+      "models": {
+        "chat": "deepseek-chat",
+        "fast": "deepseek-chat",
+        "code": "deepseek-coder",
+        "embedding": "deepseek-chat"
+      },
+      "settings": {
+        "timeout": 30000,
+        "maxRetries": 3,
+        "rateLimit": {
+          "requestsPerMinute": 60,
+          "tokensPerMinute": 200000
+        },
+        "parameters": {
+          "max_tokens": 4096,
+          "temperature": 0.1
+        }
+      }
+    }
+  ],
+  "modelRouting": {
+    "chat": "deepseek-main",
+    "fast": "deepseek-main",
+    "code": "deepseek-main",
+    "embedding": "deepseek-main"
+  }
+}

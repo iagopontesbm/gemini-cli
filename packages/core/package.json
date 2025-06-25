@@ -1,7 +1,7 @@
 {
-  "name": "@google/gemini-cli-core",
+  "name": "@croissant/cli-core",
   "version": "0.1.1",
-  "description": "Gemini CLI Server",
+  "description": "Croissant CLI Core",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
