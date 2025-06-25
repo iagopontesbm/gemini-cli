@@ -23,13 +23,14 @@ With the Gemini CLI you can:
 2. **Run the CLI:** Execute the following command in your terminal:
 
    ```bash
-   npx https://github.com/google-gemini/gemini-cli
+   $ npx https://github.com/google-gemini/gemini-cli
    ```
 
    Or install it with:
 
    ```bash
-   npm install -g @google/gemini-cli
+   $ npm install -g @google/gemini-cli
+   $ gemini
    ```
 
 3. **Pick a color theme**
