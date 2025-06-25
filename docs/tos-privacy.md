@@ -4,7 +4,7 @@ Gemini CLI is an open-source tool that allows you to interact with Google's powe
 
 This article outlines the specific terms and privacy policies applicable to each account type.
 
-## Login with Google (Code Assist Free Tier)
+## Login with Google (Code Assist for individuals)
 
 For users who authenticate using their Google account to access the Code Assist free tier:
 
@@ -12,23 +12,23 @@ For users who authenticate using their Google account to access the Code Assist 
 - Privacy Notice: The collection and use of your data are described in the [Gemini Code Assist Privacy Notice for Individuals](https://developers.google.com/gemini-code-assist/resources/privacy-notice-gemini-code-assist-individuals).
 - Usage Statistics Opt-Out: You may opt-out from Usage Statistics data by following the instructions available here: Usage Statistics Configuration.
 
-## Gemini API key
+## Using Gemini Developer API (API Key)
 
 If you are using a Gemini API key for authentication, the following terms apply:
 
 - Terms of Service: Your use is subject to the [Gemini API Terms of Service](https://ai.google.dev/gemini-api/terms).
 - Privacy Notice: Information regarding data handling and privacy is detailed in the general [Google Privacy Policy](https://policies.google.com/privacy).
 
-## Licensed Code Assist Users
+## Login with Google (Licensed Gemini Code Assist Standard/Enterprise editions)
 
-For users with a licensed version of Code Assist (e.g. Standard and Enterprise editions):
+For users of Standard or Enterprise edition of Code Assist :
 
 - Terms of Service: The [Google Cloud Platform Terms of Service](https://cloud.google.com/terms) govern your use of the service.
 - Privacy Notice: The handling of your data is outlined in the [Gemini Code Assist Privacy Notices](https://developers.google.com/gemini-code-assist/resources/privacy-notices).
 
-## Vertex AI
+## Using Vertex AI Gen API (API Key)
 
-For users leveraging Gemini CLI with a Vertex AI backend:
+If you are using an API key with a Vertex AI Gen API backend:
 
 - Terms of Service: Your usage is governed by the [Google Cloud Platform Service Terms](https://cloud.google.com/terms/service-terms/).
 - Privacy Notice: The [Google Cloud Privacy Notice](https://cloud.google.com/terms/cloud-privacy-notice) describes how your data is collected and managed.
