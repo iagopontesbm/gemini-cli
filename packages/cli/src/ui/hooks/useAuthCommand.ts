@@ -49,8 +49,17 @@ export const useAuthCommand = (
         const errorMessage =
           settings.merged.selectedAuthType ===
           AuthType.LOGIN_WITH_GOOGLE_PERSONAL
-            ? `Failed to login. Ensure your Google account is not a Workspace account.
-Message: ${getErrorMessage(e)}`
+            ? `Failed to login. This error typically occurs when:
+• Your Google account is a Workspace (G Suite) account
+• Your Google account has been used to sign up for Google Cloud
+
+To resolve this:
+1. Use a personal Gmail account instead
+2. Create a new Google account that hasn't been used for Google Cloud
+
+For more information, see: https://developers.google.com/gemini-code-assist/resources/faqs#gcp-project-requirement
+
+Error details: ${getErrorMessage(e)}`
             : `Failed to login. Message: ${getErrorMessage(e)}`;
         setAuthError(errorMessage);
         openAuthDialog();
