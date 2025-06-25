@@ -130,7 +130,6 @@ Use MCP servers to integrate your local system tools with your enterprise collab
 > Organise my PDF invoices by month of expenditure.
 ```
 
-
 ## Gemini APIs
 
 This project leverages the Gemini APIs to provide AI capabilities. For details on the terms of service governing the Gemini API, please refer to the terms for the access mechanism you are using:
