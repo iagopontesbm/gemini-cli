@@ -30,6 +30,7 @@ With the Gemini CLI you can:
 
    ```bash
    npm install -g @google/gemini-cli
+   gemini
    ```
 
    Then
@@ -63,17 +64,17 @@ Once the CLI is running, you can start interacting with Gemini from your shell.
 You can start a project from a new directory:
 
 ```sh
-$ cd new-project/
-$ gemini
+cd new-project/
+gemini
 > Write me a Gemini Discord bot that answers questions using a FAQ.md file I will provide
 ```
 
 Or work with an existing project:
 
 ```sh
-$ git clone https://github.com/google-gemini/gemini-cli
-$ cd gemini-cli
-$ gemini
+git clone https://github.com/google-gemini/gemini-cli
+cd gemini-cli
+gemini
 > Give me a summary of all of the changes that went in yesterday
 ```
 
@@ -84,6 +85,11 @@ $ gemini
 - If you encounter any issues, review the **[Troubleshooting guide](./docs/troubleshooting.md)**.
 - For more comprehensive documentation, see the [full documentation](./docs/index.md).
 - Take a look at some [popular tasks](#popular-tasks) for more inspiration.
+
+### Troubleshooting
+
+Head over to the [troubleshooting](docs/troubleshooting.md) guide if you're
+having issues.
 
 ## Popular tasks
 
