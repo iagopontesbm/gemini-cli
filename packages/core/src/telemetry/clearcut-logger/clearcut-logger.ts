@@ -84,7 +84,7 @@ export class ClearcutLogger {
 
   flushToClearcut(): Promise<LogResponse> {
     if (this.config?.getDebugMode()) {
-      console.log('Flushing log events to Clearcut.');
+      console.debug('Flushing log events to Clearcut.');
     }
     const eventsToSend = [...this.events];
     this.events.length = 0;
@@ -113,7 +113,7 @@ export class ClearcutLogger {
       });
       req.on('error', (e) => {
         if (this.config?.getDebugMode()) {
-          console.log('Clearcut POST request error: ', e);
+          console.debug('Clearcut POST request error: ', e);
         }
         // Add the events back to the front of the queue to be retried.
         this.events.unshift(...eventsToSend);
@@ -133,7 +133,7 @@ export class ClearcutLogger {
       .catch((error: unknown) => {
         // Handle all errors to prevent unhandled promise rejections
         if (this.config?.getDebugMode()) {
-          console.log(
+          console.debug(
             'Failed to flush events to Clearcut (non-critical):',
             error,
           );
@@ -180,7 +180,7 @@ export class ClearcutLogger {
       nextRequestWaitMs: Number(ms),
     };
     if (this.config?.getDebugMode()) {
-      console.log('Clearcut response: ', returnVal);
+      console.debug('Clearcut response: ', returnVal);
     }
     return returnVal;
   }
