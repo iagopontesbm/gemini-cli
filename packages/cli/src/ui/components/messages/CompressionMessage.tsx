@@ -7,7 +7,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { CompressionProps } from '../../types.js';
-import Spinner from 'ink-spinner';
+import { Spinner } from '../Spinner.js';
 import { Colors } from '../../colors.js';
 
 export interface CompressionDisplayProps {
