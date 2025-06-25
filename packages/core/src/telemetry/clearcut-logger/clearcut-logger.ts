@@ -132,12 +132,7 @@ export class ClearcutLogger {
       })
       .catch((error: unknown) => {
         // Handle all errors to prevent unhandled promise rejections
-        if (this.config?.getDebugMode()) {
-          console.debug(
-            'Failed to flush events to Clearcut (non-critical):',
-            error,
-          );
-        }
+        console.error('Error flushing log events:', error);
         // Return empty response to maintain the Promise<LogResponse> contract
         return {};
       });
