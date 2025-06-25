@@ -25,8 +25,8 @@ For users with a licensed version of Code Assist (e.g. Standard and Enterprise e
 ## Vertex AI
 
 For users leveraging Gemini CLI with a Vertex AI backend:
-Terms of Service: Your usage is governed by the [Google Cloud Platform Service Terms](https://cloud.google.com/terms/service-terms/).
-Privacy Notice: The [Google Cloud Privacy Notice](https://cloud.google.com/terms/cloud-privacy-notice) describes how your data is collected and managed.
+- Terms of Service: Your usage is governed by the [Google Cloud Platform Service Terms](https://cloud.google.com/terms/service-terms/).
+- Privacy Notice: The [Google Cloud Privacy Notice](https://cloud.google.com/terms/cloud-privacy-notice) describes how your data is collected and managed.
 
 ## Usage Statistics Opt-Out
 
