@@ -22,7 +22,7 @@ import { chmodSync, readFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
-import cliPkgJson from '../packages/cli/package.json' with { type: 'json' };
+import { buildImageName } from '../packages/cli/dist/src/config/sandboxConfig.js';
 
 const argv = yargs(hideBin(process.argv))
   .option('s', {
@@ -61,7 +61,8 @@ if (sandboxCommand === 'sandbox-exec') {
 
 console.log(`using ${sandboxCommand} for sandboxing`);
 
-const baseImage = cliPkgJson.config.sandboxImageUri;
+const baseImage = await buildImageName();
+
 const customImage = argv.i;
 const baseDockerfile = 'Dockerfile';
 const customDockerfile = argv.f;
@@ -105,7 +106,7 @@ chmodSync(
   0o755,
 );
 
-const buildStdout = process.env.VERBOSE ? 'inherit' : 'ignore';
+const buildStdout = 'inherit';
 
 function buildImage(imageName, dockerfile) {
   console.log(`building ${imageName} ... (can be slow first time)`);

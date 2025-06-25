@@ -38,7 +38,7 @@
     "prepare:cli-packagejson": "node scripts/prepare-cli-packagejson.js",
     "publish:sandbox": "node scripts/publish-sandbox.js",
     "publish:npm": "npm publish --workspaces ${NPM_PUBLISH_TAG:+--tag=$NPM_PUBLISH_TAG} ${NPM_DRY_RUN:+--dry-run}",
-    "publish:release": "npm run build:packages && npm run prepare:cli-packagejson && npm run build:docker && npm run publish:sandbox && npm run publish:npm",
+    "publish:release": "npm run build:packages && npm run build:docker && npm run publish:sandbox",
     "telemetry": "node scripts/telemetry.js",
     "start:gcp": "concurrently --raw --kill-others \"npm run telemetry -- --target=gcp\" \"npm start\""
   },
@@ -50,6 +50,10 @@
     "README.md",
     "LICENSE"
   ],
+  "config": {
+    "sandboxImageUri": "gemini-cli-sandbox",
+    "sandboxRepositoryn": "us-west1-docker.pkg.dev/gemini-code-dev/gemini-code-containers"
+  },
   "devDependencies": {
     "@types/micromatch": "^4.0.9",
     "@types/mime-types": "^2.1.4",

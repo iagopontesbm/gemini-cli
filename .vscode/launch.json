@@ -15,7 +15,8 @@
       "console": "integratedTerminal",
       "env": {
         "GEMINI_SANDBOX": "false"
-      }
+      },
+      "console": "integratedTerminal"
     },
     {
       "type": "node",
