@@ -15,6 +15,11 @@ This repository contains the Gemini CLI tool.
    npx https://github.com/google-gemini/gemini-cli
    ```
 
+   Or install it with:
+   ```bash
+   npm install -g @google/gemini-cli
+   ```
+
 3. **Authenticate:** When prompted, sign in with your Google account. This will grant you up to 60 model requests per minute and 1,000 model requests per day using Gemini 2.5 Pro.
 
 You are now ready to use the Gemini CLI!
