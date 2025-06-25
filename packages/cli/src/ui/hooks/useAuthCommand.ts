@@ -49,7 +49,7 @@ export const useAuthCommand = (
         const errorMessage =
           settings.merged.selectedAuthType ===
           AuthType.LOGIN_WITH_GOOGLE_PERSONAL
-            ? `Failed to login. Ensure your Google account is not a Workspace account.
+            ? `Failed to login. Ensure your Google account is not a Workspace account and that you are not a licensed Code Assist user (see https://goo.gle/gemini-cli-auth-docs).
 Message: ${getErrorMessage(e)}`
             : `Failed to login. Message: ${getErrorMessage(e)}`;
         setAuthError(errorMessage);
