@@ -16,6 +16,7 @@ This repository contains the Gemini CLI tool.
    ```
 
    Or install it with:
+
    ```bash
    npm install -g @google/gemini-cli
    ```
