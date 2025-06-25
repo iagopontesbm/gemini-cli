@@ -13,6 +13,8 @@ The `.geminiignore` file uses the same syntax as `.gitignore`. Each line in the 
 The following file system tools respect the `.geminiignore` file:
 
 -   `list_directory`
+-   `read_file`
+-   `read_many_files`
 -   `glob`
 -   `search_file_content`
 
