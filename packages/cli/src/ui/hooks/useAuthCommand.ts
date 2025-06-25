@@ -56,8 +56,7 @@ export const useAuthCommand = (
 To resolve this:
 1. Use a personal Gmail account instead
 2. Create a new Google account that hasn't been used for Google Cloud
-
-For more information, see: https://developers.google.com/gemini-code-assist/resources/faqs#gcp-project-requirement
+3. Ensure the Google account you are using is not a Workspace account and that you are not a licensed Code Assist user (see https://goo.gle/gemini-cli-auth-docs#workspace-gca)
 
 Error details: ${getErrorMessage(e)}`
             : `Failed to login. Message: ${getErrorMessage(e)}`;
