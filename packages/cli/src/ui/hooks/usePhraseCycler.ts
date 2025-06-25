@@ -142,10 +142,10 @@ export const WITTY_LOADING_PHRASES = [
   'Letting the bits cool down...'
   'Watering the server farm...'
   'Making sure this response is helpful and harmless and... and helpful.'
-  'Loading the answer. It's a good answer. A very good answer. I think you will like it.'
+  "Loading the answer. It's a good answer. A very good answer. I think you will like it."
   'Am I a good agent mode? Considering...'
   'Bringing it on...'
-  'Loading... and loading... Oh, I see. It's a cat! No wait, that's your file. 😊'
+  "Loading... and loading... Oh, I see. It's a cat! No wait, that's your file. 😊"
   'Checking if you have been a good user...'
   'Orthogonalizing eigenvectors...'
   'Synchronizing with adjacent selves...'
