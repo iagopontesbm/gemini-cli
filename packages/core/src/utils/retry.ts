@@ -63,11 +63,17 @@ export async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   options?: Partial<RetryOptions>,
 ): Promise<T> {
-  const { maxAttempts, initialDelayMs, maxDelayMs, onPersistent429, authType } =
-    {
-      ...DEFAULT_RETRY_OPTIONS,
-      ...options,
-    };
+  const {
+    maxAttempts,
+    initialDelayMs,
+    maxDelayMs,
+    onPersistent429,
+    authType,
+    shouldRetry,
+  } = {
+    ...DEFAULT_RETRY_OPTIONS,
+    ...options,
+  };
 
   let attempt = 0;
   let currentDelay = initialDelayMs;
@@ -87,11 +93,9 @@ export async function retryWithBackoff<T>(
         consecutive429Count = 0;
       }
 
-      // Check if we've exhausted retries or shouldn't retry
-      //if (attempt >= maxAttempts || !shouldRetry(error as Error)) {
       // If we have persistent 429s and a fallback callback for OAuth
       if (
-        consecutive429Count >= 1 &&
+        consecutive429Count >= 2 &&
         onPersistent429 &&
         (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
           authType === AuthType.LOGIN_WITH_GOOGLE_ENTERPRISE)
@@ -103,15 +107,19 @@ export async function retryWithBackoff<T>(
             attempt = 0;
             consecutive429Count = 0;
             currentDelay = initialDelayMs;
-            break;
+            // With the model updated, we continue to the next attempt
+            continue;
           }
         } catch (fallbackError) {
           // If fallback fails, continue with original error
           console.warn('Fallback to Flash model failed:', fallbackError);
         }
       }
-      throw error;
-      //}
+
+      // Check if we've exhausted retries or shouldn't retry
+      if (attempt >= maxAttempts || !shouldRetry(error as Error)) {
+        throw error;
+      }
 
       const { delayDurationMs, errorStatus: delayErrorStatus } =
         getDelayDurationAndStatus(error);
