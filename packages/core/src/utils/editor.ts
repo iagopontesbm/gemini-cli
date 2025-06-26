@@ -99,36 +99,9 @@ export function getDiffCommand(
     case 'zed':
       return { command, args: ['--wait', '--diff', oldPath, newPath] };
     case 'vim':
-      return {
-        command: 'vim',
-        args: [
-          '-d',
-          // skip viminfo file to avoid E138 errors
-          '-i',
-          'NONE',
-          // make the left window read-only and the right window editable
-          '-c',
-          'wincmd h | set readonly | wincmd l',
-          // set up colors for diffs
-          '-c',
-          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
-          // Show helpful messages
-          '-c',
-          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c',
-          'wincmd h | setlocal statusline=OLD\\ FILE',
-          '-c',
-          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          // Auto close all windows when one is closed
-          '-c',
-          'autocmd WinClosed * wqa',
-          oldPath,
-          newPath,
-        ],
-      };
     case 'neovim':
       return {
-        command: 'nvim',
+        command,
         args: [
           '-d',
           // skip viminfo file to avoid E138 errors

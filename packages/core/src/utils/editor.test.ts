@@ -140,57 +140,41 @@ describe('editor utils', () => {
       });
     }
 
-    it('should return the correct command for vim', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'vim');
-      expect(command).toEqual({
-        command: 'vim',
-        args: [
-          '-d',
-          '-i',
-          'NONE',
-          '-c',
-          'wincmd h | set readonly | wincmd l',
-          '-c',
-          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
-          '-c',
-          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c',
-          'wincmd h | setlocal statusline=OLD\\ FILE',
-          '-c',
-          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c',
-          'autocmd WinClosed * wqa',
-          'old.txt',
-          'new.txt',
-        ],
-      });
-    });
+    const terminalEditors: Array<{
+      editor: EditorType;
+      command: string;
+    }> = [
+      { editor: 'vim', command: 'vim' },
+      { editor: 'neovim', command: 'nvim' },
+    ];
 
-    it('should return the correct command for neovim', () => {
-      const command = getDiffCommand('old.txt', 'new.txt', 'neovim');
-      expect(command).toEqual({
-        command: 'nvim',
-        args: [
-          '-d',
-          '-i',
-          'NONE',
-          '-c',
-          'wincmd h | set readonly | wincmd l',
-          '-c',
-          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
-          '-c',
-          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c',
-          'wincmd h | setlocal statusline=OLD\\ FILE',
-          '-c',
-          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
-          '-c',
-          'autocmd WinClosed * wqa',
-          'old.txt',
-          'new.txt',
-        ],
+    for (const { editor, command } of terminalEditors) {
+      it(`should return the correct command for ${editor}`, () => {
+        const diffCommand = getDiffCommand('old.txt', 'new.txt', editor);
+        expect(diffCommand).toEqual({
+          command,
+          args: [
+            '-d',
+            '-i',
+            'NONE',
+            '-c',
+            'wincmd h | set readonly | wincmd l',
+            '-c',
+            'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+            '-c',
+            'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+            '-c',
+            'wincmd h | setlocal statusline=OLD\\ FILE',
+            '-c',
+            'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+            '-c',
+            'autocmd WinClosed * wqa',
+            'old.txt',
+            'new.txt',
+          ],
+        });
       });
-    });
+    }
 
     it('should return null for an unsupported editor', () => {
       // @ts-expect-error Testing unsupported editor
