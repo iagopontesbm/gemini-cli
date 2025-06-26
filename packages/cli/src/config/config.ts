@@ -245,7 +245,6 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
-    hideTips: settings.hideTips ?? false,
   });
 }
 
