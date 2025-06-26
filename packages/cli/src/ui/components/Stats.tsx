@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
+import Divider from 'ink-divider';
 import { Colors } from '../colors.js';
 
 // --- Prop and Data Structures ---
@@ -84,13 +85,7 @@ export const StatsColumn: React.FC<{
           />
         )}
         {/* Divider Line */}
-        <Box
-          borderTop={true}
-          borderLeft={false}
-          borderRight={false}
-          borderBottom={false}
-          borderStyle="single"
-        />
+        <Divider />
         <StatRow
           label="Total Tokens"
           value={stats.totalTokens.toLocaleString()}
