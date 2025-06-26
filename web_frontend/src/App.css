@@ -1,0 +1,21 @@
+.app-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Make app container take full viewport height */
+  max-width: 900px; /* Consistent with index.css #root */
+  margin: 0 auto; /* Consistent with index.css #root */
+  background-color: #fff; /* Consistent with index.css #root */
+  border-radius: 8px; /* Consistent with index.css #root */
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Consistent with index.css #root */
+  /* Padding is removed from here and handled by #root in index.css if this is the outermost specific app div */
+  /* Or, if #root is just a mount point, add padding here: */
+  /* padding: 20px; */
+}
+
+/* Styles for messages, input etc. are in index.css to be more global */
+/* App.css can be used for styles very specific to App.tsx layout if needed */
+
+/* Example: if you want the h1 specifically in App.tsx to have different margin */
+.app-container h1 {
+  margin-bottom: 15px; /* Slightly less than global h1 if needed */
+}
