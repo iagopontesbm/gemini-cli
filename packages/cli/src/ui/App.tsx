@@ -26,6 +26,7 @@ import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
 import { useConsoleMessages } from './hooks/useConsoleMessages.js';
+import { useSaveChatDialog } from './hooks/useSaveChatDialog.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { AutoAcceptIndicator } from './components/AutoAcceptIndicator.js';
@@ -36,6 +37,7 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
+import { SaveChatDialog } from './components/SaveChatDialog.js';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
 import { loadHierarchicalGeminiMemory } from '../config/config.js';
@@ -54,6 +56,7 @@ import {
   ApprovalMode,
   isEditorAvailable,
   EditorType,
+  sessionId,
 } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../config/auth.js';
 import { useLogger } from './hooks/useLogger.js';
@@ -171,6 +174,20 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     setCorgiMode((prev) => !prev);
   }, []);
 
+  // Save dialog hook
+  const getHistory = useCallback(() => {
+    const chat = config.getGeminiClient()?.getChat();
+    return chat?.getHistory() || [];
+  }, [config]);
+
+  const {
+    isSaveDialogOpen,
+    openSaveDialog,
+    handleSave,
+    handleDontSave,
+    handleCancel,
+  } = useSaveChatDialog(sessionId, getHistory);
+
   const performMemoryRefresh = useCallback(async () => {
     addItem(
       {
@@ -274,6 +291,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     toggleCorgiMode,
     showToolDescriptions,
     setQuittingMessages,
+    openSaveDialog,
   );
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
@@ -709,6 +727,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onExit={exitEditorDialog}
               />
             </Box>
+          ) : isSaveDialogOpen ? (
+            <SaveChatDialog
+              onSave={handleSave}
+              onDontSave={handleDontSave}
+              onCancel={handleCancel}
+            />
           ) : (
             <>
               <LoadingIndicator

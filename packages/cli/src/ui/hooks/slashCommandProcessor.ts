@@ -76,6 +76,7 @@ export const useSlashCommandProcessor = (
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
   setQuittingMessages: (message: HistoryItem[]) => void,
+  openSaveDialog: (onComplete: () => void) => void,
 ) => {
   const session = useSessionStats();
   const gitService = useMemo(() => {
@@ -777,23 +778,26 @@ export const useSlashCommandProcessor = (
           const { sessionStartTime, cumulative } = session.stats;
           const wallDuration = now.getTime() - sessionStartTime.getTime();
 
-          setQuittingMessages([
-            {
-              type: 'user',
-              text: `/${mainCommand}`,
-              id: now.getTime() - 1,
-            },
-            {
-              type: 'quit',
-              stats: cumulative,
-              duration: formatDuration(wallDuration),
-              id: now.getTime(),
-            },
-          ]);
+          // Show save dialog before exiting (unless skipped by env var)
+          openSaveDialog(() => {
+            setQuittingMessages([
+              {
+                type: 'user',
+                text: `/${mainCommand}`,
+                id: now.getTime() - 1,
+              },
+              {
+                type: 'quit',
+                stats: cumulative,
+                duration: formatDuration(wallDuration),
+                id: now.getTime(),
+              },
+            ]);
 
-          setTimeout(() => {
-            process.exit(0);
-          }, 100);
+            setTimeout(() => {
+              process.exit(0);
+            }, 100);
+          });
         },
       },
       {
@@ -995,6 +999,7 @@ export const useSlashCommandProcessor = (
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
+    openSaveDialog,
   ]);
 
   const handleSlashCommand = useCallback(
