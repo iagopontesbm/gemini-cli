@@ -18,6 +18,7 @@ import {
   Schema,
 } from '@google/genai';
 import { ToolRegistry } from './tool-registry.js';
+import { ResourceRegistry } from './resource-registry.js';
 
 export const MCP_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
 
@@ -54,6 +55,11 @@ const mcpServerStatusesInternal: Map<string, MCPServerStatus> = new Map();
  * Track the overall MCP discovery state
  */
 let mcpDiscoveryState: MCPDiscoveryState = MCPDiscoveryState.NOT_STARTED;
+
+/**
+ * Map to store MCP clients for resource access
+ */
+const mcpClients: Map<string, Client> = new Map();
 
 /**
  * Event listeners for MCP server status changes
@@ -122,10 +128,18 @@ export function getMCPDiscoveryState(): MCPDiscoveryState {
   return mcpDiscoveryState;
 }
 
-export async function discoverMcpTools(
+/**
+ * Get all connected MCP clients
+ */
+export function getMCPClients(): Map<string, Client> {
+  return new Map(mcpClients);
+}
+
+export async function discoverMcpCapabilities(
   mcpServers: Record<string, MCPServerConfig>,
   mcpServerCommand: string | undefined,
   toolRegistry: ToolRegistry,
+  resourceRegistry: ResourceRegistry,
 ): Promise<void> {
   // Set discovery state to in progress
   mcpDiscoveryState = MCPDiscoveryState.IN_PROGRESS;
@@ -146,7 +160,12 @@ export async function discoverMcpTools(
 
     const discoveryPromises = Object.entries(mcpServers).map(
       ([mcpServerName, mcpServerConfig]) =>
-        connectAndDiscover(mcpServerName, mcpServerConfig, toolRegistry),
+        connectAndDiscover(
+          mcpServerName,
+          mcpServerConfig,
+          toolRegistry,
+          resourceRegistry,
+        ),
     );
     await Promise.all(discoveryPromises);
 
@@ -163,6 +182,7 @@ async function connectAndDiscover(
   mcpServerName: string,
   mcpServerConfig: MCPServerConfig,
   toolRegistry: ToolRegistry,
+  resourceRegistry: ResourceRegistry,
 ): Promise<void> {
   // Initialize the server status as connecting
   updateMCPServerStatus(mcpServerName, MCPServerStatus.CONNECTING);
@@ -341,14 +361,41 @@ async function connectAndDiscover(
     updateMCPServerStatus(mcpServerName, MCPServerStatus.DISCONNECTED);
   }
 
-  // If no tools were registered from this MCP server, the following 'if' block
-  // will close the connection. This is done to conserve resources and prevent
-  // an orphaned connection to a server that isn't providing any usable
-  // functionality. Connections to servers that did provide tools are kept
-  // open, as those tools will require the connection to function.
-  if (toolRegistry.getToolsByServer(mcpServerName).length === 0) {
+  // Now discover resources
+  try {
+    // Discover resources
+    const resourcesResult = await mcpClient.listResources();
+    if (resourcesResult.resources) {
+      for (const resource of resourcesResult.resources) {
+        resourceRegistry.registerResource(mcpServerName, resource);
+      }
+    }
+
+    // Discover resource templates
+    const templatesResult = await mcpClient.listResourceTemplates();
+    if (templatesResult.resourceTemplates) {
+      for (const template of templatesResult.resourceTemplates) {
+        resourceRegistry.registerResourceTemplate(mcpServerName, template);
+      }
+    }
+
+    // Store the client for later use
+    mcpClients.set(mcpServerName, mcpClient);
+  } catch (error) {
+    console.error(
+      `Failed to discover resources for MCP server '${mcpServerName}': ${error}`,
+    );
+  }
+
+  // Check if this server provides any capabilities
+  const hasTools = toolRegistry.getToolsByServer(mcpServerName).length > 0;
+  const hasResources =
+    resourceRegistry.getResourcesByServer(mcpServerName).length > 0;
+  const hasTemplates =
+    resourceRegistry.getResourceTemplatesByServer(mcpServerName).length > 0;
+  if (!hasTools && !hasResources && !hasTemplates) {
     console.log(
-      `No tools registered from MCP server '${mcpServerName}'. Closing connection.`,
+      `No capabilities registered from MCP server '${mcpServerName}'. Closing connection.`,
     );
     if (
       transport instanceof StdioClientTransport ||
@@ -358,7 +405,15 @@ async function connectAndDiscover(
       await transport.close();
       // Update status to disconnected
       updateMCPServerStatus(mcpServerName, MCPServerStatus.DISCONNECTED);
+      // Remove client from map
+      mcpClients.delete(mcpServerName);
     }
+  } else {
+    console.log(
+      `MCP server '${mcpServerName}' registered: ${hasTools ? 'tools' : ''}${
+        hasResources ? ' resources' : ''
+      }${hasTemplates ? ' templates' : ''}`,
+    );
   }
 }
 
