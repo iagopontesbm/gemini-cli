@@ -126,6 +126,7 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  isPlanMode?: boolean;
 }
 
 export class Config {
@@ -165,6 +166,7 @@ export class Config {
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
+  private isPlanMode: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
 
   constructor(params: ConfigParameters) {
@@ -207,6 +209,7 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    this.isPlanMode = params.isPlanMode ?? false;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -446,6 +449,14 @@ export class Config {
     return this.extensionContextFilePaths;
   }
 
+  getIsPlanMode(): boolean {
+    return this.isPlanMode;
+  }
+
+  setIsPlanMode(isPlanMode: boolean): void {
+    this.isPlanMode = isPlanMode;
+  }
+
   async getGitService(): Promise<GitService> {
     if (!this.gitService) {
       this.gitService = new GitService(this.targetDir);
@@ -461,9 +472,17 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   const tools = config.getCoreTools()
     ? new Set(config.getCoreTools())
     : undefined;
-  const excludeTools = config.getExcludeTools()
+  let excludeTools = config.getExcludeTools()
     ? new Set(config.getExcludeTools())
-    : undefined;
+    : new Set<string>();
+
+  // In plan mode, exclude destructive tools
+  if (config.getIsPlanMode()) {
+    excludeTools.add(EditTool.Name);
+    excludeTools.add(WriteFileTool.Name);
+    // Note: ShellTool is not excluded as it can be used for read-only commands
+    // The plan mode prompt instructs the model to only use safe shell commands
+  }
 
   // helper to create & register core tools that are enabled
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -16,7 +16,7 @@ import {
   useInput,
   type Key as InkKeyType,
 } from 'ink';
-import { StreamingState, type HistoryItem, MessageType } from './types.js';
+const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -70,8 +70,11 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
-
-const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
+import {
+  HistoryItem,
+  MessageType,
+  StreamingState,
+} from './types.js';
 
 interface AppProps {
   config: Config;
@@ -128,6 +131,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const [ctrlDPressedOnce, setCtrlDPressedOnce] = useState(false);
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
+  const [isPlanMode, setIsPlanMode] = useState<boolean>(false);
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -274,6 +278,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     toggleCorgiMode,
     showToolDescriptions,
     setQuittingMessages,
+    setIsPlanMode,
   );
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
@@ -422,6 +427,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     getPreferredEditor,
     onAuthError,
     performMemoryRefresh,
+    isPlanMode,
   );
   pendingHistoryItems.push(...pendingGeminiHistoryItems);
   const { elapsedTime, currentLoadingPhrase } =
@@ -842,6 +848,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               sessionStats.currentResponse.candidatesTokenCount
             }
             totalTokenCount={sessionStats.currentResponse.totalTokenCount}
+            isPlanMode={isPlanMode}
           />
         </Box>
       </Box>

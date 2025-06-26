@@ -91,6 +91,7 @@ export const useGeminiStream = (
   getPreferredEditor: () => EditorType | undefined,
   onAuthError: () => void,
   performMemoryRefresh: () => Promise<void>,
+  isPlanMode: boolean,
 ) => {
   const [initError, setInitError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -102,6 +103,13 @@ export const useGeminiStream = (
   const processedMemoryToolsRef = useRef<Set<string>>(new Set());
   const logger = useLogger();
   const { startNewTurn, addUsage } = useSessionStats();
+
+  // Update config when plan mode changes
+  useEffect(() => {
+    if (config) {
+      config.setIsPlanMode(isPlanMode);
+    }
+  }, [config, isPlanMode]);
   const gitService = useMemo(() => {
     if (!config.getProjectRoot()) {
       return;
@@ -472,7 +480,21 @@ export const useGeminiStream = (
         }
       }
       if (toolCallRequests.length > 0) {
-        scheduleToolCalls(toolCallRequests, signal);
+        if (isPlanMode) {
+          addItem(
+            {
+              type: MessageType.INFO,
+              text: `Tool call requests (plan mode):\n${JSON.stringify(
+                toolCallRequests,
+                null,
+                2,
+              )}`,
+            },
+            Date.now(),
+          );
+        } else {
+          scheduleToolCalls(toolCallRequests, signal);
+        }
       }
       return StreamProcessingStatus.Completed;
     },
@@ -483,6 +505,8 @@ export const useGeminiStream = (
       scheduleToolCalls,
       handleChatCompressionEvent,
       addUsage,
+      isPlanMode,
+      addItem,
     ],
   );
 

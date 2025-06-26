@@ -76,6 +76,7 @@ export const useSlashCommandProcessor = (
   toggleCorgiMode: () => void,
   showToolDescriptions: boolean = false,
   setQuittingMessages: (message: HistoryItem[]) => void,
+  setIsPlanMode: React.Dispatch<React.SetStateAction<boolean>>,
 ) => {
   const session = useSessionStats();
   const gitService = useMemo(() => {
@@ -568,6 +569,21 @@ export const useSlashCommandProcessor = (
         },
       },
       {
+        name: 'plan',
+        description: 'toggle plan mode',
+        action: (_mainCommand, _subCommand, _args) => {
+          setIsPlanMode((prev) => {
+            const newMode = !prev;
+            addMessage({
+              type: MessageType.INFO,
+              content: `Plan mode ${newMode ? 'enabled' : 'disabled'}.`,
+              timestamp: new Date(),
+            });
+            return newMode;
+          });
+        },
+      },
+      {
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
@@ -995,6 +1011,7 @@ export const useSlashCommandProcessor = (
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
+    setIsPlanMode,
   ]);
 
   const handleSlashCommand = useCallback(
