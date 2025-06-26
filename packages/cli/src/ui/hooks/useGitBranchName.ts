@@ -61,8 +61,24 @@ export function useGitBranchName(cwd: string): string | undefined {
             fetchBranchName();
           }
         });
+
+        // Handle runtime errors from the watcher (e.g., EPERM, file deletion, etc.)
+        watcher.on('error', (error: NodeJS.ErrnoException) => {
+          // Silently ignore watcher runtime errors (e.g. permissions, file deletion),
+          // similar to how exec errors are handled.
+          // The branch name will simply not update automatically.
+          console.warn('Git branch watcher error (continuing without file watching):', error.code || error.message);
+          
+          // Close the watcher to prevent further errors
+          try {
+            watcher?.close();
+          } catch (_closeError) {
+            // Ignore close errors
+          }
+          watcher = undefined;
+        });
       } catch (_watchError) {
-        // Silently ignore watcher errors (e.g. permissions or file not existing),
+        // Silently ignore watcher setup errors (e.g. permissions or file not existing),
         // similar to how exec errors are handled.
         // The branch name will simply not update automatically.
       }
