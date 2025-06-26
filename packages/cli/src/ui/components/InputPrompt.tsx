@@ -107,7 +107,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
 
   const completionSuggestions = completion.suggestions;
   const handleAutocomplete = useCallback(
-    (indexToUse: number) => {
+    (indexToUse: number, shouldSubmit: boolean) => {
       if (indexToUse < 0 || indexToUse >= completionSuggestions.length) {
         return;
       }
@@ -127,7 +127,9 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         } else {
           const newValue = base + selectedSuggestion.value;
           buffer.setText(newValue);
-          handleSubmitAndClear(newValue);
+          if (shouldSubmit) {
+            handleSubmitAndClear(newValue);
+          }
         }
       } else {
         const atIndex = query.lastIndexOf('@');
@@ -184,14 +186,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
                 ? 0
                 : completion.activeSuggestionIndex;
             if (targetIndex < completion.suggestions.length) {
-              handleAutocomplete(targetIndex);
+              handleAutocomplete(targetIndex, false);
             }
           }
           return;
         }
         if (key.return) {
           if (completion.activeSuggestionIndex >= 0) {
-            handleAutocomplete(completion.activeSuggestionIndex);
+            handleAutocomplete(completion.activeSuggestionIndex, true);
           } else if (query.trim()) {
             handleSubmitAndClear(query);
           }
