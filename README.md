@@ -78,6 +78,7 @@ gemini
 - Explore the available **[CLI Commands](./docs/cli/commands.md)**.
 - If you encounter any issues, review the **[Troubleshooting guide](./docs/troubleshooting.md)**.
 - For more comprehensive documentation, see the [full documentation](./docs/index.md).
+- 日本語版ドキュメントは [docsjp](./docsjp/index.md) を参照してください。
 - Take a look at some [popular tasks](#popular-tasks) for more inspiration.
 
 ### Troubleshooting
