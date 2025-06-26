@@ -52,6 +52,9 @@ export async function runNonInteractive(
     if (err.code === 'EPIPE') {
       // Exit gracefully if the pipe is closed.
       process.exit(0);
+    } else {
+      // Log other stdout errors but don't crash the process
+      console.error('stdout error:', err.message);
     }
   });
 

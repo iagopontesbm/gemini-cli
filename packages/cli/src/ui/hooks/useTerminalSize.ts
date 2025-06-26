@@ -22,9 +22,17 @@ export function useTerminalSize(): { columns: number; rows: number } {
       });
     }
 
+    function handleStdoutError(err: Error) {
+      // Log but don't crash on stdout errors
+      console.error('process.stdout error in useTerminalSize:', err.message);
+    }
+
     process.stdout.on('resize', updateSize);
+    process.stdout.on('error', handleStdoutError);
+    
     return () => {
       process.stdout.off('resize', updateSize);
+      process.stdout.off('error', handleStdoutError);
     };
   }, []);
 
