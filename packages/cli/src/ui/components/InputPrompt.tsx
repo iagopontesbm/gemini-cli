@@ -233,6 +233,16 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         buffer.moveToOffset(cpLen(buffer.text));
         return;
       }
+      // Ctrl+C (Clear input)
+      if (key.ctrl && (input === 'c' || input === 'C')) {
+        if (buffer.text.length > 0) {
+          buffer.setText('');
+          resetCompletionState();
+          return;
+        }
+        // If buffer is empty, let the global handler deal with exit flow
+        return;
+      }
       // Ctrl+L (Clear Screen)
       if (key.ctrl && input === 'l') {
         onClearScreen();
