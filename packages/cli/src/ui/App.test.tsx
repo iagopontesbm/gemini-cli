@@ -41,7 +41,6 @@ interface MockServerConfig {
   showMemoryUsage?: boolean;
   accessibility?: AccessibilitySettings;
   embeddingModel: string;
-  hideTips?: boolean;
 
   getApiKey: Mock<() => string>;
   getModel: Mock<() => string>;
@@ -68,7 +67,6 @@ interface MockServerConfig {
   getAccessibility: Mock<() => AccessibilitySettings>;
   getProjectRoot: Mock<() => string | undefined>;
   getAllGeminiMdFilenames: Mock<() => string[]>;
-  getHideTips: Mock<() => boolean>;
 }
 
 // Mock @google/gemini-cli-core and its Config class
@@ -101,7 +99,6 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         showMemoryUsage: opts.showMemoryUsage ?? false,
         accessibility: opts.accessibility ?? {},
         embeddingModel: opts.embeddingModel || 'test-embedding-model',
-        hideTips: opts.hideTips,
 
         getApiKey: vi.fn(() => opts.apiKey || 'test-key'),
         getModel: vi.fn(() => opts.model || 'test-model-in-mock-factory'),
@@ -126,7 +123,6 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         getVertexAI: vi.fn(() => opts.vertexai),
         getShowMemoryUsage: vi.fn(() => opts.showMemoryUsage ?? false),
         getAccessibility: vi.fn(() => opts.accessibility ?? {}),
-        getHideTips: vi.fn(() => opts.hideTips ?? false),
         getProjectRoot: vi.fn(() => opts.projectRoot),
         getGeminiClient: vi.fn(() => ({})),
         getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
@@ -401,7 +397,9 @@ describe('App UI', () => {
   });
 
   it('should not display Tips component when hideTips is true', async () => {
-    mockConfig.getHideTips.mockReturnValue(true);
+    mockSettings = createMockSettings({
+      hideTips: true,
+    });
 
     const { unmount } = render(
       <App
