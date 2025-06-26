@@ -42,7 +42,11 @@ function copyFilesRecursive(source, target) {
     if (item.isDirectory()) {
       copyFilesRecursive(sourcePath, targetPath);
     } else if (extensionsToCopy.includes(path.extname(item.name))) {
-      fs.copyFileSync(sourcePath, targetPath);
+      try {
+        fs.copyFileSync(sourcePath, targetPath);
+      } catch (err) {
+        console.error(`Failed to copy ${sourcePath}:`, err.message);
+      }
     }
   }
 }
