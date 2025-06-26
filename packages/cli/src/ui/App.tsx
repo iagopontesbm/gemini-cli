@@ -62,6 +62,7 @@ import {
   SessionStatsProvider,
   useSessionStats,
 } from './contexts/SessionContext.js';
+import { ShellExecutionContextProvider } from './contexts/ShellExecutionContext.js';
 import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { useTextBuffer } from './components/shared/text-buffer.js';
 import * as fs from 'fs';
@@ -81,7 +82,9 @@ interface AppProps {
 
 export const AppWrapper = (props: AppProps) => (
   <SessionStatsProvider>
-    <App {...props} />
+    <ShellExecutionContextProvider>
+      <App {...props} />
+    </ShellExecutionContextProvider>
   </SessionStatsProvider>
 );
 
