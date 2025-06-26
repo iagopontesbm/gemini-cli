@@ -268,6 +268,10 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
   - `permissive-open`: (Default) Restricts writes to the project folder (and a few other folders, see `packages/cli/src/utils/sandbox-macos-permissive-open.sb`) but allows other operations.
   - `strict`: Uses a strict profile that declines operations by default.
   - `<profile_name>`: Uses a custom profile. To define a custom profile, create a file named `sandbox-macos-<profile_name>.sb` in your project's `.gemini/` directory (e.g., `my-project/.gemini/sandbox-macos-custom.sb`).
+- **`GEMINI_SKIP_SAVE_PROMPT`**:
+  - Set to `true` to bypass the save dialog when exiting the CLI.
+  - Useful for non-interactive environments or scripts where you don't want to be prompted to save the conversation.
+  - Example: `export GEMINI_SKIP_SAVE_PROMPT=true`
 - **`DEBUG` or `DEBUG_MODE`** (often used by underlying libraries or the CLI itself):
   - Set to `true` or `1` to enable verbose debug logging, which can be helpful for troubleshooting.
 - **`NO_COLOR`**:
