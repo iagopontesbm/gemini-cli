@@ -266,7 +266,18 @@ export class GeminiChat {
           config: { ...this.generationConfig, ...params.config },
         });
 
-      response = await retryWithBackoff(apiCall);
+      response = await retryWithBackoff(apiCall, {
+        shouldRetry: (error: Error) => {
+          if (error && error.message) {
+            if (error.message.includes('429')) return true;
+            if (error.message.match(/5\d{2}/)) return true;
+          }
+          return false;
+        },
+        onPersistent429: async (authType?: string) =>
+          await this.handleFlashFallback(authType),
+        authType: this.config.getContentGeneratorConfig()?.authType,
+      });
       const durationMs = Date.now() - startTime;
       await this._logApiResponse(
         durationMs,
