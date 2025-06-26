@@ -18,7 +18,7 @@ import {
   Schema,
 } from '@google/genai';
 import { ToolRegistry } from './tool-registry.js';
-import { GoogleAuth } from 'google-auth-library';
+import { GoogleAuth, AuthClient } from 'google-auth-library';
 
 export const MCP_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
 
@@ -169,8 +169,7 @@ async function connectAndDiscover(
   updateMCPServerStatus(mcpServerName, MCPServerStatus.CONNECTING);
 
   let transport;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let authClient: any;
+  let authClient: AuthClient | undefined;
 
   if (
     (mcpServerConfig.httpUrl || mcpServerConfig.url) &&
