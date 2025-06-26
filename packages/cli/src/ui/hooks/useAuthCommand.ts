@@ -11,7 +11,7 @@ import {
   Config,
   clearCachedCredentialFile,
   getErrorMessage,
-} from '@gemini-cli/core';
+} from '@google/gemini-cli-core';
 
 async function performAuthFlow(authMethod: AuthType, config: Config) {
   await config.refreshAuth(authMethod);
@@ -46,12 +46,16 @@ export const useAuthCommand = (
           config,
         );
       } catch (e) {
-        const errorMessage =
+        let errorMessage = `Failed to login.\nMessage: ${getErrorMessage(e)}`;
+        if (
           settings.merged.selectedAuthType ===
-          AuthType.LOGIN_WITH_GOOGLE_PERSONAL
-            ? `Failed to login. Ensure your Google account is not a Workspace account.
-Message: ${getErrorMessage(e)}`
-            : `Failed to login. Message: ${getErrorMessage(e)}`;
+            AuthType.LOGIN_WITH_GOOGLE_PERSONAL &&
+          !process.env.GOOGLE_CLOUD_PROJECT
+        ) {
+          errorMessage =
+            'Failed to login. Workspace accounts and licensed Code Assist users must configure' +
+            ` GOOGLE_CLOUD_PROJECT (see https://goo.gle/gemini-cli-auth-docs#workspace-gca).\nMessage: ${getErrorMessage(e)}`;
+        }
         setAuthError(errorMessage);
         openAuthDialog();
       } finally {
