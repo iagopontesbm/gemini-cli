@@ -8,8 +8,9 @@ import { FunctionDeclaration } from '@google/genai';
 import { Tool, ToolResult, BaseTool } from './tools.js';
 import { Config } from '../config/config.js';
 import { spawn, execSync } from 'node:child_process';
-import { discoverMcpTools } from './mcp-client.js';
+import { discoverMcpCapabilities } from './mcp-client.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
+import { ResourceRegistry } from './resource-registry.js';
 
 type ToolParams = Record<string, unknown>;
 
@@ -125,9 +126,11 @@ export class ToolRegistry {
   private tools: Map<string, Tool> = new Map();
   private discovery: Promise<void> | null = null;
   private config: Config;
+  private resourceRegistry: ResourceRegistry;
 
   constructor(config: Config) {
     this.config = config;
+    this.resourceRegistry = new ResourceRegistry();
   }
 
   /**
@@ -183,11 +186,12 @@ export class ToolRegistry {
         );
       }
     }
-    // discover tools using MCP servers, if configured
-    await discoverMcpTools(
+    // discover tools and resources using MCP servers, if configured
+    await discoverMcpCapabilities(
       this.config.getMcpServers() ?? {},
       this.config.getMcpServerCommand(),
       this,
+      this.resourceRegistry,
     );
   }
 
@@ -231,4 +235,12 @@ export class ToolRegistry {
   getTool(name: string): Tool | undefined {
     return this.tools.get(name);
   }
+
+  /**
+   * Get the ResourceRegistry instance.
+   */
+  getResourceRegistry(): ResourceRegistry {
+    return this.resourceRegistry;
+  }
+
 }
