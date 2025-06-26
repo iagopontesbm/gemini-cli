@@ -70,7 +70,12 @@ export function SaveChatDialog({
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.Gray}>
-          (Use ↑↓ to navigate, Enter to select, Esc to cancel, Ctrl+C to exit without saving)
+          (Use ↑↓ to navigate, Enter to select, Esc to cancel, Ctrl+C to exit without
+        </Text>
+      </Box>
+      <Box>
+        <Text color={Colors.Gray}>
+          saving)
         </Text>
       </Box>
     </Box>
