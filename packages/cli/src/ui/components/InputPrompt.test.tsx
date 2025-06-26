@@ -184,4 +184,30 @@ describe('InputPrompt', () => {
     expect(props.onSubmit).toHaveBeenCalledWith('some text');
     unmount();
   });
+
+  it('should call handleInput on option+left arrow', async () => {
+    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    await wait();
+
+    // Simulate Alt+Left
+    stdin.write('\u001b\u001b[D');
+    await wait();
+
+    expect(mockBuffer.move).not.toHaveBeenCalled();
+    expect(mockBuffer.handleInput).toHaveBeenCalled();
+    unmount();
+  });
+
+  it('should call handleInput on option+right arrow', async () => {
+    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    await wait();
+
+    // Simulate Alt+Right
+    stdin.write('\u001b\u001b[C');
+    await wait();
+
+    expect(mockBuffer.move).not.toHaveBeenCalled();
+    expect(mockBuffer.handleInput).toHaveBeenCalled();
+    unmount();
+  });
 });
