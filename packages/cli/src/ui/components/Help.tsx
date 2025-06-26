@@ -97,9 +97,9 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        Shift+Enter
+        {process.platform === 'darwin' ? '⌥+Return' : 'Shift+Enter'}
       </Text>{' '}
-      - New line
+      - New line (on Mac: Option+Return, on other platforms: Shift+Enter)
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
