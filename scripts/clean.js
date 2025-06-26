@@ -17,7 +17,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { execSync } from 'child_process';
+
 import { rmSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
@@ -31,4 +31,6 @@ rmSync(join(root, 'packages/cli/src/generated/'), {
   recursive: true,
   force: true,
 });
-execSync('npm run clean --workspaces', { stdio: 'inherit', cwd: root });
+rmSync(join(root, 'bundle'), { recursive: true, force: true });
+rmSync(join(root, 'packages/cli/dist'), { recursive: true, force: true });
+rmSync(join(root, 'packages/core/dist'), { recursive: true, force: true });
