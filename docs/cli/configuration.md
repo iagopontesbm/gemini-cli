@@ -166,6 +166,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     }
     ```
 - **`usageStatisticsEnabled`** (boolean):
+
   - **Description:** Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
   - **Default:** `true`
   - **Example:**
@@ -174,6 +175,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     ```
 
 - **`hideTips`** (boolean):
+
   - **Description:** Enables or disables helpful tips in the CLI interface.
   - **Default:** `false`
   - **Example:**
