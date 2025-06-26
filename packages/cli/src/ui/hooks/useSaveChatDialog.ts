@@ -39,10 +39,24 @@ export const useSaveChatDialog = (
       }
 
       const history = getHistory();
+
+      // Check if there was meaningful interaction with the model
+      const hasUserMessages = history.some((item) => {
+        if (item.role !== 'user') return false;
+
+        // Check if the user message has meaningful content
+        const textContent = item.parts?.find((part) => 'text' in part)?.text;
+        if (!textContent) return false;
+
+        // Filter out slash commands and empty messages
+        const trimmedText = textContent.trim();
+        return trimmedText.length > 0 && !trimmedText.startsWith('/');
+      });
+
       const hasModelResponse = history.some((item) => item.role === 'model');
 
-      // Only show the dialog if there is something to save
-      if (!hasModelResponse) {
+      // Only show the dialog if there was actual conversation
+      if (!hasUserMessages || !hasModelResponse) {
         onComplete();
         return;
       }

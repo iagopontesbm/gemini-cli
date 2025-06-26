@@ -33,9 +33,13 @@ export function SaveChatDialog({
     }
   };
 
-  useInput((_input, key) => {
+  useInput((input, key) => {
     if (key.escape && onCancel) {
       onCancel();
+    }
+    // Handle CTRL+C to exit without saving
+    if (key.ctrl && (input === 'c' || input === 'C')) {
+      onDontSave();
     }
   });
 
@@ -66,7 +70,7 @@ export function SaveChatDialog({
       </Box>
       <Box marginTop={1}>
         <Text color={Colors.Gray}>
-          (Use ↑↓ to navigate, Enter to select, Esc to cancel)
+          (Use ↑↓ to navigate, Enter to select, Esc to cancel, Ctrl+C to exit without saving)
         </Text>
       </Box>
     </Box>

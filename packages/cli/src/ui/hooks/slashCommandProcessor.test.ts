@@ -108,6 +108,7 @@ describe('useSlashCommandProcessor', () => {
   let mockOpenEditorDialog: ReturnType<typeof vi.fn>;
   let mockPerformMemoryRefresh: ReturnType<typeof vi.fn>;
   let mockSetQuittingMessages: ReturnType<typeof vi.fn>;
+  let mockOpenSaveDialog: ReturnType<typeof vi.fn>;
   let mockTryCompressChat: ReturnType<typeof vi.fn>;
   let mockGeminiClient: GeminiClient;
   let mockConfig: Config;
@@ -126,6 +127,7 @@ describe('useSlashCommandProcessor', () => {
     mockOpenEditorDialog = vi.fn();
     mockPerformMemoryRefresh = vi.fn().mockResolvedValue(undefined);
     mockSetQuittingMessages = vi.fn();
+    mockOpenSaveDialog = vi.fn((callback) => callback());
     mockTryCompressChat = vi.fn();
     mockGeminiClient = {
       tryCompressChat: mockTryCompressChat,
@@ -186,6 +188,7 @@ describe('useSlashCommandProcessor', () => {
         mockCorgiMode,
         showToolDescriptions,
         mockSetQuittingMessages,
+        mockOpenSaveDialog,
       ),
     );
   };
