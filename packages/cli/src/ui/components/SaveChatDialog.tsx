@@ -52,7 +52,7 @@ export function SaveChatDialog({
       width="100%"
     >
       <Text bold color={Colors.AccentYellow}>
-        ⚠️ Save current chat before exiting?
+        ⚠️  Save current chat before exiting?
       </Text>
       <Box marginTop={1}>
         <Text>

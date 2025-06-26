@@ -40,8 +40,19 @@ export const useSaveChatDialog = (
 
       const history = getHistory();
 
+      // Filter out system messages and check for real conversation
+      const conversationHistory = history.filter(
+        (item) => item.role === 'user' || item.role === 'model',
+      );
+
+      // If there's no conversation at all, don't show dialog
+      if (conversationHistory.length === 0) {
+        onComplete();
+        return;
+      }
+
       // Check if there was meaningful interaction with the model
-      const hasUserMessages = history.some((item) => {
+      const hasUserMessages = conversationHistory.some((item) => {
         if (item.role !== 'user') return false;
 
         // Check if the user message has meaningful content
@@ -53,7 +64,9 @@ export const useSaveChatDialog = (
         return trimmedText.length > 0 && !trimmedText.startsWith('/');
       });
 
-      const hasModelResponse = history.some((item) => item.role === 'model');
+      const hasModelResponse = conversationHistory.some(
+        (item) => item.role === 'model',
+      );
 
       // Only show the dialog if there was actual conversation
       if (!hasUserMessages || !hasModelResponse) {
