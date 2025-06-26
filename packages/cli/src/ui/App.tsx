@@ -16,7 +16,18 @@ import {
   useInput,
   type Key as InkKeyType,
 } from 'ink';
-const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
+import process from 'node:process';
+import * as fs from 'fs';
+import ansiEscapes from 'ansi-escapes';
+import {
+  getErrorMessage,
+  type Config,
+  getAllGeminiMdFilenames,
+  ApprovalMode,
+  isEditorAvailable,
+  EditorType,
+} from '@google/gemini-cli-core';
+import { StreamingState, type HistoryItem, MessageType } from './types.js';
 import { useTerminalSize } from './hooks/useTerminalSize.js';
 import { useGeminiStream } from './hooks/useGeminiStream.js';
 import { useLoadingIndicator } from './hooks/useLoadingIndicator.js';
@@ -26,6 +37,9 @@ import { useEditorSettings } from './hooks/useEditorSettings.js';
 import { useSlashCommandProcessor } from './hooks/slashCommandProcessor.js';
 import { useAutoAcceptIndicator } from './hooks/useAutoAcceptIndicator.js';
 import { useConsoleMessages } from './hooks/useConsoleMessages.js';
+import { useHistory } from './hooks/useHistoryManager.js';
+import { useLogger } from './hooks/useLogger.js';
+import { useGitBranchName } from './hooks/useGitBranchName.js';
 import { Header } from './components/Header.js';
 import { LoadingIndicator } from './components/LoadingIndicator.js';
 import { AutoAcceptIndicator } from './components/AutoAcceptIndicator.js';
@@ -36,41 +50,28 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
-import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
-import { loadHierarchicalGeminiMemory } from '../config/config.js';
-import { LoadedSettings } from '../config/settings.js';
 import { Tips } from './components/Tips.js';
 import { useConsolePatcher } from './components/ConsolePatcher.js';
 import { DetailedMessagesDisplay } from './components/DetailedMessagesDisplay.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
-import { useHistory } from './hooks/useHistoryManager.js';
-import process from 'node:process';
-import {
-  getErrorMessage,
-  type Config,
-  getAllGeminiMdFilenames,
-  ApprovalMode,
-  isEditorAvailable,
-  EditorType,
-} from '@google/gemini-cli-core';
-import { validateAuthMethod } from '../config/auth.js';
-import { useLogger } from './hooks/useLogger.js';
+import { UpdateNotification } from './components/UpdateNotification.js';
+import { ShowMoreLines } from './components/ShowMoreLines.js';
+import { useTextBuffer } from './components/shared/text-buffer.js';
 import { StreamingContext } from './contexts/StreamingContext.js';
 import {
   SessionStatsProvider,
   useSessionStats,
 } from './contexts/SessionContext.js';
-import { useGitBranchName } from './hooks/useGitBranchName.js';
-import { useTextBuffer } from './components/shared/text-buffer.js';
-import * as fs from 'fs';
-import { UpdateNotification } from './components/UpdateNotification.js';
-import { checkForUpdates } from './utils/updateCheck.js';
-import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
-import { ShowMoreLines } from './components/ShowMoreLines.js';
-import { StreamingState, type HistoryItem, MessageType } from './types.js';
+import { Colors } from './colors.js';
+import { loadHierarchicalGeminiMemory } from '../config/config.js';
+import { LoadedSettings } from '../config/settings.js';
+import { validateAuthMethod } from '../config/auth.js';
+import { checkForUpdates } from './utils/updateCheck.js';
+
+const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
 interface AppProps {
   config: Config;

@@ -311,8 +311,11 @@ export class Config {
     return this.targetDir;
   }
 
-  getToolRegistry(): Promise<ToolRegistry> {
-    return Promise.resolve(this.toolRegistry);
+  async getToolRegistry(): Promise<ToolRegistry> {
+    if (!this.toolRegistry) {
+      this.toolRegistry = await createToolRegistry(this);
+    }
+    return this.toolRegistry;
   }
 
   getDebugMode(): boolean {
@@ -455,6 +458,14 @@ export class Config {
 
   setIsPlanMode(isPlanMode: boolean): void {
     this.isPlanMode = isPlanMode;
+    // Recreate tool registry when plan mode changes
+    if (this.toolRegistry) {
+      this.toolRegistry = undefined!;
+    }
+  }
+
+  async recreateToolRegistry(): Promise<void> {
+    this.toolRegistry = await createToolRegistry(this);
   }
 
   async getGitService(): Promise<GitService> {
