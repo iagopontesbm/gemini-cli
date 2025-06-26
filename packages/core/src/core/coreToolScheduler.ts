@@ -525,8 +525,16 @@ export class CoreToolScheduler {
       this.setStatusInternal(
         callId,
         'cancelled',
-        'User did not allow tool call',
+        'User cancelled all tool calls',
       );
+    } else if (outcome === ToolConfirmationOutcome.Skip) {
+      // Skip this tool call but continue with others
+      this.setStatusInternal(
+        callId,
+        'cancelled',
+        'User skipped this tool call',
+      );
+      // Important: Don't cancel other pending tool calls
     } else if (outcome === ToolConfirmationOutcome.ModifyWithEditor) {
       const waitingToolCall = toolCall as WaitingToolCall;
       if (isModifiableTool(waitingToolCall.tool)) {
