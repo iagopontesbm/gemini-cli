@@ -70,11 +70,7 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
-import {
-  HistoryItem,
-  MessageType,
-  StreamingState,
-} from './types.js';
+import { StreamingState, type HistoryItem, MessageType } from './types.js';
 
 interface AppProps {
   config: Config;

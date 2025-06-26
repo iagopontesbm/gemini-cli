@@ -106,7 +106,7 @@ export class ClearcutLogger {
       };
       const bufs: Buffer[] = [];
       const req = https.request(options, (res) => {
-        res.on('data', (buf) => bufs.push(Buffer.from(buf)));
+        res.on('data', (buf) => bufs.push(buf));
         res.on('end', () => {
           resolve(Buffer.concat(bufs));
         });
