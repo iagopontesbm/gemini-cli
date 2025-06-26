@@ -187,11 +187,11 @@ export class GeminiClient {
       const systemInstruction = getCoreSystemPrompt(userMemory);
       const generateContentConfigWithThinking = isThinkingSupported(this.model)
         ? {
-          ...this.generateContentConfig,
-          thinkingConfig: {
-            includeThoughts: true,
-          },
-        }
+            ...this.generateContentConfig,
+            thinkingConfig: {
+              includeThoughts: true,
+            },
+          }
         : this.generateContentConfig;
       return new GeminiChat(
         this.config,
@@ -492,9 +492,9 @@ export class GeminiClient {
 
     return originalTokenCount && newTokenCount
       ? {
-        originalTokenCount,
-        newTokenCount,
-      }
+          originalTokenCount,
+          newTokenCount,
+        }
       : null;
   }
 

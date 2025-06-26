@@ -70,7 +70,6 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
-import clipboard from 'clipboardy';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -715,7 +714,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               <LoadingIndicator
                 thought={
                   streamingState === StreamingState.WaitingForConfirmation ||
-                    config.getAccessibility()?.disableLoadingPhrases
+                  config.getAccessibility()?.disableLoadingPhrases
                     ? undefined
                     : thought
                 }
