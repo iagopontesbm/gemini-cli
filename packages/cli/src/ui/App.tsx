@@ -186,7 +186,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleSave,
     handleDontSave,
     handleCancel,
-  } = useSaveChatDialog(sessionId, getHistory);
+  } = useSaveChatDialog(sessionId, getHistory, config.getSkipSavePrompt());
 
   const performMemoryRefresh = useCallback(async () => {
     addItem(

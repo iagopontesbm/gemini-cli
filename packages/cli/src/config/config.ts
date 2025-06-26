@@ -53,6 +53,7 @@ interface CliArgs {
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
+  'no-save-prompt': boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -126,6 +127,11 @@ async function parseArguments(): Promise<CliArgs> {
       alias: 'c',
       type: 'boolean',
       description: 'Enables checkpointing of file edits',
+      default: false,
+    })
+    .option('no-save-prompt', {
+      type: 'boolean',
+      description: 'Disable the save dialog when exiting the CLI',
       default: false,
     })
     .version(await getCliVersion()) // This will enable the --version flag based on package.json
@@ -245,6 +251,7 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
+    skipSavePrompt: argv['no-save-prompt'] || false,
   });
 }
 

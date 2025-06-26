@@ -19,14 +19,21 @@ interface UseSaveChatDialogReturn {
 export const useSaveChatDialog = (
   sessionId: string,
   getHistory: () => Content[],
+  skipSavePrompt?: boolean,
 ): UseSaveChatDialogReturn => {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const onCompleteCallbackRef = useRef<(() => void) | null>(null);
 
   const openSaveDialog = useCallback(
     (onComplete: () => void) => {
-      // Check environment variable first
-      if (process.env.GEMINI_SKIP_SAVE_PROMPT) {
+      // Never show dialog in non-interactive mode (no TTY)
+      if (!process.stdin.isTTY) {
+        onComplete();
+        return;
+      }
+
+      // Check CLI flag first, then environment variable
+      if (skipSavePrompt || process.env.GEMINI_SKIP_SAVE_PROMPT) {
         onComplete();
         return;
       }
@@ -43,7 +50,7 @@ export const useSaveChatDialog = (
       onCompleteCallbackRef.current = onComplete;
       setIsSaveDialogOpen(true);
     },
-    [getHistory],
+    [getHistory, skipSavePrompt],
   );
 
   const handleSave = useCallback(async () => {

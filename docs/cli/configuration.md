@@ -315,6 +315,9 @@ Arguments passed directly when running the CLI can override other configurations
   - Enables logging of prompts for telemetry. See [telemetry](../telemetry.md) for more information.
 - **`--checkpointing`**:
   - Enables [checkpointing](./commands.md#checkpointing-commands).
+- **`--no-save-prompt`**:
+  - Disables the save dialog when exiting the CLI.
+  - Useful for scripts or automated workflows where you don't want to be prompted.
 - **`--version`**:
   - Displays the version of the CLI.
 
