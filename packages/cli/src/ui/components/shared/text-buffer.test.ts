@@ -677,6 +677,54 @@ describe('useTextBuffer', () => {
       expect(getBufferState(result).cursor).toEqual([0, 2]);
     });
 
+    it('should handle Meta+leftArrow for moving word left', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'hello world',
+          initialCursorOffset: 11,
+          viewport,
+          isValidPath: () => false,
+        }),
+      );
+      expect(getBufferState(result).cursor).toEqual([0, 11]);
+
+      act(() =>
+        result.current.handleInput(undefined, { meta: true, leftArrow: true }),
+      );
+      // Should jump to the beginning of "world"
+      expect(getBufferState(result).cursor).toEqual([0, 6]);
+
+      act(() =>
+        result.current.handleInput(undefined, { meta: true, leftArrow: true }),
+      );
+      // Should jump to the beginning of "hello"
+      expect(getBufferState(result).cursor).toEqual([0, 0]);
+    });
+
+    it('should handle Meta+rightArrow for moving word right', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'hello world',
+          viewport,
+          isValidPath: () => false,
+        }),
+      );
+      // cursor at the beginning
+      expect(getBufferState(result).cursor).toEqual([0, 0]);
+
+      act(() =>
+        result.current.handleInput(undefined, { meta: true, rightArrow: true }),
+      );
+      // Should jump to the end of "hello"
+      expect(getBufferState(result).cursor).toEqual([0, 5]);
+
+      act(() =>
+        result.current.handleInput(undefined, { meta: true, rightArrow: true }),
+      );
+      // Should jump to the end of "world"
+      expect(getBufferState(result).cursor).toEqual([0, 11]);
+    });
+
     it('should strip ANSI escape codes when pasting text', () => {
       const { result } = renderHook(() =>
         useTextBuffer({ viewport, isValidPath: () => false }),

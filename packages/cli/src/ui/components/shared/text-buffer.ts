@@ -1248,10 +1248,10 @@ export function useTextBuffer({
       else if (key['ctrl'] && input === 'f') move('right');
       else if (key['upArrow']) move('up');
       else if (key['downArrow']) move('down');
-      else if ((key['ctrl'] || key['alt']) && key['leftArrow'])
+      else if ((key['meta'] || key['ctrl'] || key['alt']) && key['leftArrow'])
         move('wordLeft');
       else if (key['meta'] && input === 'b') move('wordLeft');
-      else if ((key['ctrl'] || key['alt']) && key['rightArrow'])
+      else if ((key['meta'] || key['ctrl'] || key['alt']) && key['rightArrow'])
         move('wordRight');
       else if (key['meta'] && input === 'f') move('wordRight');
       else if (key['home']) move('home');
