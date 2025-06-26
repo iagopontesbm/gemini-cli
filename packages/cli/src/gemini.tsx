@@ -230,6 +230,18 @@ process.on('unhandledRejection', (reason, _promise) => {
   process.exit(1);
 });
 
+// --- Global Uncaught Exception Handler ---
+process.on('uncaughtException', (error, origin) => {
+  console.error('=========================================');
+  console.error('CRITICAL: Uncaught Exception!');
+  console.error('=========================================');
+  console.error('Error:', error.message);
+  console.error('Origin:', origin);
+  console.error('Stack trace:', error.stack);
+  // Exit for uncaught exceptions
+  process.exit(1);
+});
+
 async function loadNonInteractiveConfig(
   config: Config,
   extensions: Extension[],
