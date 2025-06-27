@@ -10,7 +10,7 @@ An MCP server enables the Gemini CLI to:
 
 - **Discover tools:** List available tools, their descriptions, and parameters through standardized schema definitions.
 - **Execute tools:** Call specific tools with defined arguments and receive structured responses.
-- **Access resources:** Read data from specific resources (though the Gemini CLI primarily focuses on tool execution).
+- **Access resources:** Read data from specific resources exposed by the server.
 
 With an MCP server, you can extend the Gemini CLI's capabilities to perform actions beyond its built-in features, such as interacting with databases, APIs, custom scripts, or specialized workflows.
 
@@ -20,13 +20,15 @@ The Gemini CLI integrates with MCP servers through a sophisticated discovery and
 
 ### Discovery Layer (`mcp-client.ts`)
 
-The discovery process is orchestrated by `discoverMcpTools()`, which:
+The discovery process is orchestrated by `discoverMcpCapabilities()`, which:
 
 1. **Iterates through configured servers** from your `settings.json` `mcpServers` configuration
 2. **Establishes connections** using appropriate transport mechanisms (Stdio, SSE, or Streamable HTTP)
-3. **Fetches tool definitions** from each server using the MCP protocol
-4. **Sanitizes and validates** tool schemas for compatibility with the Gemini API
-5. **Registers tools** in the global tool registry with conflict resolution
+3. **Fetches available capabilities** from each server using the MCP protocol:
+   - **Tools:** Function definitions with parameters and descriptions
+   - **Resources:** Data sources with URIs and metadata
+4. **Sanitizes and validates** schemas for compatibility with the Gemini API
+5. **Registers capabilities** in their respective registries (tool and resource registries)
 
 ### Execution Layer (`mcp-tool.ts`)
 
@@ -281,6 +283,42 @@ The execution result contains:
 - **`llmContent`:** Raw response parts for the language model's context
 - **`returnDisplay`:** Formatted output for user display (often JSON in markdown code blocks)
 
+## Working with MCP Resources
+
+MCP servers can expose resources - data sources that the Gemini CLI can read and use as context. Resources are different from tools in that they provide data rather than perform actions.
+
+### Available Resource Commands
+
+#### List Resources
+Use the `list_resources` tool to see all available resources:
+
+```
+The user wants to see available MCP resources
+```
+
+This will display:
+- Resource names and descriptions
+- URIs for accessing each resource
+- MIME types (if specified)
+- Resource templates for dynamic access
+
+#### Read Resources
+Use the `read_resource` tool to access resource content:
+
+```
+Read the contents of resource with URI "file:///example.txt"
+```
+
+### Resource Templates
+
+Some MCP servers expose resource templates that allow dynamic resource access with parameters. For example:
+
+```
+Template: database:///{table}/{id}
+```
+
+This allows accessing different database records by filling in the table and ID parameters.
+
 ## How to interact with your MCP server
 
 ### Using the `/mcp` Command
@@ -372,6 +410,17 @@ The MCP integration tracks several states:
 2. **Check MCP protocol:** Confirm your server implements the MCP tool listing correctly
 3. **Review server logs:** Check stderr output for server-side errors
 4. **Test tool listing:** Manually test your server's tool discovery endpoint
+
+#### No Resources Available
+
+**Symptoms:** Server connects but resources aren't discovered
+
+**Troubleshooting:**
+
+1. **Check server capabilities:** Ensure your server implements resource listing
+2. **Verify MCP version:** Resources require MCP protocol support
+3. **Test endpoints:** Manually verify `listResources()` responses
+4. **Review registrations:** Check that resources are properly registered in the server
 
 #### Tools Not Executing
 

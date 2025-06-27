@@ -1005,6 +1005,7 @@ export const useSlashCommandProcessor = (
         },
       });
     }
+    
     return commands;
   }, [
     onDebugMessage,

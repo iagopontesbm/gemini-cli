@@ -14,11 +14,12 @@ import {
   afterEach,
   Mocked,
 } from 'vitest';
-import { discoverMcpTools, sanatizeParameters } from './mcp-client.js';
+import { discoverMcpCapabilities, sanatizeParameters } from './mcp-client.js';
 import { Schema, Type } from '@google/genai';
 import { Config, MCPServerConfig } from '../config/config.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { ResourceRegistry } from './resource-registry.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { parse, ParseEntry } from 'shell-quote';
@@ -78,7 +79,7 @@ vi.mock('./tool-registry.js', () => ({
   ToolRegistry: vi.fn(() => mockToolRegistryInstance),
 }));
 
-describe('discoverMcpTools', () => {
+describe('discoverMcpCapabilities', () => {
   let mockConfig: Mocked<Config>;
   // Use the instance from the module mock
   let mockToolRegistry: typeof mockToolRegistryInstance;
@@ -136,10 +137,12 @@ describe('discoverMcpTools', () => {
   });
 
   it('should do nothing if no MCP servers or command are configured', async () => {
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
     expect(mockConfig.getMcpServers).toHaveBeenCalledTimes(1);
     expect(mockConfig.getMcpServerCommand).toHaveBeenCalledTimes(1);
@@ -166,10 +169,12 @@ describe('discoverMcpTools', () => {
     // In this case, listTools fails, so no tools are registered.
     // The default mock `mockReturnValue([])` from beforeEach should apply.
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(parse).toHaveBeenCalledWith(commandString, process.env);
@@ -213,10 +218,12 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     ]);
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(StdioClientTransport).toHaveBeenCalledWith({
@@ -252,10 +259,12 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     ]);
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(SSEClientTransport).toHaveBeenCalledWith(new URL(serverConfig.url!));
@@ -334,10 +343,12 @@ describe('discoverMcpTools', () => {
       },
     );
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(mockToolRegistry.registerTool).toHaveBeenCalledTimes(3);
@@ -402,10 +413,12 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     ]);
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(mockToolRegistry.registerTool).toHaveBeenCalledTimes(1);
@@ -436,10 +449,11 @@ describe('discoverMcpTools', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(
-      discoverMcpTools(
+      discoverMcpCapabilities(
         mockConfig.getMcpServers() ?? {},
         mockConfig.getMcpServerCommand(),
         mockToolRegistry as any,
+        new ResourceRegistry(),
       ),
     ).rejects.toThrow('Parsing failed');
     expect(mockToolRegistry.registerTool).not.toHaveBeenCalled();
@@ -450,10 +464,12 @@ describe('discoverMcpTools', () => {
     mockConfig.getMcpServers.mockReturnValue({ 'bad-server': {} as any });
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(console.error).toHaveBeenCalledWith(
@@ -475,10 +491,12 @@ describe('discoverMcpTools', () => {
     );
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(console.error).toHaveBeenCalledWith(
@@ -500,10 +518,12 @@ describe('discoverMcpTools', () => {
     );
     vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     expect(console.error).toHaveBeenCalledWith(
@@ -524,10 +544,12 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     ]);
 
-    await discoverMcpTools(
+    const resourceRegistry = new ResourceRegistry();
+    await discoverMcpCapabilities(
       mockConfig.getMcpServers() ?? {},
       mockConfig.getMcpServerCommand(),
       mockToolRegistry as any,
+      resourceRegistry,
     );
 
     const clientInstances = vi.mocked(Client).mock.results;

@@ -40,6 +40,7 @@ export * from './services/gitService.js';
 // Export base tool definitions
 export * from './tools/tools.js';
 export * from './tools/tool-registry.js';
+export * from './tools/resource-registry.js';
 
 // Export specific tool logic
 export * from './tools/read-file.js';
@@ -55,6 +56,8 @@ export * from './tools/web-search.js';
 export * from './tools/read-many-files.js';
 export * from './tools/mcp-client.js';
 export * from './tools/mcp-tool.js';
+export * from './tools/read-resource.js';
+export * from './tools/list-resources.js';
 
 // Export telemetry functions
 export * from './telemetry/index.js';

@@ -36,7 +36,7 @@ const mockDiscoverMcpTools = vi.hoisted(() => vi.fn());
 
 // Mock ./mcp-client.js to control its behavior within tool-registry tests
 vi.mock('./mcp-client.js', () => ({
-  discoverMcpTools: mockDiscoverMcpTools,
+  discoverMcpCapabilities: mockDiscoverMcpTools,
 }));
 
 // Mock node:child_process
@@ -281,6 +281,7 @@ describe('ToolRegistry', () => {
         mcpServerConfigVal,
         undefined,
         toolRegistry,
+        expect.any(Object), // ResourceRegistry
       );
       // We no longer check these as discoverMcpTools is mocked
       // expect(vi.mocked(mcpToTool)).toHaveBeenCalledTimes(1);
@@ -310,6 +311,7 @@ describe('ToolRegistry', () => {
         {},
         'mcp-server-start-command --param',
         toolRegistry,
+        expect.any(Object), // ResourceRegistry
       );
     });
 
@@ -328,6 +330,7 @@ describe('ToolRegistry', () => {
         },
         undefined,
         toolRegistry,
+        expect.any(Object), // ResourceRegistry
       );
       expect(toolRegistry.getAllTools()).toHaveLength(0);
     });

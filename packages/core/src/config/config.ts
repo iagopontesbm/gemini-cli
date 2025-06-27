@@ -23,6 +23,9 @@ import { WebFetchTool } from '../tools/web-fetch.js';
 import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { MemoryTool, setGeminiMdFilename } from '../tools/memoryTool.js';
 import { WebSearchTool } from '../tools/web-search.js';
+import { ReadResourceTool } from '../tools/read-resource.js';
+import { ListResourcesTool } from '../tools/list-resources.js';
+import { getMCPClients } from '../tools/mcp-client.js';
 import { GeminiClient } from '../core/client.js';
 import { GEMINI_CONFIG_DIR as GEMINI_DIR } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
@@ -489,6 +492,16 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
   registerCoreTool(WebSearchTool, config);
   return (async () => {
     await registry.discoverTools();
+    
+    // Register resource tools if we have MCP resources
+    const resourceRegistry = registry.getResourceRegistry();
+    if (resourceRegistry.getAllResources().length > 0 || 
+        resourceRegistry.getAllResourceTemplates().length > 0) {
+      const mcpClients = getMCPClients();
+      registerCoreTool(ReadResourceTool, mcpClients, resourceRegistry);
+      registerCoreTool(ListResourcesTool, resourceRegistry);
+    }
+    
     return registry;
   })();
 }
