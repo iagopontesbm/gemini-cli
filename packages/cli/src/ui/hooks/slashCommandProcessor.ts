@@ -33,6 +33,7 @@ import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
 import { LoadedSettings } from '../../config/settings.js';
+import clipboard from 'clipboardy';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -189,6 +190,22 @@ export const useSlashCommandProcessor = (
       return [];
     }
   }, [config]);
+  const getLastResultOrSnippet = (history: HistoryItem[]) => {
+    for (let i = history.length - 1; i >= 0; i--) {
+      const item = history[i];
+      if (item.type === 'gemini' || item.type === 'gemini_content') {
+        return item.text.trim();
+      }
+      if (item.type === 'tool_group' && Array.isArray(item.tools)) {
+        for (const toolCall of item.tools) {
+          if (toolCall.resultDisplay) {
+            return toolCall.resultDisplay.toString().trim();
+          }
+        }
+      }
+    }
+    return null;
+  };
 
   const slashCommands: SlashCommand[] = useMemo(() => {
     const commands: SlashCommand[] = [
@@ -199,6 +216,19 @@ export const useSlashCommandProcessor = (
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
+        },
+      },
+      {
+        name: 'copy',
+        description: 'Copy the last result or code snippet to clipboard',
+        action: () => {
+          const snippet = getLastResultOrSnippet(history);
+          if (snippet) {
+            clipboard.writeSync(snippet);
+            onDebugMessage('Copied last result to clipboard!');
+          } else {
+            onDebugMessage('No result/snippet found to copy.');
+          }
         },
       },
       {
@@ -1022,6 +1052,7 @@ export const useSlashCommandProcessor = (
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
+    history,
   ]);
 
   const handleSlashCommand = useCallback(
