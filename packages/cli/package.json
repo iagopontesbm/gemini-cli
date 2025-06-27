@@ -2,30 +2,31 @@
   "name": "@google/gemini-cli",
   "version": "0.1.5",
   "description": "Gemini CLI",
+  "repository": "google-gemini/gemini-cli",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
     "gemini": "dist/index.js"
   },
   "scripts": {
-    "build": "node ../../scripts/build_package.js",
+    "build": "node ../../scripts/build/build_package.js",
     "clean": "rm -rf dist",
     "start": "node dist/index.js",
     "debug": "node --inspect-brk dist/index.js",
     "lint": "eslint . --ext .ts,.tsx",
     "format": "prettier --write .",
-    "test": "vitest run",
+    "test": "vitest",
     "test:ci": "vitest run --coverage",
     "typecheck": "tsc --noEmit",
-    "prerelease:version": "node ../../scripts/bind_package_version.js",
-    "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
+    "prerelease:version": "node ../../scripts/utils/bind_package_version.js",
+    "prerelease:deps": "node ../../scripts/utils/bind_package_dependencies.js",
     "prepack": "npm run build"
   },
   "files": [
     "dist"
   ],
   "config": {
-    "sandboxImageUri": "us-docker.pkg.dev/gemini-code-dev/gemini-cli/sandbox:0.1.1"
+    "sandboxImageUri": "gemini-cli-sandbox"
   },
   "dependencies": {
     "@google/gemini-cli-core": "*",
