@@ -35,6 +35,9 @@ export function AuthDialog({
     },
     { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+    { label: 'OpenAI Compatible', value: AuthType.USE_OPENAI_COMPATIBLE },
+    { label: 'Anthropic Claude', value: AuthType.USE_ANTHROPIC },
+    { label: 'Local LLM', value: AuthType.USE_LOCAL_LLM },
   ];
 
   let initialAuthIndex = items.findIndex(
