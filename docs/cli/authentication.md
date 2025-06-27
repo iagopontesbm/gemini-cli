@@ -19,6 +19,11 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
         echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc
         source ~/.bashrc
         ```
+        - MacOS users using zsh can use the following commands to add the environmental variables to ~/.zshrc file:
+        ```zsh
+        echo 'export GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID' >> ~/.zshrc
+        source ~/.zshrc
+        ```
 
 2.  **<a id="gemini-api-key"></a>Gemini API key:**
 
@@ -32,6 +37,11 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
         ```bash
         echo 'export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"' >> ~/.bashrc
         source ~/.bashrc
+        ```
+      - MacOS users using zsh can use the following commands to add the environmental variables to ~/.zshrc file:
+        ```zsh
+        echo 'export GEMINI_API_KEY=YOUR_GOOGLE_API_KEY' >> ~/.zshrc
+        source ~/.zshrc
         ```
 
 3.  **Vertex AI:**
@@ -56,6 +66,13 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
           echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
           source ~/.bashrc
           ```
+        - MacOS users using zsh can use the following commands to add the environmental variables to ~/.zshrc file:
+          ```zsh
+          echo 'export GOOGLE_CLOUD_PROJECT=PROJECT_ID' >> ~/.zshrc
+          echo 'export GOOGLE_CLOUD_LOCATION=YOUR_PROJECT_LOCATION' >> ~/.zshrc # e.g global by default, or specific locations like europe-west4 or us-central1
+          echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.zshrc
+          source ~/.zshrc
+          ```     
     - If using express mode:
       - Set the `GOOGLE_API_KEY` environment variable. In the following methods, replace `YOUR_GOOGLE_API_KEY` with your Vertex AI API key provided by express mode:
         - You can temporarily set these environment variables in your current shell session using the following commands:
@@ -68,4 +85,10 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
           echo 'export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"' >> ~/.bashrc
           echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
           source ~/.bashrc
+          ```
+        - MacOS users using zsh can use the following commands to add the environmental variables to ~/.zshrc file:
+          ```zsh
+          echo 'export GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY' >> ~/.zshrc
+          echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.zshrc
+          source ~/.zshrc
           ```
