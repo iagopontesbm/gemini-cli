@@ -145,6 +145,9 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           buffer.text.length,
           selectedSuggestion.value,
         );
+        if (shouldSubmit) {
+          handleSubmitAndClear(buffer.text);
+        }
       }
       resetCompletionState();
     },
@@ -186,7 +189,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
                 ? 0
                 : completion.activeSuggestionIndex;
             if (targetIndex < completion.suggestions.length) {
-              handleAutocomplete(targetIndex, false);
+              const shouldSubmit = !query.trimStart().startsWith('/');
+              handleAutocomplete(targetIndex, shouldSubmit);
             }
           }
           return;
