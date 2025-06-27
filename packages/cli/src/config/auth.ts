@@ -35,5 +35,12 @@ export const validateAuthMethod = (authMethod: string): string | null => {
     return null;
   }
 
+  if (authMethod === AuthType.USE_OLLAMA) {
+    if (!process.env.OLLAMA_BASE_URL) {
+      return 'OLLAMA_BASE_URL environment variable not found. Add that to your .env and try again!';
+    }
+    return null;
+  }
+
   return 'Invalid auth method selected.';
 };

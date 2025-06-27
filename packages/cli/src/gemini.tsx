@@ -175,6 +175,7 @@ export async function main() {
           config={config}
           settings={settings}
           startupWarnings={startupWarnings}
+          config={config}
         />
       </React.StrictMode>,
       { exitOnCtrlC: false },

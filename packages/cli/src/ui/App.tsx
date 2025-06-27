@@ -694,6 +694,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onHighlight={handleAuthHighlight}
                 settings={settings}
                 initialErrorMessage={authError}
+                config={config}
               />
             </Box>
           ) : isEditorDialogOpen ? (

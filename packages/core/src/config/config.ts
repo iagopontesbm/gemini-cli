@@ -126,6 +126,7 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  ollamaBaseUrl?: string;
 }
 
 export class Config {
@@ -164,7 +165,9 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
+  private readonly ollamaBaseUrl: string | undefined;
   private modelSwitchedDuringSession: boolean = false;
+  private availableModels: string[] = [];
   flashFallbackHandler?: FlashFallbackHandler;
 
   constructor(params: ConfigParameters) {
@@ -207,6 +210,8 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    this.ollamaBaseUrl = params.ollamaBaseUrl;
+    this.ollamaBaseUrl = params.ollamaBaseUrl;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -251,6 +256,22 @@ export class Config {
     this.toolRegistry = await createToolRegistry(this);
     await gc.initialize(contentConfig);
     this.contentGeneratorConfig = contentConfig;
+
+    // Fetch available models and set the current model based on availability
+    try {
+      this.availableModels = await this.geminiClient
+        .getContentGenerator()
+        .listModels();
+      if (
+        !this.availableModels.includes(this.contentGeneratorConfig.model) &&
+        this.availableModels.length > 0
+      ) {
+        this.contentGeneratorConfig.model = this.availableModels[0];
+      }
+    } catch (error) {
+      console.warn('Failed to fetch available models:', error);
+      this.availableModels = [this.contentGeneratorConfig.model]; // Fallback to current model
+    }
 
     // Reset the session flag since we're explicitly changing auth and using default model
     this.modelSwitchedDuringSession = false;
@@ -444,6 +465,10 @@ export class Config {
 
   getExtensionContextFilePaths(): string[] {
     return this.extensionContextFilePaths;
+  }
+
+  getAvailableModels(): string[] {
+    return this.availableModels;
   }
 
   async getGitService(): Promise<GitService> {

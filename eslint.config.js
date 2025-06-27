@@ -24,7 +24,24 @@ const __dirname = path.dirname(__filename);
 // Determine the monorepo root (assuming eslint.config.js is at the root)
 const projectRoot = __dirname;
 
-export default tseslint.config(
+export default [
+  {
+    languageOptions: {
+      parser: parser,
+      parserOptions: {
+        project: [
+          './tsconfig.json',
+          './packages/*/tsconfig.json',
+          './integration-tests/tsconfig.json',
+        ],
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    plugins: {
+      '@typescript-eslint': plugin,
+    },
+  },
   {
     // Global ignores
     ignores: [

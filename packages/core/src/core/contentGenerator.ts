@@ -14,6 +14,8 @@ import {
   GoogleGenAI,
 } from '@google/genai';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
+import { OllamaContentGenerator } from './ollamaContentGenerator.js';
+import { GoogleGenAIGenerator } from './googleGenAIGenerator.js';
 import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { getEffectiveModel } from './modelCheck.js';
 
@@ -32,12 +34,15 @@ export interface ContentGenerator {
   countTokens(request: CountTokensParameters): Promise<CountTokensResponse>;
 
   embedContent(request: EmbedContentParameters): Promise<EmbedContentResponse>;
+
+  listModels(): Promise<string[]>;
 }
 
 export enum AuthType {
   LOGIN_WITH_GOOGLE_PERSONAL = 'oauth-personal',
   USE_GEMINI = 'gemini-api-key',
   USE_VERTEX_AI = 'vertex-ai',
+  USE_OLLAMA = 'ollama',
 }
 
 export type ContentGeneratorConfig = {
@@ -45,6 +50,7 @@ export type ContentGeneratorConfig = {
   apiKey?: string;
   vertexai?: boolean;
   authType?: AuthType | undefined;
+  ollamaBaseUrl?: string;
 };
 
 export async function createContentGeneratorConfig(
@@ -97,6 +103,17 @@ export async function createContentGeneratorConfig(
     return contentGeneratorConfig;
   }
 
+  if (authType === AuthType.USE_OLLAMA) {
+    const ollamaBaseUrl = process.env.OLLAMA_BASE_URL;
+    if (!ollamaBaseUrl) {
+      throw new Error(
+        'OLLAMA_BASE_URL environment variable not found. Add that to your .env and try again!',
+      );
+    }
+    contentGeneratorConfig.ollamaBaseUrl = ollamaBaseUrl;
+    return contentGeneratorConfig;
+  }
+
   return contentGeneratorConfig;
 }
 
@@ -123,7 +140,11 @@ export async function createContentGenerator(
       httpOptions,
     });
 
-    return googleGenAI.models;
+    return new GoogleGenAIGenerator(googleGenAI);
+  }
+
+  if (config.authType === AuthType.USE_OLLAMA) {
+    return new OllamaContentGenerator(config);
   }
 
   throw new Error(

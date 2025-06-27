@@ -9,7 +9,7 @@ import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { AuthType } from '@google/gemini-cli-core';
+import { AuthType, Config } from '@google/gemini-cli-core';
 import { validateAuthMethod } from '../../config/auth.js';
 
 interface AuthDialogProps {
@@ -17,6 +17,7 @@ interface AuthDialogProps {
   onHighlight: (authMethod: string | undefined) => void;
   settings: LoadedSettings;
   initialErrorMessage?: string | null;
+  config: Config;
 }
 
 export function AuthDialog({
@@ -24,10 +25,17 @@ export function AuthDialog({
   onHighlight,
   settings,
   initialErrorMessage,
+  config,
 }: AuthDialogProps): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage || null,
   );
+  const [selectedModel, setSelectedModel] = useState(config.getModel());
+
+  const availableModels = config.getAvailableModels().map((model) => ({
+    label: model,
+    value: model,
+  }));
   const items = [
     {
       label: 'Login with Google',
@@ -35,6 +43,7 @@ export function AuthDialog({
     },
     { label: 'Gemini API Key', value: AuthType.USE_GEMINI },
     { label: 'Vertex AI', value: AuthType.USE_VERTEX_AI },
+    { label: 'Ollama', value: AuthType.USE_OLLAMA },
   ];
 
   let initialAuthIndex = items.findIndex(
@@ -84,6 +93,25 @@ export function AuthDialog({
         onHighlight={onHighlight}
         isFocused={true}
       />
+
+      {settings.merged.selectedAuthType === AuthType.USE_OLLAMA && (
+        <Box marginTop={1} flexDirection="column">
+          <Text bold>Select Ollama Model</Text>
+          <RadioButtonSelect
+            items={availableModels}
+            initialIndex={availableModels.findIndex(
+              (item) => item.value === selectedModel,
+            )}
+            onSelect={(model) => {
+              setSelectedModel(model);
+              config.setModel(model);
+            }}
+            onHighlight={() => {}}
+            isFocused={true}
+          />
+        </Box>
+      )}
+
       {errorMessage && (
         <Box marginTop={1}>
           <Text color={Colors.AccentRed}>{errorMessage}</Text>
