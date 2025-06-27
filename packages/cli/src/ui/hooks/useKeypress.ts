@@ -70,6 +70,10 @@ export function useKeypress(
         if (isPaste) {
           pasteBuffer = Buffer.concat([pasteBuffer, Buffer.from(key.sequence)]);
         } else {
+          // Handle special keys
+          if (key.name == 'return' && key.sequence == '\x1B\r') {
+            key.meta = true;
+          }
           onKeypressRef.current({ ...key, paste: isPaste });
         }
       }
