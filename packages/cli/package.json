@@ -21,7 +21,8 @@
     "prerelease:version": "node ../../scripts/bind_package_version.js",
     "prerelease:deps": "node ../../scripts/bind_package_dependencies.js",
     "prepack": "npm run build",
-    "postinstall": "node ../../scripts/postinstall.js"
+    "postinstall": "node ../../scripts/postinstall.js",
+    "prepublishOnly": "node ../../scripts/prepublish.js"
   },
   "files": [
     "dist"
