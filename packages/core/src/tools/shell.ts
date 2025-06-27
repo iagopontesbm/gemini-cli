@@ -187,7 +187,8 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
 
     // spawn command in specified directory (or project root if not specified)
     const shell = isWindows
-      ? spawn('cmd.exe', ['/c', command], {
+      ? spawn(command, {
+          shell: true,
           stdio: ['ignore', 'pipe', 'pipe'],
           // detached: true, // ensure subprocess starts its own process group (esp. in Linux)
           cwd: path.resolve(this.config.getTargetDir(), params.directory || ''),
