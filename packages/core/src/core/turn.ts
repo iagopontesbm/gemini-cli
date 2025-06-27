@@ -214,6 +214,9 @@ export class Turn {
           }
         }
 
+        // Function responses are handled differently in Gemini API
+        // They come as part of the next turn, not in the same response
+
         if (resp.usageMetadata) {
           this.lastUsageMetadata =
             resp.usageMetadata as GenerateContentResponseUsageMetadata;
@@ -282,6 +285,7 @@ export class Turn {
     // Yield a request for the tool call, not the pending/confirming status
     return { type: GeminiEventType.ToolCallRequest, value: toolCallRequest };
   }
+
 
   getDebugResponses(): GenerateContentResponse[] {
     return this.debugResponses;
