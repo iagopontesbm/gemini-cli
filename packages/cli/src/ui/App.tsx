@@ -247,6 +247,14 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
         },
         Date.now(),
       );
+      // Get the current auth type before the model is switched and contentGeneratorConfig is cleared
+      const currentAuthType = config.getContentGeneratorConfig()?.authType;
+      // Set the new model
+      config.setModel(fallbackModel);
+      // Refresh authentication with the original auth type to ensure it's preserved
+      if (currentAuthType) {
+        await config.refreshAuth(currentAuthType);
+      }
       return true; // Always accept the fallback
     };
 
