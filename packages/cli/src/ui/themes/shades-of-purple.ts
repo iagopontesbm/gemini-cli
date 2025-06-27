@@ -30,6 +30,9 @@ const additionalColors = {
   AccentYellowAlt: '#f8d000', // Attr yellow (slightly different)
   AccentOrange: '#fb9e00', // Keywords, built_in, meta
   AccentPink: '#fa658d', // Numbers, literals
+  AccentLightPurple: '#c991ff', // For params and properties
+  AccentDarkPurple: '#6943ff', // For operators
+  AccentTeal: '#2ee2fa', // For special constructs
 };
 
 export const ShadesOfPurple = new Theme(
@@ -191,6 +194,152 @@ export const ShadesOfPurple = new Theme(
     },
     'hljs-doctag': {
       fontWeight: 'bold',
+    },
+
+    // Function parameters
+    'hljs-params': {
+      color: additionalColors.AccentLightPurple,
+      fontStyle: 'italic',
+    },
+
+    // Class definitions
+    'hljs-class': {
+      color: shadesOfPurpleColors.AccentCyan,
+      fontWeight: 'bold',
+    },
+
+    // Function definitions
+    'hljs-function': {
+      color: shadesOfPurpleColors.AccentCyan,
+    },
+
+    // Object properties
+    'hljs-property': {
+      color: shadesOfPurpleColors.AccentBlue,
+    },
+
+    // Operators
+    'hljs-operator': {
+      color: additionalColors.AccentDarkPurple,
+    },
+
+    // Punctuation (if supported by the parser)
+    'hljs-punctuation': {
+      color: shadesOfPurpleColors.Gray,
+    },
+
+    // CSS ID selectors
+    'hljs-selector-id': {
+      color: shadesOfPurpleColors.AccentYellow,
+      fontWeight: 'bold',
+    },
+
+    // Character literals
+    'hljs-char': {
+      color: shadesOfPurpleColors.AccentGreen,
+    },
+
+    // Escape sequences
+    'hljs-escape': {
+      color: additionalColors.AccentPink,
+      fontWeight: 'bold',
+    },
+
+    // Meta keywords
+    'hljs-meta-keyword': {
+      color: additionalColors.AccentOrange,
+      fontWeight: 'bold',
+    },
+
+    // Built-in names
+    'hljs-builtin-name': {
+      color: additionalColors.AccentTeal,
+    },
+
+    // Modules
+    'hljs-module': {
+      color: shadesOfPurpleColors.AccentCyan,
+    },
+
+    // Namespaces
+    'hljs-namespace': {
+      color: shadesOfPurpleColors.LightBlue,
+    },
+
+    // Important annotations
+    'hljs-important': {
+      color: shadesOfPurpleColors.AccentRed,
+      fontWeight: 'bold',
+    },
+
+    // Formulas (for LaTeX, etc.)
+    'hljs-formula': {
+      color: shadesOfPurpleColors.AccentCyan,
+      fontStyle: 'italic',
+    },
+
+    // Language-specific additions
+    // Python decorators
+    'hljs-decorator': {
+      color: additionalColors.AccentTeal,
+      fontWeight: 'bold',
+    },
+
+    // Ruby symbols
+    'hljs-symbol.ruby': {
+      color: additionalColors.AccentPink,
+    },
+
+    // SQL keywords
+    'hljs-keyword.sql': {
+      color: additionalColors.AccentOrange,
+      textTransform: 'uppercase',
+    },
+
+    // Markdown specific
+    'hljs-section.markdown': {
+      color: shadesOfPurpleColors.AccentYellow,
+      fontWeight: 'bold',
+    },
+
+    // JSON keys
+    'hljs-attr.json': {
+      color: shadesOfPurpleColors.AccentCyan,
+    },
+
+    // XML/HTML specific
+    'hljs-tag .hljs-name': {
+      color: shadesOfPurpleColors.AccentRed,
+    },
+    'hljs-tag .hljs-attr': {
+      color: additionalColors.AccentYellowAlt,
+    },
+
+    // Line highlighting (if line numbers are enabled)
+    'hljs.hljs-line-numbers': {
+      borderRight: `1px solid ${shadesOfPurpleColors.Gray}`,
+    },
+    'hljs.hljs-line-numbers .hljs-ln-numbers': {
+      color: shadesOfPurpleColors.Gray,
+      paddingRight: '1em',
+    },
+    'hljs.hljs-line-numbers .hljs-ln-code': {
+      paddingLeft: '1em',
+    },
+
+    // Selection styling
+    'hljs::selection': {
+      background: shadesOfPurpleColors.AccentBlue + '40', // 40 = 25% opacity
+    },
+    'hljs ::-moz-selection': {
+      background: shadesOfPurpleColors.AccentBlue + '40',
+    },
+
+    // Highlighted lines (for emphasis)
+    'hljs .hljs-highlight': {
+      background: shadesOfPurpleColors.AccentPurple + '20', // 20 = 12.5% opacity
+      display: 'block',
+      width: '100%',
     },
   },
   shadesOfPurpleColors,
