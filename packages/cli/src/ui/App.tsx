@@ -45,6 +45,7 @@ import { useConsolePatcher } from './components/ConsolePatcher.js';
 import { DetailedMessagesDisplay } from './components/DetailedMessagesDisplay.js';
 import { HistoryItemDisplay } from './components/HistoryItemDisplay.js';
 import { ContextSummaryDisplay } from './components/ContextSummaryDisplay.js';
+import { ContextStatusIndicator } from './components/ContextStatusIndicator.js';
 import { useHistory } from './hooks/useHistoryManager.js';
 import process from 'node:process';
 import {
@@ -70,6 +71,7 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
+import { FileContextProvider } from './contexts/FileContextContext.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -81,7 +83,9 @@ interface AppProps {
 
 export const AppWrapper = (props: AppProps) => (
   <SessionStatsProvider>
+    <FileContextProvider config={props.config}>
     <App {...props} />
+    </FileContextProvider>
   </SessionStatsProvider>
 );
 
@@ -744,12 +748,15 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                       Press Ctrl+D again to exit.
                     </Text>
                   ) : (
+                    <>
                     <ContextSummaryDisplay
                       geminiMdFileCount={geminiMdFileCount}
                       contextFileNames={contextFileNames}
                       mcpServers={config.getMcpServers()}
                       showToolDescriptions={showToolDescriptions}
                     />
+                      <ContextStatusIndicator />
+                    </>
                   )}
                 </Box>
                 <Box>
