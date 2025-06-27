@@ -21,8 +21,6 @@ import {
   Suggestion,
 } from '../components/SuggestionsDisplay.js';
 import { SlashCommand } from './slashCommandProcessor.js';
-import { useFileContext } from '../contexts/FileContextContext.js';
-import { EnhancedFileSuggestion } from '../components/EnhancedFilePicker.js';
 
 export interface UseCompletionReturn {
   suggestions: Suggestion[];
@@ -44,7 +42,6 @@ export function useCompletion(
   slashCommands: SlashCommand[],
   config?: Config,
 ): UseCompletionReturn {
-  const { actions } = useFileContext();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeSuggestionIndex, setActiveSuggestionIndex] =
     useState<number>(-1);

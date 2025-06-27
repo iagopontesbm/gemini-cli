@@ -107,7 +107,6 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
   config,
 }) => {
   const [files, setFiles] = useState<Map<string, FileContextInfo>>(new Map());
-  const [geminiProcessedFiles, setGeminiProcessedFiles] = useState<Set<string>>(new Set());
 
   const totalTokens = useMemo(() => {
     let total = 0;
@@ -164,21 +163,11 @@ export const FileContextProvider: React.FC<FileContextProviderProps> = ({
       return prevFiles;
     });
     
-    // Also remove from Gemini processed files
-    if (wasRemoved) {
-      setGeminiProcessedFiles(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(filepath);
-        return newSet;
-      });
-    }
-    
     return wasRemoved;
   }, []);
 
   const clearContext = useCallback(() => {
     setFiles(new Map());
-    setGeminiProcessedFiles(new Set());
   }, []);
 
   const getFileInfo = useCallback((filepath: string) => files.get(filepath), [files]);

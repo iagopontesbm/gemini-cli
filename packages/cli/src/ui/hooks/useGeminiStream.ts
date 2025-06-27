@@ -41,8 +41,6 @@ import { findLastSafeSplitPoint } from '../utils/markdownUtilities.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
 import { useLogger } from './useLogger.js';
-import { promises as fs } from 'fs';
-import path from 'path';
 import {
   useReactToolScheduler,
   mapToDisplay as mapTrackedToolCallsToDisplay,
@@ -57,7 +55,7 @@ import { useFileContext } from '../contexts/FileContextContext.js';
 /**
  * Extract file paths from a processed query containing file content
  */
-function extractFilePathsFromProcessedQuery(processedQuery: PartListUnion): string[] {
+function _extractFilePathsFromProcessedQuery(processedQuery: PartListUnion): string[] {
   const filePaths: string[] = [];
   
   if (Array.isArray(processedQuery)) {
@@ -88,7 +86,7 @@ function extractFilePathsFromProcessedQuery(processedQuery: PartListUnion): stri
 /**
  * Extract file paths from a query containing @ commands
  */
-function extractFilePathsFromQuery(query: string): string[] {
+function _extractFilePathsFromQuery(query: string): string[] {
   const filePaths: string[] = [];
   const contextCommands = ['list', 'show', 'status', 'remove', 'clear', 'clear-all'];
   
@@ -167,7 +165,7 @@ export const useGeminiStream = (
   const geminiContextFilesRef = useRef<Set<string>>(new Set()); // Track files actually in Gemini's context
   const logger = useLogger();
   const { startNewTurn, addUsage } = useSessionStats();
-  const gitService = useMemo(() => {
+  const _gitService = useMemo(() => {
     if (!config.getProjectRoot()) {
       return;
     }
@@ -251,7 +249,7 @@ export const useGeminiStream = (
   }, [geminiClient, onDebugMessage]);
 
   // Method to sync our tracking with Gemini's actual context
-  const syncContextWithGemini = useCallback(async () => {
+  const _syncContextWithGemini = useCallback(async () => {
     try {
       const geminiHistory = await geminiClient.getHistory();
       const filesInGeminiContext = new Set<string>();
@@ -418,7 +416,7 @@ export const useGeminiStream = (
             const args = atCommandResult.contextArgs || [];
 
             switch (command) {
-              case 'help':
+              case 'help': {
                 // Render the ContextHelp component directly
                 const helpContent = `
 ╭───────────────────────────────────────────────────────────────────────────────────────────────────────────╮
@@ -447,9 +445,10 @@ export const useGeminiStream = (
                   userMessageTimestamp,
                 );
                 return { queryToSend: null, shouldProceed: false };
+              }
 
               case 'list':
-              case 'show':
+              case 'show': {
                 // Get files from both local tracking and Gemini's actual context
                 const localFiles = actions.getGeminiContextFiles();
                 const geminiFiles = Array.from(geminiContextFilesRef.current);
@@ -474,8 +473,9 @@ export const useGeminiStream = (
                   );
                 }
                 return { queryToSend: null, shouldProceed: false };
+              }
 
-              case 'status':
+              case 'status': {
                 const status = actions.getContextStatus();
                 const localFilesCount = actions.getGeminiContextFiles().length;
                 const geminiFilesCount = geminiContextFilesRef.current.size;
@@ -487,8 +487,9 @@ export const useGeminiStream = (
                   userMessageTimestamp,
                 );
                 return { queryToSend: null, shouldProceed: false };
+              }
 
-              case 'remove':
+              case 'remove': {
                 onDebugMessage(`[DEBUG] @remove command args: ${JSON.stringify(args)}`);
                 onDebugMessage(`[DEBUG] Current state files count: ${state.files.size}`);
                 onDebugMessage(`[DEBUG] Current state files: ${Array.from(state.files.keys()).join(', ')}`);
@@ -557,9 +558,10 @@ export const useGeminiStream = (
                   }
                 }
                 return { queryToSend: null, shouldProceed: false };
+              }
 
               case 'clear':
-              case 'clear-all':
+              case 'clear-all': {
                 const filesToRemove = Array.from(state.files.keys());
                 actions.clearContext();
                 
@@ -588,6 +590,7 @@ export const useGeminiStream = (
                   );
                 }
                 return { queryToSend: null, shouldProceed: false };
+              }
 
               default:
                 addItem(
@@ -646,6 +649,8 @@ export const useGeminiStream = (
       scheduleToolCalls,
       state,
       actions,
+      clearGeminiContext,
+      removeFilesFromGeminiContext,
     ],
   );
 
@@ -947,9 +952,7 @@ export const useGeminiStream = (
       onAuthError,
       config,
       actions,
-      clearGeminiContext,
-      removeFilesFromGeminiContext,
-      syncContextWithGemini,
+      onDebugMessage,
     ],
   );
 
