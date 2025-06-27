@@ -234,6 +234,32 @@ process.on('unhandledRejection', (reason, _promise) => {
   process.exit(1);
 });
 
+// --- Global Uncaught Exception Handler ---
+process.on('uncaughtException', (error: NodeJS.ErrnoException) => {
+  // Handle file watching EPERM errors gracefully
+  if (error.code === 'EPERM' && error.syscall === 'watch') {
+    console.warn('Warning: File watching disabled due to permissions (EPERM). The application will continue without automatic file change detection.');
+    return; // Continue execution without crashing
+  }
+
+  // Handle other file system permission errors
+  if (error.code === 'EPERM' || error.code === 'EACCES') {
+    console.warn(`Warning: File system permission error (${error.code}): ${error.message}. Continuing execution.`);
+    return; // Continue execution without crashing
+  }
+
+  // Log other unexpected uncaught exceptions as critical errors
+  console.error('=========================================');
+  console.error('CRITICAL: Uncaught Exception!');
+  console.error('=========================================');
+  console.error('Error:', error.message);
+  console.error('Code:', error.code);
+  console.error('Stack trace:');
+  console.error(error.stack);
+  // Exit for genuinely unhandled errors
+  process.exit(1);
+});
+
 async function loadNonInteractiveConfig(
   config: Config,
   extensions: Extension[],
