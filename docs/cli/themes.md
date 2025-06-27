@@ -25,7 +25,6 @@ Gemini CLI comes with a selection of pre-defined themes, which you can list usin
   - `Google Code`
   - `Xcode`
 
-
 ### Changing Themes
 
 1.  Enter `/theme` into Gemini CLI.
