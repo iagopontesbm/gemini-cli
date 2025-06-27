@@ -103,6 +103,8 @@ export const useSlashCommandProcessor = (
           osVersion: message.osVersion,
           sandboxEnv: message.sandboxEnv,
           modelVersion: message.modelVersion,
+          selectedAuthType: message.selectedAuthType,
+          gcpProject: message.gcpProject,
         };
       } else if (message.type === MessageType.STATS) {
         historyItemContent = {
@@ -588,6 +590,8 @@ export const useSlashCommandProcessor = (
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = await getCliVersion();
+          const selectedAuthType = settings.merged.selectedAuthType || '';
+          const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || '';
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
@@ -595,6 +599,8 @@ export const useSlashCommandProcessor = (
             osVersion,
             sandboxEnv,
             modelVersion,
+            selectedAuthType,
+            gcpProject,
           });
         },
       },
@@ -991,6 +997,7 @@ export const useSlashCommandProcessor = (
     toggleCorgiMode,
     savedChatTags,
     config,
+    settings,
     showToolDescriptions,
     session,
     gitService,
