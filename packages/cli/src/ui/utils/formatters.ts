@@ -61,5 +61,3 @@ export const formatDuration = (milliseconds: number): string => {
 
   return parts.join(' ');
 };
-
-
