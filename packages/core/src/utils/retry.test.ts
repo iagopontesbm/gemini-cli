@@ -239,11 +239,56 @@ describe('retryWithBackoff', () => {
   });
 
   describe('Flash model fallback for OAuth users', () => {
+    // Test for the new functionality: fn should be called with the new model after fallback
+    it('should call fn with the new model after successful fallback', async () => {
+      const newModel = 'gemini-2.5-flash';
+      const fallbackCallback = vi.fn().mockResolvedValue(newModel);
+      let callCount = 0;
+
+      // This mock function will now check the model passed to it
+      const mockFnWithModelCheck = vi.fn(async (currentModel?: string) => {
+        callCount++;
+        if (callCount <= 2) { // Fail first two times (to trigger fallback)
+          const error: HttpError = new Error('Rate limit exceeded');
+          error.status = 429;
+          throw error;
+        }
+        // On the third attempt (after fallback), check if the new model is used
+        if (callCount === 3) {
+          expect(currentModel).toBe(newModel);
+          return 'success with new model';
+        }
+        // Should not be called more than 3 times in this test setup
+        throw new Error('Called more times than expected');
+      });
+
+      const promise = retryWithBackoff(mockFnWithModelCheck, {
+        maxAttempts: 3, // Allows for 2 failures and 1 success after fallback
+        initialDelayMs: 10,
+        onPersistent429: fallbackCallback,
+        authType: 'oauth-personal',
+      });
+
+      await vi.runAllTimersAsync(); // Process all timers and retries
+
+      await expect(promise).resolves.toBe('success with new model');
+      expect(fallbackCallback).toHaveBeenCalledWith('oauth-personal');
+      expect(mockFnWithModelCheck).toHaveBeenCalledTimes(3);
+      // Ensure the first two calls were without a model (or undefined)
+      expect(mockFnWithModelCheck.mock.calls[0][0]).toBeUndefined();
+      expect(mockFnWithModelCheck.mock.calls[1][0]).toBeUndefined();
+      // Ensure the third call was with the newModel
+      expect(mockFnWithModelCheck.mock.calls[2][0]).toBe(newModel);
+    });
+
     it('should trigger fallback for OAuth personal users after persistent 429 errors', async () => {
       const fallbackCallback = vi.fn().mockResolvedValue('gemini-2.5-flash');
 
       let fallbackOccurred = false;
-      const mockFn = vi.fn().mockImplementation(async () => {
+      // Original mockFn that doesn't check the passed model argument
+      const mockFn = vi.fn(async (_currentModel?: string) => {
+        // The _currentModel argument is new due to the signature change,
+        // but this specific test doesn't need to assert its value.
         if (!fallbackOccurred) {
           const error: HttpError = new Error('Rate limit exceeded');
           error.status = 429;

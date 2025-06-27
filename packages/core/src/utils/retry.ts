@@ -60,7 +60,7 @@ function delay(ms: number): Promise<void> {
  * @throws The last error encountered if all attempts fail.
  */
 export async function retryWithBackoff<T>(
-  fn: () => Promise<T>,
+  fn: (currentModel?: string) => Promise<T>,
   options?: Partial<RetryOptions>,
 ): Promise<T> {
   const {
@@ -78,11 +78,12 @@ export async function retryWithBackoff<T>(
   let attempt = 0;
   let currentDelay = initialDelayMs;
   let consecutive429Count = 0;
+  let activeModel: string | undefined = undefined;
 
   while (attempt < maxAttempts) {
     attempt++;
     try {
-      return await fn();
+      return await fn(activeModel);
     } catch (error) {
       const errorStatus = getErrorStatus(error);
 
@@ -102,16 +103,21 @@ export async function retryWithBackoff<T>(
         try {
           const fallbackModel = await onPersistent429(authType);
           if (fallbackModel) {
-            // Reset attempt counter and try with new model
-            attempt = 0;
-            consecutive429Count = 0;
-            currentDelay = initialDelayMs;
-            // With the model updated, we continue to the next attempt
-            continue;
+            activeModel = fallbackModel; // Set the new model to be used by fn
+            attempt = 0; // Reset attempt counter to retry with the new model
+            consecutive429Count = 0; // Reset 429 counter
+            currentDelay = initialDelayMs; // Reset delay
+            console.info(
+              `Retrying with new model ${activeModel} due to persistent 429 errors.`,
+            );
+            continue; // Continue to the next iteration to retry fn with activeModel
           }
         } catch (fallbackError) {
-          // If fallback fails, continue with original error
-          console.warn('Fallback to Flash model failed:', fallbackError);
+          // If fallback handler itself throws an error, log it and proceed to normal error handling
+          console.warn(
+            'onPersistent429 callback failed:',
+            fallbackError,
+          );
         }
       }
 

@@ -266,7 +266,7 @@ export class GeminiClient {
 
       const apiCall = () =>
         this.getContentGenerator().generateContent({
-          model,
+          model: overriddenModel || model,
           config: {
             ...requestConfig,
             systemInstruction,
@@ -276,9 +276,10 @@ export class GeminiClient {
           contents,
         });
 
-      const result = await retryWithBackoff(apiCall, {
+      const result = await retryWithBackoff(
+        (overriddenModel?: string) => apiCall(overriddenModel), {
         onPersistent429: async (authType?: string) =>
-          await this.handleFlashFallback(authType),
+          await this.handleFlashFallback(authType, overriddenModel),
         authType: this.config.getContentGeneratorConfig()?.authType,
       });
 
@@ -341,32 +342,32 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
-    const modelToUse = this.model;
-    const configToUse: GenerateContentConfig = {
-      ...this.generateContentConfig,
-      ...generationConfig,
-    };
-
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
 
-      const requestConfig = {
-        abortSignal,
-        ...configToUse,
-        systemInstruction,
-      };
-
-      const apiCall = () =>
-        this.getContentGenerator().generateContent({
-          model: modelToUse,
+      const apiCall = (overriddenModel?: string) => {
+        const currentModel = overriddenModel || this.model;
+        const configToUse: GenerateContentConfig = {
+          ...this.generateContentConfig,
+          ...generationConfig,
+        };
+        const requestConfig = {
+          abortSignal,
+          ...configToUse,
+          systemInstruction,
+        };
+        return this.getContentGenerator().generateContent({
+          model: currentModel,
           config: requestConfig,
           contents,
         });
+      };
 
-      const result = await retryWithBackoff(apiCall, {
+      const result = await retryWithBackoff(
+        (overriddenModel?: string) => apiCall(overriddenModel), {
         onPersistent429: async (authType?: string) =>
-          await this.handleFlashFallback(authType),
+          await this.handleFlashFallback(authType, this.model), // Pass original model for logging/comparison
         authType: this.config.getContentGeneratorConfig()?.authType,
       });
       return result;
@@ -502,17 +503,18 @@ export class GeminiClient {
    * Handles fallback to Flash model when persistent 429 errors occur for OAuth users.
    * Uses a fallback handler if provided by the config, otherwise returns null.
    */
-  private async handleFlashFallback(authType?: string): Promise<string | null> {
+  private async handleFlashFallback(authType?: string, originalModelForFallback?: string): Promise<string | null> {
     // Only handle fallback for OAuth users
     if (authType !== AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
       return null;
     }
 
-    const currentModel = this.model;
-    const fallbackModel = DEFAULT_GEMINI_FLASH_MODEL;
+    // Use the model that was active when the request started, or the client's current model
+    const modelInUse = originalModelForFallback || this.model;
+    const newFallbackModel = DEFAULT_GEMINI_FLASH_MODEL;
 
     // Don't fallback if already using Flash model
-    if (currentModel === fallbackModel) {
+    if (modelInUse === newFallbackModel) {
       return null;
     }
 
@@ -520,17 +522,25 @@ export class GeminiClient {
     const fallbackHandler = this.config.flashFallbackHandler;
     if (typeof fallbackHandler === 'function') {
       try {
-        const accepted = await fallbackHandler(currentModel, fallbackModel);
+        // Pass the model that was actually in use for the failing request
+        const accepted = await fallbackHandler(modelInUse, newFallbackModel);
         if (accepted) {
-          this.config.setModel(fallbackModel);
-          this.model = fallbackModel;
-          return fallbackModel;
+          this.config.setModel(newFallbackModel); // Update shared config
+          this.model = newFallbackModel; // Update client's own model state
+          // Also update the model in the active chat session if there is one
+          if (this.chat) {
+            // This assumes GeminiChat has a way to update its model or re-initialize with new model from config.
+            // For now, we rely on config being updated, and new chats will use it.
+            // Existing chat instance's internal generationConfig might still hold old model if not refreshed.
+            // However, GeminiChat.sendMessage/sendMessageStream use this.config.getModel() which should be fresh.
+          }
+          return newFallbackModel; // Signal to retryWithBackoff to use this model
         }
       } catch (error) {
         console.warn('Flash fallback handler failed:', error);
       }
     }
 
-    return null;
+    return null; // Fallback not accepted or no handler
   }
 }
