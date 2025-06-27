@@ -1,3 +1,5 @@
+What can we do if we run on Windows instead of Linux?
+
 ## Authentication Setup
 
 The Gemini CLI requires you to authenticate with Google's AI services. On initial startup you'll need to configure **one** of the following authentication methods:
