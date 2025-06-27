@@ -76,7 +76,7 @@ export function AuthDialog({
       padding={1}
       width="100%"
     >
-      <Text bold>Select Auth Method</Text>
+      <Text bold color={Colors.Foreground}>Select Auth Method</Text>
       <RadioButtonSelect
         items={items}
         initialIndex={initialAuthIndex}
