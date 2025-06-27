@@ -70,18 +70,18 @@ export const copyToClipboard = (text: string) => {
 };
 
 export const getLastResultOrSnippet = (history: HistoryItem[]) => {
-    for (let i = history.length - 1; i >= 0; i--) {
-      const item = history[i];
-      if (item.type === 'gemini' || item.type === 'gemini_content') {
-        return item.text.trim();
-      }
-      if (item.type === 'tool_group' && Array.isArray(item.tools)) {
-        for (const toolCall of item.tools) {
-          if (toolCall.resultDisplay) {
-            return toolCall.resultDisplay.toString().trim();
-          }
+  for (let i = history.length - 1; i >= 0; i--) {
+    const item = history[i];
+    if (item.type === 'gemini' || item.type === 'gemini_content') {
+      return item.text.trim();
+    }
+    if (item.type === 'tool_group' && Array.isArray(item.tools)) {
+      for (const toolCall of item.tools) {
+        if (toolCall.resultDisplay) {
+          return toolCall.resultDisplay.toString().trim();
         }
       }
     }
-    return null;
-  };
+  }
+  return null;
+};

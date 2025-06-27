@@ -33,7 +33,10 @@ import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
 import { LoadedSettings } from '../../config/settings.js';
-import { copyToClipboard, getLastResultOrSnippet } from '../utils/commandUtils.js';
+import {
+  copyToClipboard,
+  getLastResultOrSnippet,
+} from '../utils/commandUtils.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -1013,6 +1016,7 @@ export const useSlashCommandProcessor = (
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
+    history
   ]);
 
   const handleSlashCommand = useCallback(
