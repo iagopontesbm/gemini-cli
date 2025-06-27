@@ -6,7 +6,17 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
+import Gradient from 'ink-gradient';
 import { Colors } from '../colors.js';
+
+const GradientHeading = ({ children }: { children: React.ReactNode }) =>
+  Colors.GradientColors ? (
+    <Gradient colors={Colors.GradientColors}>
+      <Text bold>{children}</Text>
+    </Gradient>
+  ) : (
+    <Text bold color={Colors.Foreground}>{children}</Text>
+  );
 
 export const ContextHelp: React.FC = () => (
   <Box
@@ -16,10 +26,8 @@ export const ContextHelp: React.FC = () => (
     borderStyle="round"
     padding={1}
   >
-    {/* Context Management */}
-    <Text bold color={Colors.Foreground}>
-      Context Management Commands:
-    </Text>
+    {/* Gradient Title */}
+    <GradientHeading>Context Management Commands:</GradientHeading>
     <Text color={Colors.Foreground}>
       Use{' '}
       <Text bold color={Colors.AccentPurple}>
@@ -31,9 +39,7 @@ export const ContextHelp: React.FC = () => (
     <Box height={1} />
 
     {/* File Inclusion */}
-    <Text bold color={Colors.Foreground}>
-      File Inclusion:
-    </Text>
+    <GradientHeading>File Inclusion:</GradientHeading>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
         @filename
@@ -58,9 +64,7 @@ export const ContextHelp: React.FC = () => (
     <Box height={1} />
 
     {/* Context Management Commands */}
-    <Text bold color={Colors.Foreground}>
-      Context Management:
-    </Text>
+    <GradientHeading>Context Management:</GradientHeading>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
         @list
@@ -89,9 +93,7 @@ export const ContextHelp: React.FC = () => (
     <Box height={1} />
 
     {/* Tips */}
-    <Text bold color={Colors.Foreground}>
-      Tips:
-    </Text>
+    <GradientHeading>Tips:</GradientHeading>
     <Text color={Colors.Foreground}>
       • Files are automatically tracked when you include them with{' '}
       <Text bold color={Colors.AccentPurple}>
