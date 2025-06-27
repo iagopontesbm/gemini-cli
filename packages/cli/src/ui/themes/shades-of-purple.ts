@@ -38,7 +38,7 @@ const additionalColors = {
 };
 
 export const ShadesOfPurple = new Theme(
-  'ShadesOfPurple',
+  'Shades Of Purple',
   'dark',
   {
     // Base styles
