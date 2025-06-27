@@ -70,6 +70,7 @@ import { checkForUpdates } from './utils/updateCheck.js';
 import ansiEscapes from 'ansi-escapes';
 import { OverflowProvider } from './contexts/OverflowContext.js';
 import { ShowMoreLines } from './components/ShowMoreLines.js';
+import { keyMatchers } from './keyBindings.js';
 
 const CTRL_EXIT_PROMPT_DURATION_MS = 1000;
 
@@ -356,9 +357,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       }
     }
 
-    if (key.ctrl && input === 'o') {
+    if (keyMatchers.showErrorDetails(key, input)) {
       setShowErrorDetails((prev) => !prev);
-    } else if (key.ctrl && input === 't') {
+    } else if (keyMatchers.toggleToolDescriptions(key, input)) {
       const newValue = !showToolDescriptions;
       setShowToolDescriptions(newValue);
 
@@ -366,15 +367,18 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       if (Object.keys(mcpServers || {}).length > 0) {
         handleSlashCommand(newValue ? '/mcp desc' : '/mcp nodesc');
       }
-    } else if (key.ctrl && (input === 'c' || input === 'C')) {
+    } else if (keyMatchers.quit(key, input)) {
       handleExit(ctrlCPressedOnce, setCtrlCPressedOnce, ctrlCTimerRef);
-    } else if (key.ctrl && (input === 'd' || input === 'D')) {
+    } else if (keyMatchers.exit(key, input)) {
       if (buffer.text.length > 0) {
         // Do nothing if there is text in the input.
         return;
       }
       handleExit(ctrlDPressedOnce, setCtrlDPressedOnce, ctrlDTimerRef);
-    } else if (key.ctrl && input === 's' && !enteringConstrainHeightMode) {
+    } else if (
+      keyMatchers.showMoreLines(key, input) &&
+      !enteringConstrainHeightMode
+    ) {
       setConstrainHeight(false);
     }
   });

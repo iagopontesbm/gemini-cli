@@ -19,6 +19,7 @@ import { useCompletion } from '../hooks/useCompletion.js';
 import { isAtCommand, isSlashCommand } from '../utils/commandUtils.js';
 import { SlashCommand } from '../hooks/slashCommandProcessor.js';
 import { Config } from '@google/gemini-cli-core';
+import { keyMatchers } from '../keyBindings.js';
 
 export interface InputPromptProps {
   buffer: TextBuffer;
@@ -199,15 +200,15 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
         }
       } else {
         // Keybindings when suggestions are not shown
-        if (key.ctrl && input === 'l') {
+        if (keyMatchers.clearScreen(key, input)) {
           onClearScreen();
           return true;
         }
-        if (key.ctrl && input === 'p') {
+        if (keyMatchers.historyUp(key, input)) {
           inputHistory.navigateUp();
           return true;
         }
-        if (key.ctrl && input === 'n') {
+        if (keyMatchers.historyDown(key, input)) {
           inputHistory.navigateDown();
           return true;
         }
@@ -222,39 +223,39 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
       }
 
       // Ctrl+A (Home)
-      if (key.ctrl && input === 'a') {
+      if (keyMatchers.home(key, input)) {
         buffer.move('home');
         buffer.moveToOffset(0);
         return;
       }
       // Ctrl+E (End)
-      if (key.ctrl && input === 'e') {
+      if (keyMatchers.end(key, input)) {
         buffer.move('end');
         buffer.moveToOffset(cpLen(buffer.text));
         return;
       }
       // Ctrl+L (Clear Screen)
-      if (key.ctrl && input === 'l') {
+      if (keyMatchers.clearScreen(key, input)) {
         onClearScreen();
         return;
       }
       // Ctrl+P (History Up)
-      if (key.ctrl && input === 'p' && !completion.showSuggestions) {
+      if (keyMatchers.historyUp(key, input) && !completion.showSuggestions) {
         inputHistory.navigateUp();
         return;
       }
       // Ctrl+N (History Down)
-      if (key.ctrl && input === 'n' && !completion.showSuggestions) {
+      if (keyMatchers.historyDown(key, input) && !completion.showSuggestions) {
         inputHistory.navigateDown();
         return;
       }
 
       // Core text editing from MultilineTextEditor's useInput
-      if (key.ctrl && input === 'k') {
+      if (keyMatchers.killLineRight(key, input)) {
         buffer.killLineRight();
         return;
       }
-      if (key.ctrl && input === 'u') {
+      if (keyMatchers.killLineLeft(key, input)) {
         buffer.killLineLeft();
         return;
       }
