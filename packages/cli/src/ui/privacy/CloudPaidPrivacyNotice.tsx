@@ -23,7 +23,7 @@ export const CloudPaidPrivacyNotice = ({
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text bold color={Colors.AccentPurple}>
-        Vertex AI Notice
+        Google Cloud Notice
       </Text>
       <Newline />
       <Text>

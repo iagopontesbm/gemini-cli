@@ -61,6 +61,7 @@ export const useAuthCommand = (
       if (authMethod) {
         await clearCachedCredentialFile();
         settings.setValue(scope, 'selectedAuthType', authMethod);
+        settings.setValue(scope, 'hasSeenPrivacyNotice', undefined);
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);

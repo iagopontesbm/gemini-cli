@@ -64,6 +64,9 @@ export interface Settings {
   // UI setting. Does not display the ANSI-controlled terminal title.
   hideWindowTitle?: boolean;
 
+  // Whether or not the user has seen the privacy notice.
+  hasSeenPrivacyNotice?: boolean;
+
   // Add other settings here.
 }
 

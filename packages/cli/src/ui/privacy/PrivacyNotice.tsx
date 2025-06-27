@@ -9,18 +9,21 @@ import { type Config, AuthType } from '@google/gemini-cli-core';
 import { GeminiPrivacyNotice } from './GeminiPrivacyNotice.js';
 import { CloudPaidPrivacyNotice } from './CloudPaidPrivacyNotice.js';
 import { CloudFreePrivacyNotice } from './CloudFreePrivacyNotice.js';
+import { useEffect } from 'react';
+import { LoadedSettings, SettingScope } from '../../config/settings.js';
 
 interface PrivacyNoticeProps {
   onExit: () => void;
   config: Config;
+  settings: LoadedSettings;
 }
 
 const PrivacyNoticeText = ({
-  config,
   onExit,
+  config,
 }: {
-  config: Config;
   onExit: () => void;
+  config: Config;
 }) => {
   const authType = config.getContentGeneratorConfig()?.authType;
 
@@ -35,8 +38,18 @@ const PrivacyNoticeText = ({
   }
 };
 
-export const PrivacyNotice = ({ onExit, config }: PrivacyNoticeProps) => (
-  <Box borderStyle="round" padding={1} flexDirection="column">
-    <PrivacyNoticeText config={config} onExit={onExit} />
-  </Box>
-);
+export const PrivacyNotice = ({
+  onExit,
+  config,
+  settings,
+}: PrivacyNoticeProps) => {
+  useEffect(() => {
+    settings.setValue(SettingScope.User, 'hasSeenPrivacyNotice', 'true');
+  }, [settings]);
+
+  return (
+    <Box borderStyle="round" padding={1} flexDirection="column">
+      <PrivacyNoticeText config={config} onExit={onExit} />
+    </Box>
+  );
+};

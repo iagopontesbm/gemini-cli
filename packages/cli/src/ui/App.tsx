@@ -168,6 +168,20 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     }
   }, [settings.merged.selectedAuthType, openAuthDialog, setAuthError]);
 
+  useEffect(() => {
+    if (
+      !isAuthDialogOpen &&
+      settings.merged.selectedAuthType &&
+      !settings.merged.hasSeenPrivacyNotice
+    ) {
+      setShowPrivacyNotice(true);
+    }
+  }, [
+    isAuthDialogOpen,
+    settings.merged.selectedAuthType,
+    settings.merged.hasSeenPrivacyNotice,
+  ]);
+
   const {
     isEditorDialogOpen,
     openEditorDialog,
@@ -723,6 +737,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
             <PrivacyNotice
               onExit={() => setShowPrivacyNotice(false)}
               config={config}
+              settings={settings}
             />
           ) : (
             <>
