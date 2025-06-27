@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { Box, Text } from 'ink';
+import Divider from 'ink-divider';
 import { Colors } from '../../colors.js';
 import crypto from 'crypto';
 import { colorizeCode } from '../../utils/CodeColorizer.js';
@@ -232,7 +233,7 @@ const renderDiffContent = (
         ) {
           acc.push(
             <Box key={`gap-${index}`}>
-              <Text wrap="truncate">{'═'.repeat(terminalWidth)}</Text>
+              <Divider />
             </Box>,
           );
         }
