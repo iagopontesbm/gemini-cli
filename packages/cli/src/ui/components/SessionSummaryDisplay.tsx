@@ -39,7 +39,7 @@ export const SessionSummaryDisplay: React.FC<SessionSummaryDisplayProps> = ({
   return (
     <Box
       borderStyle="round"
-      borderColor="gray"
+      borderColor={Colors.Gray}
       flexDirection="column"
       paddingY={1}
       paddingX={2}
@@ -51,7 +51,7 @@ export const SessionSummaryDisplay: React.FC<SessionSummaryDisplayProps> = ({
             <Text bold>{title}</Text>
           </Gradient>
         ) : (
-          <Text bold>{title}</Text>
+          <Text bold color={Colors.Foreground}>{title}</Text>
         )}
       </Box>
 

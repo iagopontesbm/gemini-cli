@@ -51,7 +51,7 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({
   return (
     <Box
       borderStyle="round"
-      borderColor="gray"
+      borderColor={Colors.Gray}
       flexDirection="column"
       paddingY={1}
       paddingX={2}
