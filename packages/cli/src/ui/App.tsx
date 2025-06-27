@@ -593,6 +593,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     isAuthDialogOpen,
     isThemeDialogOpen,
     isEditorDialogOpen,
+    showPrivacyNotice,
     config,
   ]);
 
