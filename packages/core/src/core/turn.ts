@@ -215,6 +215,15 @@ export class Turn {
           this.lastUsageMetadata =
             resp.usageMetadata as GenerateContentResponseUsageMetadata;
         }
+
+        // Check if response was truncated due to token limits
+        const finishReason = resp.candidates?.[0]?.finishReason;
+        if (finishReason === 'MAX_TOKENS') {
+          yield {
+            type: GeminiEventType.Content,
+            value: '\n\n⚠️  Response truncated due to token limits.',
+          };
+        }
       }
 
       if (this.lastUsageMetadata) {
