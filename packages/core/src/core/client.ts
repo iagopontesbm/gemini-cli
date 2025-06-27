@@ -65,7 +65,16 @@ export class GeminiClient {
     this.embeddingModel = config.getEmbeddingModel();
   }
 
+  isInitialized(): boolean {
+    return !!this.contentGenerator;
+  }
+
   async initialize(contentGeneratorConfig: ContentGeneratorConfig) {
+    if (this.isInitialized()) {
+      // Optionally log a warning or just return if already initialized
+      // console.warn("GeminiClient already initialized.");
+      return;
+    }
     this.contentGenerator = await createContentGenerator(
       contentGeneratorConfig,
     );

@@ -12,6 +12,7 @@ import { readStdin } from './utils/readStdin.js';
 import { basename } from 'node:path';
 import v8 from 'node:v8';
 import os from 'node:os';
+import fs from 'node:fs';
 import { spawn } from 'node:child_process';
 import { start_sandbox } from './utils/sandbox.js';
 import {
@@ -36,6 +37,37 @@ import {
 } from '@google/gemini-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
+import { handleSpecCommand } from './commands/spec_command.js';
+import { handleTasksCommand } from './commands/tasks_command.js';
+import { handlePlanCommand } from './commands/plan_command.js';
+
+// Helper for spec command arguments
+interface SpecCommandArgs {
+  prompt: string;
+  imagePaths: string[];
+  audioPaths: string[];
+}
+
+function parseSpecArgs(args: string[]): SpecCommandArgs {
+  const imagePaths: string[] = [];
+  const audioPaths: string[] = [];
+  const promptParts: string[] = [];
+  let i = 0;
+  while (i < args.length) {
+    if ((args[i] === '--image' || args[i] === '-i') && i + 1 < args.length) {
+      imagePaths.push(args[i + 1]);
+      i += 2;
+    } else if ((args[i] === '--audio' || args[i] === '-a') && i + 1 < args.length) {
+      audioPaths.push(args[i + 1]);
+      i += 2;
+    } else {
+      promptParts.push(args[i]);
+      i += 1;
+    }
+  }
+  return { prompt: promptParts.join(' '), imagePaths, audioPaths };
+}
+
 
 function getNodeMemoryArgs(config: Config): string[] {
   const totalMemoryMB = os.totalmem() / (1024 * 1024);
@@ -100,6 +132,51 @@ export async function main() {
 
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
+
+  // Command line argument parsing for new commands
+  const args = process.argv.slice(2); // Skip 'node' and script path
+  const command = args[0];
+  const commandArgs = args.slice(1);
+
+  if (command === 'spec') {
+    const specArgs = parseSpecArgs(commandArgs);
+    if (!specArgs.prompt && specArgs.imagePaths.length === 0 && specArgs.audioPaths.length === 0) {
+      console.error('Error: The "spec" command requires an initial prompt or multimedia inputs.');
+      console.log('Usage: gemini spec <your initial project idea> [--image /path/to/img.png] [--audio /path/to/audio.wav]');
+      process.exit(1);
+    }
+    // Ensure API key is available for spec command if not using other auth, especially if multimedia processing is involved.
+    if (!settings.merged.selectedAuthType && !process.env.GEMINI_API_KEY) {
+       console.error("Error: GEMINI_API_KEY not set. The 'spec' command requires API key authentication if no other auth method is configured, especially for multimedia processing.");
+       process.exit(1);
+    }
+    if (process.env.GEMINI_API_KEY && !settings.merged.selectedAuthType) {
+        settings.setValue(SettingScope.User, 'selectedAuthType', AuthType.USE_GEMINI);
+    }
+
+    await handleSpecCommand(specArgs.prompt, specArgs.imagePaths, specArgs.audioPaths, config);
+    process.exit(0);
+  } else if (command === 'tasks') {
+    const forceGenerate = commandArgs.includes('--generate');
+    // Ensure API key is available if needed for task generation
+    if (forceGenerate || !fs.existsSync('tasks.json')) { // fs.existsSync would need to be imported and run before this
+        // A simplified check: if we might generate, ensure auth is plausible.
+        if (!settings.merged.selectedAuthType && !process.env.GEMINI_API_KEY) {
+            console.error("Error: GEMINI_API_KEY not set. The 'tasks --generate' command (or first run) requires API key authentication if no other auth method is configured.");
+            process.exit(1);
+        }
+        if (process.env.GEMINI_API_KEY && !settings.merged.selectedAuthType) {
+            settings.setValue(SettingScope.User, 'selectedAuthType', AuthType.USE_GEMINI);
+        }
+    }
+    await handleTasksCommand(config, forceGenerate);
+    process.exit(0);
+  } else if (command === 'plan') {
+    // `plan` command doesn't strictly need API key unless it were to regenerate something
+    // For now, it's read-only.
+    await handlePlanCommand(config); // Config might be used by plan command in future for other things
+    process.exit(0);
+  }
 
   // set default fallback to gemini api key
   // this has to go after load cli because thats where the env is set
