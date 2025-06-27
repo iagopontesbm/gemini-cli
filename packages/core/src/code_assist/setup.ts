@@ -6,23 +6,20 @@
 
 import { ClientMetadata, OnboardUserRequest } from './types.js';
 import { CodeAssistServer } from './server.js';
-import { GoogleAuth, OAuth2Client } from 'google-auth-library';
+import { OAuth2Client } from 'google-auth-library';
 import { google } from 'googleapis';
 
 /**
  * Validates that the project exists and that the Gemini API is enabled.
  * @param projectId The ID of the project to validate.
+ * @param authClient The OAuth2 client to use for the validation.
  */
-async function validateProject(projectId: string) {
-  const auth = new GoogleAuth({
-    scopes: 'https://www.googleapis.com/auth/cloud-platform',
-  });
-  const client = await auth.getClient();
-  const serviceUsage = google.serviceusage({ version: 'v1', auth: client });
+async function validateProject(projectId: string, authClient: OAuth2Client) {
+  const serviceUsage = google.serviceusage({ version: 'v1', auth: authClient as any });
   try {
     // Check if the project exists.
     await google
-      .cloudresourcemanager({ version: 'v1', auth: client })
+      .cloudresourcemanager({ version: 'v1', auth: authClient as any })
       .projects.get({ projectId });
   } catch (_e) {
     throw new Error(
@@ -44,6 +41,7 @@ async function validateProject(projectId: string) {
   }
 }
 
+
 /**
  *
  * @param projectId the user's project id, if any
@@ -52,7 +50,7 @@ async function validateProject(projectId: string) {
 export async function setupUser(authClient: OAuth2Client): Promise<string> {
   const projectId = process.env.GOOGLE_CLOUD_PROJECT;
   if (projectId) {
-    await validateProject(projectId);
+    await validateProject(projectId, authClient);
   }
   const caServer = new CodeAssistServer(authClient, projectId);
 
@@ -85,12 +83,12 @@ export async function setupUser(authClient: OAuth2Client): Promise<string> {
       lroRes = await caServer.onboardUser(onboardReq);
     }
     return lroRes.response?.cloudaicompanionProject?.id || '';
-  } catch (_e) {
+  } catch (e) {
     console.log(
       '\n\nError onboarding with Code Assist.\n' +
         'Google Workspace Account (e.g. your-name@your-company.com)' +
         ' must specify a GOOGLE_CLOUD_PROJECT environment variable.\n\n',
     );
-    throw _e;
+    throw e;
   }
 }
