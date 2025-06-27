@@ -5,6 +5,7 @@
  */
 
 import { execSync, spawn } from 'child_process';
+import { existsSync } from 'fs';
 
 export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'zed';
 
@@ -17,7 +18,7 @@ interface DiffCommand {
   args: string[];
 }
 
-function commandExists(cmd: string): boolean {
+function commandExists(cmd: string, fallbackPath?: string): boolean {
   try {
     execSync(
       process.platform === 'win32' ? `where.exe ${cmd}` : `command -v ${cmd}`,
@@ -25,6 +26,14 @@ function commandExists(cmd: string): boolean {
     );
     return true;
   } catch {
+    // On macOS, check fallback path if provided
+    if (
+      fallbackPath &&
+      process.platform === 'darwin' &&
+      existsSync(fallbackPath)
+    ) {
+      return true;
+    }
     return false;
   }
 }
@@ -41,6 +50,14 @@ export function checkHasEditorType(editor: EditorType): boolean {
   const commandConfig = editorCommands[editor];
   const command =
     process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
+
+  // Special handling for VS Code on macOS
+  if (editor === 'vscode' && process.platform === 'darwin') {
+    const fallbackPath =
+      '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+    return commandExists(command, fallbackPath);
+  }
+
   return commandExists(command);
 }
 
