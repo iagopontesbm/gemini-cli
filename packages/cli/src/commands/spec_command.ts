@@ -106,8 +106,26 @@ Markdown Specification:`;
     await fs.writeFile(specFilePath, responseText);
     console.log(`Specification successfully generated and saved to ${specFilePath}`);
 
+    // Offer to open the file in default editor
+    const openEditor = await confirmProceed(
+        `Do you want to open ${specFilePath} in your default editor for review?`,
+        true // Default to yes
+    );
+
+    if (openEditor) {
+        console.log(`Opening ${specFilePath}...`);
+        // In a real environment, you would use a library like 'open':
+        // import open from 'open';
+        // await open(specFilePath);
+        // For this environment, we'll simulate and instruct the user.
+        console.log(`(Simulated: Would have opened ${specFilePath} in your default editor.)`);
+        console.log(`Please open and review '${specFilePath}' manually in your preferred text editor.`);
+    } else {
+        console.log(`Please open and review '${specFilePath}' manually in your preferred text editor before proceeding.`);
+    }
+
     const userApproved = await confirmProceed(
-      `Please review and edit ${specFilePath} if necessary. \nApprove this specification to proceed (e.g., to task generation)?`
+      `Once you have reviewed (and edited, if necessary) ${specFilePath}, approve this specification to proceed?`
     );
 
     if (userApproved) {

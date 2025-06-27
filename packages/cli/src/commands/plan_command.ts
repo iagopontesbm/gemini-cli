@@ -8,6 +8,7 @@ import { loadSession } from '../session/session_manager.js';
 
 interface Task {
   title: string;
+  description?: string;
   status: 'pending' | 'in progress' | 'done';
 }
 
@@ -36,6 +37,9 @@ function displayTasksFromFile(tasksData: TasksFile, tasksFilePath: string): void
         if (task.status === 'in progress') statusMarker = '>';
         if (task.status === 'done') statusMarker = 'X';
         console.log(`  [${statusMarker}] ${task.title} (${task.status})`);
+        if (task.description) {
+          console.log(`      Description: ${task.description}`);
+        }
       });
     } else {
       console.log('  (No tasks for this epic)');

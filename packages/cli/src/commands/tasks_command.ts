@@ -3,6 +3,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { AuthType, Config, Content } from '@google/gemini-cli-core';
 import { saveSession, loadSession } from '../session/session_manager.js';
+import { confirmProceed } from '../utils/hitl.js';
 
 interface Task {
   title: string;
@@ -157,6 +158,101 @@ export async function handleTasksCommand(config: Config, forceGenerate: boolean 
     await saveSession(session?.currentSpecFile || SPEC_FILE_PATH, TASKS_FILE_PATH);
 
     displayTasks(tasksData);
+
+    // --- Refined HITL Checkpoint: Pre-Task-Execution Confirmation ---
+    const proceedWithSimulatedExecution = await confirmProceed(
+      `Tasks have been generated/loaded. Proceed with simulated execution of tasks?`,
+      true // Default to yes
+    );
+
+    if (!proceedWithSimulatedExecution) {
+      console.log("Simulated task execution cancelled by user.");
+      process.exit(0);
+    }
+    // --- End of Pre-Task-Execution Confirmation ---
+
+
+    // --- Start of Basic HITL for simulated error (slightly refined) ---
+    const firstEpic = tasksData.epics?.[0];
+    const firstTask = firstEpic?.tasks?.[0];
+
+    if (firstTask && firstTask.status === 'pending') {
+      console.log(`\nSimulating execution of the first task: "${firstTask.title}"...`);
+      // Simulate an error condition
+      const simulatedErrorOccurred = true; // Change to false to simulate success
+      const simulatedErrorMessage = "Error: Simulated task failed due to missing dependency 'foo'.";
+
+      if (simulatedErrorOccurred) {
+        console.error(`\nOops! An error occurred during the simulated execution of '${firstTask.title}':`);
+        console.error(simulatedErrorMessage); // This is the "captured output"
+
+        console.log("\nAttempting to get a fix suggestion from AI...");
+        let proposedFixFromAI = "No specific fix suggested by AI. Please analyze manually."; // Default
+
+        try {
+          // Construct prompt for AI
+          const errorAnalysisPrompt = `The following error occurred while trying to execute a command:
+Error: "${simulatedErrorMessage}"
+Task being executed: "${firstTask.title}"
+Epic: "${firstEpic?.title || 'Unknown'}"
+Based on this error, suggest a single, concise, actionable step (like a command to run or a file to check/edit) to fix it. If unsure, say "Unable to determine a specific fix."`;
+
+          const client = config.getGeminiClient(); // Assume client is available and configured
+          if (!client.isInitialized()) {
+            const cgConfig = config.getContentGeneratorConfig();
+            if (!cgConfig) throw new Error("Content generator config not found for AI error analysis.");
+            await client.initialize(cgConfig);
+          }
+
+          const contents: Content[] = [{ role: 'user', parts: [{ text: errorAnalysisPrompt }] }];
+          // Ensure Content is imported if not already: import { Content } from '@google/gemini-cli-core';
+          const generationConfig = { temperature: 0.5, topP: 1, maxOutputTokens: 150 };
+          const abortController = new AbortController();
+
+          const result = await client.generateContent(contents, generationConfig, abortController.signal);
+          const aiSuggestion = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+          if (aiSuggestion && !aiSuggestion.toLowerCase().includes("unable to determine")) {
+            proposedFixFromAI = aiSuggestion.trim();
+          }
+        } catch (aiError) {
+          console.error("Error while contacting AI for a fix suggestion:", aiError.message);
+          // proposedFixFromAI remains the default
+        }
+
+        console.log("AI Suggested Fix: " + proposedFixFromAI);
+
+        const userApprovedFix = await confirmProceed(
+          `Do you want to attempt to apply the AI's suggested fix?`
+        );
+
+        if (userApprovedFix) {
+          console.log("Simulating application of the fix... Fix applied (simulated).");
+          // Here, actual fix logic would go in a more advanced implementation
+          // For this simulation, let's assume the fix makes the task "done"
+          const taskToUpdate = tasksData.epics.flatMap(e => e.tasks).find(t => t.title === firstTask.title);
+          if (taskToUpdate) {
+            taskToUpdate.status = 'done';
+            await fs.writeFile(TASKS_FILE_PATH, JSON.stringify(tasksData, null, 2));
+            console.log(`Task '${firstTask.title}' status updated to 'done' in ${TASKS_FILE_PATH} (simulated).`);
+          }
+        } else {
+          console.log("Fix not applied. Please address the error manually.");
+        }
+      } else {
+        console.log(`Simulated task '${firstTask.title}' completed successfully.`);
+        const taskToUpdate = tasksData.epics.flatMap(e => e.tasks).find(t => t.title === firstTask.title);
+        if (taskToUpdate) {
+            taskToUpdate.status = 'done'; // Mark as done
+            await fs.writeFile(TASKS_FILE_PATH, JSON.stringify(tasksData, null, 2));
+            console.log(`Task '${firstTask.title}' status updated to 'done' in ${TASKS_FILE_PATH}.`);
+        }
+      }
+    } else if (proceedWithSimulatedExecution) {
+        console.log("\nNo pending tasks found to simulate execution for, or tasks structure is empty.");
+    }
+    // --- End of Basic HITL for simulated error ---
+
   } catch (error) {
     // Error already logged in parseSpecToTasksAI or here if tasksData is invalid
     console.error('Failed to generate and save tasks.');

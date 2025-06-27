@@ -40,6 +40,7 @@ import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { handleSpecCommand } from './commands/spec_command.js';
 import { handleTasksCommand } from './commands/tasks_command.js';
 import { handlePlanCommand } from './commands/plan_command.js';
+import { loadSession, saveSession } from './session/session_manager.js';
 
 // Helper for spec command arguments
 interface SpecCommandArgs {
@@ -137,6 +138,19 @@ export async function main() {
   const args = process.argv.slice(2); // Skip 'node' and script path
   const command = args[0];
   const commandArgs = args.slice(1);
+
+  // Save the command being run to the session.
+  // Individual command handlers (spec, tasks) will also call saveSession
+  // to update their specific file outputs (spec.md, tasks.json).
+  // The saveSession function is designed to merge updates.
+  if (command && ['spec', 'tasks', 'plan'].includes(command)) { // Only for our new project commands
+    const currentSession = await loadSession();
+    await saveSession(
+      currentSession?.currentSpecFile,
+      currentSession?.currentTasksFile,
+      command,
+    );
+  }
 
   if (command === 'spec') {
     const specArgs = parseSpecArgs(commandArgs);
