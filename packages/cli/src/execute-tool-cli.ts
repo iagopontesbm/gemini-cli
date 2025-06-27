@@ -73,7 +73,7 @@ async function main() {
     // Ensure auth is refreshed to initialize tool registry etc.
     // Use a default auth type if not specified, as some tools might not need auth,
     // but refreshAuth initializes critical components like the toolRegistry.
-    const authTypeToUse = settings.merged.selectedAuthType || AuthType.NONE; // Or API_KEY if preferred as default
+    const authTypeToUse = settings.merged.selectedAuthType || AuthType.USE_GEMINI; // Or API_KEY if preferred as default
     await config.refreshAuth(authTypeToUse);
 
 

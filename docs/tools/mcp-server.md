@@ -1,5 +1,18 @@
 # MCP servers with the Gemini CLI
 
+## ⚠️ Current Status and Known Issues (As of a recent date)
+
+**Developers, please note:** There are currently significant issues with the external `@modelcontextprotocol/sdk` package, which is a core dependency for MCP server and client functionality within the Gemini CLI.
+
+*   **Problem:** Many available versions of `@modelcontextprotocol/sdk` (including those around `0.4.0` and newer versions like `1.12.x`, `1.13.x`) appear to be published to npm without their compiled JavaScript files (i.e., missing the `dist` directory or its contents).
+*   **Impact:** This renders the MCP client features in `packages/core/src/tools/mcp-client.ts` and the standalone `packages/gemini-tools-mcp-server` largely non-functional out-of-the-box. Attempts to use these components will likely result in build failures or runtime errors due to missing modules from the SDK.
+*   **Workaround (Temporary):** To allow the rest of the Gemini CLI project to build, run, and be tested, the code directly relying on these problematic SDK imports has been temporarily commented out or stubbed (primarily in `mcp-client.ts` and the MCP server source).
+*   **Resolution:** Full MCP functionality will require a stable and correctly packaged version of `@modelcontextprotocol/sdk` to become available, or significant effort to adapt the Gemini CLI to a working version if one can be found and thoroughly tested. Developers wishing to work on MCP-related features should be prepared to investigate SDK compatibility and potentially manage local builds or forks of the SDK.
+
+The documentation below describes the intended functionality and architecture of MCP integration. However, please be aware of the limitations mentioned above.
+
+---
+
 This document provides a guide to configuring and using Model Context Protocol (MCP) servers with the Gemini CLI.
 
 ## What is an MCP server?

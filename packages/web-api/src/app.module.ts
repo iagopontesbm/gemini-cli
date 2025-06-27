@@ -1,13 +1,15 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from './config/config.module';
-// Import other modules here (ChatModule, FsModule, ToolsModule) as they are created
+import { FsModule } from './fs/fs.module';
+import { ChatModule } from './chat/chat.module';
+import { ToolsModule } from './tools/tools.module';
 
 @Module({
   imports: [
     ConfigModule,
-    // ChatModule,
-    // FsModule,
-    // ToolsModule,
+    FsModule,
+    ChatModule,
+    ToolsModule,
   ],
   controllers: [],
   providers: [],

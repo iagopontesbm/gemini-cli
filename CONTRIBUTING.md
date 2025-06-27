@@ -220,6 +220,24 @@ npm run lint
 
 For more detailed architecture, see `docs/architecture.md`.
 
+## Known Issues for Developers
+
+When setting up your development environment and running tests, please be aware of the following known issues:
+
+1.  **`@modelcontextprotocol/sdk` Dependency Issues:**
+    *   **Problem:** The external `@modelcontextprotocol/sdk` package, crucial for MCP server and client functionality, has publishing issues. Many versions (including `0.4.0` and newer ones like `1.12.x`, `1.13.x`) seem to be missing their compiled `dist` directories in the npm package.
+    *   **Impact:** This prevents MCP-related features from working correctly and can cause build failures if the relevant code in `packages/core` and `packages/gemini-tools-mcp-server` is not commented out.
+    *   **Current Workaround:** The parts of the codebase that directly import and use this SDK have been temporarily modified (imports and logic commented out) to allow the rest of the project to build and be tested. An override to version `0.4.0` of the SDK is in the root `package.json`, but this version also exhibits the missing `dist` files issue.
+    *   **Note for MCP Developers:** If you intend to work on MCP features, you will need to find a stable, correctly packaged version of `@modelcontextprotocol/sdk` or manage a local build/fork. For more details on the intended MCP architecture, see `docs/tools/mcp-server.md`.
+
+2.  **Sandbox Build Requirement:**
+    *   The command `npm run build:all` attempts to build the sandbox container. This build (`npm run build:sandbox`) requires a container engine like Docker or Podman to be installed and accessible in your environment.
+    *   If you do not have a container engine, `npm run build:all` will fail during the sandbox build phase. You can still build the main application packages using `npm run build`.
+
+3.  **Integration Test Authentication (`npm run test:e2e`):**
+    *   Most integration tests interact with the live Gemini API and therefore require valid authentication credentials.
+    *   Ensure you have set the `GEMINI_API_KEY` environment variable or configured an alternative authentication method as described in the [authentication guide](./docs/cli/authentication.md) and the "Forking" section of this document. Without this, many integration tests will fail.
+
 ## Debugging
 
 ### VS Code:

@@ -57,6 +57,31 @@ This guide provides solutions to common issues and debugging tips.
   - **Cause:** If sandboxing is enabled, then the application is likely attempting an operation restricted by your sandbox, such as writing outside the project directory or system temp directory.
   - **Solution:** See [Sandboxing](./cli/configuration.md#sandboxing) for more information, including how to customize your sandbox configuration.
 
+## Development Environment and Build Issues
+
+These issues are primarily relevant for developers contributing to or building the Gemini CLI from source.
+
+- **Issue: Build failures related to `@modelcontextprotocol/sdk` (MCP SDK).**
+  - **Symptoms:** Errors like `Cannot find module '@modelcontextprotocol/sdk/server/mcp'` or similar during `npm run build` or `npm install` (specifically its `prepare` script that runs `esbuild`).
+  - **Cause:** The external `@modelcontextprotocol/sdk` package has had publishing issues. Several versions appear to be missing their compiled `dist` directories in the npm package, making them unusable out-of-the-box.
+  - **Workaround/Status:**
+    - The parts of the Gemini CLI codebase that directly import this SDK (primarily in `packages/core/src/tools/mcp-client.ts` and `packages/gemini-tools-mcp-server/src/server.ts`) have been temporarily modified to comment out the problematic imports and logic. This allows the rest of the project to build.
+    - An override to version `0.4.0` of the SDK is in the root `package.json`, but this version also seems affected by the missing `dist` files.
+    - **Impact:** MCP client and server functionality is currently disabled or non-functional.
+    - **Developers:** If working on MCP features, you'll need to investigate SDK compatibility and potentially use local builds or forks of the SDK. Refer to `docs/tools/mcp-server.md` for more context on the intended MCP architecture and known issues with the SDK.
+
+- **Issue: Sandbox build failure: `ERROR: could not detect sandbox container command`.**
+  - **Symptoms:** Occurs when running `npm run build:all` or `npm run build:sandbox`.
+  - **Cause:** Building the sandbox environment requires a container engine (like Docker or Podman) to be installed and available on your system.
+  - **Solution:**
+    1. Install Docker or Podman.
+    2. Alternatively, if you don't need the sandbox container, you can build only the application packages using `npm run build`.
+
+- **Issue: Integration tests (`npm run test:e2e`) fail due to missing authentication.**
+  - **Symptoms:** Tests fail with messages like `Please set an Auth method in your .gemini/settings.json OR specify GEMINI_API_KEY env variable file before running`.
+  - **Cause:** Most integration tests require live interaction with Gemini APIs and thus need valid authentication.
+  - **Solution:** Set the `GEMINI_API_KEY` environment variable or configure another authentication method as detailed in the [authentication guide](./cli/authentication.md) and `CONTRIBUTING.md` ("Forking" section).
+
 ## Debugging Tips
 
 - **CLI debugging:**
