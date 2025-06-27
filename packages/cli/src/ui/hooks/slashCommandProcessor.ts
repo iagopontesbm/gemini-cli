@@ -33,6 +33,7 @@ import { GIT_COMMIT_INFO } from '../../generated/git-commit.js';
 import { formatDuration, formatMemoryUsage } from '../utils/formatters.js';
 import { getCliVersion } from '../../utils/version.js';
 import { LoadedSettings } from '../../config/settings.js';
+import { copyToClipboard, getLastResultOrSnippet } from '../utils/commandUtils.js';
 
 export interface SlashCommandActionReturn {
   shouldScheduleTool?: boolean;
@@ -217,6 +218,19 @@ export const useSlashCommandProcessor = (
               timestamp: new Date(),
             });
             await open(docsUrl);
+          }
+        },
+      },
+      {
+        name: 'copy',
+        description: 'Copy the last result or code snippet to clipboard',
+        action: () => {
+          const snippet = getLastResultOrSnippet(history);
+          if (snippet) {
+            copyToClipboard(snippet);
+            onDebugMessage('Copied last result to clipboard!');
+          } else {
+            onDebugMessage('No result/snippet found to copy.');
           }
         },
       },
