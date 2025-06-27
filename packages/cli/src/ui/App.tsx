@@ -581,6 +581,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       !isAuthDialogOpen &&
       !isThemeDialogOpen &&
       !isEditorDialogOpen &&
+      !showPrivacyNotice &&
       config.getGeminiClient()?.getChatSafe?.()
     ) {
       submitQuery(prompt);
