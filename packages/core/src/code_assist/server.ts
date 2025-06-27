@@ -12,24 +12,26 @@ import {
   LongrunningOperationResponse,
 } from './types.js';
 import {
-  GenerateContentResponse,
-  GenerateContentParameters,
-  CountTokensParameters,
-  EmbedContentResponse,
-  CountTokensResponse,
-  EmbedContentParameters,
 } from '@google/genai';
 import * as readline from 'readline';
 import { ContentGenerator } from '../core/contentGenerator.js';
 import {
   CaGenerateContentResponse,
-  toGenerateContentRequest,
-  fromGenerateContentResponse,
-  toCountTokenRequest,
-  fromCountTokenResponse,
+  fromCaGenerateContentResponse,
+  toCaCountTokenRequest,
+  fromCaCountTokenResponse,
   CaCountTokenResponse,
+  toCAGenerateContentRequest,
 } from './converter.js';
 import { PassThrough } from 'node:stream';
+import {
+  GenerateContentRequest,
+  GenerateContentResponse,
+  CountTokensRequest,
+  CountTokensResponse,
+  EmbedContentRequest,
+  EmbedContentResponse,
+} from '../core/llmTypes.js';
 
 /** HTTP options to be used in each of the requests. */
 export interface HttpOptions {
@@ -50,29 +52,33 @@ export class CodeAssistServer implements ContentGenerator {
   ) {}
 
   async generateContentStream(
-    req: GenerateContentParameters,
+    req: GenerateContentRequest,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    const caRequest = toCAGenerateContentRequest(req, this.projectId);
+    // TODO: Access abortSignal from the new request structure if available
     const resps = await this.streamEndpoint<CaGenerateContentResponse>(
       'streamGenerateContent',
-      toGenerateContentRequest(req, this.projectId),
-      req.config?.abortSignal,
+      caRequest,
+      // req.config?.abortSignal, // This needs to be adapted
     );
     return (async function* (): AsyncGenerator<GenerateContentResponse> {
       for await (const resp of resps) {
-        yield fromGenerateContentResponse(resp);
+        yield fromCaGenerateContentResponse(resp);
       }
     })();
   }
 
   async generateContent(
-    req: GenerateContentParameters,
+    req: GenerateContentRequest,
   ): Promise<GenerateContentResponse> {
+    const caRequest = toCAGenerateContentRequest(req, this.projectId);
+    // TODO: Access abortSignal from the new request structure if available
     const resp = await this.callEndpoint<CaGenerateContentResponse>(
       'generateContent',
-      toGenerateContentRequest(req, this.projectId),
-      req.config?.abortSignal,
+      caRequest,
+      // req.config?.abortSignal, // This needs to be adapted
     );
-    return fromGenerateContentResponse(resp);
+    return fromCaGenerateContentResponse(resp);
   }
 
   async onboardUser(
@@ -93,18 +99,20 @@ export class CodeAssistServer implements ContentGenerator {
     );
   }
 
-  async countTokens(req: CountTokensParameters): Promise<CountTokensResponse> {
+  async countTokens(req: CountTokensRequest): Promise<CountTokensResponse> {
+    const caRequest = toCaCountTokenRequest(req);
     const resp = await this.callEndpoint<CaCountTokenResponse>(
       'countTokens',
-      toCountTokenRequest(req),
+      caRequest,
     );
-    return fromCountTokenResponse(resp);
+    return fromCaCountTokenResponse(resp);
   }
 
   async embedContent(
-    _req: EmbedContentParameters,
+    _req: EmbedContentRequest,
   ): Promise<EmbedContentResponse> {
-    throw Error();
+    // TODO: Implement embedContent using new types and adapters
+    throw Error('Not implemented');
   }
 
   async callEndpoint<T>(
