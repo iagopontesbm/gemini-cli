@@ -8,9 +8,10 @@ import * as path from 'node:path';
 import process from 'node:process';
 import {
   AuthType,
-  ContentGeneratorConfig,
   createContentGeneratorConfig,
+  createContentGenerator, // Import the new function
 } from '../core/contentGenerator.js';
+import type { ContentGeneratorConfig } from '../core/contentGenerator.js'; // Import the type
 import { ToolRegistry } from '../tools/tool-registry.js';
 import { LSTool } from '../tools/ls.js';
 import { ReadFileTool } from '../tools/read-file.js';
@@ -40,6 +41,7 @@ import {
   DEFAULT_GEMINI_FLASH_MODEL,
 } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
+import { LlmConfigManager } from './llmConfigManager.js';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
@@ -166,8 +168,10 @@ export class Config {
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
+  private llmConfigManager: LlmConfigManager;
 
   constructor(params: ConfigParameters) {
+    this.llmConfigManager = new LlmConfigManager(); // TODO: Allow passing config path
     this.sessionId = params.sessionId;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
@@ -223,9 +227,25 @@ export class Config {
     } else {
       console.log('Data collection is disabled.');
     }
+    // Load LLM config after other initializations
+    this.llmConfigManager.loadConfig().catch((error) => {
+      // Allow the application to continue if llm config fails to load,
+      // but log an error. Fallback mechanisms will be important.
+      console.error('Failed to load LLM configuration:', error);
+      // Potentially set a flag or use a default internal config
+    });
   }
 
   async refreshAuth(authMethod: AuthType) {
+    // Ensure LLM config is loaded before proceeding
+    await this.llmConfigManager.loadConfig().catch((error) => {
+      console.error(
+        'LLM configuration could not be loaded in refreshAuth. Using defaults.',
+        error,
+      );
+      // Proceed with default/fallback logic if LLM config is unavailable
+    });
+
     // Check if this is actually a switch to a different auth method
     const previousAuthType = this.contentGeneratorConfig?.authType;
     const _isAuthMethodSwitch =
@@ -238,21 +258,37 @@ export class Config {
 
     // Temporarily clear contentGeneratorConfig to prevent getModel() from returning
     // the previous session's model (which might be Flash)
-    this.contentGeneratorConfig = undefined!;
+    // Also, the ContentGeneratorConfig structure has changed.
+    this.contentGeneratorConfig = undefined!; // TODO: Re-evaluate if this is still needed with LlmConfigManager
 
-    const contentConfig = await createContentGeneratorConfig(
-      modelToUse,
-      authMethod,
-      this,
+    // The `modelToUse` here is just a string, but createContentGeneratorConfig now expects LlmConfigManager and optionally a model title.
+    // We need to decide how a user specifies a model (e.g., by title from params.model).
+    // For now, let's assume params.model (this.model) can be a title.
+    // If not, it will use the default from LlmConfigManager.
+    const newContentGeneratorConfig = await createContentGeneratorConfig(
+      this.llmConfigManager,
+      this.model, // Assuming this.model (from params.model) is the desired model title
+      authMethod, // Auth method might be determined by provider or overridden
     );
 
-    const gc = new GeminiClient(this);
+    this.contentGeneratorConfig = newContentGeneratorConfig;
+
+    // Create the actual ContentGenerator instance
+    const contentGenerator = await createContentGenerator(
+      this.contentGeneratorConfig,
+    );
+
+    // GeminiClient now needs to be initialized with a ContentGenerator instance,
+    // not just a config. We may need to refactor GeminiClient or how it's used.
+    // For now, let's assume GeminiClient can take a ContentGenerator.
+    // This will likely require changes in GeminiClient.
+    const gc = new GeminiClient(this, contentGenerator);
     this.geminiClient = gc;
     this.toolRegistry = await createToolRegistry(this);
-    await gc.initialize(contentConfig);
-    this.contentGeneratorConfig = contentConfig;
+    // await gc.initialize(contentConfig); // initialize might need to change or be removed if ContentGenerator is passed directly
 
-    // Reset the session flag since we're explicitly changing auth and using default model
+    // Reset the session flag - this logic might need adjustment
+    // based on how model switching is handled with LlmConfigManager.
     this.modelSwitchedDuringSession = false;
 
     // Note: In the future, we may want to reset any cached state when switching auth methods

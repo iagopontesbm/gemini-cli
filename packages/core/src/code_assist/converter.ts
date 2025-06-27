@@ -28,6 +28,14 @@ import {
   ToolListUnion,
   ToolConfig,
 } from '@google/genai';
+import {
+  GenerateContentRequest as GenericGenerateContentRequest,
+  GenerateContentResponse as GenericGenerateContentResponse,
+  CountTokensRequest as GenericCountTokensRequest,
+  CountTokensResponse as GenericCountTokensResponse,
+  EmbedContentRequest as GenericEmbedContentRequest,
+  EmbedContentResponse as GenericEmbedContentResponse,
+} from '../core/llmTypes.js';
 
 export interface CAGenerateContentRequest {
   model: string;
@@ -132,6 +140,77 @@ export function fromGenerateContentResponse(
   out.promptFeedback = inres.promptFeedback;
   out.usageMetadata = inres.usageMetadata;
   return out;
+}
+
+// Adapter for generic GenerateContentRequest to CAGenerateContentRequest
+export function toCAGenerateContentRequest(
+  req: GenericGenerateContentRequest,
+  project?: string,
+): CAGenerateContentRequest {
+  // TODO: Map more fields from GenericGenerateContentRequest to CAGenerateContentRequest
+  // For now, we'll just pass the prompt as a single content item.
+  return {
+    model: 'gemini-pro', // Assuming a default model for now
+    project,
+    request: {
+      contents: [{ role: 'user', parts: [{ text: req.prompt }] }],
+      generationConfig: {
+        maxOutputTokens: req.maxTokens,
+        temperature: req.temperature,
+        topK: req.topK,
+        topP: req.topP,
+      },
+    },
+  };
+}
+
+// Adapter for CaGenerateContentResponse to generic GenerateContentResponse
+export function fromCaGenerateContentResponse(
+  res: CaGenerateContentResponse,
+): GenericGenerateContentResponse {
+  // TODO: Map more fields from CaGenerateContentResponse to GenericGenerateContentResponse
+  // For now, we'll just extract the text from the first candidate.
+  const text =
+    res.response.candidates && res.response.candidates.length > 0
+      ? res.response.candidates[0].content?.parts?.[0]?.text ?? ''
+      : '';
+  return {
+    text,
+  };
+}
+
+// Adapter for generic CountTokensRequest to CaCountTokenRequest
+export function toCaCountTokenRequest(
+  req: GenericCountTokensRequest,
+): CaCountTokenRequest {
+  return {
+    request: {
+      model: 'models/gemini-pro', // Assuming a default model for now
+      contents: [{ role: 'user', parts: [{ text: req.prompt }] }],
+    },
+  };
+}
+
+// Adapter for CaCountTokenResponse to generic CountTokensResponse
+export function fromCaCountTokenResponse(
+  res: CaCountTokenResponse,
+): GenericCountTokensResponse {
+  return {
+    tokenCount: res.totalTokens,
+  };
+}
+
+// Placeholder adapters for EmbedContent (not yet implemented in CodeAssistServer)
+export function toCaEmbedContentRequest(
+  req: GenericEmbedContentRequest,
+): any {
+  // TODO: Implement mapping
+  throw new Error('Not implemented');
+}
+
+export function fromCaEmbedContentResponse(res: any): GenericEmbedContentResponse {
+  // TODO: Implement mapping
+  throw new Error('Not implemented');
 }
 
 function toVertexGenerateContentRequest(

@@ -1,0 +1,30 @@
+models:
+  - title: test-gemini
+    provider: gemini
+    model: gemini-pro
+    default: true
+  - title: test-openai
+    provider: openai
+    model: gpt-3.5-turbo
+    apiKey: "sk-testkeyopenai"
+  - title: test-anthropic
+    provider: anthropic
+    model: claude-2
+    apiKey: "sk-testkeyanthropic"
+  - title: test-ollama
+    provider: ollama
+    model: llama2
+    apiBase: "http://localhost:11434"
+  - title: test-lmstudio
+    provider: lmstudio
+    model: some-lmstudio-model
+    apiBase: "http://localhost:1234/v1" # OpenAI compatible
+    # client: "http://localhost:1234" # Alternative if not using OpenAI compatible endpoint
+  - title: custom-openai-clone
+    provider: openai
+    model: custom-model-v1
+    apiBase: http://my-custom-openai:8080/v1
+    apiKey: "custom-key"
+    temperature: 0.8
+    topK: 40
+    systemMessage: "You are a custom assistant."
