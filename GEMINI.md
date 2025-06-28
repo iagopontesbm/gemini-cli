@@ -1,130 +1,221 @@
 **TL;DR:**
-This guide defines the rules and workflow for both humans and AI agents working on *gemini-cli*—read it before you write, code, or submit changes.
+This guide defines non-negotiable rules and workflows for both human contributors and the Gemini model powering `gemini-cli`.
 
 ---
 
 ## Purpose & Scope
 
-AGENTS.md is the definitive style and contribution guide for the *gemini-cli* repository.
-Consult it before making or reviewing any code or documentation changes.
-It applies equally to human contributors and automated coding agents (e.g., Codex).
-
-## Repository Philosophy
-
-* Prioritize readability and simplicity—clear code trumps clever code.
-* Limit dependencies; favor the standard library unless absolutely necessary.
-* Follow the Unix philosophy: each tool does one thing well and composes cleanly.
-* Strive for transparency—fail noisily and visibly when things go wrong.
-
-## Ask vs Code Modes
-
-*gemini-cli* supports two interaction modes:
-
-* **Ask Mode:**
-  For open-ended questions or exploratory queries.
-  Output should be conversational and concise.
-
-  ```bash
-  gemini ask "How do I configure my proxy?"
-  ```
-
-* **Code Mode:**
-  For code generation or modification requests.
-  Output should be valid, minimal code or structured data.
-
-  ```bash
-  gemini code "Write a bash script to ping a list of hosts."
-  ```
-
-> ⚠️ Pick the mode that matches the user's intent. Never mix conversational and code responses.
-
-## Coding Standards
-
-* Use clear, descriptive names—no abbreviations unless industry standard.
-* Comments must explain why, not just what. Avoid restating code.
-* Prefer explicit error handling; fail fast with actionable messages.
-* Log at appropriate levels (`info`, `warn`, `error`); never log secrets or sensitive info.
-* Maintain a line length ≤ 100 characters for all source files.
-
-## CLI Specifics
-
-* Flag names must be lowercase, hyphen-separated (`--example-flag`).
-* All output should be parseable (JSON by default), unless in Ask Mode.
-* Respect user environment: obey `$HOME`, `$XDG_CONFIG_HOME`, and other relevant vars.
-* Exit codes:
-
-  * `0` on success
-  * `1` for user errors
-  * `2` for system or unexpected errors
-
-## AI-Assisted Workflow
-
-**For Humans:**
-
-* Frame prompts with clear intent (e.g., "Add a test for X", "Refactor Y for clarity").
-* Review AI-generated code as you would a human PR; do not auto-merge.
-
-**For Codex:**
-
-* Always return unified diffs or full files, not inline code snippets.
-
-* Write descriptive PR titles (imperative mood) and concise commit messages.
-
-  ```
-  Title: Add config flag for custom API endpoint
-  Commit: Support overriding API endpoint via --api-endpoint flag.
-  ```
-
-* Suggest reviewers if change impacts critical code paths.
-
-## Testing & CI
-
-* All new features require unit tests; regressions must include tests.
-* Smoke tests must validate CLI startup and core workflows.
-* Code must pass linting and static analysis in CI before merging.
-
-  ```bash
-  pytest
-  ./scripts/lint.sh
-  ```
-
-## Documentation Requirements
-
-* Update `README.md` for any user-facing change.
-* Revise `man` pages and CLI help output as needed.
-* Maintain up-to-date docstrings for all public functions and classes.
-
-> ⚠️ Outdated documentation is a release blocker.
-
-## Security & Privacy
-
-* Never hard-code secrets, tokens, or credentials.
-* Use environment variables or user configuration for sensitive data.
-* Opt-in only: do not enable telemetry or analytics by default.
-* Scrub logs and error messages of all private information.
-
-## Change Management
-
-* Use feature branches (`feature/short-description`); no direct commits to `main`.
-* Follow [Semantic Versioning](https://semver.org/) for all releases.
-* Pull requests must include:
-
-  * Linked issue or context
-  * Test evidence (screenshots, CI links)
-  * Updated docs (if needed)
-
-## Appendix
-
-**Glossary:**
-
-* **Ask Mode:** Conversational queries; non-code answers.
-* **Code Mode:** Programmatic output; scripts or data.
-* **Codex:** The automated AI coding agent.
-* **PR:** Pull Request.
-* **Semantic Versioning:** Versioning format: MAJOR.MINOR.PATCH.
-* **Smoke Test:** Basic run to catch obvious failures.
-* **Telemetry:** Automatic collection of usage data.
+`GEMINI.md` sets the authoritative standards for contributing to `gemini-cli`.
+Consult this file **before** any code, documentation, or AI-generated change.
+It applies to all code, config, prompts, and documentation in the repository.
 
 ---
 
-*Refer to AGENTS.md with every contribution. Consistency and clarity make great tools.*
+## Repository Philosophy
+
+* **Readability first:** Favor clear, direct code over cleverness.
+* **Minimal dependencies:** Only use external packages when essential and well-justified.
+* **Unix-like UX:** Prioritize predictable flags, stdin/stdout, exit codes, and scriptability.
+* **Consistency beats novelty:** Conform to existing patterns unless a strong reason exists.
+
+---
+
+## Gemini Profiles & Parameters
+
+### For Human Contributors
+
+* Use config profiles to manage different API keys, models, and defaults.
+* To select a profile:
+
+  ```bash
+  gemini --profile myprofile <command>
+  ```
+* Override parameters inline:
+
+  ```bash
+  gemini run --temperature 0.2 --max-tokens 512
+  ```
+* Set secrets only via env vars, never on the CLI:
+
+  ```bash
+  export GEMINI_API_KEY=...
+  ```
+
+### For Gemini Model
+
+* Always respect the active profile’s settings unless explicitly overridden by the user.
+* Never suggest hard-coding sensitive values.
+* When generating config examples, clearly indicate where to place secrets (use `<YOUR_API_KEY>`).
+
+---
+
+## Coding Standards
+
+### For Human Contributors
+
+* Use snake\_case for files, functions, and variables.
+* Use UpperCamelCase for class names.
+* Keep functions ≤ 40 lines.
+* Docstrings for all public APIs. Single-line for simple cases; multiline for complex behaviors.
+* Use `# TODO:` for incomplete features; track with issues.
+* Return explicit error codes.
+* Use structured logging; no bare `print`.
+* Catch exceptions narrowly; never blanket `except:`.
+
+### For Gemini Model
+
+* Always adhere to existing naming conventions in the codebase.
+* Prefer brevity in comments; avoid restating obvious logic.
+* Always explain “why” if non-obvious, not just “what.”
+* Generate error handling that fails fast and loudly.
+* Never introduce logging side-effects in libraries.
+
+---
+
+## CLI-Specific Rules
+
+### For Human Contributors
+
+* All flags must have both short (`-f`) and long (`--flag`) forms if practical.
+* Document every flag in help output and `man` pages.
+* Outputs should be parsable by default (JSON, plain text), never styled unless requested.
+* Respect environment variables:
+
+  * `GEMINI_API_KEY`
+  * `GEMINI_PROFILE`
+* Exit codes:
+
+  * `0` for success
+  * `1` for usage error
+  * `2` for API/network failure
+
+### For Gemini Model
+
+* Always generate examples with both flag forms.
+* Output examples with `$` prefix for commands, no output unless shown.
+* Never leak secrets in logs or error messages.
+
+---
+
+## AI-Assisted Workflow
+
+### For Human Contributors
+
+* Phrase prompts as tasks, not open-ended questions.
+
+  > Example:
+  > “Suggest a patch to refactor `run_command` for testability.”
+* For code review, specify file and line number.
+* Commit message format:
+
+  ```
+  feat(cli): Add --dry-run flag for safe testing
+
+  - Implements CLI dry-run
+  - Updates docs and tests
+  ```
+* PR titles must summarize the change; body must link to relevant issues.
+
+### For Gemini Model
+
+* Always return patch-ready, minimal diffs unless asked for alternatives.
+* Prefix commit messages with semantic type (`feat:`, `fix:`, etc.).
+* Summarize major changes at top of PR, list files affected.
+* Never generate merge commits.
+
+---
+
+## Testing & CI
+
+### For Human Contributors
+
+* All new code must have unit tests with clear assertions.
+* Use smoke tests for CLI entrypoints:
+
+  ```bash
+  gemini run --help
+  ```
+* Lint before pushing; CI will enforce.
+* Tests must be reproducible and not depend on external APIs by default.
+* Mark slow/integration tests clearly.
+
+### For Gemini Model
+
+* Always add or update tests when generating code that alters behavior.
+* Suggest test cases for new flags or parameters.
+* Never bypass linters or skip CI steps.
+
+---
+
+## Documentation Duties
+
+### For Human Contributors
+
+* Update `README.md` for any user-facing change.
+* Revise CLI/man output when flags or parameters change.
+* Maintain inline docstrings for all modules and functions.
+* All new features require usage examples.
+
+### For Gemini Model
+
+* Always generate or update docstrings and usage examples when introducing changes.
+* Flag missing or outdated docs in PR summaries.
+
+---
+
+## Security & Privacy
+
+### For Human Contributors
+
+* Never commit secrets, tokens, or credentials.
+* Use `.env.example` for required variables.
+* Document telemetry and opt-out steps.
+* Review dependencies for known vulnerabilities.
+
+### For Gemini Model
+
+* Always redact or mask secrets in code, docs, and logs.
+* Suggest best practices for secret management.
+* Never recommend disabling security checks.
+
+---
+
+## Change Management
+
+### For Human Contributors
+
+* Branch off `main`; use feature or fix branches.
+* PR titles: `<type>(<scope>): <summary>`
+* Follow [Semantic Versioning](https://semver.org/).
+* Checklist for PRs:
+
+  * [ ] Tests added/updated
+  * [ ] Docs updated
+  * [ ] No secrets committed
+  * [ ] CI passes
+
+### For Gemini Model
+
+* Always suggest branch names matching the change type (`feat/`, `fix/`, etc.).
+* Summarize backward-incompatible changes in PR descriptions.
+* Never suggest direct pushes to `main`.
+
+---
+
+## Appendix
+
+**Glossary**
+
+* **Profile:** Config set for API/model settings.
+* **Temperature:** Controls randomness in AI output.
+* **Max Tokens:** Limits output length.
+* **Smoke Test:** Minimal test for basic operation.
+* **Semantic Versioning:** Versioning as MAJOR.MINOR.PATCH.
+* **PR:** Pull Request for proposing changes.
+* **CI:** Continuous Integration—automated testing pipeline.
+
+---
+
+> ⚠️  Always defer to `GEMINI.md` if other guides disagree.
+> File an issue if clarification is needed.
+
