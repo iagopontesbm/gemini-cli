@@ -17,11 +17,9 @@ This guide provides solutions to common issues and debugging tips.
 ## Frequently asked questions (FAQs)
 
 - **Q: How do I update Gemini CLI to the latest version?**
-
   - A: If installed globally via npm, update Gemini CLI using the command `npm install -g @google/gemini-cli@latest`. If run from source, pull the latest changes from the repository and rebuild using `npm run build`.
 
 - **Q: Where are Gemini CLI configuration files stored?**
-
   - A: The CLI configuration is stored within two `settings.json` files: one in your home directory and one in your project's root directory. In both locations, `settings.json` is found in the `.gemini/` folder. Refer to [CLI Configuration](./cli/configuration.md) for more details.
 
 - **Q: Why don't I see cached token counts in my stats output?**
@@ -30,13 +28,11 @@ This guide provides solutions to common issues and debugging tips.
 ## Common error messages and solutions
 
 - **Error: `EADDRINUSE` (Address already in use) when starting an MCP server.**
-
   - **Cause:** Another process is already using the port the MCP server is trying to bind to.
   - **Solution:**
     Either stop the other process that is using the port or configure the MCP server to use a different port.
 
 - **Error: Command not found (when attempting to run Gemini CLI).**
-
   - **Cause:** Gemini CLI is not correctly installed or not in your system's PATH.
   - **Solution:**
     1.  Ensure Gemini CLI installation was successful.
@@ -44,19 +40,16 @@ This guide provides solutions to common issues and debugging tips.
     3.  If running from source, ensure you are using the correct command to invoke it (e.g., `node packages/cli/dist/index.js ...`).
 
 - **Error: `MODULE_NOT_FOUND` or import errors.**
-
   - **Cause:** Dependencies are not installed correctly, or the project hasn't been built.
   - **Solution:**
     1.  Run `npm install` to ensure all dependencies are present.
     2.  Run `npm run build` to compile the project.
 
 - **Error: "Operation not permitted", "Permission denied", or similar.**
-
   - **Cause:** If sandboxing is enabled, then the application is likely attempting an operation restricted by your sandbox, such as writing outside the project directory or system temp directory.
   - **Solution:** See [Sandboxing](./cli/configuration.md#sandboxing) for more information, including how to customize your sandbox configuration.
 
 - **CLI is not interactive in "CI" environments**
-
   - **Issue:** The CLI does not enter interactive mode (no prompt appears) if an environment variable starting with `CI_` (e.g., `CI_TOKEN`) is set. This is because the `is-in-ci` package, used by the underlying UI framework, detects these variables and assumes a non-interactive CI environment.
   - **Cause:** The `is-in-ci` package checks for the presence of `CI`, `CONTINUOUS_INTEGRATION`, or any environment variable with a `CI_` prefix. When any of these are found, it signals that the environment is non-interactive, which prevents the CLI from starting in its interactive mode.
   - **Solution:**: If the `CI_` prefixed variable is not needed for the CLI to function, you can temporarily unset it for the command. e.g., `env -u CI_TOKEN gemini`
@@ -64,18 +57,15 @@ This guide provides solutions to common issues and debugging tips.
 ## Debugging Tips
 
 - **CLI debugging:**
-
   - Use the `--verbose` flag (if available) with CLI commands for more detailed output.
   - Check the CLI logs, often found in a user-specific configuration or cache directory.
 
 - **Core debugging:**
-
   - Check the server console output for error messages or stack traces.
   - Increase log verbosity if configurable.
   - Use Node.js debugging tools (e.g., `node --inspect`) if you need to step through server-side code.
 
 - **Tool issues:**
-
   - If a specific tool is failing, try to isolate the issue by running the simplest possible version of the command or operation the tool performs.
   - For `run_shell_command`, check that the command works directly in your shell first.
   - For file system tools, double-check paths and permissions.
