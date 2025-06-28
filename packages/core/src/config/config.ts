@@ -125,6 +125,7 @@ export interface ConfigParameters {
   fileDiscoveryService?: FileDiscoveryService;
   bugCommand?: BugCommandSettings;
   model: string;
+  forceModel?: boolean;
   extensionContextFilePaths?: string[];
 }
 
@@ -163,6 +164,7 @@ export class Config {
   private readonly cwd: string;
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
+  private readonly forceModel: boolean;
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
@@ -206,6 +208,7 @@ export class Config {
     this.fileDiscoveryService = params.fileDiscoveryService ?? null;
     this.bugCommand = params.bugCommand;
     this.model = params.model;
+    this.forceModel = params.forceModel ?? false;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
 
     if (params.contextFileName) {
@@ -266,10 +269,18 @@ export class Config {
   }
 
   setModel(newModel: string): void {
+    if (this.forceModel) {
+      // When forceModel is enabled, prevent any model switching
+      return;
+    }
     if (this.contentGeneratorConfig) {
       this.contentGeneratorConfig.model = newModel;
       this.modelSwitchedDuringSession = true;
     }
+  }
+
+  getForceModel(): boolean {
+    return this.forceModel;
   }
 
   isModelSwitchedDuringSession(): boolean {
