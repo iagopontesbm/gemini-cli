@@ -77,12 +77,16 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
   };
 
   const renderTopBorder = () => {
-    const border = adjustedWidths.map((width) => '─'.repeat(width - 2)).join('─┬─');
+    const border = adjustedWidths
+      .map((width) => '─'.repeat(width - 2))
+      .join('─┬─');
     return <Text>┌─{border}─┐</Text>;
   };
 
   const renderBottomBorder = () => {
-    const border = adjustedWidths.map((width) => '─'.repeat(width - 2)).join('─┴─');
+    const border = adjustedWidths
+      .map((width) => '─'.repeat(width - 2))
+      .join('─┴─');
     return <Text>└─{border}─┘</Text>;
   };
 
