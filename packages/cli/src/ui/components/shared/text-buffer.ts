@@ -571,7 +571,6 @@ export function useTextBuffer({
 
       const expandedOps: UpdateOperation[] = [];
 
-
       // Detect IME bug pattern: CJK character followed by 0x7f
       // This pattern causes each new character to delete the previous one
       const isIMEBugPattern = (payload: string): boolean => {
