@@ -685,7 +685,7 @@ export const useSlashCommandProcessor = (
       {
         name: 'chat',
         description:
-          'Manage conversation history. Usage: /chat <list|save|resume|delete|rm> [tag]',
+          'Manage conversation history. Usage: /chat <list|save|resume|delete> [tag]',
         action: async (_mainCommand, subCommand, args) => {
           const tag = (args || '').trim();
           const logger = new Logger(config?.getSessionId() || '');
@@ -703,7 +703,7 @@ export const useSlashCommandProcessor = (
             addMessage({
               type: MessageType.ERROR,
               content:
-                'Missing command\nUsage: /chat <list|save|resume|delete|rm> [tag]',
+                'Missing command\nUsage: /chat <list|save|resume|delete> [tag]',
               timestamp: new Date(),
             });
             return;
@@ -791,8 +791,7 @@ export const useSlashCommandProcessor = (
                 timestamp: new Date(),
               });
               return;
-            case 'delete':
-            case 'rm': {
+            case 'delete': {
               if (!tag) {
                 addMessage({
                   type: MessageType.ERROR,
@@ -828,7 +827,7 @@ export const useSlashCommandProcessor = (
             default:
               addMessage({
                 type: MessageType.ERROR,
-                content: `Unknown /chat command: ${subCommand}. Available: list, save, resume, delete, rm`,
+                content: `Unknown /chat command: ${subCommand}. Available: list, save, resume, delete`,
                 timestamp: new Date(),
               });
               return;
