@@ -10,7 +10,7 @@ Slash commands provide meta-level control over the CLI itself.
   - **Description:** File an issue about Gemini CLI. By default, the issue is filed within the GitHub repository for Gemini CLI. The string you enter after `/bug` will become the headline for the bug being filed. The default `/bug` behavior can be modified using the `bugCommand` setting in your `.gemini/settings.json` files.
 
 - **`/chat`**
-  - **Description:** Manage conversation history. Save, resume, delete, or export conversation states.
+  - **Description:** Manage conversation history with automatic session saving, listing, and resumption for improved continuity and ease of use.
   - **Sub-commands:**
     - **`save`**
       - **Description:** Saves the current conversation history. You must add a `<tag>` for identifying the conversation state.
