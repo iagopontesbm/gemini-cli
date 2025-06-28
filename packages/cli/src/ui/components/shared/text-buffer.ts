@@ -571,121 +571,47 @@ export function useTextBuffer({
 
       const expandedOps: UpdateOperation[] = [];
 
-      // Detect IME bug pattern: CJK character followed by 0x7f
-      // This pattern causes each new character to delete the previous one
-      const isIMEBugPattern = (payload: string): boolean => {
-        const chars = toCodePoints(payload);
-        if (chars.length < 2) return false;
-
-        // Check for pattern: multi-byte char + 0x7f + multi-byte char
-        for (let i = 0; i < chars.length - 1; i++) {
-          const current = chars[i];
-          const next = chars[i + 1];
-
-          // If current is multi-byte and next is 0x7f, it's the bug pattern
-          if (current.charCodeAt(0) > 127 && next.charCodeAt(0) === 127) {
-            return true;
-          }
-        }
-        return false;
-      };
-
-      // Process operations to track CJK insertions first
-      const trackingOps: Array<{ op: UpdateOperation; isCJK: boolean; hasCJK: boolean }> = [];
-      for (let i = 0; i < ops.length; i++) {
-        const op = ops[i];
-        let isCJK = false;
-        let hasCJK = false;
-        if (op.type === 'insert' && op.payload) {
-          // Check if this operation inserts any CJK characters
-          hasCJK = op.payload.split('').some((c) => c.charCodeAt(0) > 127);
-          // Check if this is primarily a CJK insert (not just contains CJK)
-          isCJK = hasCJK && !op.payload.includes('\x7f');
-        }
-        trackingOps.push({ op, isCJK, hasCJK });
-      }
-
-      // Check if a single 0x7f after CJK insert is the IME bug
-      const isSingleCharIMEBackspace = (opIndex: number): boolean => {
-        const op = trackingOps[opIndex].op;
-        // Must be exactly one 0x7f character
-        if (op.type !== 'insert' || op.payload !== '\x7f') return false;
-
-        // Only filter 0x7f if:
-        // 1. Previous operation in this batch was CJK insert, OR
-        // 2. We're in a batch with CJK operations
-        if (opIndex > 0) {
-          const prevOp = trackingOps[opIndex - 1];
-          return prevOp.isCJK;
-        }
-
-        // Single 0x7f with no CJK context should work normally
-        return false;
-      };
-
-      for (let i = 0; i < trackingOps.length; i++) {
-        const { op } = trackingOps[i];
+      // Handle IME bug pattern: CJK + \x7f + CJK
+      for (const op of ops) {
         if (op.type === 'insert') {
-          // Check for IME bug patterns
-          if (isIMEBugPattern(op.payload) || isSingleCharIMEBackspace(i)) {
-            // Filter out 0x7f characters to fix IME input
-            const filtered = toCodePoints(op.payload)
-              .filter((char) => char.codePointAt(0) !== 127)
-              .join('');
-
-            if (filtered.length > 0) {
-              expandedOps.push({ type: 'insert', payload: filtered });
-            }
-
-          } else if (op.payload.startsWith('\x7f') && op.payload.length > 1) {
-            // Special case: "\x7f好" pattern - 0x7f followed by CJK
-            const chars = toCodePoints(op.payload);
-            const afterBackspace = chars.slice(1).join('');
-
-            // Check if what follows 0x7f is CJK
-            if (
-              afterBackspace &&
-              afterBackspace.split('').some((c) => c.charCodeAt(0) > 127)
-            ) {
-              // This is IME pattern: skip the 0x7f and insert the CJK chars
-              expandedOps.push({ type: 'insert', payload: afterBackspace });
-
-            } else {
-              // Normal backspace + ASCII - process each character normally
-              let currentText = '';
-              for (const char of toCodePoints(op.payload)) {
-                if (char.codePointAt(0) === 127) {
-                  if (currentText.length > 0) {
-                    expandedOps.push({ type: 'insert', payload: currentText });
-                    currentText = '';
-                  }
-                  expandedOps.push({ type: 'backspace' });
-                } else {
-                  currentText += char;
-                }
-              }
-              if (currentText.length > 0) {
-                expandedOps.push({ type: 'insert', payload: currentText });
-              }
-            }
-          } else {
-            // Normal processing for non-IME patterns
-            let currentText = '';
-            for (const char of toCodePoints(op.payload)) {
-              if (char.codePointAt(0) === 127) {
-                // \x7f
-                if (currentText.length > 0) {
-                  expandedOps.push({ type: 'insert', payload: currentText });
-                  currentText = '';
+          const chars = toCodePoints(op.payload);
+          let processedText = '';
+          let skipNext0x7f = false;
+          
+          for (let i = 0; i < chars.length; i++) {
+            const char = chars[i];
+            const charCode = char.charCodeAt(0);
+            
+            if (charCode === 127) { // \x7f
+              // Check if this is the IME pattern:
+              // Previous char is CJK and next char is CJK
+              const prevChar = i > 0 ? chars[i - 1] : processedText.slice(-1);
+              const nextChar = i < chars.length - 1 ? chars[i + 1] : '';
+              
+              const isPrevCJK = prevChar && prevChar.charCodeAt(0) > 127;
+              const isNextCJK = nextChar && nextChar.charCodeAt(0) > 127;
+              
+              if (isPrevCJK && isNextCJK) {
+                // This is IME pattern - skip the \x7f
+                continue;
+              } else if (op.payload.startsWith('\x7f') && isNextCJK) {
+                // Special case: \x7f at start followed by CJK
+                continue;
+              } else {
+                // Normal backspace
+                if (processedText.length > 0) {
+                  expandedOps.push({ type: 'insert', payload: processedText });
+                  processedText = '';
                 }
                 expandedOps.push({ type: 'backspace' });
-              } else {
-                currentText += char;
               }
+            } else {
+              processedText += char;
             }
-            if (currentText.length > 0) {
-              expandedOps.push({ type: 'insert', payload: currentText });
-            }
+          }
+          
+          if (processedText.length > 0) {
+            expandedOps.push({ type: 'insert', payload: processedText });
           }
         } else {
           expandedOps.push(op);

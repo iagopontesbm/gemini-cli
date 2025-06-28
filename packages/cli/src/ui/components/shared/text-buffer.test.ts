@@ -1125,20 +1125,25 @@ describe('offsetToLogicalPos', () => {
     it('should fix single CJK char + 0x7f + CJK char pattern', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
-          initialText: '',
+          initialText: '你',
           viewport: { width: 80, height: 10 },
           isValidPath: () => true,
         }),
       );
 
-      // IME sends: 你 + DEL + 好
+      // Move cursor to end
+      act(() => {
+        result.current.moveToOffset(1);
+      });
+
+      // IME sends: DEL + 好 as a single payload
       act(() => {
         result.current.applyOperations([
-          { type: 'insert', payload: '你\x7f好' },
+          { type: 'insert', payload: '\x7f好' },
         ]);
       });
 
-      // With fix: 0x7f is filtered out, both characters remain
+      // With fix: 0x7f is filtered out when followed by CJK
       expect(result.current.text).toBe('你好');
     });
 
