@@ -601,7 +601,16 @@ export function useTextBuffer({
 
       const newLines = [...lines];
       let newCursorRow = cursorRow;
+      // Handle IME input edge case: React state closure can cause cursor position
+      // to remain at 0 while content is being added. When this happens, we need
+      // to append at the end to preserve character sequence.
       let newCursorCol = cursorCol;
+      if (cursorCol === 0 && newCursorRow < newLines.length) {
+        const currentLineLength = cpLen(newLines[newCursorRow] || '');
+        if (currentLineLength > 0) {
+          newCursorCol = currentLineLength;
+        }
+      }
 
       const currentLine = (r: number) => newLines[r] ?? '';
 
