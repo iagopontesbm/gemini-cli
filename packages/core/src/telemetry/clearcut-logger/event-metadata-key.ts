@@ -137,6 +137,19 @@ export enum EventMetadataKey {
 
   // Logs the end of a session.
   GEMINI_CLI_END_SESSION_ID = 34,
+
+  // ==========================================================================
+  // Model Fallback Event Keys
+  // ===========================================================================
+
+  // Logs the original model that was requested.
+  GEMINI_CLI_MODEL_FALLBACK_ORIGINAL_MODEL = 35,
+
+  // Logs the model that was used as a fallback.
+  GEMINI_CLI_MODEL_FALLBACK_FALLBACK_MODEL = 36,
+
+  // Logs the reason for the model fallback.
+  GEMINI_CLI_MODEL_FALLBACK_REASON = 37,
 }
 
 export function getEventMetadataKey(
