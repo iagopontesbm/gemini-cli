@@ -297,7 +297,6 @@ function findEnvFile(startDir: string): string | null {
 export function loadEnvironment(): void {
   const envFilePath = findEnvFile(process.cwd());
   if (envFilePath) {
-    // @ts-expect-error - quiet option exists but isn't in the type definition
     dotenv.config({ path: envFilePath, quiet: true });
   }
 }
