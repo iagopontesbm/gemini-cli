@@ -214,11 +214,7 @@ export class ModelFallbackEvent {
   fallback_model: string;
   reason?: string;
 
-  constructor(
-    original_model: string,
-    fallback_model: string,
-    reason?: string,
-  ) {
+  constructor(original_model: string, fallback_model: string, reason?: string) {
     this['event.name'] = 'model_fallback';
     this['event.timestamp'] = new Date().toISOString();
     this.original_model = original_model;

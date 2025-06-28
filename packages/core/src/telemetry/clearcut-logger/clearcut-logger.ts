@@ -397,9 +397,7 @@ export class ClearcutLogger {
       },
     ];
 
-    this.enqueueLogEvent(
-      this.createLogEvent(model_fallback_event_name, data),
-    );
+    this.enqueueLogEvent(this.createLogEvent(model_fallback_event_name, data));
     this.flushToClearcut();
   }
 
