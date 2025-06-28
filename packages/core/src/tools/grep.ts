@@ -167,7 +167,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
    * @param params Parameters for the grep search
    * @returns Result of the grep search
    */
-  async execute(
+  override async execute(
     params: GrepToolParams,
     signal: AbortSignal,
   ): Promise<ToolResult> {
@@ -320,7 +320,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
    * @param params Parameters for the grep operation
    * @returns A string describing the grep
    */
-  getDescription(params: GrepToolParams): string {
+  override getDescription(params: GrepToolParams): string {
     let description = `'${params.pattern}'`;
     if (params.include) {
       description += ` in ${params.include}`;
