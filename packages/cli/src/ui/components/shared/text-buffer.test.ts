@@ -654,7 +654,7 @@ describe('useTextBuffer', () => {
       expect(getBufferState(result).cursor).toEqual([0, 2]);
     });
 
-    it('should handle inserts that contain delete characters ', () => {
+    it('should filter 0x7f characters as unsafe', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'abcde',
@@ -670,11 +670,12 @@ describe('useTextBuffer', () => {
           { type: 'insert', payload: '\x7f\x7f\x7f' },
         ]);
       });
-      expect(getBufferState(result).text).toBe('ab');
-      expect(getBufferState(result).cursor).toEqual([0, 2]);
+      // 0x7f characters are filtered out as unsafe
+      expect(getBufferState(result).text).toBe('abcde');
+      expect(getBufferState(result).cursor).toEqual([0, 5]);
     });
 
-    it('should handle inserts with a mix of regular and delete characters ', () => {
+    it('should handle inserts with a mix of regular and filtered characters', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'abcde',
@@ -690,8 +691,9 @@ describe('useTextBuffer', () => {
           { type: 'insert', payload: '\x7fI\x7f\x7fNEW' },
         ]);
       });
-      expect(getBufferState(result).text).toBe('abcNEW');
-      expect(getBufferState(result).cursor).toEqual([0, 6]);
+      // 0x7f chars are filtered, so we get 'abcdeINEW'
+      expect(getBufferState(result).text).toBe('abcdeINEW');
+      expect(getBufferState(result).cursor).toEqual([0, 9]);
     });
 
     it('should handle arrow keys for movement', () => {
@@ -1122,7 +1124,7 @@ describe('offsetToLogicalPos', () => {
   });
 
   describe('IME 0x7f bug fix', () => {
-    it('should fix single CJK char + 0x7f + CJK char pattern', () => {
+    it('should filter 0x7f and keep CJK characters', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: '你',
@@ -1137,13 +1139,14 @@ describe('offsetToLogicalPos', () => {
       });
 
       // IME sends: DEL + 好 as a single payload
+      // 0x7f is filtered as unsafe, 好 is kept
       act(() => {
         result.current.applyOperations([
           { type: 'insert', payload: '\x7f好' },
         ]);
       });
 
-      // With fix: 0x7f is filtered out when followed by CJK
+      // 0x7f is filtered out as unsafe character
       expect(result.current.text).toBe('你好');
     });
 
@@ -1174,7 +1177,7 @@ describe('offsetToLogicalPos', () => {
       expect(result.current.text).toBe('你好世界');
     });
 
-    it('should not affect normal backspace operations', () => {
+    it('should handle \x7f as regular input now', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Hello',
@@ -1188,17 +1191,16 @@ describe('offsetToLogicalPos', () => {
         result.current.moveToOffset(5);
       });
 
-      // Normal backspace (not part of IME pattern)
-      // This is a single 0x7f with no CJK context
+      // \x7f is now treated as regular input character, not backspace
       act(() => {
         result.current.applyOperations([{ type: 'insert', payload: '\x7f' }]);
       });
 
-      // Should delete last character
-      expect(result.current.text).toBe('Hell');
+      // Should NOT delete, but insert the character (which gets filtered as unsafe)
+      expect(result.current.text).toBe('Hello');
     });
 
-    it('should not affect ASCII text with 0x7f', () => {
+    it('should filter 0x7f as unsafe character', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: '',
@@ -1207,15 +1209,15 @@ describe('offsetToLogicalPos', () => {
         }),
       );
 
-      // ASCII text with 0x7f should process normally
+      // ASCII text with 0x7f - the 0x7f should be filtered out as unsafe
       act(() => {
         result.current.applyOperations([
           { type: 'insert', payload: 'abc\x7fd' },
         ]);
       });
 
-      // 'abc' + backspace + 'd' = 'abd'
-      expect(result.current.text).toBe('abd');
+      // 'abc' + filtered 0x7f + 'd' = 'abcd'
+      expect(result.current.text).toBe('abcd');
     });
 
     it('should handle mixed ASCII and CJK with 0x7f correctly', () => {
@@ -1240,6 +1242,7 @@ describe('offsetToLogicalPos', () => {
         result.current.applyOperations([{ type: 'insert', payload: ' world' }]);
       });
 
+      // 0x7f is filtered as unsafe
       expect(result.current.text).toBe('Hello 你好 world');
     });
 
@@ -1315,14 +1318,14 @@ describe('offsetToLogicalPos', () => {
         result.current.moveToOffset(0);
       });
 
-      // Insert with IME bug pattern
+      // Insert with 0x7f in payload
       act(() => {
         result.current.applyOperations([
           { type: 'insert', payload: '你\x7f好' },
         ]);
       });
 
-      // Should prepend correctly
+      // 0x7f is filtered as unsafe character
       expect(result.current.text).toBe('你好世界');
     });
 

@@ -571,115 +571,10 @@ export function useTextBuffer({
 
       const expandedOps: UpdateOperation[] = [];
 
-      // Detect IME bug pattern: CJK character followed by 0x7f
-      // This pattern causes each new character to delete the previous one
-      const isIMEBugPattern = (payload: string): boolean => {
-        const chars = toCodePoints(payload);
-        if (chars.length < 2) return false;
-
-        // Check for pattern: multi-byte char + 0x7f + multi-byte char
-        for (let i = 0; i < chars.length - 1; i++) {
-          const current = chars[i];
-          const next = chars[i + 1];
-
-          // If current is multi-byte and next is 0x7f, it's the bug pattern
-          if (current.charCodeAt(0) > 127 && next.charCodeAt(0) === 127) {
-            return true;
-          }
-        }
-        return false;
-      };
-
-      // Process operations to track CJK insertions first
-      let trackingOps: Array<{ op: UpdateOperation; isCJK: boolean }> = [];
-      for (let i = 0; i < ops.length; i++) {
-        const op = ops[i];
-        let isCJK = false;
-        if (op.type === 'insert' && op.payload) {
-          isCJK = op.payload.split('').some((c) => c.charCodeAt(0) > 127);
-        }
-        trackingOps.push({ op, isCJK });
-      }
-
-      // Check if a single 0x7f after CJK insert is the IME bug
-      const isSingleCharIMEBackspace = (opIndex: number): boolean => {
-        const op = trackingOps[opIndex].op;
-        // Must be exactly one 0x7f character
-        if (op.type !== 'insert' || op.payload !== '\x7f') return false;
-
-        // Only filter 0x7f if previous operation was CJK insert
-        if (opIndex > 0) {
-          const prevOp = trackingOps[opIndex - 1];
-          return prevOp.isCJK;
-        }
-        return false;
-      };
-
-      for (let i = 0; i < trackingOps.length; i++) {
-        const { op, isCJK } = trackingOps[i];
-        if (op.type === 'insert') {
-          // Check for IME bug patterns
-          if (isIMEBugPattern(op.payload) || isSingleCharIMEBackspace(i)) {
-            // Filter out 0x7f characters to fix IME input
-            const filtered = toCodePoints(op.payload)
-              .filter((char) => char.codePointAt(0) !== 127)
-              .join('');
-
-            if (filtered.length > 0) {
-              expandedOps.push({ type: 'insert', payload: filtered });
-            }
-          } else if (op.payload.startsWith('\x7f') && op.payload.length > 1) {
-            // Special case: "\x7f好" pattern - 0x7f followed by CJK
-            const chars = toCodePoints(op.payload);
-            const afterBackspace = chars.slice(1).join('');
-
-            // Check if what follows 0x7f is CJK
-            if (
-              afterBackspace &&
-              afterBackspace.split('').some((c) => c.charCodeAt(0) > 127)
-            ) {
-              // This is IME pattern: skip the 0x7f and insert the CJK chars
-              expandedOps.push({ type: 'insert', payload: afterBackspace });
-            } else {
-              // Normal backspace + ASCII - process normally
-              let currentText = '';
-              for (const char of toCodePoints(op.payload)) {
-                if (char.codePointAt(0) === 127) {
-                  if (currentText.length > 0) {
-                    expandedOps.push({ type: 'insert', payload: currentText });
-                    currentText = '';
-                  }
-                  expandedOps.push({ type: 'backspace' });
-                } else {
-                  currentText += char;
-                }
-              }
-              if (currentText.length > 0) {
-                expandedOps.push({ type: 'insert', payload: currentText });
-              }
-            }
-          } else {
-            // Normal processing for non-IME patterns
-            let currentText = '';
-            for (const char of toCodePoints(op.payload)) {
-              if (char.codePointAt(0) === 127) {
-                // \x7f
-                if (currentText.length > 0) {
-                  expandedOps.push({ type: 'insert', payload: currentText });
-                  currentText = '';
-                }
-                expandedOps.push({ type: 'backspace' });
-              } else {
-                currentText += char;
-              }
-            }
-            if (currentText.length > 0) {
-              expandedOps.push({ type: 'insert', payload: currentText });
-            }
-          }
-        } else {
-          expandedOps.push(op);
-        }
+      // Simply pass through all operations without special IME handling
+      // The fix is in handleInput() which no longer treats \x7f as backspace
+      for (const op of ops) {
+        expandedOps.push(op);
       }
 
 
@@ -1385,19 +1280,19 @@ export function useTextBuffer({
       else if (key.ctrl && key.name === 'w') deleteWordLeft();
       else if (
         (key.meta || key.ctrl) &&
-        (key.name === 'backspace' || input === '\x7f')
+        key.name === 'backspace'
       )
         deleteWordLeft();
       else if ((key.meta || key.ctrl) && key.name === 'delete')
         deleteWordRight();
       else if (
         key.name === 'backspace' ||
-        input === '\x7f' ||
         (key.ctrl && key.name === 'h')
       )
         backspace();
       else if (key.name === 'delete' || (key.ctrl && key.name === 'd')) del();
       else if (input && !key.ctrl && !key.meta) {
+        // Handle all other input, including \x7f when it's not explicitly a backspace key
         insert(input);
       }
 
