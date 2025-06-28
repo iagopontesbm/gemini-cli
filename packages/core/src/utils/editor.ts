@@ -6,10 +6,18 @@
 
 import { execSync, spawn } from 'child_process';
 
-export type EditorType = 'vscode' | 'windsurf' | 'cursor' | 'vim' | 'zed';
+export type EditorType =
+  | 'vscode'
+  | 'windsurf'
+  | 'cursor'
+  | 'vim'
+  | 'zed'
+  | 'editor';
 
 function isValidEditorType(editor: string): editor is EditorType {
-  return ['vscode', 'windsurf', 'cursor', 'vim', 'zed'].includes(editor);
+  return ['vscode', 'windsurf', 'cursor', 'vim', 'zed', 'editor'].includes(
+    editor,
+  );
 }
 
 interface DiffCommand {
@@ -35,9 +43,22 @@ const editorCommands: Record<EditorType, { win32: string; default: string }> = {
   cursor: { win32: 'cursor', default: 'cursor' },
   vim: { win32: 'vim', default: 'vim' },
   zed: { win32: 'zed', default: 'zed' },
+  editor: {
+    win32: process.env.EDITOR || 'notepad',
+    default: process.env.EDITOR || 'vi',
+  },
 };
 
 export function checkHasEditorType(editor: EditorType): boolean {
+  if (editor === 'editor') {
+    const editorCmd = process.env.EDITOR;
+    if (!editorCmd) {
+      return false;
+    }
+    // Extract just the command name (first word) for checking
+    const command = editorCmd.split(' ')[0];
+    return commandExists(command);
+  }
   const commandConfig = editorCommands[editor];
   const command =
     process.platform === 'win32' ? commandConfig.win32 : commandConfig.default;
@@ -49,6 +70,7 @@ export function allowEditorTypeInSandbox(editor: EditorType): boolean {
   if (['vscode', 'windsurf', 'cursor', 'zed'].includes(editor)) {
     return notUsingSandbox;
   }
+  // Allow editor type in sandbox (assumes it's likely a terminal editor)
   return true;
 }
 
@@ -114,6 +136,67 @@ export function getDiffCommand(
           newPath,
         ],
       };
+    case 'editor': {
+      // Use the EDITOR environment variable with appropriate diff handling
+      const editorCmd = process.env.EDITOR;
+      if (!editorCmd) {
+        return null;
+      }
+      const parts = editorCmd.split(' ');
+      const editorCommand = parts[0];
+      const editorArgs = parts.slice(1);
+      const editorName = editorCommand.toLowerCase();
+
+      // Handle different editors' diff modes
+      if (
+        editorName.includes('vim') ||
+        editorName.includes('nvim') ||
+        editorName === 'vi'
+      ) {
+        // Vim-style diff mode
+        return {
+          command: editorCommand,
+          args: [
+            ...editorArgs,
+            '-d',
+            '-i',
+            'NONE',
+            '-c',
+            'wincmd h | set readonly | wincmd l',
+            '-c',
+            'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+            '-c',
+            'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+            '-c',
+            'wincmd h | setlocal statusline=OLD\\ FILE',
+            '-c',
+            'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+            '-c',
+            'autocmd WinClosed * wqa',
+            oldPath,
+            newPath,
+          ],
+        };
+      } else if (editorName.includes('emacs')) {
+        // Emacs - just open both files
+        return {
+          command: editorCommand,
+          args: [...editorArgs, oldPath, newPath],
+        };
+      } else if (editorName === 'hx' || editorName.includes('helix')) {
+        // Helix doesn't have built-in diff mode, open side by side
+        return {
+          command: editorCommand,
+          args: [...editorArgs, '--vsplit', oldPath, newPath],
+        };
+      } else {
+        // Default: just open the new file for editing (most editors)
+        return {
+          command: editorCommand,
+          args: [...editorArgs, newPath],
+        };
+      }
+    }
     default:
       return null;
   }
@@ -148,7 +231,7 @@ export async function openDiff(
             shell: true,
           });
 
-          childProcess.on('close', (code) => {
+          childProcess.on('close', (code: number) => {
             if (code === 0) {
               resolve();
             } else {
@@ -156,7 +239,7 @@ export async function openDiff(
             }
           });
 
-          childProcess.on('error', (error) => {
+          childProcess.on('error', (error: Error) => {
             reject(error);
           });
         });
@@ -166,11 +249,58 @@ export async function openDiff(
         const command =
           process.platform === 'win32'
             ? `${diffCommand.command} ${diffCommand.args.join(' ')}`
-            : `${diffCommand.command} ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
+            : `${diffCommand.command} ${diffCommand.args
+                .map((arg) => `"${arg}"`)
+                .join(' ')}`;
         execSync(command, {
           stdio: 'inherit',
           encoding: 'utf8',
         });
+        break;
+      }
+
+      case 'editor': {
+        // Handle EDITOR environment variable with proper execution strategy
+        const editorCmd = process.env.EDITOR;
+        if (!editorCmd) {
+          throw new Error('EDITOR environment variable not set');
+        }
+        const editorName = editorCmd.split(' ')[0].toLowerCase();
+
+        // Use spawn for GUI editors that might support --wait or similar
+        if (editorName.includes('emacs') && !editorCmd.includes('-nw')) {
+          // GUI Emacs - use spawn
+          return new Promise((resolve, reject) => {
+            const childProcess = spawn(diffCommand.command, diffCommand.args, {
+              stdio: 'inherit',
+              shell: true,
+            });
+
+            childProcess.on('close', (code: number) => {
+              if (code === 0) {
+                resolve();
+              } else {
+                reject(new Error(`${editorName} exited with code ${code}`));
+              }
+            });
+
+            childProcess.on('error', (error: Error) => {
+              reject(error);
+            });
+          });
+        } else {
+          // Terminal-based editors or editors without GUI mode - use execSync
+          const command =
+            process.platform === 'win32'
+              ? `${diffCommand.command} ${diffCommand.args.join(' ')}`
+              : `${diffCommand.command} ${diffCommand.args
+                  .map((arg) => `"${arg}"`)
+                  .join(' ')}`;
+          execSync(command, {
+            stdio: 'inherit',
+            encoding: 'utf8',
+          });
+        }
         break;
       }
 

@@ -5,21 +5,21 @@
  */
 
 import {
-  vi,
-  describe,
-  it,
-  expect,
-  beforeEach,
   afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
   type Mock,
+  vi,
 } from 'vitest';
 import {
-  checkHasEditorType,
-  getDiffCommand,
-  openDiff,
   allowEditorTypeInSandbox,
-  isEditorAvailable,
+  checkHasEditorType,
   type EditorType,
+  getDiffCommand,
+  isEditorAvailable,
+  openDiff,
 } from './editor.js';
 import { execSync, spawn } from 'child_process';
 
@@ -103,6 +103,39 @@ describe('editor utils', () => {
         });
       });
     }
+
+    describe('editor', () => {
+      it('should return true if EDITOR environment variable is set and command exists', () => {
+        process.env.EDITOR = 'nano';
+        (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/nano'));
+        expect(checkHasEditorType('editor')).toBe(true);
+        expect(execSync).toHaveBeenCalledWith('command -v nano', {
+          stdio: 'ignore',
+        });
+      });
+
+      it('should return false if EDITOR environment variable is not set', () => {
+        delete process.env.EDITOR;
+        expect(checkHasEditorType('editor')).toBe(false);
+      });
+
+      it('should return false if EDITOR command does not exist', () => {
+        process.env.EDITOR = 'nonexistent-editor';
+        (execSync as Mock).mockImplementation(() => {
+          throw new Error();
+        });
+        expect(checkHasEditorType('editor')).toBe(false);
+      });
+
+      it('should handle EDITOR with arguments', () => {
+        process.env.EDITOR = 'nano -w';
+        (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/nano'));
+        expect(checkHasEditorType('editor')).toBe(true);
+        expect(execSync).toHaveBeenCalledWith('command -v nano', {
+          stdio: 'ignore',
+        });
+      });
+    });
   });
 
   describe('getDiffCommand', () => {
@@ -161,6 +194,121 @@ describe('editor utils', () => {
           'new.txt',
         ],
       });
+    });
+
+    it('should return the correct command for editor with vim', () => {
+      process.env.EDITOR = 'vim';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'vim',
+        args: [
+          '-d',
+          '-i',
+          'NONE',
+          '-c',
+          'wincmd h | set readonly | wincmd l',
+          '-c',
+          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+          '-c',
+          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'wincmd h | setlocal statusline=OLD\\ FILE',
+          '-c',
+          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'autocmd WinClosed * wqa',
+          'old.txt',
+          'new.txt',
+        ],
+      });
+    });
+
+    it('should return the correct command for editor with nvim', () => {
+      process.env.EDITOR = 'nvim';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'nvim',
+        args: [
+          '-d',
+          '-i',
+          'NONE',
+          '-c',
+          'wincmd h | set readonly | wincmd l',
+          '-c',
+          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+          '-c',
+          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'wincmd h | setlocal statusline=OLD\\ FILE',
+          '-c',
+          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'autocmd WinClosed * wqa',
+          'old.txt',
+          'new.txt',
+        ],
+      });
+    });
+
+    it('should return the correct command for editor with emacs', () => {
+      process.env.EDITOR = 'emacs';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'emacs',
+        args: ['old.txt', 'new.txt'],
+      });
+    });
+
+    it('should return the correct command for editor with helix', () => {
+      process.env.EDITOR = 'hx';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'hx',
+        args: ['--vsplit', 'old.txt', 'new.txt'],
+      });
+    });
+
+    it('should return the correct command for editor with nano (default behavior)', () => {
+      process.env.EDITOR = 'nano';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'nano',
+        args: ['new.txt'],
+      });
+    });
+
+    it('should return the correct command for editor with arguments', () => {
+      process.env.EDITOR = 'vim -n';
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toEqual({
+        command: 'vim',
+        args: [
+          '-n',
+          '-d',
+          '-i',
+          'NONE',
+          '-c',
+          'wincmd h | set readonly | wincmd l',
+          '-c',
+          'highlight DiffAdd cterm=bold ctermbg=22 guibg=#005f00 | highlight DiffChange cterm=bold ctermbg=24 guibg=#005f87 | highlight DiffText ctermbg=21 guibg=#0000af | highlight DiffDelete ctermbg=52 guibg=#5f0000',
+          '-c',
+          'set showtabline=2 | set tabline=[Instructions]\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'wincmd h | setlocal statusline=OLD\\ FILE',
+          '-c',
+          'wincmd l | setlocal statusline=%#StatusBold#NEW\\ FILE\\ :wqa(save\\ &\\ quit)\\ \\|\\ i/esc(toggle\\ edit\\ mode)',
+          '-c',
+          'autocmd WinClosed * wqa',
+          'old.txt',
+          'new.txt',
+        ],
+      });
+    });
+
+    it('should return null for editor when EDITOR env var is not set', () => {
+      delete process.env.EDITOR;
+      const command = getDiffCommand('old.txt', 'new.txt', 'editor');
+      expect(command).toBeNull();
     });
 
     it('should return null for an unsupported editor', () => {
@@ -232,36 +380,99 @@ describe('editor utils', () => {
       });
     }
 
-    const execSyncEditors: EditorType[] = ['vim'];
-    for (const editor of execSyncEditors) {
-      it(`should call execSync for ${editor} on non-windows`, async () => {
-        Object.defineProperty(process, 'platform', { value: 'linux' });
-        await openDiff('old.txt', 'new.txt', editor);
-        expect(execSync).toHaveBeenCalledTimes(1);
-        const diffCommand = getDiffCommand('old.txt', 'new.txt', editor)!;
-        const expectedCommand = `${
-          diffCommand.command
-        } ${diffCommand.args.map((arg) => `"${arg}"`).join(' ')}`;
-        expect(execSync).toHaveBeenCalledWith(expectedCommand, {
-          stdio: 'inherit',
-          encoding: 'utf8',
-        });
+    it('should call execSync for vim on non-windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      await openDiff('old.txt', 'new.txt', 'vim');
+      expect(execSync).toHaveBeenCalledTimes(1);
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'vim')!;
+      const expectedCommand = `${diffCommand.command} ${diffCommand.args
+        .map((arg) => `"${arg}"`)
+        .join(' ')}`;
+      expect(execSync).toHaveBeenCalledWith(expectedCommand, {
+        stdio: 'inherit',
+        encoding: 'utf8',
       });
+    });
 
-      it(`should call execSync for ${editor} on windows`, async () => {
-        Object.defineProperty(process, 'platform', { value: 'win32' });
-        await openDiff('old.txt', 'new.txt', editor);
-        expect(execSync).toHaveBeenCalledTimes(1);
-        const diffCommand = getDiffCommand('old.txt', 'new.txt', editor)!;
-        const expectedCommand = `${diffCommand.command} ${diffCommand.args.join(
-          ' ',
-        )}`;
-        expect(execSync).toHaveBeenCalledWith(expectedCommand, {
-          stdio: 'inherit',
-          encoding: 'utf8',
-        });
+    it('should call execSync for vim on windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      await openDiff('old.txt', 'new.txt', 'vim');
+      expect(execSync).toHaveBeenCalledTimes(1);
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'vim')!;
+      const expectedCommand = `${diffCommand.command} ${diffCommand.args.join(
+        ' ',
+      )}`;
+      expect(execSync).toHaveBeenCalledWith(expectedCommand, {
+        stdio: 'inherit',
+        encoding: 'utf8',
       });
-    }
+    });
+
+    it('should call execSync for terminal-based editor on non-windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      process.env.EDITOR = 'nano';
+      await openDiff('old.txt', 'new.txt', 'editor');
+      expect(execSync).toHaveBeenCalledTimes(1);
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'editor')!;
+      const expectedCommand = `${diffCommand.command} ${diffCommand.args
+        .map((arg) => `"${arg}"`)
+        .join(' ')}`;
+      expect(execSync).toHaveBeenCalledWith(expectedCommand, {
+        stdio: 'inherit',
+        encoding: 'utf8',
+      });
+    });
+
+    it('should call execSync for terminal-based editor on windows', async () => {
+      Object.defineProperty(process, 'platform', { value: 'win32' });
+      process.env.EDITOR = 'notepad';
+      await openDiff('old.txt', 'new.txt', 'editor');
+      expect(execSync).toHaveBeenCalledTimes(1);
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'editor')!;
+      const expectedCommand = `${diffCommand.command} ${diffCommand.args.join(
+        ' ',
+      )}`;
+      expect(execSync).toHaveBeenCalledWith(expectedCommand, {
+        stdio: 'inherit',
+        encoding: 'utf8',
+      });
+    });
+
+    it('should call spawn for GUI emacs', async () => {
+      process.env.EDITOR = 'emacs';
+      const mockSpawn = {
+        on: vi.fn((event, cb) => {
+          if (event === 'close') {
+            cb(0);
+          }
+        }),
+      };
+      (spawn as Mock).mockReturnValue(mockSpawn);
+      await openDiff('old.txt', 'new.txt', 'editor');
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'editor')!;
+      expect(spawn).toHaveBeenCalledWith(
+        diffCommand.command,
+        diffCommand.args,
+        {
+          stdio: 'inherit',
+          shell: true,
+        },
+      );
+    });
+
+    it('should call execSync for terminal emacs', async () => {
+      process.env.EDITOR = 'emacs -nw';
+      await openDiff('old.txt', 'new.txt', 'editor');
+      expect(execSync).toHaveBeenCalledTimes(1);
+      const diffCommand = getDiffCommand('old.txt', 'new.txt', 'editor')!;
+      const expectedCommand = `${diffCommand.command} ${diffCommand.args
+        .map((arg) => `"${arg}"`)
+        .join(' ')}`;
+      expect(execSync).toHaveBeenCalledWith(expectedCommand, {
+        stdio: 'inherit',
+        encoding: 'utf8',
+      });
+    });
 
     it('should log an error if diff command is not available', async () => {
       const consoleErrorSpy = vi
@@ -296,6 +507,15 @@ describe('editor utils', () => {
         expect(allowEditorTypeInSandbox(editor)).toBe(true);
       });
     }
+
+    it('should allow editor in sandbox mode', () => {
+      process.env.SANDBOX = 'sandbox';
+      expect(allowEditorTypeInSandbox('editor')).toBe(true);
+    });
+
+    it('should allow editor when not in sandbox mode', () => {
+      expect(allowEditorTypeInSandbox('editor')).toBe(true);
+    });
   });
 
   describe('isEditorAvailable', () => {
@@ -333,6 +553,25 @@ describe('editor utils', () => {
       (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/vim'));
       process.env.SANDBOX = 'sandbox';
       expect(isEditorAvailable('vim')).toBe(true);
+    });
+
+    it('should return true for editor when EDITOR is set and command exists', () => {
+      process.env.EDITOR = 'nano';
+      (execSync as Mock).mockReturnValue(Buffer.from('/usr/bin/nano'));
+      expect(isEditorAvailable('editor')).toBe(true);
+    });
+
+    it('should return false for editor when EDITOR is not set', () => {
+      delete process.env.EDITOR;
+      expect(isEditorAvailable('editor')).toBe(false);
+    });
+
+    it('should return false for editor when EDITOR command does not exist', () => {
+      process.env.EDITOR = 'nonexistent-editor';
+      (execSync as Mock).mockImplementation(() => {
+        throw new Error();
+      });
+      expect(isEditorAvailable('editor')).toBe(false);
     });
   });
 });
