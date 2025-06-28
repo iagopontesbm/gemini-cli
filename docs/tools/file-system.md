@@ -159,7 +159,7 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
   - Returns a list of matching lines, each prefixed with its file path (relative to the search directory) and line number.
 - **Output (`llmContent`):** A formatted string of matches, e.g.:
   ```
-  Found 3 match(es) for pattern "myFunction" in path "." (filter: "*.ts"):
+  Found 3 matches for pattern "myFunction" in path "." (filter: "*.ts"):
   ---
   File: src/utils.ts
   L15: export function myFunction() {
@@ -180,7 +180,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Display name:** Edit
 - **File:** `edit.ts`
 - **Parameters:**
-
   - `file_path` (string, required): The absolute path to the file to modify.
   - `old_string` (string, required): The exact literal text to replace.
 
@@ -206,7 +205,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
   - On success: `Successfully modified file: /path/to/file.txt (1 replacements).` or `Created new file: /path/to/new_file.txt with provided content.`
   - On failure: An error message explaining the reason (e.g., `Failed to edit, 0 occurrences found...`, `Failed to edit, expected 1 occurrences but found 2...`).
 - **Confirmation:** Yes. Shows a diff of the proposed changes and asks for user approval before writing to the file.
-
   - `new_string` (string, required): The exact literal text to replace `old_string` with.
   - `expected_replacements` (number, optional): The number of occurrences to replace. Defaults to `1`.
 
