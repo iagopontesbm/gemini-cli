@@ -290,7 +290,7 @@ Expectation for required parameters:
    * Handles the confirmation prompt for the Edit tool in the CLI.
    * It needs to calculate the diff to show the user.
    */
-  async shouldConfirmExecute(
+  override async shouldConfirmExecute(
     params: EditToolParams,
     abortSignal: AbortSignal,
   ): Promise<ToolCallConfirmationDetails | false> {
@@ -342,7 +342,7 @@ Expectation for required parameters:
     return confirmationDetails;
   }
 
-  getDescription(params: EditToolParams): string {
+  override getDescription(params: EditToolParams): string {
     if (!params.file_path || !params.old_string || !params.new_string) {
       return `Model did not provide valid parameters for edit tool`;
     }
@@ -369,7 +369,7 @@ Expectation for required parameters:
    * @param params Parameters for the edit operation
    * @returns Result of the edit operation
    */
-  async execute(
+  override async execute(
     params: EditToolParams,
     signal: AbortSignal,
   ): Promise<ToolResult> {

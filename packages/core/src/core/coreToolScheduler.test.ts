@@ -45,7 +45,7 @@ class MockTool extends BaseTool<Record<string, unknown>, ToolResult> {
     return false;
   }
 
-  async execute(
+  override async execute(
     params: Record<string, unknown>,
     _abortSignal: AbortSignal,
   ): Promise<ToolResult> {
