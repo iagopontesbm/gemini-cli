@@ -603,11 +603,45 @@ export function useTextBuffer({
       let newCursorRow = cursorRow;
       let newCursorCol = cursorCol;
 
-
       const currentLine = (r: number) => newLines[r] ?? '';
+
+      // Special handling for potential IME issues
+      // Only apply if:
+      // 1. Single character insert operation
+      // 2. Cursor at position 0
+      // 3. Line already has content
+      // 4. Inserting a multi-byte character
+      // 5. The existing content starts with a multi-byte character
+      // This pattern suggests the IME bug where characters overwrite each other
+      const shouldApplyIMEFix = (op: UpdateOperation): boolean => {
+        if (op.type !== 'insert' || !op.payload) return false;
+        if (newCursorCol !== 0) return false;
+        
+        const line = currentLine(newCursorRow);
+        if (!line || line.length === 0) return false;
+        
+        // Check if inserting multi-byte char
+        const insertingMultiByte = op.payload.split('').some(c => c.charCodeAt(0) > 127);
+        if (!insertingMultiByte) return false;
+        
+        // Check if line starts with multi-byte char (suggesting previous IME input)
+        const firstChar = line[0];
+        if (!firstChar || firstChar.charCodeAt(0) <= 127) return false;
+        
+        // Additional check: payload is single character (typical IME input)
+        if (toCodePoints(op.payload).length !== 1) return false;
+        
+        return true;
+      };
 
       for (const op of expandedOps) {
         if (op.type === 'insert') {
+          // Check if we should apply IME fix
+          if (shouldApplyIMEFix(op)) {
+            // Move cursor to end of line for IME input
+            newCursorCol = cpLen(currentLine(newCursorRow));
+          }
+          
           const str = stripUnsafeCharacters(
             op.payload.replace(/\r\n/g, '\n').replace(/\r/g, '\n'),
           );

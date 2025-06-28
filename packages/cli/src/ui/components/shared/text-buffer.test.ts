@@ -44,7 +44,10 @@ describe('text-buffer IME input handling', () => {
 
       // Move cursor to position 6 (after "Hello ")
       act(() => {
-        result.current.setCursorCol(6);
+        // Move to end first, then use moveToOffset
+        result.current.move('end');
+        // Now move back to position 6
+        result.current.moveToOffset(6);
       });
 
       // Insert Chinese characters
@@ -54,7 +57,7 @@ describe('text-buffer IME input handling', () => {
       expect(result.current.text).toBe('Hello 你好world');
       
       // Verify cursor position is maintained correctly after insertion
-      expect(result.current.cursorCol).toBe(8); // 6 + 2 characters
+      expect(result.current.cursor[1]).toBe(8); // 6 + 2 characters
     });
     
     it('should NOT move cursor to end when genuinely inserting at position 0', () => {
@@ -68,7 +71,7 @@ describe('text-buffer IME input handling', () => {
 
       // Explicitly move cursor to beginning
       act(() => {
-        result.current.setCursorCol(0);
+        result.current.move('home');
       });
 
       // This represents a case where user wants to prepend
@@ -91,7 +94,7 @@ describe('text-buffer IME input handling', () => {
 
       // Move cursor to end
       act(() => {
-        result.current.setCursorCol(5);
+        result.current.move('end');
       });
 
       // Insert Japanese characters
@@ -110,10 +113,11 @@ describe('text-buffer IME input handling', () => {
         }),
       );
 
-      // Move to second line
+      // Move to second line, position 0
       act(() => {
-        result.current.setCursorRow(1);
-        result.current.setCursorCol(0);
+        // Calculate offset for line 2, position 0
+        // Line 1 is "Line 1\n" = 7 chars
+        result.current.moveToOffset(7);
       });
 
       // Insert Korean characters
@@ -141,10 +145,8 @@ describe('text-buffer IME input handling', () => {
       
       characters.forEach((char) => {
         act(() => {
-          // Force cursor to 0 to simulate the bug condition
-          if (result.current.text.length > 0 && result.current.cursorCol === 0) {
-            // The fix should detect this and adjust
-          }
+          // In the bug scenario, cursor would be stuck at 0
+          // But our text buffer should handle this correctly
           result.current.applyOperations([{ type: 'insert', payload: char }]);
         });
       });
@@ -182,11 +184,9 @@ describe('text-buffer IME input handling', () => {
         }),
       );
 
-      // Navigate around
+      // Navigate to position 5 (after "Test ")
       act(() => {
-        result.current.move('end');
-        result.current.move('home');
-        result.current.move('wordRight'); // Should be at position 5 (after "Test ")
+        result.current.moveToOffset(5);
       });
 
       // Insert Japanese
