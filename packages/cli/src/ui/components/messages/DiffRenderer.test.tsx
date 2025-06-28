@@ -15,6 +15,11 @@ describe('<OverflowProvider><DiffRenderer /></OverflowProvider>', () => {
 
   beforeEach(() => {
     mockColorizeCode.mockClear();
+    // Mock colorizeCode to return a string representation for testing
+    mockColorizeCode.mockImplementation((code: string) => {
+      const lines = code.split('\n');
+      return lines.map((line, index) => `${index + 1} ${line}`).join('\n');
+    });
   });
 
   const sanitizeOutput = (output: string | undefined, terminalWidth: number) =>

@@ -9,6 +9,7 @@ import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { useGeminiStream, mergePartListUnions } from './useGeminiStream.js';
 import { useInput } from 'ink';
+import { FileContextProvider } from '../contexts/FileContextContext.js';
 import {
   useReactToolScheduler,
   TrackedToolCall,
@@ -404,6 +405,11 @@ describe('useGeminiStream', () => {
           loadedSettings: mockLoadedSettings,
           toolCalls: initialToolCalls,
         },
+        wrapper: ({ children }) => (
+          <FileContextProvider config={mockConfig}>
+            {children}
+          </FileContextProvider>
+        ),
       },
     );
     return {
@@ -520,6 +526,13 @@ describe('useGeminiStream', () => {
         () => {},
         () => Promise.resolve(),
       ),
+      {
+        wrapper: ({ children }) => (
+          <FileContextProvider config={mockConfig}>
+            {children}
+          </FileContextProvider>
+        ),
+      },
     );
 
     // Trigger the onComplete callback with completed tools
@@ -584,6 +597,13 @@ describe('useGeminiStream', () => {
         () => {},
         () => Promise.resolve(),
       ),
+      {
+        wrapper: ({ children }) => (
+          <FileContextProvider config={mockConfig}>
+            {children}
+          </FileContextProvider>
+        ),
+      },
     );
 
     // Trigger the onComplete callback with cancelled tools
@@ -987,6 +1007,13 @@ describe('useGeminiStream', () => {
           () => {},
           () => Promise.resolve(),
         ),
+        {
+          wrapper: ({ children }) => (
+            <FileContextProvider config={mockConfig}>
+              {children}
+            </FileContextProvider>
+          ),
+        },
       );
 
       // --- User runs the slash command ---
@@ -1062,6 +1089,13 @@ describe('useGeminiStream', () => {
           () => {},
           mockPerformMemoryRefresh,
         ),
+        {
+          wrapper: ({ children }) => (
+            <FileContextProvider config={mockConfig}>
+              {children}
+            </FileContextProvider>
+          ),
+        },
       );
 
       // Trigger the onComplete callback with the completed save_memory tool
@@ -1111,6 +1145,13 @@ describe('useGeminiStream', () => {
           () => {},
           () => Promise.resolve(),
         ),
+        {
+          wrapper: ({ children }) => (
+            <FileContextProvider config={testConfig}>
+              {children}
+            </FileContextProvider>
+          ),
+        },
       );
 
       // 2. Action
