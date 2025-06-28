@@ -24,7 +24,7 @@ export async function checkForUpdates(): Promise<string | null> {
       shouldNotifyInNpmScript: true,
     });
 
-    if (notifier.update) {
+    if (notifier.update && notifier.update.current !== notifier.update.latest) {
       return `Gemini CLI update available! ${notifier.update.current} → ${notifier.update.latest}\nRun npm install -g ${packageJson.name} to update`;
     }
 
