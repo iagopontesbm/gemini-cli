@@ -21,9 +21,11 @@ describe('text-buffer IME 0x7f fix', () => {
 
       // IME sends: 你 + DEL + 好
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '你\x7f好' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: '你\x7f好' },
+        ]);
       });
-      
+
       // With fix: 0x7f is filtered out, both characters remain
       expect(result.current.text).toBe('你好');
     });
@@ -69,12 +71,12 @@ describe('text-buffer IME 0x7f fix', () => {
         result.current.moveToOffset(5);
       });
 
-      // Normal backspace (not part of IME pattern) 
+      // Normal backspace (not part of IME pattern)
       // This is a single 0x7f with no CJK context
       act(() => {
         result.current.applyOperations([{ type: 'insert', payload: '\x7f' }]);
       });
-      
+
       // Should delete last character
       expect(result.current.text).toBe('Hell');
     });
@@ -90,9 +92,11 @@ describe('text-buffer IME 0x7f fix', () => {
 
       // ASCII text with 0x7f should process normally
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'abc\x7fd' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: 'abc\x7fd' },
+        ]);
       });
-      
+
       // 'abc' + backspace + 'd' = 'abd'
       expect(result.current.text).toBe('abd');
     });
@@ -111,12 +115,14 @@ describe('text-buffer IME 0x7f fix', () => {
         result.current.applyOperations([{ type: 'insert', payload: 'Hello ' }]);
       });
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '你\x7f好' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: '你\x7f好' },
+        ]);
       });
       act(() => {
         result.current.applyOperations([{ type: 'insert', payload: ' world' }]);
       });
-      
+
       expect(result.current.text).toBe('Hello 你好 world');
     });
 
@@ -194,7 +200,9 @@ describe('text-buffer IME 0x7f fix', () => {
 
       // Insert with IME bug pattern
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '你\x7f好' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: '你\x7f好' },
+        ]);
       });
 
       // Should prepend correctly

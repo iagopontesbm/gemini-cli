@@ -55,11 +55,11 @@ describe('text-buffer IME input handling', () => {
         result.current.applyOperations([{ type: 'insert', payload: '你好' }]);
       });
       expect(result.current.text).toBe('Hello 你好world');
-      
+
       // Verify cursor position is maintained correctly after insertion
       expect(result.current.cursor[1]).toBe(8); // 6 + 2 characters
     });
-    
+
     it('should NOT move cursor to end when genuinely inserting at position 0', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
@@ -77,9 +77,11 @@ describe('text-buffer IME input handling', () => {
       // This represents a case where user wants to prepend
       // The fix should not activate here because this is intentional position 0
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'prefix ' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: 'prefix ' },
+        ]);
       });
-      
+
       expect(result.current.text).toBe('prefix existing text');
     });
 
@@ -99,7 +101,9 @@ describe('text-buffer IME input handling', () => {
 
       // Insert Japanese characters
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'こんにちは' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: 'こんにちは' },
+        ]);
       });
       expect(result.current.text).toBe('Helloこんにちは');
     });
@@ -122,9 +126,11 @@ describe('text-buffer IME input handling', () => {
 
       // Insert Korean characters
       act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '안녕하세요' }]);
+        result.current.applyOperations([
+          { type: 'insert', payload: '안녕하세요' },
+        ]);
       });
-      
+
       const lines = result.current.text.split('\n');
       expect(lines[0]).toBe('Line 1');
       expect(lines[1]).toBe('안녕하세요Line 2');
@@ -142,7 +148,7 @@ describe('text-buffer IME input handling', () => {
 
       // Simulate the bug where cursor stays at 0 during IME composition
       const characters = ['你', '好', '世', '界'];
-      
+
       characters.forEach((char) => {
         act(() => {
           // In the bug scenario, cursor would be stuck at 0
@@ -165,7 +171,7 @@ describe('text-buffer IME input handling', () => {
 
       // Type mixed content
       const inputs = ['Hello', ' ', '世界', ' ', 'world'];
-      
+
       inputs.forEach((input) => {
         act(() => {
           result.current.applyOperations([{ type: 'insert', payload: input }]);
