@@ -603,6 +603,20 @@ export function useTextBuffer({
       let newCursorRow = cursorRow;
       let newCursorCol = cursorCol;
 
+      // Workaround for IME composition issue where cursor stays at position 0
+      // This ensures multi-byte characters are inserted in correct sequence
+      const adjustCursorForIME = () => {
+        if (newCursorCol === 0 && newLines[newCursorRow]) {
+          const lineLen = cpLen(newLines[newCursorRow]);
+          if (lineLen > 0) {
+            // Move cursor to end of line for proper character ordering
+            newCursorCol = lineLen;
+          }
+        }
+      };
+
+      adjustCursorForIME();
+
       const currentLine = (r: number) => newLines[r] ?? '';
 
       for (const op of expandedOps) {
