@@ -1227,6 +1227,12 @@ export function useTextBuffer({
         cursor: [cursorRow, cursorCol],
         visualCursor,
       });
+
+      // Debug: Logs all key properties when POS1 or similar keys are pressed
+      if (DEBUG && (key['pos1'] || key['home'] || key['end'])) {
+        console.log('[TextBuffer] Key debug:', { input, key });
+      }
+
       const beforeText = text;
       const beforeLogicalCursor = [cursorRow, cursorCol];
       const beforeVisualCursor = [...visualCursor];
@@ -1255,6 +1261,7 @@ export function useTextBuffer({
         move('wordRight');
       else if (key['meta'] && input === 'f') move('wordRight');
       else if (key['home']) move('home');
+      else if (key['pos1']) move('home');
       else if (key['ctrl'] && input === 'a') move('home');
       else if (key['end']) move('end');
       else if (key['ctrl'] && input === 'e') move('end');
