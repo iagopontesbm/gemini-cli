@@ -14,8 +14,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: '',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -37,8 +37,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Hello world',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -52,14 +52,40 @@ describe('text-buffer IME input handling', () => {
         result.current.applyOperations([{ type: 'insert', payload: '你好' }]);
       });
       expect(result.current.text).toBe('Hello 你好world');
+      
+      // Verify cursor position is maintained correctly after insertion
+      expect(result.current.cursorCol).toBe(8); // 6 + 2 characters
+    });
+    
+    it('should NOT move cursor to end when genuinely inserting at position 0', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'existing text',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Explicitly move cursor to beginning
+      act(() => {
+        result.current.setCursorCol(0);
+      });
+
+      // This represents a case where user wants to prepend
+      // The fix should not activate here because this is intentional position 0
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: 'prefix ' }]);
+      });
+      
+      expect(result.current.text).toBe('prefix existing text');
     });
 
     it('should handle IME input at the end of a line', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Hello',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -79,8 +105,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Line 1\nLine 2\nLine 3',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -105,8 +131,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: '',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -130,8 +156,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: '',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
@@ -151,8 +177,8 @@ describe('text-buffer IME input handling', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Test text here',
-          width: 80,
-          height: 10,
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
         }),
       );
 
