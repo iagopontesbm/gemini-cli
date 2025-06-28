@@ -245,6 +245,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
       currentModel: string,
       fallbackModel: string,
     ): Promise<boolean> => {
+      if (currentModel === fallbackModel) {
+        return true;
+      }
       // Add message to UI history
       addItem(
         {
