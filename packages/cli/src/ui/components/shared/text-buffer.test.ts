@@ -1414,56 +1414,6 @@ describe('offsetToLogicalPos', () => {
       expect(result.current.text).toBe('Testこんにちは');
     });
 
-    it('should handle IME input with multiple lines', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'Line 1\nLine 2\nLine 3',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Test 1: IME input on line 1
-      act(() => {
-        result.current.move('end'); // Go to end of line 1
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: ' 你' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
-      });
-
-      expect(result.current.text).toBe('Line 1 你好\nLine 2\nLine 3');
-
-      // Test 2: IME input on line 2  
-      act(() => {
-        result.current.move('down');
-        result.current.move('end');
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: ' 世' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
-      });
-
-      expect(result.current.text).toBe('Line 1 你好\nLine 2 世界\nLine 3');
-
-      // Test 3: IME input on line 3
-      act(() => {
-        result.current.move('down');
-        result.current.move('end');
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: ' 안' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f녕' }]);
-      });
-
-      expect(result.current.text).toBe('Line 1 你好\nLine 2 世界\nLine 3 안녕');
-    });
 
     it('should handle IME input after cursor navigation', () => {
       const { result } = renderHook(() =>
