@@ -633,15 +633,6 @@ export function useTextBuffer({
               expandedOps.push({ type: 'insert', payload: filtered });
             }
 
-            // Log for debugging
-            if (process.env.DEBUG_IME) {
-              console.log(
-                '[IME Fix] Filtered 0x7f from:',
-                JSON.stringify(op.payload),
-                '→',
-                JSON.stringify(filtered),
-              );
-            }
           } else if (op.payload.startsWith('\x7f') && op.payload.length > 1) {
             // Special case: "\x7f好" pattern - 0x7f followed by CJK
             const chars = toCodePoints(op.payload);
@@ -655,14 +646,6 @@ export function useTextBuffer({
               // This is IME pattern: skip the 0x7f and insert the CJK chars
               expandedOps.push({ type: 'insert', payload: afterBackspace });
 
-              if (process.env.DEBUG_IME) {
-                console.log(
-                  '[IME Fix] Detected \\x7f+CJK pattern:',
-                  JSON.stringify(op.payload),
-                  '→',
-                  JSON.stringify(afterBackspace),
-                );
-              }
             } else {
               // Normal backspace + ASCII
               expandedOps.push({ type: 'backspace' });
@@ -694,19 +677,6 @@ export function useTextBuffer({
         }
       }
 
-      // Debug: Log operations to understand IME behavior
-      if (process.env.DEBUG_IME && expandedOps.length > 0) {
-        console.log(
-          '[IME Debug] Operations:',
-          expandedOps
-            .map((op) =>
-              op.type === 'insert' ? `insert("${op.payload}")` : op.type,
-            )
-            .join(', '),
-        );
-        console.log('[IME Debug] Current text:', lines[cursorRow] || '(empty)');
-        console.log('[IME Debug] Cursor position:', cursorCol);
-      }
 
       if (expandedOps.length === 0) {
         return;
@@ -1378,16 +1348,6 @@ export function useTextBuffer({
         visualCursor,
       });
 
-      // Debug IME input sequences
-      if (process.env.DEBUG_IME) {
-        console.log('[IME Debug] Key event:', {
-          name: key.name,
-          sequence: JSON.stringify(input),
-          sequenceBytes: input ? Buffer.from(input).toString('hex') : 'null',
-          ctrl: key.ctrl,
-          meta: key.meta,
-        });
-      }
 
       const beforeText = text;
       const beforeLogicalCursor = [cursorRow, cursorCol];
