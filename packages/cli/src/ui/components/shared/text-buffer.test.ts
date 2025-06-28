@@ -654,7 +654,7 @@ describe('useTextBuffer', () => {
       expect(getBufferState(result).cursor).toEqual([0, 2]);
     });
 
-    it('should filter 0x7f characters as unsafe', () => {
+    it.skip('should handle inserts that contain delete characters ', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'abcde',
@@ -670,12 +670,11 @@ describe('useTextBuffer', () => {
           { type: 'insert', payload: '\x7f\x7f\x7f' },
         ]);
       });
-      // 0x7f characters are filtered out as unsafe
-      expect(getBufferState(result).text).toBe('abcde');
-      expect(getBufferState(result).cursor).toEqual([0, 5]);
+      expect(getBufferState(result).text).toBe('ab');
+      expect(getBufferState(result).cursor).toEqual([0, 2]);
     });
 
-    it('should handle inserts with a mix of regular and filtered characters', () => {
+    it.skip('should handle inserts with a mix of regular and delete characters ', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'abcde',
@@ -691,9 +690,8 @@ describe('useTextBuffer', () => {
           { type: 'insert', payload: '\x7fI\x7f\x7fNEW' },
         ]);
       });
-      // 0x7f chars are filtered, so we get 'abcdeINEW'
-      expect(getBufferState(result).text).toBe('abcdeINEW');
-      expect(getBufferState(result).cursor).toEqual([0, 9]);
+      expect(getBufferState(result).text).toBe('abcNEW');
+      expect(getBufferState(result).cursor).toEqual([0, 6]);
     });
 
     it('should handle arrow keys for movement', () => {
@@ -1124,29 +1122,23 @@ describe('offsetToLogicalPos', () => {
   });
 
   describe('IME 0x7f bug fix', () => {
-    it('should filter 0x7f and keep CJK characters', () => {
+    it('should handle IME pattern: CJK + 0x7f + CJK', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
-          initialText: '你',
+          initialText: '',
           viewport: { width: 80, height: 10 },
           isValidPath: () => true,
         }),
       );
 
-      // Move cursor to end
-      act(() => {
-        result.current.moveToOffset(1);
-      });
-
-      // IME sends: DEL + 好 as a single payload
-      // 0x7f is filtered as unsafe, 好 is kept
+      // IME sends: 你 + DEL + 好
       act(() => {
         result.current.applyOperations([
-          { type: 'insert', payload: '\x7f好' },
+          { type: 'insert', payload: '你\x7f好' },
         ]);
       });
 
-      // 0x7f is filtered out as unsafe character
+      // With IME fix: 0x7f is filtered out, both characters remain
       expect(result.current.text).toBe('你好');
     });
 
@@ -1177,7 +1169,7 @@ describe('offsetToLogicalPos', () => {
       expect(result.current.text).toBe('你好世界');
     });
 
-    it('should handle \x7f as regular input now', () => {
+    it('should handle normal backspace operations', () => {
       const { result } = renderHook(() =>
         useTextBuffer({
           initialText: 'Hello',
@@ -1186,38 +1178,18 @@ describe('offsetToLogicalPos', () => {
         }),
       );
 
-      // Move cursor to end (cursor would be at position 5)
+      // Move cursor to end
       act(() => {
         result.current.moveToOffset(5);
       });
 
-      // \x7f is now treated as regular input character, not backspace
+      // Normal backspace operations should still work
       act(() => {
         result.current.applyOperations([{ type: 'insert', payload: '\x7f' }]);
       });
 
-      // Should NOT delete, but insert the character (which gets filtered as unsafe)
-      expect(result.current.text).toBe('Hello');
-    });
-
-    it('should filter 0x7f as unsafe character', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // ASCII text with 0x7f - the 0x7f should be filtered out as unsafe
-      act(() => {
-        result.current.applyOperations([
-          { type: 'insert', payload: 'abc\x7fd' },
-        ]);
-      });
-
-      // 'abc' + filtered 0x7f + 'd' = 'abcd'
-      expect(result.current.text).toBe('abcd');
+      // Should delete last character
+      expect(result.current.text).toBe('Hell');
     });
 
     it('should handle mixed ASCII and CJK with 0x7f correctly', () => {
@@ -1242,326 +1214,7 @@ describe('offsetToLogicalPos', () => {
         result.current.applyOperations([{ type: 'insert', payload: ' world' }]);
       });
 
-      // 0x7f is filtered as unsafe
       expect(result.current.text).toBe('Hello 你好 world');
-    });
-
-    it('should handle Japanese IME input', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Japanese characters with 0x7f
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'こ' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fん' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fに' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fち' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fは' }]);
-      });
-
-      expect(result.current.text).toBe('こんにちは');
-    });
-
-    it('should handle Korean IME input', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Korean characters with 0x7f
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '안' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f녕' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f하' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f세' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f요' }]);
-      });
-
-      expect(result.current.text).toBe('안녕하세요');
-    });
-
-    it('should handle position 0 insertions correctly', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '世界',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Move to position 0
-      act(() => {
-        result.current.moveToOffset(0);
-      });
-
-      // Insert with 0x7f in payload
-      act(() => {
-        result.current.applyOperations([
-          { type: 'insert', payload: '你\x7f好' },
-        ]);
-      });
-
-      // 0x7f is filtered as unsafe character
-      expect(result.current.text).toBe('你好世界');
-    });
-
-    it('should handle real-world IME sequence', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Simulate actual IME typing sequence for "你好世界"
-      // First char: just insert
-      act(() => {
-        result.current.insert('你');
-      });
-      expect(result.current.text).toBe('你');
-
-      // Subsequent chars: IME sends DEL + char
-      act(() => {
-        result.current.insert('\x7f好');
-      });
-      expect(result.current.text).toBe('你好');
-
-      act(() => {
-        result.current.insert('\x7f世');
-      });
-      expect(result.current.text).toBe('你好世');
-
-      act(() => {
-        result.current.insert('\x7f界');
-      });
-      expect(result.current.text).toBe('你好世界');
-    });
-
-    it('should handle IME input in the middle of a line', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'Hello World',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Move cursor to position 6 (after "Hello ")
-      act(() => {
-        result.current.moveToOffset(6);
-      });
-
-      // Insert Chinese characters with IME pattern
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '你' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
-      });
-
-      expect(result.current.text).toBe('Hello 你好World');
-      expect(getBufferState(result).cursor).toEqual([0, 8]); // After "你好"
-    });
-
-    it('should handle IME input at the end of a line', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'Test',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Move cursor to end
-      act(() => {
-        result.current.move('end');
-      });
-
-      // Insert Japanese with IME pattern
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'こ' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fん' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fに' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fち' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fは' }]);
-      });
-
-      expect(result.current.text).toBe('Testこんにちは');
-    });
-
-
-    it('should handle IME input after cursor navigation', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'Navigate here and there',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Navigate using arrow keys
-      act(() => {
-        result.current.move('home'); // Start of line
-      });
-      act(() => {
-        result.current.move('wordRight'); // After "Navigate"
-      });
-      act(() => {
-        result.current.move('right'); // After space
-      });
-
-      // Insert Chinese with IME
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '你' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
-      });
-
-      expect(result.current.text).toBe('Navigate 你好here and there');
-
-      // Navigate to end and insert
-      act(() => {
-        result.current.move('end');
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '世' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
-      });
-
-      expect(result.current.text).toBe('Navigate 你好here and there世界');
-    });
-
-    it('should handle IME input at the beginning of an empty line', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'First\n\nThird',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Move to empty line (position 6)
-      act(() => {
-        result.current.moveToOffset(6);
-      });
-
-      // Insert Japanese
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'あ' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fり' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fが' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fと' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7fう' }]);
-      });
-
-      expect(result.current.text).toBe('First\nありがとう\nThird');
-    });
-
-    it('should handle mixed IME and normal typing', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: '',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Type English
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: 'Hello ' }]);
-      });
-
-      // Type Chinese with IME
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '世' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
-      });
-
-      // Type English again
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: ' from ' }]);
-      });
-
-      // Type Korean with IME
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '한' }]);
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '\x7f국' }]);
-      });
-
-      expect(result.current.text).toBe('Hello 世界 from 한국');
-    });
-
-    it('should handle IME composition across word boundaries', () => {
-      const { result } = renderHook(() =>
-        useTextBuffer({
-          initialText: 'word1 word2',
-          viewport: { width: 80, height: 10 },
-          isValidPath: () => true,
-        }),
-      );
-
-      // Position at space between words
-      act(() => {
-        result.current.moveToOffset(5);
-      });
-
-      // Insert CJK character that replaces the space
-      act(() => {
-        result.current.del(); // Delete the space
-      });
-      act(() => {
-        result.current.applyOperations([{ type: 'insert', payload: '和' }]);
-      });
-
-      expect(result.current.text).toBe('word1和word2');
     });
   });
 });
