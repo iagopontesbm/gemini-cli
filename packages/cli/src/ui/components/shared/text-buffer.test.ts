@@ -1353,5 +1353,257 @@ describe('offsetToLogicalPos', () => {
       });
       expect(result.current.text).toBe('你好世界');
     });
+
+    it('should handle IME input in the middle of a line', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'Hello World',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Move cursor to position 6 (after "Hello ")
+      act(() => {
+        result.current.moveToOffset(6);
+      });
+
+      // Insert Chinese characters with IME pattern
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '你' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
+      });
+
+      expect(result.current.text).toBe('Hello 你好World');
+      expect(getBufferState(result).cursor).toEqual([0, 8]); // After "你好"
+    });
+
+    it('should handle IME input at the end of a line', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'Test',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Move cursor to end
+      act(() => {
+        result.current.move('end');
+      });
+
+      // Insert Japanese with IME pattern
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: 'こ' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fん' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fに' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fち' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fは' }]);
+      });
+
+      expect(result.current.text).toBe('Testこんにちは');
+    });
+
+    it('should handle IME input with multiple lines', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'Line 1\nLine 2\nLine 3',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Test 1: IME input on line 1
+      act(() => {
+        result.current.move('end'); // Go to end of line 1
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: ' 你' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
+      });
+
+      expect(result.current.text).toBe('Line 1 你好\nLine 2\nLine 3');
+
+      // Test 2: IME input on line 2  
+      act(() => {
+        result.current.move('down');
+        result.current.move('end');
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: ' 世' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
+      });
+
+      expect(result.current.text).toBe('Line 1 你好\nLine 2 世界\nLine 3');
+
+      // Test 3: IME input on line 3
+      act(() => {
+        result.current.move('down');
+        result.current.move('end');
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: ' 안' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f녕' }]);
+      });
+
+      expect(result.current.text).toBe('Line 1 你好\nLine 2 世界\nLine 3 안녕');
+    });
+
+    it('should handle IME input after cursor navigation', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'Navigate here and there',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Navigate using arrow keys
+      act(() => {
+        result.current.move('home'); // Start of line
+      });
+      act(() => {
+        result.current.move('wordRight'); // After "Navigate"
+      });
+      act(() => {
+        result.current.move('right'); // After space
+      });
+
+      // Insert Chinese with IME
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '你' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f好' }]);
+      });
+
+      expect(result.current.text).toBe('Navigate 你好here and there');
+
+      // Navigate to end and insert
+      act(() => {
+        result.current.move('end');
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '世' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
+      });
+
+      expect(result.current.text).toBe('Navigate 你好here and there世界');
+    });
+
+    it('should handle IME input at the beginning of an empty line', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'First\n\nThird',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Move to empty line (position 6)
+      act(() => {
+        result.current.moveToOffset(6);
+      });
+
+      // Insert Japanese
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: 'あ' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fり' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fが' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fと' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7fう' }]);
+      });
+
+      expect(result.current.text).toBe('First\nありがとう\nThird');
+    });
+
+    it('should handle mixed IME and normal typing', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: '',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Type English
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: 'Hello ' }]);
+      });
+
+      // Type Chinese with IME
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '世' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f界' }]);
+      });
+
+      // Type English again
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: ' from ' }]);
+      });
+
+      // Type Korean with IME
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '한' }]);
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '\x7f국' }]);
+      });
+
+      expect(result.current.text).toBe('Hello 世界 from 한국');
+    });
+
+    it('should handle IME composition across word boundaries', () => {
+      const { result } = renderHook(() =>
+        useTextBuffer({
+          initialText: 'word1 word2',
+          viewport: { width: 80, height: 10 },
+          isValidPath: () => true,
+        }),
+      );
+
+      // Position at space between words
+      act(() => {
+        result.current.moveToOffset(5);
+      });
+
+      // Insert CJK character that replaces the space
+      act(() => {
+        result.current.del(); // Delete the space
+      });
+      act(() => {
+        result.current.applyOperations([{ type: 'insert', payload: '和' }]);
+      });
+
+      expect(result.current.text).toBe('word1和word2');
+    });
   });
 });

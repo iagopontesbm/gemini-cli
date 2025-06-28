@@ -591,14 +591,18 @@ export function useTextBuffer({
       };
 
       // Process operations to track CJK insertions first
-      const trackingOps: Array<{ op: UpdateOperation; isCJK: boolean }> = [];
+      const trackingOps: Array<{ op: UpdateOperation; isCJK: boolean; hasCJK: boolean }> = [];
       for (let i = 0; i < ops.length; i++) {
         const op = ops[i];
         let isCJK = false;
+        let hasCJK = false;
         if (op.type === 'insert' && op.payload) {
-          isCJK = op.payload.split('').some((c) => c.charCodeAt(0) > 127);
+          // Check if this operation inserts any CJK characters
+          hasCJK = op.payload.split('').some((c) => c.charCodeAt(0) > 127);
+          // Check if this is primarily a CJK insert (not just contains CJK)
+          isCJK = hasCJK && !op.payload.includes('\x7f');
         }
-        trackingOps.push({ op, isCJK });
+        trackingOps.push({ op, isCJK, hasCJK });
       }
 
       // Check if a single 0x7f after CJK insert is the IME bug
@@ -647,10 +651,21 @@ export function useTextBuffer({
               expandedOps.push({ type: 'insert', payload: afterBackspace });
 
             } else {
-              // Normal backspace + ASCII
-              expandedOps.push({ type: 'backspace' });
-              if (afterBackspace) {
-                expandedOps.push({ type: 'insert', payload: afterBackspace });
+              // Normal backspace + ASCII - process each character normally
+              let currentText = '';
+              for (const char of toCodePoints(op.payload)) {
+                if (char.codePointAt(0) === 127) {
+                  if (currentText.length > 0) {
+                    expandedOps.push({ type: 'insert', payload: currentText });
+                    currentText = '';
+                  }
+                  expandedOps.push({ type: 'backspace' });
+                } else {
+                  currentText += char;
+                }
+              }
+              if (currentText.length > 0) {
+                expandedOps.push({ type: 'insert', payload: currentText });
               }
             }
           } else {
