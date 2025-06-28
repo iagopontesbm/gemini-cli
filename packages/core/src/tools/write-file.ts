@@ -277,12 +277,16 @@ export class WriteFileTool
         DEFAULT_DIFF_OPTIONS,
       );
 
-      const modfiedInfo = params.modified_by_user
-        ? ` User modified the \`content\` to be: ${params.content}`
-        : '';
-      const llmSuccessMessage = isNewFile
-        ? `Successfully created and wrote to new file: ${params.file_path}`
-        : `Successfully overwrote file: ${params.file_path}.${modfiedInfo}`;
+      const llmSuccessMessageParts = [
+        isNewFile
+          ? `Successfully created and wrote to new file: ${params.file_path}.`
+          : `Successfully overwrote file: ${params.file_path}.`,
+      ];
+      if (params.modified_by_user) {
+        llmSuccessMessageParts.push(
+          `User modified the \`content\` to be: ${params.content}`,
+        );
+      }
 
       const displayResult: FileDiff = { fileDiff, fileName };
 
@@ -308,7 +312,7 @@ export class WriteFileTool
       }
 
       return {
-        llmContent: llmSuccessMessage,
+        llmContent: llmSuccessMessageParts.join(' '),
         returnDisplay: displayResult,
       };
     } catch (error) {

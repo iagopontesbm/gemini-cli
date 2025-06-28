@@ -421,15 +421,19 @@ Expectation for required parameters:
         displayResult = { fileDiff, fileName };
       }
 
-      const modfiedInfo = params.modified_by_user
-        ? ` User modified the \`new_string\` content to be: ${params.new_string}.`
-        : '';
-      const llmSuccessMessage = editData.isNewFile
-        ? `Created new file: ${params.file_path} with provided content.`
-        : `Successfully modified file: ${params.file_path} (${editData.occurrences} replacements).${modfiedInfo}`;
+      const llmSuccessMessageParts = [
+        editData.isNewFile
+          ? `Created new file: ${params.file_path} with provided content.`
+          : `Successfully modified file: ${params.file_path} (${editData.occurrences} replacements).`,
+      ];
+      if (params.modified_by_user) {
+        llmSuccessMessageParts.push(
+          `User modified the \`new_string\` content to be: ${params.new_string}.`,
+        );
+      }
 
       return {
-        llmContent: llmSuccessMessage,
+        llmContent: llmSuccessMessageParts.join(' '),
         returnDisplay: displayResult,
       };
     } catch (error) {
