@@ -210,15 +210,11 @@ export class ApiResponseEvent {
 export class ModelFallbackEvent {
   'event.name': 'model_fallback';
   'event.timestamp': string; // ISO 8601
-  original_model: string;
-  fallback_model: string;
-  reason?: string;
+  reason: string;
 
-  constructor(original_model: string, fallback_model: string, reason?: string) {
+  constructor(reason: string) {
     this['event.name'] = 'model_fallback';
     this['event.timestamp'] = new Date().toISOString();
-    this.original_model = original_model;
-    this.fallback_model = fallback_model;
     this.reason = reason;
   }
 }

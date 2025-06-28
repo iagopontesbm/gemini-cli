@@ -263,7 +263,7 @@ export function logModelFallback(
 
   const logger = logs.getLogger(SERVICE_NAME);
   const logRecord: LogRecord = {
-    body: `Model fallback from ${event.original_model} to ${event.fallback_model}.`,
+    body: `Model fallback because of ${event.reason}.`,
     attributes,
   };
   logger.emit(logRecord);

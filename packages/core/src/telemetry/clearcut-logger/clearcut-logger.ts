@@ -382,18 +382,8 @@ export class ClearcutLogger {
   logModelFallbackEvent(event: ModelFallbackEvent): void {
     const data = [
       {
-        gemini_cli_key:
-          EventMetadataKey.GEMINI_CLI_MODEL_FALLBACK_ORIGINAL_MODEL,
-        value: event.original_model,
-      },
-      {
-        gemini_cli_key:
-          EventMetadataKey.GEMINI_CLI_MODEL_FALLBACK_FALLBACK_MODEL,
-        value: event.fallback_model,
-      },
-      {
         gemini_cli_key: EventMetadataKey.GEMINI_CLI_MODEL_FALLBACK_REASON,
-        value: event.reason ?? '',
+        value: event.reason,
       },
     ];
 

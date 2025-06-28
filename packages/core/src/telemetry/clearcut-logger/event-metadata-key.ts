@@ -142,14 +142,8 @@ export enum EventMetadataKey {
   // Model Fallback Event Keys
   // ===========================================================================
 
-  // Logs the original model that was requested.
-  GEMINI_CLI_MODEL_FALLBACK_ORIGINAL_MODEL = 35,
-
-  // Logs the model that was used as a fallback.
-  GEMINI_CLI_MODEL_FALLBACK_FALLBACK_MODEL = 36,
-
   // Logs the reason for the model fallback.
-  GEMINI_CLI_MODEL_FALLBACK_REASON = 37,
+  GEMINI_CLI_MODEL_FALLBACK_REASON = 35,
 }
 
 export function getEventMetadataKey(
