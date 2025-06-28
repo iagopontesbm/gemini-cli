@@ -71,18 +71,18 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
 
   const renderSeparator = () => {
     const separator = adjustedWidths
-      .map((width) => '─'.repeat(width))
+      .map((width) => '─'.repeat(width - 2))
       .join('─┼─');
     return <Text>├─{separator}─┤</Text>;
   };
 
   const renderTopBorder = () => {
-    const border = adjustedWidths.map((width) => '─'.repeat(width)).join('─┬─');
+    const border = adjustedWidths.map((width) => '─'.repeat(width - 2)).join('─┬─');
     return <Text>┌─{border}─┐</Text>;
   };
 
   const renderBottomBorder = () => {
-    const border = adjustedWidths.map((width) => '─'.repeat(width)).join('─┴─');
+    const border = adjustedWidths.map((width) => '─'.repeat(width - 2)).join('─┴─');
     return <Text>└─{border}─┘</Text>;
   };
 
