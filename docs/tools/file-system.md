@@ -94,7 +94,7 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
   - Returns a list of matching lines, each prefixed with its file path (relative to the search directory) and line number.
 - **Output (`llmContent`):** A formatted string of matches, e.g.:
   ```
-  Found 3 match(es) for pattern "myFunction" in path "." (filter: "*.ts"):
+  Found 3 matches for pattern "myFunction" in path "." (filter: "*.ts"):
   ---
   File: src/utils.ts
   L15: export function myFunction() {
@@ -114,7 +114,6 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
 - **Display name:** Edit
 - **File:** `edit.ts`
 - **Parameters:**
-
   - `file_path` (string, required): The absolute path to the file to modify.
   - `old_string` (string, required): The exact literal text to replace.
 
