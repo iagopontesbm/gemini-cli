@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
 import { render } from 'ink-testing-library';
 import { MarkdownDisplay } from './MarkdownDisplay.js';
 
@@ -111,6 +110,78 @@ Some text after the table.
       expect(lastFrame()).toContain('Auth');
       expect(lastFrame()).toContain('Done');
       expect(lastFrame()).toContain('Some text after the table.');
+    });
+
+    it('should handle tables with empty cells at edges', () => {
+      const tableMarkdown = `
+| | Middle | |
+|-|--------|-|
+| | Value  | |
+`;
+
+      const { lastFrame } = render(
+        <MarkdownDisplay
+          text={tableMarkdown}
+          isPending={false}
+          terminalWidth={80}
+        />,
+      );
+
+      expect(lastFrame()).toContain('Middle');
+      expect(lastFrame()).toContain('Value');
+      // Should maintain column structure even with empty edge cells
+    });
+
+    it('should handle PR reviewer test case 1', () => {
+      const tableMarkdown = `
+| Package | Lines of Code |
+|---------|---------------|
+| CLI     | 18407         |
+| Core    | 14445         |
+`;
+
+      const { lastFrame } = render(
+        <MarkdownDisplay
+          text={tableMarkdown}
+          isPending={false}
+          terminalWidth={80}
+        />,
+      );
+
+      const output = lastFrame();
+      expect(output).toContain('Package');
+      expect(output).toContain('Lines of Code');
+      expect(output).toContain('CLI');
+      expect(output).toContain('18407');
+      expect(output).toContain('Core');
+      expect(output).toContain('14445');
+    });
+
+    it('should handle PR reviewer test case 2 - long table', () => {
+      const tableMarkdown = `
+| Letter | Count |
+|--------|-------|
+| a      | 15    |
+| b      | 2     |
+| c      | 26    |
+| Total  | 283   |
+`;
+
+      const { lastFrame } = render(
+        <MarkdownDisplay
+          text={tableMarkdown}
+          isPending={false}
+          terminalWidth={80}
+        />,
+      );
+
+      const output = lastFrame();
+      expect(output).toContain('Letter');
+      expect(output).toContain('Count');
+      expect(output).toContain('a');
+      expect(output).toContain('15');
+      expect(output).toContain('Total');
+      expect(output).toContain('283');
     });
 
     it('should not render malformed tables', () => {
