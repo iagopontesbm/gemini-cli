@@ -9,13 +9,13 @@ import { Config } from '@google/gemini-cli-core';
 import { Colors } from '../colors.js';
 
 interface CloudFreePrivacyNoticeProps {
-  _config: Config;
-  _onExit: () => void;
+  config: Config;
+  onExit: () => void;
 }
 
 export const CloudFreePrivacyNotice = ({
-  _config,
-  _onExit,
+  config,
+  onExit,
 }: CloudFreePrivacyNoticeProps) => (
   <Box flexDirection="column" marginY={1}>
     <Text bold color={Colors.AccentPurple}>
