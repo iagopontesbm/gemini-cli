@@ -570,27 +570,147 @@ export function useTextBuffer({
       if (ops.length === 0) return;
 
       const expandedOps: UpdateOperation[] = [];
-      for (const op of ops) {
-        if (op.type === 'insert') {
-          let currentText = '';
-          for (const char of toCodePoints(op.payload)) {
-            if (char.codePointAt(0) === 127) {
-              // \x7f
-              if (currentText.length > 0) {
-                expandedOps.push({ type: 'insert', payload: currentText });
-                currentText = '';
-              }
-              expandedOps.push({ type: 'backspace' });
-            } else {
-              currentText += char;
-            }
+      
+      // Track if we just inserted a CJK character in THIS batch to detect IME patterns
+      let justInsertedCJK = false;
+      
+      // Detect IME bug pattern: CJK character followed by 0x7f
+      // This pattern causes each new character to delete the previous one
+      const isIMEBugPattern = (payload: string): boolean => {
+        const chars = toCodePoints(payload);
+        if (chars.length < 2) return false;
+        
+        // Check for pattern: multi-byte char + 0x7f + multi-byte char
+        for (let i = 0; i < chars.length - 1; i++) {
+          const current = chars[i];
+          const next = chars[i + 1];
+          
+          // If current is multi-byte and next is 0x7f, it's the bug pattern
+          if (current.charCodeAt(0) > 127 && next.charCodeAt(0) === 127) {
+            return true;
           }
-          if (currentText.length > 0) {
-            expandedOps.push({ type: 'insert', payload: currentText });
+        }
+        return false;
+      };
+      
+      // Process operations to track CJK insertions first
+      let trackingOps: Array<{op: UpdateOperation, isCJK: boolean}> = [];
+      for (let i = 0; i < ops.length; i++) {
+        const op = ops[i];
+        let isCJK = false;
+        if (op.type === 'insert' && op.payload) {
+          isCJK = op.payload.split('').some(c => c.charCodeAt(0) > 127);
+        }
+        trackingOps.push({ op, isCJK });
+      }
+      
+      // Check if a single 0x7f after CJK insert is the IME bug
+      const isSingleCharIMEBackspace = (opIndex: number): boolean => {
+        const op = trackingOps[opIndex].op;
+        // Must be exactly one 0x7f character
+        if (op.type !== 'insert' || op.payload !== '\x7f') return false;
+        
+        // Only filter 0x7f if:
+        // 1. Previous operation in this batch was CJK insert, OR
+        // 2. We're in a batch with CJK operations
+        if (opIndex > 0) {
+          const prevOp = trackingOps[opIndex - 1];
+          return prevOp.isCJK;
+        }
+        
+        // Single 0x7f with no CJK context should work normally
+        return false;
+      };
+      
+      for (let i = 0; i < trackingOps.length; i++) {
+        const { op, isCJK } = trackingOps[i];
+        if (op.type === 'insert') {
+          // Check for IME bug patterns
+          if (isIMEBugPattern(op.payload) || isSingleCharIMEBackspace(i)) {
+            // Filter out 0x7f characters to fix IME input
+            const filtered = toCodePoints(op.payload)
+              .filter(char => char.codePointAt(0) !== 127)
+              .join('');
+            
+            if (filtered.length > 0) {
+              expandedOps.push({ type: 'insert', payload: filtered });
+              // Update tracking: we just inserted CJK chars
+              if (filtered.split('').some(c => c.charCodeAt(0) > 127)) {
+                justInsertedCJK = true;
+              }
+            }
+            
+            // Log for debugging
+            if (process.env.DEBUG_IME) {
+              console.log('[IME Fix] Filtered 0x7f from:', 
+                JSON.stringify(op.payload), 
+                '→', 
+                JSON.stringify(filtered)
+              );
+            }
+          } else if (op.payload.startsWith('\x7f') && op.payload.length > 1) {
+            // Special case: "\x7f好" pattern - 0x7f followed by CJK
+            const chars = toCodePoints(op.payload);
+            const afterBackspace = chars.slice(1).join('');
+            
+            // Check if what follows 0x7f is CJK
+            if (afterBackspace && afterBackspace.split('').some(c => c.charCodeAt(0) > 127)) {
+              // This is IME pattern: skip the 0x7f and insert the CJK chars
+              expandedOps.push({ type: 'insert', payload: afterBackspace });
+              justInsertedCJK = true;
+              
+              if (process.env.DEBUG_IME) {
+                console.log('[IME Fix] Detected \\x7f+CJK pattern:', 
+                  JSON.stringify(op.payload), 
+                  '→', 
+                  JSON.stringify(afterBackspace)
+                );
+              }
+            } else {
+              // Normal backspace + ASCII
+              expandedOps.push({ type: 'backspace' });
+              if (afterBackspace) {
+                expandedOps.push({ type: 'insert', payload: afterBackspace });
+              }
+            }
+          } else {
+            // Normal processing for non-IME patterns
+            let currentText = '';
+            for (const char of toCodePoints(op.payload)) {
+              if (char.codePointAt(0) === 127) {
+                // \x7f
+                if (currentText.length > 0) {
+                  expandedOps.push({ type: 'insert', payload: currentText });
+                  currentText = '';
+                }
+                expandedOps.push({ type: 'backspace' });
+              } else {
+                currentText += char;
+              }
+            }
+            if (currentText.length > 0) {
+              expandedOps.push({ type: 'insert', payload: currentText });
+              // Track if we inserted CJK
+              if (currentText.split('').some(c => c.charCodeAt(0) > 127)) {
+                justInsertedCJK = true;
+              } else {
+                justInsertedCJK = false;
+              }
+            }
           }
         } else {
           expandedOps.push(op);
+          justInsertedCJK = false; // Reset on non-insert operations
         }
+      }
+      
+      // Debug: Log operations to understand IME behavior
+      if (process.env.DEBUG_IME && expandedOps.length > 0) {
+        console.log('[IME Debug] Operations:', expandedOps.map(op => 
+          op.type === 'insert' ? `insert("${op.payload}")` : op.type
+        ).join(', '));
+        console.log('[IME Debug] Current text:', lines[cursorRow] || '(empty)');
+        console.log('[IME Debug] Cursor position:', cursorCol);
       }
 
       if (expandedOps.length === 0) {
@@ -606,41 +726,16 @@ export function useTextBuffer({
       const currentLine = (r: number) => newLines[r] ?? '';
 
       // Special handling for potential IME issues
-      // Only apply if:
-      // 1. Single character insert operation
-      // 2. Cursor at position 0
-      // 3. Line already has content
-      // 4. Inserting a multi-byte character
-      // 5. The existing content starts with a multi-byte character
-      // This pattern suggests the IME bug where characters overwrite each other
-      const shouldApplyIMEFix = (op: UpdateOperation): boolean => {
-        if (op.type !== 'insert' || !op.payload) return false;
-        if (newCursorCol !== 0) return false;
-        
-        const line = currentLine(newCursorRow);
-        if (!line || line.length === 0) return false;
-        
-        // Check if inserting multi-byte char
-        const insertingMultiByte = op.payload.split('').some(c => c.charCodeAt(0) > 127);
-        if (!insertingMultiByte) return false;
-        
-        // Check if line starts with multi-byte char (suggesting previous IME input)
-        const firstChar = line[0];
-        if (!firstChar || firstChar.charCodeAt(0) <= 127) return false;
-        
-        // Additional check: payload is single character (typical IME input)
-        if (toCodePoints(op.payload).length !== 1) return false;
-        
-        return true;
-      };
+      // The IME bug manifests as: when typing CJK characters quickly,
+      // the cursor repeatedly resets to position 0, causing characters
+      // to be inserted in reverse order.
+      // 
+      // We detect this pattern but take a minimal approach: we simply
+      // ensure the text buffer logic is correct. The real fix needs to
+      // happen at the input handling layer where the cursor reset occurs.
 
       for (const op of expandedOps) {
         if (op.type === 'insert') {
-          // Check if we should apply IME fix
-          if (shouldApplyIMEFix(op)) {
-            // Move cursor to end of line for IME input
-            newCursorCol = cpLen(currentLine(newCursorRow));
-          }
           
           const str = stripUnsafeCharacters(
             op.payload.replace(/\r\n/g, '\n').replace(/\r/g, '\n'),
@@ -649,6 +744,18 @@ export function useTextBuffer({
           const lineContent = currentLine(newCursorRow);
           const before = cpSlice(lineContent, 0, newCursorCol);
           const after = cpSlice(lineContent, newCursorCol);
+          
+          // Debug logging for IME investigation
+          if (DEBUG && str.split('').some(c => c.charCodeAt(0) > 127)) {
+            dbg('applyOperations:insert', {
+              payload: str,
+              cursorBefore: newCursorCol,
+              lineContent,
+              before,
+              after,
+              resultWillBe: before + str + after
+            });
+          }
 
           if (parts.length > 1) {
             newLines[newCursorRow] = before + parts[0];
@@ -668,6 +775,13 @@ export function useTextBuffer({
             newCursorCol = cpLen(before) + cpLen(parts[0]);
           }
         } else if (op.type === 'backspace') {
+          if (DEBUG) {
+            dbg('applyOperations:backspace', { 
+              cursorBefore: [newCursorRow, newCursorCol],
+              canBackspace: !(newCursorCol === 0 && newCursorRow === 0)
+            });
+          }
+          
           if (newCursorCol === 0 && newCursorRow === 0) continue;
 
           if (newCursorCol > 0) {
@@ -1269,6 +1383,18 @@ export function useTextBuffer({
         cursor: [cursorRow, cursorCol],
         visualCursor,
       });
+      
+      // Debug IME input sequences
+      if (process.env.DEBUG_IME) {
+        console.log('[IME Debug] Key event:', {
+          name: key.name,
+          sequence: JSON.stringify(input),
+          sequenceBytes: input ? Buffer.from(input).toString('hex') : 'null',
+          ctrl: key.ctrl,
+          meta: key.meta
+        });
+      }
+      
       const beforeText = text;
       const beforeLogicalCursor = [cursorRow, cursorCol];
       const beforeVisualCursor = [...visualCursor];
