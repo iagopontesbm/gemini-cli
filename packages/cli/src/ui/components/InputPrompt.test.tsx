@@ -197,4 +197,18 @@ describe('InputPrompt', () => {
     expect(props.buffer.moveToOffset).toHaveBeenCalledWith(0);
     unmount();
   });
+
+  it('should move cursor to end on "end" key press', async () => {
+    const bufferText = 'some text';
+    props.buffer.setText(bufferText);
+    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    await wait();
+
+    stdin.write('\u001b[F'); // End key
+    await wait();
+
+    expect(props.buffer.move).toHaveBeenCalledWith('end');
+    expect(props.buffer.moveToOffset).toHaveBeenCalledWith(bufferText.length);
+    unmount();
+  });
 });
