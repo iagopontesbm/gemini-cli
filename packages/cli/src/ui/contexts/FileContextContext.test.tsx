@@ -28,7 +28,7 @@ const mockConfig = {
 } as unknown as Config;
 
 // Test component that uses the context and exposes actions
-const TestComponent = forwardRef<{ actions: any; state: any }>((props, ref) => {
+const TestComponent = forwardRef<{ actions: unknown; state: unknown }>((props, ref) => {
   const { state, actions } = useFileContext();
   
   useImperativeHandle(ref, () => ({
@@ -43,6 +43,7 @@ const TestComponent = forwardRef<{ actions: any; state: any }>((props, ref) => {
     </Box>
   );
 });
+TestComponent.displayName = "TestComponent";
 
 describe('FileContextContext', () => {
   beforeEach(() => {
@@ -70,7 +71,7 @@ describe('FileContextContext', () => {
   });
 
   it('should add files to context', async () => {
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -80,7 +81,7 @@ describe('FileContextContext', () => {
     // Call action directly
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
       }
     });
 
@@ -92,7 +93,7 @@ describe('FileContextContext', () => {
   });
 
   it('should remove files from context', async () => {
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -102,7 +103,7 @@ describe('FileContextContext', () => {
     // Add file first
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
       }
     });
 
@@ -111,7 +112,7 @@ describe('FileContextContext', () => {
     // Remove file
     await act(async () => {
       if (componentRef.current) {
-        componentRef.current.actions.removeFile('test.txt');
+        await (componentRef.current.actions as unknown as { removeFile: (file: string) => Promise<void> }).removeFile('test.txt');
       }
     });
 
@@ -120,7 +121,7 @@ describe('FileContextContext', () => {
   });
 
   it('should clear context', async () => {
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -130,7 +131,7 @@ describe('FileContextContext', () => {
     // Add file first
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
       }
     });
 
@@ -139,7 +140,7 @@ describe('FileContextContext', () => {
     // Clear context
     await act(async () => {
       if (componentRef.current) {
-        componentRef.current.actions.clearContext();
+        await (componentRef.current.actions as unknown as { clearContext: () => Promise<void> }).clearContext();
       }
     });
 
@@ -148,7 +149,7 @@ describe('FileContextContext', () => {
   });
 
   it('should prevent adding duplicate files', async () => {
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -158,8 +159,8 @@ describe('FileContextContext', () => {
     // Add file twice
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
-        await componentRef.current.actions.addFile('test.txt'); // Should not add duplicate
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt'); // Should not add duplicate
       }
     });
 
@@ -173,7 +174,7 @@ describe('FileContextContext', () => {
     // Mock fs.stat to throw error
     mockFs.stat.mockRejectedValue(new Error('File not found'));
 
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -182,7 +183,7 @@ describe('FileContextContext', () => {
 
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
       }
     });
 
@@ -199,7 +200,7 @@ describe('FileContextContext', () => {
       size: 0,
     } as unknown as Stats);
 
-    const componentRef = { current: null as { actions: any; state: any } | null };
+    const componentRef = { current: null as { actions: unknown; state: unknown } | null };
     const { lastFrame } = render(
       <FileContextProvider config={mockConfig}>
         <TestComponent ref={componentRef} />
@@ -208,7 +209,7 @@ describe('FileContextContext', () => {
 
     await act(async () => {
       if (componentRef.current) {
-        await componentRef.current.actions.addFile('test.txt');
+        await (componentRef.current.actions as unknown as { addFile: (file: string) => Promise<void> }).addFile('test.txt');
       }
     });
 
