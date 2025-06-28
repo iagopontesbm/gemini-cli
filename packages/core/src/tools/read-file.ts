@@ -77,14 +77,14 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
   }
 
   validateToolParams(params: ReadFileToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return 'Parameters failed schema validation.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
     const filePath = params.absolute_path;
     if (!path.isAbsolute(filePath)) {

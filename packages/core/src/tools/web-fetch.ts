@@ -149,14 +149,14 @@ ${textContent}
   }
 
   validateParams(params: WebFetchToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return 'Parameters failed schema validation.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
     if (!params.prompt || params.prompt.trim() === '') {
       return "The 'prompt' parameter cannot be empty and must contain URL(s) and instructions.";

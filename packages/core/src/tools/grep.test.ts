@@ -81,7 +81,7 @@ describe('GrepTool', () => {
     it('should return error if pattern is missing', () => {
       const params = { path: '.' } as unknown as GrepToolParams;
       expect(grepTool.validateToolParams(params)).toContain(
-        'Parameters failed schema validation',
+        'Parameters failed schema validation:',
       );
     });
 
@@ -204,11 +204,11 @@ describe('GrepTool', () => {
     it('should return an error if params are invalid', async () => {
       const params = { path: '.' } as unknown as GrepToolParams; // Invalid: pattern missing
       const result = await grepTool.execute(params, abortSignal);
-      expect(result.llmContent).toContain(
-        'Error: Invalid parameters provided. Reason: Parameters failed schema validation',
+      expect(result.llmContent).toMatch(
+        /Error: Invalid parameters provided. Reason: Parameters failed schema validation:/,
       );
-      expect(result.returnDisplay).toContain(
-        'Model provided invalid parameters. Error: Parameters failed schema validation',
+      expect(result.returnDisplay).toMatch(
+        /Model provided invalid parameters. Error: Parameters failed schema validation:/,
       );
     });
   });

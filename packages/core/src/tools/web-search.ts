@@ -82,14 +82,14 @@ export class WebSearchTool extends BaseTool<
   }
 
   validateParams(params: WebSearchToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return "Parameters failed schema validation. Ensure 'query' is a string.";
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
     if (!params.query || params.query.trim() === '') {
       return "The 'query' parameter cannot be empty.";

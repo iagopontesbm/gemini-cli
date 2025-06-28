@@ -92,14 +92,14 @@ export class ShellTool extends BaseTool<ShellToolParams, ToolResult> {
   }
 
   validateToolParams(params: ShellToolParams): string | null {
-    if (
-      !SchemaValidator.validate(
-        this.parameterSchema as Record<string, unknown>,
-        params,
-      )
-    ) {
-      return `Parameters failed schema validation.`;
+    const schemaError = SchemaValidator.validate(
+      this.parameterSchema as Record<string, unknown>,
+      params,
+    );
+    if (schemaError) {
+      return `Parameters failed schema validation: ${schemaError}`;
     }
+    
     if (!params.command.trim()) {
       return 'Command cannot be empty.';
     }

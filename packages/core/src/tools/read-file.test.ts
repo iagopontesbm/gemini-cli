@@ -118,8 +118,8 @@ describe('ReadFileTool', () => {
 
     it('should return error for schema validation failure (e.g. missing path)', () => {
       const params = { offset: 0 } as unknown as ReadFileToolParams;
-      expect(tool.validateToolParams(params)).toBe(
-        'Parameters failed schema validation.',
+      expect(tool.validateToolParams(params)).toContain(
+        'Parameters failed schema validation:',
       );
     });
   });

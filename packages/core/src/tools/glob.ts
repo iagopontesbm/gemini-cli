@@ -141,14 +141,14 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    * Validates the parameters for the tool.
    */
   validateToolParams(params: GlobToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return "Parameters failed schema validation. Ensure 'pattern' is a string, 'path' (if provided) is a string, and 'case_sensitive' (if provided) is a boolean.";
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
 
     const searchDirAbsolute = path.resolve(

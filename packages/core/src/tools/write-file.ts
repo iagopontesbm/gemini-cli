@@ -102,14 +102,14 @@ export class WriteFileTool
   }
 
   validateToolParams(params: WriteFileToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return 'Parameters failed schema validation.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
     const filePath = params.file_path;
     if (!path.isAbsolute(filePath)) {

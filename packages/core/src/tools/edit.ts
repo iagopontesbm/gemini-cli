@@ -144,14 +144,14 @@ Expectation for required parameters:
    * @returns Error message string or null if valid
    */
   validateToolParams(params: EditToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return 'Parameters failed schema validation.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
 
     if (!path.isAbsolute(params.file_path)) {

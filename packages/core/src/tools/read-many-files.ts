@@ -209,21 +209,14 @@ Use this tool when the user's query implies needing the content of several files
     ) {
       return 'The "paths" parameter is required and must be a non-empty array of strings/glob patterns.';
     }
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      if (
-        !params.paths ||
-        !Array.isArray(params.paths) ||
-        params.paths.length === 0
-      ) {
-        return 'The "paths" parameter is required and must be a non-empty array of strings/glob patterns.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
       }
-      return 'Parameters failed schema validation. Ensure "paths" is a non-empty array and other parameters match their expected types.';
     }
     for (const p of params.paths) {
       if (typeof p !== 'string' || p.trim() === '') {

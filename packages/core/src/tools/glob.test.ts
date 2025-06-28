@@ -182,7 +182,7 @@ describe('GlobTool', () => {
       const params = { path: '.' };
       // @ts-expect-error - We're intentionally creating invalid params for testing
       expect(globTool.validateToolParams(params)).toContain(
-        'Parameters failed schema validation',
+        'Parameters failed schema validation:',
       );
     });
 
@@ -207,7 +207,7 @@ describe('GlobTool', () => {
       };
       // @ts-expect-error - We're intentionally creating invalid params for testing
       expect(globTool.validateToolParams(params)).toContain(
-        'Parameters failed schema validation',
+        'Parameters failed schema validation:',
       );
     });
 
@@ -218,7 +218,7 @@ describe('GlobTool', () => {
       };
       // @ts-expect-error - We're intentionally creating invalid params for testing
       expect(globTool.validateToolParams(params)).toContain(
-        'Parameters failed schema validation',
+        'Parameters failed schema validation:',
       );
     });
 

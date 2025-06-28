@@ -135,14 +135,14 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
    * @returns An error message string if invalid, null otherwise
    */
   validateToolParams(params: GrepToolParams): string | null {
-    if (
-      this.schema.parameters &&
-      !SchemaValidator.validate(
+    if (this.schema.parameters) {
+      const schemaError = SchemaValidator.validate(
         this.schema.parameters as Record<string, unknown>,
         params,
-      )
-    ) {
-      return 'Parameters failed schema validation.';
+      );
+      if (schemaError) {
+        return `Parameters failed schema validation: ${schemaError}`;
+      }
     }
 
     try {
