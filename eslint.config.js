@@ -132,6 +132,7 @@ export default tseslint.config(
       'one-var': ['error', 'never'],
       'prefer-arrow-callback': 'error',
       'prefer-const': ['error', { destructuring: 'all' }],
+      'no-return-await': 'error', // Prevent unnecessary `await` in return statements
       radix: 'error',
       'default-case': 'error',
     },

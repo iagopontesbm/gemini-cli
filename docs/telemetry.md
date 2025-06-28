@@ -170,13 +170,13 @@ Logs are timestamped records of specific events. The following events are logged
     - `model`
     - `request_text` (if applicable)
 
-- `gemini_cli.api_error`: This event occurs if the API request fails.
+- `gemini_cli.api_error`: This event is recorded if an API request to Gemini fails.
   - **Attributes**:
-    - `model`
-    - `error`
-    - `error_type`
-    - `status_code`
-    - `duration_ms`
+    - `model` (string): The Gemini model involved in the failed request.
+    - `error` (string): The error message received from the API.
+    - `error_type` (string): The type of API error.
+    - `status_code` (number): The HTTP status code of the API response.
+    - `duration_ms` (number): The duration of the API request in milliseconds.
 
 - `gemini_cli.api_response`: This event occurs upon receiving a response from Gemini API.
   - **Attributes**:

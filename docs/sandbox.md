@@ -1,6 +1,6 @@
-# Sandboxing in the Gemini CLI
+# Sandboxing in the Gemini CLI: Secure Tool Execution
 
-This document provides a guide to sandboxing in the Gemini CLI, including prerequisites, quickstart, and configuration.
+This document provides a comprehensive guide to sandboxing within the Gemini CLI, covering its prerequisites, various methods, configuration options, and troubleshooting tips. Sandboxing is a critical security feature that isolates potentially dangerous operations from your host system, creating a secure barrier between AI-powered tools and your environment.
 
 ## Prerequisites
 

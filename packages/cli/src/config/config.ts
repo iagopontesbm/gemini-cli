@@ -53,6 +53,7 @@ interface CliArgs {
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
+  targetDir: string | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -128,6 +129,10 @@ async function parseArguments(): Promise<CliArgs> {
       description: 'Enables checkpointing of file edits',
       default: false,
     })
+    .option('targetDir', {
+      type: 'string',
+      description: 'The target directory for file operations.',
+    })
     .version(await getCliVersion()) // This will enable the --version flag based on package.json
     .alias('v', 'version')
     .help()
@@ -201,7 +206,7 @@ export async function loadCliConfig(
     sessionId,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     sandbox: sandboxConfig,
-    targetDir: process.cwd(),
+    targetDir: argv.targetDir || process.cwd(),
     debugMode,
     question: argv.prompt || '',
     fullContext: argv.all_files || false,

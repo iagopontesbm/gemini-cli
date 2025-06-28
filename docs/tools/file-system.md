@@ -1,8 +1,8 @@
-# Gemini CLI file system tools
+# Gemini CLI File System Tools: Interacting with Your Local Environment
 
-The Gemini CLI provides a comprehensive suite of tools for interacting with the local file system. These tools allow the Gemini model to read from, write to, list, search, and modify files and directories, all under your control and typically with confirmation for sensitive operations.
+The Gemini CLI offers a comprehensive suite of built-in tools designed for seamless interaction with your local file system. These tools empower the Gemini model to perform operations such as reading, writing, listing, searching, and modifying files and directories, all while maintaining user control and typically requiring explicit confirmation for sensitive actions.
 
-**Note:** All file system tools operate within a `rootDirectory` (usually the current working directory where you launched the CLI) for security. Paths that you provide to these tools are generally expected to be absolute or are resolved relative to this root directory.
+**Important Note on Paths:** For security and predictability, all file system tools operate within a defined `rootDirectory` (which is typically the current working directory from where you launched the CLI). All paths provided to these tools are expected to be **absolute paths** or are resolved relative to this root directory.
 
 ## 1. `list_directory` (ReadFolder)
 
@@ -225,5 +225,7 @@ The Gemini CLI provides a comprehensive suite of tools for interacting with the 
   - On success: `Successfully modified file: /path/to/file.txt (1 replacements).` or `Created new file: /path/to/new_file.txt with provided content.`
   - On failure: An error message explaining the reason (e.g., `Failed to edit, 0 occurrences found...`, `Failed to edit, expected 1 occurrences but found 2...`).
 - **Confirmation:** Yes. Shows a diff of the proposed changes and asks for user approval before writing to the file.
+
+These file system tools provide a foundation for the Gemini CLI to understand and interact with your local project context.
 
 These file system tools provide a foundation for the Gemini CLI to understand and interact with your local project context.

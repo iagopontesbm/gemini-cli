@@ -166,7 +166,7 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     }
     ```
 - **`usageStatisticsEnabled`** (boolean):
-  - **Description:** Enables or disables the collection of usage statistics. See [Usage Statistics](#usage-statistics) for more information.
+  - **Description:** Enables or disables the collection of usage statistics. This setting controls a specific subset of telemetry data related to general CLI usage. See [Usage Statistics](#usage-statistics) for more information.
   - **Default:** `true`
   - **Example:**
     ```json
@@ -210,13 +210,18 @@ The CLI keeps a history of shell commands you run. To avoid conflicts between di
 
 ## Environment Variables & `.env` Files
 
-Environment variables are a common way to configure applications, especially for sensitive information like API keys or for settings that might change between environments.
-
-The CLI automatically loads environment variables from an `.env` file. The loading order is:
+Environment variables are a fundamental way to configure applications, especially for sensitive information like API keys or for settings that vary between different environments. The CLI automatically loads environment variables from `.env` files, following a specific loading order:
 
 1.  `.env` file in the current working directory.
 2.  If not found, it searches upwards in parent directories until it finds an `.env` file or reaches the project root (identified by a `.git` folder) or the home directory.
 3.  If still not found, it looks for `~/.env` (in the user's home directory).
+
+### Best Practices for Environment Variables
+
+-   **Security:** Never hardcode sensitive information (like API keys, secrets, or credentials) directly into your code or commit them to version control. Always use environment variables.
+-   **`.env` Files:** For local development, use `.env` files to manage environment variables. Ensure your `.env` file is added to your `.gitignore` to prevent accidental exposure.
+-   **Consistency:** Use a consistent naming convention for your environment variables (e.g., `UPPER_SNAKE_CASE`).
+-   **Documentation:** Document any required environment variables for your project, including their purpose and expected values.
 
 - **`GEMINI_API_KEY`** (Required):
   - Your API key for the Gemini API.
@@ -383,10 +388,10 @@ FROM gemini-cli-sandbox
 # COPY ./my-config /app/my-config
 ```
 
-When `.gemini/sandbox.Dockerfile` exists, you can use `BUILD_SANDBOX` environment variable when running Gemini CLI to automatically build the custom sandbox image:
+When `.gemini/sandbox.Dockerfile` exists, you can use the `BUILD_SANDBOX` environment variable when running Gemini CLI to automatically build the custom sandbox image. This ensures your custom sandbox environment is ready before the CLI starts:
 
 ```bash
-BUILD_SANDBOX=1 gemini -s
+BUILD_SANDBOX=1 npm start -- --sandbox # Or 'gemini -s' if you have an alias
 ```
 
 ## Usage Statistics

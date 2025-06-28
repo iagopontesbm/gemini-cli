@@ -1,8 +1,8 @@
 # Gemini CLI: Terms of Service and Privacy Notice
 
-Gemini CLI is an open-source tool that allows you to interact with Google's powerful language models directly from your command-line interface. The terms of service and privacy notices that apply to your usage of Gemini CLI depend on the type of account you use to authenticate with Google.
+Gemini CLI is an open-source tool that facilitates interaction with Google's powerful language models directly from your command-line interface. The specific terms of service and privacy notices that apply to your usage of Gemini CLI are determined by the type of account you use to authenticate with Google's services.
 
-This article outlines the specific terms and privacy policies applicable for different auth methods.
+This document outlines the applicable terms and privacy policies for each authentication method, ensuring transparency regarding data handling and usage.
 
 ## 1. Login with Google (Gemini Code Assist for [individuals](https://developers.google.com/gemini-code-assist/docs/overview#supported-features-gca))
 

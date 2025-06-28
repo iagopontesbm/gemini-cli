@@ -1,6 +1,6 @@
-# Memory Tool (`save_memory`)
+# Memory Tool (`save_memory`): Persistent AI Context
 
-This document describes the `save_memory` tool for the Gemini CLI.
+This document describes the `save_memory` tool, a powerful feature within the Gemini CLI that allows you to establish persistent context for the AI across your sessions. By leveraging `save_memory`, you can direct the CLI to remember crucial details, preferences, or project-specific information, enabling more personalized and consistently accurate assistance.
 
 ## Description
 

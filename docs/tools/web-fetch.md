@@ -38,7 +38,9 @@ Compare two articles:
 web_fetch(prompt="What are the differences in the conclusions of these two papers: https://arxiv.org/abs/2401.0001 and https://arxiv.org/abs/2401.0002?")
 ```
 
-## Important notes
+## Important Notes and Considerations
 
-- **URL processing:** `web_fetch` relies on the Gemini API's ability to access and process the given URLs.
-- **Output quality:** The quality of the output will depend on the clarity of the instructions in the prompt.
+-   **URL Accessibility:** `web_fetch` primarily relies on the Gemini API's ability to access and process the provided URLs. Factors like website firewalls, robots.txt rules, or dynamic content rendering (client-side JavaScript) can affect accessibility.
+-   **Output Quality:** The quality and relevance of the generated output are highly dependent on the clarity and specificity of the instructions within your `prompt`. Provide precise questions or tasks for the best results.
+-   **Confirmation:** Always review the confirmation prompt before allowing the tool to fetch content from external URLs, especially if you are unsure about the source.
+-   **Rate Limits:** Be mindful of API rate limits when making frequent `web_fetch` calls.

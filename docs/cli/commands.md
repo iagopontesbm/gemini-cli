@@ -1,6 +1,6 @@
-# CLI Commands
+# Gemini CLI Commands Reference
 
-Gemini CLI supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
+The Gemini CLI provides a powerful set of built-in commands to help you manage your interactive sessions, customize the interface, and control the CLI's behavior. These commands are categorized by their prefix: a forward slash (`/`) for meta-level controls, an at symbol (`@`) for file and directory context injection, and an exclamation mark (`!`) for direct shell interaction.
 
 ## Slash commands (`/`)
 
@@ -111,22 +111,20 @@ At commands are used to include the content of files or directories as part of y
 - If the path specified after `@` is not found or is invalid, an error message will be displayed, and the query might not be sent to the Gemini model, or it will be sent without the file content.
 - If the `read_many_files` tool encounters an error (e.g., permission issues), this will also be reported.
 
-## Shell mode & passthrough commands (`!`)
+## Shell Mode & Passthrough Commands (`!`)
 
-The `!` prefix lets you interact with your system's shell directly from within Gemini CLI.
+The `!` prefix allows you to interact directly with your system's shell from within the Gemini CLI, enabling you to execute shell commands or toggle into an interactive shell mode.
 
 - **`!<shell_command>`**
-  - **Description:** Execute the given `<shell_command>` in your system's default shell. Any output or errors from the command are displayed in the terminal.
+  - **Description:** Executes the specified `<shell_command>` in your system's default shell. All standard output and errors from the command are displayed directly in the terminal, and control returns to the Gemini CLI upon completion.
   - **Examples:**
-    - `!ls -la` (executes `ls -la` and returns to Gemini CLI)
-    - `!git status` (executes `git status` and returns to Gemini CLI)
+    - `!ls -la` (Executes `ls -la` and displays its output.)
+    - `!git status` (Executes `git status` to check repository status.)
+    - `!npm test` (Runs your project's test suite.)
 
-- **`!` (Toggle shell mode)**
-  - **Description:** Typing `!` on its own toggles shell mode.
-    - **Entering shell mode:**
-      - When active, shell mode uses a different coloring and a "Shell Mode Indicator".
-      - While in shell mode, text you type is interpreted directly as a shell command.
-    - **Exiting shell mode:**
-      - When exited, the UI reverts to its standard appearance and normal Gemini CLI behavior resumes.
+- **`!` (Toggle Shell Mode)**
+  - **Description:** Typing a lone `!` symbol toggles the interactive shell mode.
+    - **Entering Shell Mode:** When active, the CLI's interface changes (e.g., different coloring, a "Shell Mode Indicator") to signify that all subsequent input will be interpreted as direct shell commands. This allows for a continuous shell interaction without needing to prefix each command with `!`.
+    - **Exiting Shell Mode:** Typing `!` again (or `exit` if the underlying shell supports it) reverts the UI to its standard appearance and resumes normal Gemini CLI behavior.
 
-- **Caution for all `!` usage:** Commands you execute in shell mode have the same permissions and impact as if you ran them directly in your terminal.
+- **Caution for all `!` usage:** Commands executed via `!` (both single commands and within shell mode) run with the same permissions and potential impact as if you executed them directly in your native terminal. **If sandboxing is enabled, these commands will be executed within the configured sandbox environment, providing an additional layer of isolation and security.** Always exercise caution when running shell commands, especially those that modify your file system or system state.
