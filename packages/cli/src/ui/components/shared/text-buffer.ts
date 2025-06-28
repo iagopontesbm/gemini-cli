@@ -571,8 +571,6 @@ export function useTextBuffer({
 
       const expandedOps: UpdateOperation[] = [];
 
-      // Track if we just inserted a CJK character in THIS batch to detect IME patterns
-      let justInsertedCJK = false;
 
       // Detect IME bug pattern: CJK character followed by 0x7f
       // This pattern causes each new character to delete the previous one
@@ -594,7 +592,7 @@ export function useTextBuffer({
       };
 
       // Process operations to track CJK insertions first
-      let trackingOps: Array<{ op: UpdateOperation; isCJK: boolean }> = [];
+      const trackingOps: Array<{ op: UpdateOperation; isCJK: boolean }> = [];
       for (let i = 0; i < ops.length; i++) {
         const op = ops[i];
         let isCJK = false;
@@ -623,7 +621,7 @@ export function useTextBuffer({
       };
 
       for (let i = 0; i < trackingOps.length; i++) {
-        const { op, isCJK } = trackingOps[i];
+        const { op } = trackingOps[i];
         if (op.type === 'insert') {
           // Check for IME bug patterns
           if (isIMEBugPattern(op.payload) || isSingleCharIMEBackspace(i)) {
@@ -634,10 +632,6 @@ export function useTextBuffer({
 
             if (filtered.length > 0) {
               expandedOps.push({ type: 'insert', payload: filtered });
-              // Update tracking: we just inserted CJK chars
-              if (filtered.split('').some((c) => c.charCodeAt(0) > 127)) {
-                justInsertedCJK = true;
-              }
             }
 
             // Log for debugging
@@ -661,7 +655,6 @@ export function useTextBuffer({
             ) {
               // This is IME pattern: skip the 0x7f and insert the CJK chars
               expandedOps.push({ type: 'insert', payload: afterBackspace });
-              justInsertedCJK = true;
 
               if (process.env.DEBUG_IME) {
                 console.log(
@@ -695,17 +688,10 @@ export function useTextBuffer({
             }
             if (currentText.length > 0) {
               expandedOps.push({ type: 'insert', payload: currentText });
-              // Track if we inserted CJK
-              if (currentText.split('').some((c) => c.charCodeAt(0) > 127)) {
-                justInsertedCJK = true;
-              } else {
-                justInsertedCJK = false;
-              }
             }
           }
         } else {
           expandedOps.push(op);
-          justInsertedCJK = false; // Reset on non-insert operations
         }
       }
 
