@@ -184,4 +184,17 @@ describe('InputPrompt', () => {
     expect(props.onSubmit).toHaveBeenCalledWith('some text');
     unmount();
   });
+
+  it('should move cursor to home on "home" key press', async () => {
+    props.buffer.setText('some text');
+    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    await wait();
+
+    stdin.write('\u001b[H'); // Home key
+    await wait();
+
+    expect(props.buffer.move).toHaveBeenCalledWith('home');
+    expect(props.buffer.moveToOffset).toHaveBeenCalledWith(0);
+    unmount();
+  });
 });
