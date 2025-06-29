@@ -1265,7 +1265,7 @@ export function useTextBuffer({
         move('wordRight');
    else if (key.meta && key.name === 'f') move('wordRight');
       else if (key.name === 'home') move('home');
-      else if (key.name === 'pos1') move('home');
+      else if (key.name === 'home' || key.name === 'pos1') move('home');
       else if (key.ctrl && key.name === 'a') move('home');
       else if (key.name === 'end') move('end');
       else if (key.ctrl && key.name === 'e') move('end');
