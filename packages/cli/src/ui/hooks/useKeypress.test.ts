@@ -143,7 +143,7 @@ describe('useKeypress Hook', () => {
 
     expect(dataListener).toBeDefined();
 
-    const pastedContent = 'Text with \x1b[A escape';
+    const pastedContent = 'Text with \x1b[A escape \x1b[B';
     act(() => {
       dataListener(Buffer.from(`\x1b[200~${pastedContent}\x1b[201~`));
     });

@@ -185,13 +185,9 @@ export function useKeypress(
             pasteBufferRef.current = '';
             isPasteModeRef.current = false;
             remainingInput = remainingInput.slice(endMarkerIndex + 6);
-            if (pasteTimeoutRef.current) {
-              clearTimeout(pasteTimeoutRef.current);
-              pasteTimeoutRef.current = null;
-            }
             continue;
           } else {
-            // Check for non-paste escape sequences (e.g., arrow keys)
+            // Check for non-paste escape sequences (e.g., arrow keys) to interrupt paste
             const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
             if (nonPasteSequences.some((seq) => remainingInput.startsWith(seq))) {
               resetPasteState();
@@ -243,7 +239,12 @@ export function useKeypress(
             remainingInput = '';
             break;
           } else {
-            break; // Let readline handle it
+            // Check for non-paste escape sequences (e.g., arrow keys) outside paste mode
+            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
+            if (nonPasteSequences.some((seq) => remainingInput.startsWith(seq))) {
+              break; // Let readline handle the input
+            }
+            break; // Let readline handle other input
           }
         }
       }
