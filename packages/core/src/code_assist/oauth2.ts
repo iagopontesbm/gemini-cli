@@ -41,6 +41,7 @@ const SIGN_IN_FAILURE_URL =
 
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
+const GAIA_ID_FILENAME = 'gaia_id';
 
 /**
  * An Authentication URL for updating the credentials of a Oauth2Client
@@ -60,6 +61,21 @@ export async function getOauthClient(): Promise<OAuth2Client> {
 
   if (await loadCachedCredentials(client)) {
     // Found valid cached credentials.
+    // Check if we need to retrieve GAIA ID
+    if (!getCachedGaiaId()) {
+      try {
+        const gaiaId = await getGaiaId(client);
+        if (gaiaId) {
+          await cacheGaiaId(gaiaId);
+        }
+      } catch (error) {
+        console.error(
+          'Failed to retrieve GAIA ID for existing credentials:',
+          error,
+        );
+        // Continue with existing auth flow
+      }
+    }
     return client;
   }
 
@@ -115,6 +131,20 @@ async function authWithWeb(client: OAuth2Client): Promise<OauthWebLogin> {
           });
           client.setCredentials(tokens);
           await cacheCredentials(client.credentials);
+
+          // Retrieve and cache GAIA ID during authentication
+          try {
+            const gaiaId = await getGaiaId(client);
+            if (gaiaId) {
+              await cacheGaiaId(gaiaId);
+            }
+          } catch (error) {
+            console.error(
+              'Failed to retrieve GAIA ID during authentication:',
+              error,
+            );
+            // Don't fail the auth flow if GAIA ID retrieval fails
+          }
 
           res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
           res.end();
@@ -193,10 +223,74 @@ function getCachedCredentialPath(): string {
   return path.join(os.homedir(), GEMINI_DIR, CREDENTIAL_FILENAME);
 }
 
+function getGaiaIdCachePath(): string {
+  return path.join(os.homedir(), GEMINI_DIR, GAIA_ID_FILENAME);
+}
+
+async function cacheGaiaId(gaiaId: string): Promise<void> {
+  const filePath = getGaiaIdCachePath();
+  await fs.mkdir(path.dirname(filePath), { recursive: true });
+  await fs.writeFile(filePath, gaiaId, 'utf-8');
+}
+
+export function getCachedGaiaId(): string | null {
+  try {
+    const filePath = getGaiaIdCachePath();
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, no-restricted-syntax
+    const fs_sync = require('fs');
+    if (fs_sync.existsSync(filePath)) {
+      return fs_sync.readFileSync(filePath, 'utf-8').trim() || null;
+    }
+    return null;
+  } catch (_error) {
+    return null;
+  }
+}
+
 export async function clearCachedCredentialFile() {
   try {
     await fs.rm(getCachedCredentialPath());
+    // Clear the GAIA ID cache when credentials are cleared
+    await fs.rm(getGaiaIdCachePath());
   } catch (_) {
     /* empty */
+  }
+}
+
+/**
+ * Retrieves the authenticated user's GAIA ID from Google's UserInfo API.
+ * @param client - The authenticated OAuth2Client
+ * @returns The user's GAIA ID (Google Account ID) or null if not available
+ */
+export async function getGaiaId(client: OAuth2Client): Promise<string | null> {
+  try {
+    const { token } = await client.getAccessToken();
+    if (!token) {
+      return null;
+    }
+
+    const response = await fetch(
+      'https://www.googleapis.com/oauth2/v2/userinfo',
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      console.error(
+        'Failed to fetch user info:',
+        response.status,
+        response.statusText,
+      );
+      return null;
+    }
+
+    const userInfo = await response.json();
+    return userInfo.id || null;
+  } catch (error) {
+    console.error('Error retrieving GAIA ID:', error);
+    return null;
   }
 }
