@@ -19,7 +19,7 @@ export const UserMessage: React.FC<UserMessageProps> = ({ text }) => {
   return (
     <Box
       borderStyle="round"
-      borderColor="gray"
+      borderColor={Colors.Gray}
       flexDirection="row"
       paddingX={2}
       paddingY={0}
