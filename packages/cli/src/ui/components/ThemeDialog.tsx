@@ -12,6 +12,8 @@ import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { DiffRenderer } from './messages/DiffRenderer.js';
 import { colorizeCode } from '../utils/CodeColorizer.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
+import { CustomTheme, createDefaultCustomTheme } from '../themes/theme.js';
+import { CustomThemeEditor } from './CustomThemeEditor.js';
 
 interface ThemeDialogProps {
   /** Callback function when a theme is selected */
@@ -19,6 +21,13 @@ interface ThemeDialogProps {
 
   /** Callback function when a theme is highlighted */
   onHighlight: (themeName: string | undefined) => void;
+
+  /** Callback function when a custom theme is saved */
+  onCustomThemeSave?: (customTheme: CustomTheme, scope: SettingScope) => void;
+
+  /** Callback function when a custom theme is deleted */
+  onCustomThemeDelete?: (themeName: string, scope: SettingScope) => void;
+
   /** The settings object */
   settings: LoadedSettings;
   availableTerminalHeight?: number;
@@ -28,6 +37,8 @@ interface ThemeDialogProps {
 export function ThemeDialog({
   onSelect,
   onHighlight,
+  onCustomThemeSave,
+  onCustomThemeDelete,
   settings,
   availableTerminalHeight,
   terminalWidth,
@@ -35,22 +46,40 @@ export function ThemeDialog({
   const [selectedScope, setSelectedScope] = useState<SettingScope>(
     SettingScope.User,
   );
+  const [showCustomThemeEditor, setShowCustomThemeEditor] = useState(false);
+  const [editingTheme, setEditingTheme] = useState<CustomTheme | undefined>();
 
   // Generate theme items
-  const themeItems = themeManager.getAvailableThemes().map((theme) => {
+  const availableThemes = themeManager.getAvailableThemes();
+  const themeItems = availableThemes.map((theme) => {
     const typeString = theme.type.charAt(0).toUpperCase() + theme.type.slice(1);
+    const label = theme.isCustom ? `[Custom] ${theme.name}` : theme.name;
     return {
-      label: theme.name,
+      label,
       value: theme.name,
       themeNameDisplay: theme.name,
       themeTypeDisplay: typeString,
+      isCustom: theme.isCustom,
     };
   });
+
+  // Add "Create Custom Theme" option
+  const themeItemsWithCreate = [
+    ...themeItems,
+    {
+      label: '[Create Custom Theme]',
+      value: '__CREATE_CUSTOM__',
+      themeNameDisplay: 'Create Custom Theme',
+      themeTypeDisplay: 'Custom',
+      isCustom: false,
+    },
+  ];
+
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
   // Determine which radio button should be initially selected in the theme list
   // This should reflect the theme *saved* for the selected scope, or the default
-  const initialThemeIndex = themeItems.findIndex(
+  const initialThemeIndex = themeItemsWithCreate.findIndex(
     (item) => item.value === (settings.merged.theme || DEFAULT_THEME.name),
   );
 
@@ -60,7 +89,23 @@ export function ThemeDialog({
   ];
 
   const handleThemeSelect = (themeName: string) => {
-    onSelect(themeName, selectedScope);
+    if (themeName === '__CREATE_CUSTOM__') {
+      // Pre-fill with a default custom theme based on the current theme type
+      const currentTheme = themeManager.findThemeByName(settings.merged.theme) || DEFAULT_THEME;
+      const defaultType = currentTheme.type === 'light' ? 'light' : 'dark';
+      setEditingTheme(createDefaultCustomTheme('New Custom Theme', defaultType));
+      setShowCustomThemeEditor(true);
+      return;
+    }
+
+    const selectedTheme = availableThemes.find(t => t.name === themeName);
+    if (selectedTheme?.isCustom) {
+      // For custom themes, we could add edit/delete options here
+      // For now, just select the theme
+      onSelect(themeName, selectedScope);
+    } else {
+      onSelect(themeName, selectedScope);
+    }
   };
 
   const handleScopeHighlight = (scope: SettingScope) => {
@@ -73,11 +118,30 @@ export function ThemeDialog({
     setFocusedSection('theme'); // Reset focus to theme section
   };
 
+  const handleCustomThemeSave = (customTheme: CustomTheme, scope: SettingScope) => {
+    if (onCustomThemeSave) {
+      onCustomThemeSave(customTheme, scope);
+    }
+    setShowCustomThemeEditor(false);
+    setEditingTheme(undefined);
+    setSelectInputKey(Date.now()); // Refresh the theme list
+  };
+
+  const handleCustomThemeCancel = () => {
+    setShowCustomThemeEditor(false);
+    setEditingTheme(undefined);
+  };
+
   const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>(
     'theme',
   );
 
   useInput((input, key) => {
+    if (showCustomThemeEditor) {
+      // Let the CustomThemeEditor handle input
+      return;
+    }
+
     if (key.tab) {
       setFocusedSection((prev) => (prev === 'theme' ? 'scope' : 'theme'));
     }
@@ -85,6 +149,19 @@ export function ThemeDialog({
       onSelect(undefined, selectedScope);
     }
   });
+
+  // If custom theme editor is open, show it instead of the main dialog
+  if (showCustomThemeEditor) {
+    return (
+      <CustomThemeEditor
+        onSave={handleCustomThemeSave}
+        onCancel={handleCustomThemeCancel}
+        settings={settings}
+        existingTheme={editingTheme}
+        terminalWidth={terminalWidth}
+      />
+    );
+  }
 
   let otherScopeModifiedMessage = '';
   const otherScope =
@@ -109,14 +186,14 @@ export function ThemeDialog({
   const colorizeCodeWidth = Math.max(
     Math.floor(
       (terminalWidth - TOTAL_HORIZONTAL_PADDING) *
-        PREVIEW_PANE_WIDTH_PERCENTAGE *
-        PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
+      PREVIEW_PANE_WIDTH_PERCENTAGE *
+      PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
     ),
     1,
   );
 
   const DAILOG_PADDING = 2;
-  const selectThemeHeight = themeItems.length + 1;
+  const selectThemeHeight = themeItemsWithCreate.length + 1;
   const SCOPE_SELECTION_HEIGHT = 4; // Height for the scope selection section + margin.
   const SPACE_BETWEEN_THEME_SELECTION_AND_APPLY_TO = 1;
   const TAB_TO_SELECT_HEIGHT = 2;
@@ -185,7 +262,7 @@ export function ThemeDialog({
           </Text>
           <RadioButtonSelect
             key={selectInputKey}
-            items={themeItems}
+            items={themeItemsWithCreate}
             initialIndex={initialThemeIndex}
             onSelect={handleThemeSelect}
             onHighlight={onHighlight}
