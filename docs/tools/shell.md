@@ -59,3 +59,23 @@ run_shell_command(command="npm run dev &", description="Start development server
 - **Interactive commands:** Avoid commands that require interactive user input, as this can cause the tool to hang. Use non-interactive flags if available (e.g., `npm init -y`).
 - **Error handling:** Check the `Stderr`, `Error`, and `Exit Code` fields to determine if a command executed successfully.
 - **Background processes:** When a command is run in the background with `&`, the tool will return immediately and the process will continue to run in the background. The `Background PIDs` field will contain the process ID of the background process.
+
+## Command Restrictions
+
+You can restrict the commands that can be executed by the `run_shell_command` tool by using the `coreTools` and `excludeTools` settings in your configuration file.
+
+- `coreTools`: If you want to restrict the `run_shell_command` tool to a specific set of commands, you can add entries to the `coreTools` list in the format `ShellTool(<command>)`. For example, `"coreTools": ["ShellTool(ls -l)"]` will only allow the `ls -l` command to be executed.
+- `excludeTools`: If you want to block specific commands, you can add entries to the `excludeTools` list in the format `ShellTool(<command>)`. For example, `"excludeTools": ["ShellTool(rm -rf /)"]` will block the `rm -rf /` command.
+
+Example:
+
+```json
+{
+  "coreTools": ["ShellTool(ls -l)", "ShellTool(git status)"],
+  "excludeTools": ["ShellTool(rm -rf /)"]
+}
+```
+
+**Security Note:** Command-specific restrictions in
+`excludeTools` for `run_shell_command` are based on simple string matching and can be easily bypassed. This feature is **not a security mechanism** and should not be relied upon to safely execute untrusted code. It is recommended to use `coreTools` to explicitly select commands
+that can be executed.
