@@ -116,7 +116,8 @@ function redactObject(
   // Use WeakSet to detect and handle circular references
   if (typeof obj === 'object') {
     if (seen.has(obj)) {
-      return '[CIRCULAR]';
+      // Return a circular reference marker object instead of string
+      return { '[CIRCULAR_REFERENCE]': true };
     }
     seen.add(obj);
   }
@@ -139,7 +140,15 @@ function redactObject(
 
   for (const [key, value] of Object.entries(obj)) {
     if (isSensitiveKey(key)) {
-      result[key] = REDACTED_VALUE;
+      // For sensitive keys, preserve null/undefined values
+      if (value === null || value === undefined) {
+        result[key] = value;
+      } else if (typeof value === 'object') {
+        // For objects and arrays in sensitive keys, recursively redact their contents
+        result[key] = redactObject(value, depth + 1, seen);
+      } else {
+        result[key] = REDACTED_VALUE;
+      }
     } else if (typeof value === 'string' && isSensitiveValue(value)) {
       result[key] = REDACTED_VALUE;
     } else {
@@ -180,6 +189,10 @@ export function redactSecrets(data: unknown): unknown {
   } catch (error) {
     // If redaction fails, return a safe placeholder
     console.warn('Failed to redact secrets from data:', error);
+    // Return an object placeholder if the input was an object
+    if (data !== null && typeof data === 'object') {
+      return { '[REDACTION_FAILED]': true };
+    }
     return '[REDACTION_FAILED]';
   }
 }
