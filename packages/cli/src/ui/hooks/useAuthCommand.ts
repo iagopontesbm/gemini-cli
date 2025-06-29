@@ -25,14 +25,15 @@ async function performManualAuthFlow(
 ) {
   // For manual auth, we need to get the URLs first before starting the auth flow
   const { getManualOauthInfo } = await import('@google/gemini-cli-core');
-  
+
   try {
-    const manualInfo = await getManualOauthInfo();
+    const oauthPort = config.getOAuthPort();
+    const manualInfo = await getManualOauthInfo(oauthPort);
     setManualAuthInfo({
       authUrl: manualInfo.authUrl,
       callbackUrl: manualInfo.callbackUrl,
     });
-    
+
     // Wait for the manual auth to complete
     await manualInfo.loginCompletePromise;
     console.log(`Authenticated via "${authMethod}".`);
@@ -74,7 +75,7 @@ export const useAuthCommand = (
       try {
         setIsAuthenticating(true);
         const authType = settings.merged.selectedAuthType as AuthType;
-        
+
         if (authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
           await performManualAuthFlow(authType, config, setManualAuthInfo);
         } else {
