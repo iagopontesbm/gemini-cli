@@ -612,8 +612,7 @@ export function useTextBuffer({
           const prevLineContent = currentLine(newCursorRow - 1);
           const currentLineContentVal = currentLine(newCursorRow);
           const newCol = cpLen(prevLineContent);
-          newLines[newCursorRow - 1] =
-            prevLineContent + currentLineContentVal;
+          newLines[newCursorRow - 1] = prevLineContent + currentLineContentVal;
           newLines.splice(newCursorRow, 1);
           newCursorRow--;
           newCursorCol = newCol;
