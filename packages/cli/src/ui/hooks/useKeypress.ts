@@ -23,7 +23,8 @@ export interface Key {
  * indicating whether the input is a paste. Paste detection primarily uses a raw
  * input listener to capture full paste content, with a timeout-based heuristic
  * (grouping rapid keypresses within 10ms) as a fallback. Bracketed paste mode
- * (\x1b[200~ and \x1b[201~) is optional and used only if enabled and supported.
+ * (\x1b[200~ and \x1b[201~) is automatically enabled if the terminal supports it,
+ * determined by TTY status, TERM environment variable, and successful enabling.
  *
  * Pasted content is sent as a single key event with the full paste in the
  * sequence field and paste set to true, ensuring all characters are captured.
@@ -33,14 +34,10 @@ export interface Key {
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
  * @param options.isActive - Whether the hook should be actively listening for input.
- * @param options.enableBracketedPaste - Whether to attempt enabling bracketed paste mode (default: false).
  */
 export function useKeypress(
   onKeypress: (key: Key) => void,
-  {
-    isActive,
-    enableBracketedPaste = false,
-  }: { isActive: boolean; enableBracketedPaste?: boolean },
+  { isActive }: { isActive: boolean },
 ) {
   const { stdin, setRawMode } = useStdin();
   const onKeypressRef = useRef(onKeypress);
@@ -49,6 +46,7 @@ export function useKeypress(
   const isPasteModeRef = useRef(false);
   const pasteBufferRef = useRef<string>('');
   const pasteHandledRef = useRef(false);
+  const isBracketedPasteSupportedRef = useRef(false);
 
   useEffect(() => {
     onKeypressRef.current = onKeypress;
@@ -63,12 +61,30 @@ export function useKeypress(
     const rl = readline.createInterface({ input: stdin });
     readline.emitKeypressEvents(stdin, rl);
 
-    // Enable bracketed paste mode if requested and stdin is writable
-    if (enableBracketedPaste && stdin.writable) {
+    // Detect bracketed paste support
+    const term = process.env.TERM?.toLowerCase() || '';
+    const knownSupportedTerms = [
+      'xterm',
+      'screen',
+      'tmux',
+      'rxvt',
+      'linux',
+      'cygwin',
+      'st',
+      'alacritty',
+      'kitty',
+    ];
+    const isLikelySupported =
+      stdin.writable &&
+      knownSupportedTerms.some((supportedTerm) => term.includes(supportedTerm));
+
+    if (isLikelySupported) {
       try {
         stdin.write('\x1b[?2004h');
+        isBracketedPasteSupportedRef.current = true;
       } catch (err) {
-        // Silently handle error
+        // Silently handle error, fallback to other detection methods
+        isBracketedPasteSupportedRef.current = false;
       }
     }
 
@@ -97,7 +113,7 @@ export function useKeypress(
     const handleRawData = (data: Buffer) => {
       const input = data.toString();
 
-      if (enableBracketedPaste) {
+      if (isBracketedPasteSupportedRef.current) {
         // Parse input for bracketed paste sequences
         let remainingInput = input;
         while (remainingInput.length > 0) {
@@ -144,11 +160,6 @@ export function useKeypress(
         }
 
         // Handle remaining non-paste input
-        // Note: This block (lines ~120–130) previously caused duplicate paste events
-        // because multi-character input was processed as a paste here and again
-        // by handleKeypress via readline keypress events. Now, pasteHandledRef
-        // ensures handleKeypress skips these events, and keyBufferRef is cleared
-        // after a paste to prevent duplicate buffering.
         if (remainingInput.length > 0 && !isPasteModeRef.current) {
           if (remainingInput.length > 1) {
             pasteHandledRef.current = true;
@@ -218,8 +229,8 @@ export function useKeypress(
       rl.close();
       setRawMode(false);
 
-      // Disable bracketed paste mode if enabled
-      if (enableBracketedPaste && stdin.writable) {
+      // Disable bracketed paste mode if it was enabled
+      if (isBracketedPasteSupportedRef.current && stdin.writable) {
         try {
           stdin.write('\x1b[?2004l');
         } catch (err) {
@@ -250,6 +261,7 @@ export function useKeypress(
       pasteBufferRef.current = '';
       keyBufferRef.current = [];
       pasteHandledRef.current = false;
+      isBracketedPasteSupportedRef.current = false;
     };
-  }, [isActive, stdin, setRawMode, enableBracketedPaste]);
+  }, [isActive, stdin, setRawMode]);
 }
