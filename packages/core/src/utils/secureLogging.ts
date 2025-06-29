@@ -169,7 +169,7 @@ function redactEnvironment(
 
   for (const [key, value] of Object.entries(env)) {
     if (isSensitiveKey(key)) {
-      result[key] = value ? REDACTED_VALUE : value;
+      result[key] = value === undefined ? value : REDACTED_VALUE;
     } else if (value && isSensitiveValue(value)) {
       result[key] = REDACTED_VALUE;
     } else {
