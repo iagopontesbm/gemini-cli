@@ -160,6 +160,7 @@ export class Turn {
   async *run(
     req: PartListUnion,
     signal: AbortSignal,
+    isManualOverride?: boolean,
   ): AsyncGenerator<ServerGeminiStreamEvent> {
     const startTime = Date.now();
     try {
@@ -168,7 +169,7 @@ export class Turn {
         config: {
           abortSignal: signal,
         },
-      });
+      }, isManualOverride);
 
       for await (const resp of responseStream) {
         if (signal?.aborted) {

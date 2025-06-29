@@ -253,6 +253,7 @@ export class GeminiClient {
     request: PartListUnion,
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
+    isManualOverride?: boolean,
   ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
     if (!turns) {
       return new Turn(this.getChat());
@@ -263,7 +264,7 @@ export class GeminiClient {
       yield { type: GeminiEventType.ChatCompressed, value: compressed };
     }
     const turn = new Turn(this.getChat());
-    const resultStream = turn.run(request, signal);
+    const resultStream = turn.run(request, signal, isManualOverride);
     for await (const event of resultStream) {
       yield event;
     }
@@ -277,7 +278,7 @@ export class GeminiClient {
         const nextRequest = [{ text: 'Please continue.' }];
         // This recursive call's events will be yielded out, but the final
         // turn object will be from the top-level call.
-        yield* this.sendMessageStream(nextRequest, signal, turns - 1);
+        yield* this.sendMessageStream(nextRequest, signal, turns - 1, isManualOverride);
       }
     }
     return turn;
