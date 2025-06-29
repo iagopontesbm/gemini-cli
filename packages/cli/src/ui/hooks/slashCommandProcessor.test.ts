@@ -342,6 +342,25 @@ describe('useSlashCommandProcessor', () => {
         expect.any(Number),
       );
     });
+
+    it('should show tool-specific statistics when using /stats tools', async () => {
+      // Arrange
+      const { handleSlashCommand } = getProcessor();
+
+      // Act
+      await act(async () => {
+        handleSlashCommand('/stats tools');
+      });
+
+      // Assert
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2, // Called after the user message
+        expect.objectContaining({
+          type: MessageType.TOOL_STATS,
+        }),
+        expect.any(Number),
+      );
+    });
   });
 
   describe('/about command', () => {

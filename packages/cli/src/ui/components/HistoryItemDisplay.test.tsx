@@ -81,6 +81,21 @@ describe('<HistoryItemDisplay />', () => {
     );
   });
 
+  it('renders ToolStatsDisplay for "tool_stats" type', () => {
+    const item: HistoryItem = {
+      ...baseItem,
+      type: 'tool_stats',
+    };
+    const { lastFrame } = render(
+      <SessionStatsProvider>
+        <HistoryItemDisplay {...baseItem} item={item} />
+      </SessionStatsProvider>,
+    );
+    expect(lastFrame()).toContain(
+      'No tool calls have been made in this session.',
+    );
+  });
+
   it('renders SessionSummaryDisplay for "quit" type', () => {
     const item: HistoryItem = {
       ...baseItem,

@@ -9,24 +9,16 @@ import { Box, Text } from 'ink';
 import { Colors } from '../colors.js';
 import { formatDuration } from '../utils/formatters.js';
 import { useSessionStats, ModelMetrics } from '../contexts/SessionContext.js';
+import {
+  getStatusColor,
+  TOOL_SUCCESS_RATE_HIGH,
+  TOOL_SUCCESS_RATE_MEDIUM,
+  USER_AGREEMENT_RATE_HIGH,
+  USER_AGREEMENT_RATE_MEDIUM,
+  CACHE_EFFICIENCY_HIGH,
+  CACHE_EFFICIENCY_MEDIUM,
+} from '../utils/displayUtils.js';
 import { computeSessionStats } from '../utils/computeStats.js';
-
-// Helper function to determine status color based on thresholds
-const getStatusColor = (
-  value: number,
-  thresholds: { green: number; yellow: number },
-  // Adding an optional third tier for metrics that don't have a "Red" state
-  options: { defaultColor?: string } = {},
-) => {
-  if (value >= thresholds.green) {
-    return Colors.AccentGreen;
-  }
-  if (value >= thresholds.yellow) {
-    return Colors.AccentYellow;
-  }
-  // Fallback to a neutral default color or an error color (Red)
-  return options.defaultColor || Colors.AccentRed;
-};
 
 // A more flexible and powerful StatRow component
 interface StatRowProps {
@@ -134,13 +126,22 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ duration }) => {
   const { models, tools } = metrics;
   const computed = computeSessionStats(metrics);
 
-  const cacheThresholds = { green: 40, yellow: 15 };
+  const cacheThresholds = {
+    green: CACHE_EFFICIENCY_HIGH,
+    yellow: CACHE_EFFICIENCY_MEDIUM,
+  };
   const cacheColor = getStatusColor(computed.cacheEfficiency, cacheThresholds, {
     defaultColor: Colors.Foreground,
   });
 
-  const successThresholds = { green: 95, yellow: 85 };
-  const agreementThresholds = { green: 80, yellow: 60 };
+  const successThresholds = {
+    green: TOOL_SUCCESS_RATE_HIGH,
+    yellow: TOOL_SUCCESS_RATE_MEDIUM,
+  };
+  const agreementThresholds = {
+    green: USER_AGREEMENT_RATE_HIGH,
+    yellow: USER_AGREEMENT_RATE_MEDIUM,
+  };
   const successColor = getStatusColor(computed.successRate, successThresholds);
   const agreementColor = getStatusColor(
     computed.agreementRate,

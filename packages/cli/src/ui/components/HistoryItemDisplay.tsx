@@ -18,6 +18,7 @@ import { Box } from 'ink';
 import { AboutBox } from './AboutBox.js';
 import { StatsDisplay } from './StatsDisplay.js';
 import { ModelStatsDisplay } from './ModelStatsDisplay.js';
+import { ToolStatsDisplay } from './ToolStatsDisplay.js';
 import { SessionSummaryDisplay } from './SessionSummaryDisplay.js';
 import { Config } from '@google/gemini-cli-core';
 
@@ -72,6 +73,7 @@ export const HistoryItemDisplay: React.FC<HistoryItemDisplayProps> = ({
     )}
     {item.type === 'stats' && <StatsDisplay duration={item.duration} />}
     {item.type === 'model_stats' && <ModelStatsDisplay />}
+    {item.type === 'tool_stats' && <ToolStatsDisplay />}
     {item.type === 'quit' && <SessionSummaryDisplay duration={item.duration} />}
     {item.type === 'tool_group' && (
       <ToolGroupMessage
