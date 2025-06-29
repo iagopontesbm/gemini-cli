@@ -120,7 +120,9 @@ export const useThemeCommand = (
         }
 
         // Save the custom theme to settings
-        const currentCustomThemes = loadedSettings.merged.customThemes || {};
+        // Read from the specific scope being modified, not from merged settings
+        const scopeSettings = loadedSettings.forScope(scope);
+        const currentCustomThemes = scopeSettings.settings.customThemes || {};
         const updatedCustomThemes = {
           ...currentCustomThemes,
           [customTheme.name]: customTheme,
@@ -158,7 +160,9 @@ export const useThemeCommand = (
         }
 
         // Remove the custom theme from settings
-        const currentCustomThemes = loadedSettings.merged.customThemes || {};
+        // Read from the specific scope being modified, not from merged settings
+        const scopeSettings = loadedSettings.forScope(scope);
+        const currentCustomThemes = scopeSettings.settings.customThemes || {};
         const updatedCustomThemes = { ...currentCustomThemes };
         delete updatedCustomThemes[themeName];
         

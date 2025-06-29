@@ -237,18 +237,7 @@ export function ThemeDialog({
     }
   });
 
-  // If custom theme editor is open, show it instead of the main dialog
-  if (showCustomThemeEditor) {
-    return (
-      <CustomThemeEditor
-        onSave={handleCustomThemeSave}
-        onCancel={handleCustomThemeCancel}
-        settings={settings}
-        existingTheme={editingTheme}
-        terminalWidth={terminalWidth}
-      />
-    );
-  }
+  // Move the conditional return to after all hooks
 
   let otherScopeModifiedMessage = '';
   const otherScope =
@@ -359,6 +348,19 @@ export function ThemeDialog({
     }
   } else if (focusedSection === 'create') {
     themeInstructions = 'Press Enter to create a new custom theme.';
+  }
+
+  // All hooks are now called above
+  if (showCustomThemeEditor) {
+    return (
+      <CustomThemeEditor
+        onSave={handleCustomThemeSave}
+        onCancel={handleCustomThemeCancel}
+        settings={settings}
+        existingTheme={editingTheme}
+        terminalWidth={terminalWidth}
+      />
+    );
   }
 
   return (
