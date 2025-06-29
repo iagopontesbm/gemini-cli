@@ -61,11 +61,22 @@ export const useStatusCheck = (
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
+    let isMounted = true;
     getCliVersion()
-      .then(setCliVersion)
+      .then((version) => {
+        if (isMounted) {
+          setCliVersion(version);
+        }
+      })
       .catch(() => {
-        setCliVersion('unknown');
+        if (isMounted) {
+          setCliVersion('unknown');
+        }
       });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
