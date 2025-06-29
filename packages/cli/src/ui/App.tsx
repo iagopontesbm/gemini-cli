@@ -1,7 +1,7 @@
 /**
  * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2025 Animality AI. All rights reserved.
+ * Proprietary and confidential.
  */
 
 import { useCallback, useEffect, useMemo, useState, useRef } from 'react';

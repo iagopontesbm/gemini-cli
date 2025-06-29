@@ -1,12 +1,18 @@
-# 🚀 Gemini CLI
+# ANIMALITY.AI CLI
 
-[![Gemini CLI CI](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/google-gemini/gemini-cli/actions/workflows/ci.yml)
-[![npm version](https://badge.fury.io/js/%40google%2Fgemini-cli.svg)](https://badge.fury.io/js/%40google%2Fgemini-cli)
+[![Build Status](https://github.com/Animality-AI/gemini-cli/actions/workflows/ci.yml/badge.svg)](https://github.com/Animality-AI/gemini-cli/actions/workflows/ci.yml)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
 <div align="center">
 
-![Gemini CLI Screenshot](./docs/assets/gemini-screenshot.png)
+```
+ █████╗ ███╗   ██╗██╗███╗   ███╗ █████╗ ██╗     ██╗████████╗██╗   ██╗     █████╗ ██╗
+██╔══██╗████╗  ██║██║████╗ ████║██╔══██╗██║     ██║╚══██╔══╝╚██╗ ██╔╝    ██╔══██╗██║
+███████║██╔██╗ ██║██║██╔████╔██║███████║██║     ██║   ██║    ╚████╔╝     ███████║██║
+██╔══██║██║╚██╗██║██║██║╚██╔╝██║██╔══██║██║     ██║   ██║     ╚██╔╝      ██╔══██║██║
+██║  ██║██║ ╚████║██║██║ ╚═╝ ██║██║  ██║███████╗██║   ██║      ██║    ██╗██║  ██║██║
+╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝╚═╝   ╚═╝      ╚═╝    ╚═╝╚═╝  ╚═╝╚═╝
+```
 
 **Your AI-powered command-line companion that transforms how you build, explore, and automate.**
 
@@ -16,9 +22,9 @@
 
 ---
 
-## 🎯 What is Gemini CLI?
+## 🎯 What is ANIMALITY.AI CLI?
 
-The Gemini CLI is your **intelligent development assistant** that bridges the gap between natural language and code execution. Think of it as having a senior developer who understands your entire codebase, can read your mind, and executes complex tasks with surgical precision.
+The ANIMALITY.AI CLI is your **intelligent development assistant** that bridges the gap between natural language and code execution. Think of it as having a senior developer who understands your entire codebase, can read your mind, and executes complex tasks with surgical precision.
 
 ### ✨ What You Can Do
 
@@ -46,37 +52,49 @@ The Gemini CLI is your **intelligent development assistant** that bridges the ga
 
 > **Prerequisites**: Node.js ≥18.0.0 ([Download here](https://nodejs.org/en/download))
 
-### Option 1: Instant Run (Recommended)
+### Option 1: Clone and Run
 ```bash
-npx https://github.com/google-gemini/gemini-cli
+git clone https://github.com/Animality-AI/gemini-cli
+cd gemini-cli
+cp .env.example .env
+# Edit .env and add your GEMINI_API_KEY
+npm install
+npm run build
+npm start
 ```
 
-### Option 2: Global Install
+### Option 2: Direct Install
 ```bash
 npm install -g @google/gemini-cli
+export GEMINI_API_KEY="your_api_key_here"
 gemini
 ```
 
-### 🎨 First Launch Setup
-1. **Choose your theme** - Pick from beautiful color schemes
-2. **Authenticate** - Sign in with your Google account
-   - ✅ **Free tier**: 60 requests/minute, 1,000 requests/day
-   - 🚀 **No setup required** - Just your Google account!
+### 🔑 Required Setup
+1. **Get API Key** - Visit [Google AI Studio](https://aistudio.google.com/apikey) to generate your Gemini API key
+2. **Set Environment** - Add `GEMINI_API_KEY=your_key_here` to your environment or `.env` file
+3. **Choose your theme** - Pick from beautiful color schemes on first run
 
-**That's it!** You're ready to start building with AI.
+**You're ready!** Start building with AI-powered assistance.
 
 ---
 
-### 🔑 Advanced Authentication
+### 🔧 Configuration Options
 
-Need higher limits or specific models? Use an API key:
+Copy `.env.example` to `.env` and customize:
 
-1. **Generate key**: Visit [Google AI Studio](https://aistudio.google.com/apikey)
-2. **Set environment variable**:
-   ```bash
-   export GEMINI_API_KEY="your_key_here"
-   ```
-3. **Enterprise setup**: See [authentication guide](./docs/cli/authentication.md) for Google Workspace accounts
+```bash
+# Required: Your Gemini API key
+GEMINI_API_KEY=your_api_key_here
+
+# Optional: Specific model (default: gemini-2.5-pro)
+GEMINI_MODEL=gemini-2.5-pro
+
+# Optional: Enable debug mode
+DEBUG=true
+```
+
+For enterprise setups, see [authentication guide](./docs/cli/authentication.md)
 
 ## 📚 Examples
 
@@ -85,6 +103,7 @@ Need higher limits or specific models? Use an API key:
 ### 🆕 Starting Fresh
 ```bash
 mkdir my-awesome-project && cd my-awesome-project
+export GEMINI_API_KEY="your_key_here"
 gemini
 ```
 ```text
@@ -93,7 +112,9 @@ gemini
 
 ### 🔍 Exploring Existing Code
 ```bash
-git clone https://github.com/google-gemini/gemini-cli && cd gemini-cli
+git clone https://github.com/Animality-AI/gemini-cli && cd gemini-cli
+cp .env.example .env
+# Add your GEMINI_API_KEY to .env
 gemini
 ```
 ```text
@@ -366,10 +387,10 @@ For details on the terms of service and privacy notice applicable to your use of
 
 <div align="center">
 
-**Made with ❤️ by the Google Gemini team**
+**Made with ❤️ by the ANIMALITY.AI team**
 
 *Transforming the way developers build, one command at a time.*
 
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/License-All%20Rights%20Reserved-red.svg)](LICENSE)
 
 </div>

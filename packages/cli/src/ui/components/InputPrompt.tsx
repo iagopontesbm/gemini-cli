@@ -1,7 +1,7 @@
 /**
  * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
+ * Copyright (c) 2025 Animality AI. All rights reserved.
+ * Proprietary and confidential.
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
@@ -43,7 +43,7 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   onClearScreen,
   config,
   slashCommands,
-  placeholder = '  Type your message or @path/to/file',
+  placeholder,
   focus = true,
   inputWidth,
   suggestionsWidth,
@@ -51,6 +51,8 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
   setShellModeActive,
 }) => {
   const [justNavigatedHistory, setJustNavigatedHistory] = useState(false);
+  
+  const actualPlaceholder = placeholder || '  Type your message or @path/to/file';
 
   const completion = useCompletion(
     buffer.text,
@@ -386,14 +388,14 @@ export const InputPrompt: React.FC<InputPromptProps> = ({
           {shellModeActive ? '! ' : '> '}
         </Text>
         <Box flexGrow={1} flexDirection="column">
-          {buffer.text.length === 0 && placeholder ? (
+          {buffer.text.length === 0 && actualPlaceholder ? (
             focus ? (
               <Text>
-                {chalk.inverse(placeholder.slice(0, 1))}
-                <Text color={Colors.Gray}>{placeholder.slice(1)}</Text>
+                {chalk.inverse(actualPlaceholder.slice(0, 1))}
+                <Text color={Colors.Gray}>{actualPlaceholder.slice(1)}</Text>
               </Text>
             ) : (
-              <Text color={Colors.Gray}>{placeholder}</Text>
+              <Text color={Colors.Gray}>{actualPlaceholder}</Text>
             )
           ) : (
             linesToRender.map((lineText, visualIdxInRenderedSet) => {
