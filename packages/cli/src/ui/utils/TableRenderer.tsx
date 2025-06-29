@@ -41,11 +41,21 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
   );
 
   const renderCell = (content: string, width: number, isHeader = false) => {
-    const truncated =
-      content.length > width - 2
-        ? content.substring(0, width - 5) + '...'
-        : content;
-    const padded = truncated.padEnd(width - 2, ' ');
+    // The actual space for content inside the padding
+    const contentWidth = Math.max(0, width - 2);
+
+    let cellContent = content;
+    if (content.length > contentWidth) {
+      if (contentWidth <= 3) {
+        // Not enough space for '...'
+        cellContent = content.substring(0, contentWidth);
+      } else {
+        cellContent = content.substring(0, contentWidth - 3) + '...';
+      }
+    }
+
+    // Pad the content to fill the cell
+    const padded = cellContent.padEnd(contentWidth, ' ');
 
     if (isHeader) {
       return (
@@ -62,7 +72,7 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
       <Text>│ </Text>
       {cells.map((cell, index) => (
         <React.Fragment key={index}>
-          {renderCell(cell, adjustedWidths[index], isHeader)}
+          {renderCell(cell, adjustedWidths[index] || 0, isHeader)}
           <Text> │ </Text>
         </React.Fragment>
       ))}
@@ -71,21 +81,21 @@ export const TableRenderer: React.FC<TableRendererProps> = ({
 
   const renderSeparator = () => {
     const separator = adjustedWidths
-      .map((width) => '─'.repeat(width - 2))
+      .map((width) => '─'.repeat(Math.max(0, (width || 0) - 2)))
       .join('─┼─');
     return <Text>├─{separator}─┤</Text>;
   };
 
   const renderTopBorder = () => {
     const border = adjustedWidths
-      .map((width) => '─'.repeat(width - 2))
+      .map((width) => '─'.repeat(Math.max(0, (width || 0) - 2)))
       .join('─┬─');
     return <Text>┌─{border}─┐</Text>;
   };
 
   const renderBottomBorder = () => {
     const border = adjustedWidths
-      .map((width) => '─'.repeat(width - 2))
+      .map((width) => '─'.repeat(Math.max(0, (width || 0) - 2)))
       .join('─┴─');
     return <Text>└─{border}─┘</Text>;
   };

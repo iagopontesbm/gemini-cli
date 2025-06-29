@@ -204,6 +204,34 @@ But there's no separator line
       expect(lastFrame()).toContain("But there's no separator line");
       expect(lastFrame()).toContain("| So it shouldn't render as table |");
     });
+
+    it('should not crash when rendering a very wide table in a narrow terminal', () => {
+      const wideTable = `
+| Col 1 | Col 2 | Col 3 | Col 4 | Col 5 | Col 6 | Col 7 | Col 8 | Col 9 | Col 10 |
+|-------|-------|-------|-------|-------|-------|-------|-------|-------|--------|
+| ${'a'.repeat(20)} | ${'b'.repeat(20)} | ${'c'.repeat(20)} | ${'d'.repeat(
+        20,
+      )} | ${'e'.repeat(20)} | ${'f'.repeat(20)} | ${'g'.repeat(20)} | ${'h'.repeat(
+        20,
+      )} | ${'i'.repeat(20)} | ${'j'.repeat(20)} |
+    `;
+
+      const renderNarrow = () =>
+        render(
+          <MarkdownDisplay
+            text={wideTable}
+            isPending={false}
+            terminalWidth={40}
+          />,
+        );
+
+      // The important part is that this does not throw an error.
+      expect(renderNarrow).not.toThrow();
+
+      // We can also check that it rendered *something*.
+      const { lastFrame } = renderNarrow();
+      expect(lastFrame()).not.toBe('');
+    });
   });
 
   describe('Existing Functionality', () => {
