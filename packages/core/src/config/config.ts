@@ -80,7 +80,7 @@ export class MCPServerConfig {
     readonly trust?: boolean,
     // Metadata
     readonly description?: string,
-  ) {}
+  ) { }
 }
 
 export interface SandboxConfig {
@@ -126,6 +126,7 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  oauthPort?: number;
 }
 
 export class Config {
@@ -164,6 +165,7 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
+  private readonly oauthPort: number | undefined;
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
 
@@ -207,6 +209,7 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    this.oauthPort = params.oauthPort;
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -416,6 +419,10 @@ export class Config {
 
   getProxy(): string | undefined {
     return this.proxy;
+  }
+
+  getOAuthPort(): number | undefined {
+    return this.oauthPort;
   }
 
   getWorkingDir(): string {

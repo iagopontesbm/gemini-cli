@@ -12,15 +12,16 @@ import { CodeAssistServer, HttpOptions } from './server.js';
 export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
   authType: AuthType,
+  oauthPort?: number,
 ): Promise<ContentGenerator> {
   if (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
-    const authClient = await getOauthClient();
+    const authClient = await getOauthClient(oauthPort);
     const projectId = await setupUser(authClient);
     return new CodeAssistServer(authClient, projectId, httpOptions);
   }
 
   if (authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
-    const authClient = await getManualOauthClient();
+    const authClient = await getManualOauthClient(oauthPort);
     const projectId = await setupUser(authClient);
     return new CodeAssistServer(authClient, projectId, httpOptions);
   }
