@@ -69,7 +69,10 @@ export async function createContentGeneratorConfig(
   };
 
   // if we are using google auth nothing else to validate for now
-  if (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL || authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
+  if (
+    authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
+    authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE
+  ) {
     return contentGeneratorConfig;
   }
 
@@ -111,8 +114,15 @@ export async function createContentGenerator(
       'User-Agent': `GeminiCLI/${version} (${process.platform}; ${process.arch})`,
     },
   };
-  if (config.authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL || config.authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
-    return createCodeAssistContentGenerator(httpOptions, config.authType, config.oauthPort);
+  if (
+    config.authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL ||
+    config.authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE
+  ) {
+    return createCodeAssistContentGenerator(
+      httpOptions,
+      config.authType,
+      config.oauthPort,
+    );
   }
 
   if (

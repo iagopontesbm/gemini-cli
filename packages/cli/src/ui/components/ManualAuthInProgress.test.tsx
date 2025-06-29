@@ -20,7 +20,8 @@ describe('ManualAuthInProgress', () => {
   const wait = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const mockProps = {
-    authUrl: 'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=http://localhost:8080/oauth2callback',
+    authUrl:
+      'https://accounts.google.com/oauth/authorize?client_id=test&redirect_uri=http://localhost:8080/oauth2callback',
     callbackUrl: 'http://localhost:8080/oauth2callback',
     onTimeout: vi.fn(),
   };
@@ -39,13 +40,17 @@ describe('ManualAuthInProgress', () => {
     const output = lastFrame();
     expect(output).toContain('Manual Login with Google');
     expect(output).toContain('Please complete the following steps:');
-    expect(output).toContain('1. Copy and paste the URL below into your browser');
+    expect(output).toContain(
+      '1. Copy and paste the URL below into your browser',
+    );
     expect(output).toContain('Authentication URL (click to select and copy):');
     expect(output).toContain('https://accounts.google.com/oauth/authorize'); // Just check part of URL
     expect(output).toContain('2. Set up port forwarding (if using SSH):');
     expect(output).toContain('ssh -L 8080:localhost:8080');
     expect(output).toContain('3. Complete the authentication in your browser');
-    expect(output).toContain('4. The browser will redirect to the callback URL');
+    expect(output).toContain(
+      '4. The browser will redirect to the callback URL',
+    );
     expect(output).toContain('Waiting for authentication...');
     expect(output).toContain('(Press ESC to cancel)');
   });
@@ -86,7 +91,9 @@ describe('ManualAuthInProgress', () => {
     // Wait for React to update
     await vi.runAllTimersAsync();
 
-    expect(lastFrame()).toContain('Authentication timed out. Please try again.');
+    expect(lastFrame()).toContain(
+      'Authentication timed out. Please try again.',
+    );
     expect(onTimeout).toHaveBeenCalledOnce();
 
     vi.useRealTimers();
@@ -99,7 +106,9 @@ describe('ManualAuthInProgress', () => {
       callbackUrl: 'http://localhost:3000/oauth2callback',
     };
 
-    const { lastFrame } = render(<ManualAuthInProgress {...propsWithDifferentPort} />);
+    const { lastFrame } = render(
+      <ManualAuthInProgress {...propsWithDifferentPort} />,
+    );
 
     const output = lastFrame();
     expect(output).toContain('ssh -L 3000:localhost:3000');
@@ -130,8 +139,12 @@ describe('ManualAuthInProgress', () => {
 
     // Verify the URL appears after the instructions box
     const lines = output?.split('\n') || [];
-    const instructionsBoxEndIndex = lines.findIndex(line => line.includes('╰'));
-    const authUrlLabelIndex = lines.findIndex(line => line.includes('Authentication URL'));
+    const instructionsBoxEndIndex = lines.findIndex((line) =>
+      line.includes('╰'),
+    );
+    const authUrlLabelIndex = lines.findIndex((line) =>
+      line.includes('Authentication URL'),
+    );
     expect(authUrlLabelIndex).toBeGreaterThan(instructionsBoxEndIndex);
   });
 });

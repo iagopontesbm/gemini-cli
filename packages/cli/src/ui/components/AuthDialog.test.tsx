@@ -194,16 +194,21 @@ describe('AuthDialog', () => {
 
     const output = lastFrame();
     const lines = output?.split('\n') || [];
-    
+
     // Find the lines with auth options
-    const authOptions = lines.filter(line => 
-      line.includes('Login with Google') || 
-      line.includes('Manual Login with Google') ||
-      line.includes('Gemini API Key') ||
-      line.includes('Vertex AI')
+    const authOptions = lines.filter(
+      (line) =>
+        line.includes('Login with Google') ||
+        line.includes('Manual Login with Google') ||
+        line.includes('Gemini API Key') ||
+        line.includes('Vertex AI'),
     );
 
     expect(authOptions.length).toBeGreaterThan(0);
-    expect(authOptions.some(line => line.includes('Manual Login with Google (SSH)'))).toBe(true);
+    expect(
+      authOptions.some((line) =>
+        line.includes('Manual Login with Google (SSH)'),
+      ),
+    ).toBe(true);
   });
 });

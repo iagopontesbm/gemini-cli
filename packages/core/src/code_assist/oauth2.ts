@@ -73,7 +73,7 @@ async function shortenUrl(url: string): Promise<string> {
 
     // If shortening failed, return the original URL
     return url;
-  } catch (error) {
+  } catch (_error) {
     // If there's any error (network, timeout, etc.), return the original URL
     return url;
   }
@@ -98,7 +98,9 @@ export interface ManualOauthLogin {
   loginCompletePromise: Promise<void>;
 }
 
-export async function getOauthClient(configuredPort?: number): Promise<OAuth2Client> {
+export async function getOauthClient(
+  configuredPort?: number,
+): Promise<OAuth2Client> {
   const client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_SECRET,
@@ -116,8 +118,8 @@ export async function getOauthClient(configuredPort?: number): Promise<OAuth2Cli
 
   console.log(
     `\n\nCode Assist login required.\n` +
-    `Attempting to open authentication page in your browser.\n` +
-    `Otherwise navigate to:\n\n${displayUrl}\n\n`,
+      `Attempting to open authentication page in your browser.\n` +
+      `Otherwise navigate to:\n\n${displayUrl}\n\n`,
   );
   await open(webLogin.authUrl);
   console.log('Waiting for authentication...');
@@ -127,7 +129,9 @@ export async function getOauthClient(configuredPort?: number): Promise<OAuth2Cli
   return client;
 }
 
-export async function getManualOauthClient(configuredPort?: number): Promise<OAuth2Client> {
+export async function getManualOauthClient(
+  configuredPort?: number,
+): Promise<OAuth2Client> {
   const client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_SECRET,
@@ -160,7 +164,9 @@ export async function getManualOauthClient(configuredPort?: number): Promise<OAu
   return client;
 }
 
-export async function getManualOauthInfo(configuredPort?: number): Promise<ManualOauthLogin> {
+export async function getManualOauthInfo(
+  configuredPort?: number,
+): Promise<ManualOauthLogin> {
   const client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_SECRET,
@@ -174,7 +180,10 @@ export async function getManualOauthInfo(configuredPort?: number): Promise<Manua
   return await authWithManual(client, configuredPort);
 }
 
-async function authWithWeb(client: OAuth2Client, configuredPort?: number): Promise<OauthWebLogin> {
+async function authWithWeb(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<OauthWebLogin> {
   const port = await resolveOAuthPort(configuredPort);
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
@@ -233,7 +242,10 @@ async function authWithWeb(client: OAuth2Client, configuredPort?: number): Promi
   };
 }
 
-async function authWithManual(client: OAuth2Client, configuredPort?: number): Promise<ManualOauthLogin> {
+async function authWithManual(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<ManualOauthLogin> {
   const port = await resolveOAuthPort(configuredPort);
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
@@ -320,7 +332,8 @@ export function getAvailablePort(): Promise<number> {
  */
 async function resolveOAuthPort(configuredPort?: number): Promise<number> {
   // Check for configured port from parameter, environment variable, or other sources
-  const envPort = parseInt(process.env.GEMINI_OAUTH_PORT || '0') || undefined;
+  const envPort =
+    parseInt(process.env.GEMINI_OAUTH_PORT || '0', 10) || undefined;
   const portToUse = configuredPort || envPort;
 
   if (portToUse) {
@@ -334,7 +347,11 @@ async function resolveOAuthPort(configuredPort?: number): Promise<number> {
       });
       server.on('error', (error) => {
         // If configured port is not available, reject with a descriptive error
-        reject(new Error(`Configured OAuth port ${portToUse} is not available: ${error.message}`));
+        reject(
+          new Error(
+            `Configured OAuth port ${portToUse} is not available: ${error.message}`,
+          ),
+        );
       });
     });
   }
