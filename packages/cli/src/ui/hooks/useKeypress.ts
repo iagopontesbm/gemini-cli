@@ -22,13 +22,15 @@ export interface Key {
  * that mirrors the one from Node's `readline` module, with a 'paste' flag
  * indicating whether the input is a paste. Paste detection uses bracketed paste
  * mode (\x1b[200~ and \x1b[201~) when supported, with a timeout-based heuristic
- * (grouping rapid keypresses within 10ms) as a fallback. Bracketed paste mode
+ * (grouping rapid keypresses within 50ms) as a fallback. Bracketed paste mode
  * is automatically enabled if the terminal supports it, determined by TTY status,
  * TERM environment variable, and successful enabling.
  *
  * Pasted content is sent as a single key event with the full paste in the
  * sequence field and paste set to true. Special keys (e.g., arrow keys) are
  * handled correctly via readline, ensuring terminal functionality is preserved.
+ * Robustly handles edge cases like split paste chunks, malformed sequences, and
+ * nested paste markers (treated as paste content).
  *
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
@@ -87,7 +89,7 @@ export function useKeypress(
       }
     }
 
-    const maxInputDelay = 10; // Milliseconds, increased for reliability
+    const maxInputDelay = 50; // Milliseconds, increased for reliability
 
     const handleInput = () => {
       const keys = keyBufferRef.current;
@@ -108,22 +110,19 @@ export function useKeypress(
       timeoutRef.current = null;
     };
 
-    // Raw input listener to capture full paste content
     const handleRawData = (data: Buffer) => {
-      const input = data.toString();
+      if (!isBracketedPasteSupportedRef.current) {
+        return;
+      }
 
-      if (isBracketedPasteSupportedRef.current) {
-        // Parse input for bracketed paste sequences
-        let remainingInput = input;
-        while (remainingInput.length > 0) {
-          if (!isPasteModeRef.current && remainingInput.startsWith('\x1b[200~')) {
-            isPasteModeRef.current = true;
-            pasteBufferRef.current = '';
-            remainingInput = remainingInput.slice(6); // Length of \x1b[200~
-            continue;
-          }
-          if (isPasteModeRef.current && remainingInput.startsWith('\x1b[201~')) {
-            isPasteModeRef.current = false;
+      let remainingInput = data.toString();
+
+      while (remainingInput.length > 0) {
+        if (isPasteModeRef.current) {
+          const endMarkerIndex = remainingInput.indexOf('\x1b[201~');
+          if (endMarkerIndex !== -1) {
+            pasteBufferRef.current += remainingInput.slice(0, endMarkerIndex);
+
             if (pasteBufferRef.current.length > 0) {
               pasteHandledRef.current = true;
               onKeypressRef.current({
@@ -134,31 +133,28 @@ export function useKeypress(
                 paste: true,
                 sequence: pasteBufferRef.current,
               });
-              keyBufferRef.current = []; // Clear keypress buffer to prevent duplicate processing
+              keyBufferRef.current = []; // Clear keypress buffer
             }
+
             pasteBufferRef.current = '';
-            remainingInput = remainingInput.slice(6); // Length of \x1b[201~
-            continue;
-          }
-          if (isPasteModeRef.current) {
-            // Find the next marker or end of input
-            const nextStart = remainingInput.indexOf('\x1b[200~');
-            const nextEnd = remainingInput.indexOf('\x1b[201~');
-            let nextMarkerPos = -1;
-            if (nextStart !== -1 && (nextEnd === -1 || nextStart < nextEnd)) {
-              nextMarkerPos = nextStart;
-            } else if (nextEnd !== -1) {
-              nextMarkerPos = nextEnd;
-            }
-            const content = nextMarkerPos === -1 ? remainingInput : remainingInput.slice(0, nextMarkerPos);
-            pasteBufferRef.current += content;
-            remainingInput = nextMarkerPos === -1 ? '' : remainingInput.slice(nextMarkerPos);
+            isPasteModeRef.current = false;
+            remainingInput = remainingInput.slice(endMarkerIndex + 6);
           } else {
-            break; // Let readline handle non-paste input
+            pasteBufferRef.current += remainingInput;
+            break; // Wait for the next data chunk for the end marker
+          }
+        } else {
+          if (remainingInput.startsWith('\x1b[200~')) {
+            isPasteModeRef.current = true;
+            pasteBufferRef.current = '';
+            remainingInput = remainingInput.slice(6);
+          } else {
+            // Not in paste mode and doesn't start with a paste marker.
+            // Let readline handle this data.
+            break;
           }
         }
       }
-      // Non-bracketed input is handled by handleKeypress via readline
     };
 
     const handleKeypress = (_: unknown, key: Key) => {
@@ -192,8 +188,8 @@ export function useKeypress(
       }, maxInputDelay);
     };
 
-    stdin.on('data', handleRawData);
-    stdin.on('keypress', handleKeypress);
+    stdin.prependListener('data', handleRawData);
+    stdin.prependListener('keypress', handleKeypress);
 
     return () => {
       stdin.removeListener('data', handleRawData);
