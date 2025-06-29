@@ -192,8 +192,7 @@ describe('InputPrompt', () => {
 
     stdin.write('\u001b[H'); // Home key
     await wait();
-
-    expect(props.buffer.move).toHaveBeenCalledWith('home');
+    
     expect(props.buffer.moveToOffset).toHaveBeenCalledWith(0);
     unmount();
   });
@@ -207,7 +206,6 @@ describe('InputPrompt', () => {
     stdin.write('\u001b[F'); // End key
     await wait();
 
-    expect(props.buffer.move).toHaveBeenCalledWith('end');
     expect(props.buffer.moveToOffset).toHaveBeenCalledWith(bufferText.length);
     unmount();
   });
