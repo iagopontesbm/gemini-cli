@@ -249,9 +249,9 @@ export function getCachedGaiaId(): string | null {
 
 export async function clearCachedCredentialFile() {
   try {
-    await fs.rm(getCachedCredentialPath());
+    await fs.rm(getCachedCredentialPath(), { force: true });
     // Clear the GAIA ID cache when credentials are cleared
-    await fs.rm(getGaiaIdCachePath());
+    await fs.rm(getGaiaIdCachePath(), { force: true });
   } catch (_) {
     /* empty */
   }

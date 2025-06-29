@@ -11,11 +11,11 @@ describe('user_id', () => {
   describe('getInstallationId', () => {
     it('should return a valid UUID format string', () => {
       const installationId = getInstallationId();
-      
+
       expect(installationId).toBeDefined();
       expect(typeof installationId).toBe('string');
       expect(installationId.length).toBeGreaterThan(0);
-      
+
       // Should return the same ID on subsequent calls (consistent)
       const secondCall = getInstallationId();
       expect(secondCall).toBe(installationId);
@@ -25,11 +25,11 @@ describe('user_id', () => {
   describe('getObfuscatedGaiaId', () => {
     it('should return a non-empty string', () => {
       const result = getObfuscatedGaiaId();
-      
+
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
-      
+
       // Should be consistent on subsequent calls
       const secondCall = getObfuscatedGaiaId();
       expect(secondCall).toBe(result);
@@ -40,7 +40,7 @@ describe('user_id', () => {
       // so getObfuscatedGaiaId should fall back to installation ID
       const gaiaIdResult = getObfuscatedGaiaId();
       const installationIdResult = getInstallationId();
-      
+
       // They should be the same when no GAIA ID is cached
       expect(gaiaIdResult).toBe(installationIdResult);
     });

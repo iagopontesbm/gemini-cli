@@ -76,22 +76,6 @@ export function getObfuscatedGaiaId(): string {
     // If there's any error accessing GAIA ID, fall back to installation ID
   }
 
-  // Fall back to installation ID
-  try {
-    ensureGeminiDirExists();
-    let userId = readInstallationIdFromFile();
-
-    if (!userId) {
-      userId = randomUUID();
-      writeInstallationIdToFile(userId);
-    }
-
-    return userId;
-  } catch (error) {
-    console.error(
-      'Error accessing unique user ID file, generating ephemeral ID:',
-      error,
-    );
-    return '123456789';
-  }
+  // Fall back to installation ID when no GAIA ID is cached or on error
+  return getInstallationId();
 }

@@ -55,7 +55,9 @@ describe('oauth2', () => {
     const mockGenerateAuthUrl = vi.fn().mockReturnValue(mockAuthUrl);
     const mockGetToken = vi.fn().mockResolvedValue({ tokens: mockTokens });
     const mockSetCredentials = vi.fn();
-    const mockGetAccessToken = vi.fn().mockResolvedValue({ token: 'mock-access-token' });
+    const mockGetAccessToken = vi
+      .fn()
+      .mockResolvedValue({ token: 'mock-access-token' });
     const mockOAuth2Client = {
       generateAuthUrl: mockGenerateAuthUrl,
       getToken: mockGetToken,
@@ -67,7 +69,7 @@ describe('oauth2', () => {
 
     vi.spyOn(crypto, 'randomBytes').mockReturnValue(mockState as never);
     vi.mocked(open).mockImplementation(async () => ({}) as never);
-    
+
     // Mock the UserInfo API response
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
