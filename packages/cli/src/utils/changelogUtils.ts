@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { GaxiosError, request } from 'gaxios';
+import { request } from 'gaxios';
 
 export interface ReleaseInfo {
   name: string;
@@ -28,9 +28,8 @@ export async function fetchLatestRelease(): Promise<ReleaseInfo | null> {
 
     return response.data;
   } catch (error) {
-    if (error instanceof GaxiosError) {
-      console.error('Failed to fetch release info:', error.message);
-    }
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('Failed to fetch release info:', message);
     return null;
   }
 }
