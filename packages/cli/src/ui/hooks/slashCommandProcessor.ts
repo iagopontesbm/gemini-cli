@@ -18,6 +18,8 @@ import {
   MCPServerStatus,
   getMCPDiscoveryState,
   getMCPServerStatus,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_FLASH_MODEL,
 } from '@google/gemini-cli-core';
 import { useSessionStats } from '../contexts/SessionContext.js';
 import {
@@ -589,6 +591,62 @@ export const useSlashCommandProcessor = (
         name: 'corgi',
         action: (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
+        },
+      },
+      {
+        name: 'model',
+        description: `change the model. Usage: /model [${DEFAULT_GEMINI_MODEL}|${DEFAULT_GEMINI_FLASH_MODEL}]`,
+        action: (_mainCommand, subCommand, _args) => {
+          if (!config) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: 'Configuration not available',
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          const currentModel = config.getModel();
+          
+          if (!subCommand) {
+            addMessage({
+              type: MessageType.INFO,
+              content: `Current model: ${currentModel}`,
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          // Normalize the input
+          const normalizedModel = subCommand.toLowerCase();
+          const validModels = [DEFAULT_GEMINI_MODEL, DEFAULT_GEMINI_FLASH_MODEL];
+          
+          if (!validModels.includes(normalizedModel)) {
+            addMessage({
+              type: MessageType.ERROR,
+              content: `Invalid model: ${subCommand}\nValid options: ${validModels.join(', ')}`,
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          if (normalizedModel === currentModel) {
+            addMessage({
+              type: MessageType.INFO,
+              content: `Already using ${currentModel}`,
+              timestamp: new Date(),
+            });
+            return;
+          }
+
+          config.setModel(normalizedModel);
+          
+          // Provide feedback similar to the automatic switching message
+          addMessage({
+            type: MessageType.INFO,
+            content: `Switched from ${currentModel} to ${normalizedModel}`,
+            timestamp: new Date(),
+          });
         },
       },
       {
