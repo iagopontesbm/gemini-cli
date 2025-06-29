@@ -37,6 +37,8 @@ function commandExists(cmd: string, fallbackPath?: string): boolean {
     return false;
   }
 }
+const VSCODE_MACOS_FALLBACK_PATH =
+  '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
 
 const editorCommands: Record<EditorType, { win32: string; default: string }> = {
   vscode: { win32: 'code.cmd', default: 'code' },
@@ -53,8 +55,7 @@ export function checkHasEditorType(editor: EditorType): boolean {
 
   // Special handling for VS Code on macOS
   if (editor === 'vscode' && process.platform === 'darwin') {
-    const fallbackPath =
-      '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
+    const fallbackPath = VSCODE_MACOS_FALLBACK_PATH;
     return commandExists(command, fallbackPath);
   }
 
