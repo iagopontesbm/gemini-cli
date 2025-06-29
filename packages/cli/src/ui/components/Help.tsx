@@ -97,7 +97,7 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        Shift+Enter
+        Ctrl+Enter / Shift+Enter
       </Text>{' '}
       - New line
     </Text>

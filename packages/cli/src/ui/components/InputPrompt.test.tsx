@@ -12,10 +12,12 @@ import { vi } from 'vitest';
 import { useShellHistory } from '../hooks/useShellHistory.js';
 import { useCompletion } from '../hooks/useCompletion.js';
 import { useInputHistory } from '../hooks/useInputHistory.js';
+import { useKeypress } from '../hooks/useKeypress.js';
 
 vi.mock('../hooks/useShellHistory.js');
 vi.mock('../hooks/useCompletion.js');
 vi.mock('../hooks/useInputHistory.js');
+vi.mock('../hooks/useKeypress.js');
 
 type MockedUseShellHistory = ReturnType<typeof useShellHistory>;
 type MockedUseCompletion = ReturnType<typeof useCompletion>;
@@ -31,6 +33,7 @@ describe('InputPrompt', () => {
   const mockedUseShellHistory = vi.mocked(useShellHistory);
   const mockedUseCompletion = vi.mocked(useCompletion);
   const mockedUseInputHistory = vi.mocked(useInputHistory);
+  const mockedUseKeypress = vi.mocked(useKeypress);
 
   beforeEach(() => {
     vi.resetAllMocks();
@@ -111,11 +114,11 @@ describe('InputPrompt', () => {
 
   it('should call shellHistory.getPreviousCommand on up arrow in shell mode', async () => {
     props.shellModeActive = true;
-    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    const { unmount } = render(<InputPrompt {...props} />);
     await wait();
 
-    stdin.write('\u001B[A');
-    await wait();
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'up' });
 
     expect(mockShellHistory.getPreviousCommand).toHaveBeenCalled();
     unmount();
@@ -123,11 +126,11 @@ describe('InputPrompt', () => {
 
   it('should call shellHistory.getNextCommand on down arrow in shell mode', async () => {
     props.shellModeActive = true;
-    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    const { unmount } = render(<InputPrompt {...props} />);
     await wait();
 
-    stdin.write('\u001B[B');
-    await wait();
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'down' });
 
     expect(mockShellHistory.getNextCommand).toHaveBeenCalled();
     unmount();
@@ -138,11 +141,11 @@ describe('InputPrompt', () => {
     vi.mocked(mockShellHistory.getPreviousCommand).mockReturnValue(
       'previous command',
     );
-    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    const { unmount } = render(<InputPrompt {...props} />);
     await wait();
 
-    stdin.write('\u001B[A');
-    await wait();
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'up' });
 
     expect(mockShellHistory.getPreviousCommand).toHaveBeenCalled();
     expect(props.buffer.setText).toHaveBeenCalledWith('previous command');
@@ -152,11 +155,11 @@ describe('InputPrompt', () => {
   it('should call shellHistory.addCommandToHistory on submit in shell mode', async () => {
     props.shellModeActive = true;
     props.buffer.setText('ls -l');
-    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    const { unmount } = render(<InputPrompt {...props} />);
     await wait();
 
-    stdin.write('\r');
-    await wait();
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'return' });
 
     expect(mockShellHistory.addCommandToHistory).toHaveBeenCalledWith('ls -l');
     expect(props.onSubmit).toHaveBeenCalledWith('ls -l');
@@ -165,15 +168,13 @@ describe('InputPrompt', () => {
 
   it('should NOT call shell history methods when not in shell mode', async () => {
     props.buffer.setText('some text');
-    const { stdin, unmount } = render(<InputPrompt {...props} />);
+    const { unmount } = render(<InputPrompt {...props} />);
     await wait();
 
-    stdin.write('\u001B[A'); // Up arrow
-    await wait();
-    stdin.write('\u001B[B'); // Down arrow
-    await wait();
-    stdin.write('\r'); // Enter
-    await wait();
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'up' });
+    handleInput({ name: 'down' });
+    handleInput({ name: 'return' });
 
     expect(mockShellHistory.getPreviousCommand).not.toHaveBeenCalled();
     expect(mockShellHistory.getNextCommand).not.toHaveBeenCalled();
@@ -182,6 +183,17 @@ describe('InputPrompt', () => {
     expect(mockInputHistory.navigateUp).toHaveBeenCalled();
     expect(mockInputHistory.navigateDown).toHaveBeenCalled();
     expect(props.onSubmit).toHaveBeenCalledWith('some text');
+    unmount();
+  });
+
+  it('should insert a newline on Shift+Enter', async () => {
+    const { unmount } = render(<InputPrompt {...props} />);
+    await wait();
+
+    const handleInput = mockedUseKeypress.mock.calls[0][0];
+    handleInput({ name: 'return', shift: true, ctrl: false, meta: false });
+
+    expect(props.buffer.newline).toHaveBeenCalled();
     unmount();
   });
 });
