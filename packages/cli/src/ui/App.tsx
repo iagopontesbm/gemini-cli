@@ -35,6 +35,7 @@ import { Footer } from './components/Footer.js';
 import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
+import { ManualAuthInProgress } from './components/ManualAuthInProgress.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
@@ -155,6 +156,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthSelect,
     handleAuthHighlight,
     isAuthenticating,
+    manualAuthInfo,
     cancelAuthentication,
   } = useAuthCommand(settings, setAuthError, config);
 
@@ -660,6 +662,16 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 terminalWidth={mainAreaWidth}
               />
             </Box>
+          ) : isAuthenticating && manualAuthInfo ? (
+            <ManualAuthInProgress
+              authUrl={manualAuthInfo.authUrl}
+              callbackUrl={manualAuthInfo.callbackUrl}
+              onTimeout={() => {
+                setAuthError('Authentication timed out. Please try again.');
+                cancelAuthentication();
+                openAuthDialog();
+              }}
+            />
           ) : isAuthenticating ? (
             <AuthInProgress
               onTimeout={() => {
