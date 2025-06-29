@@ -66,11 +66,9 @@ export const StatusDisplay = ({ statusInfo }: StatusDisplayProps) => {
       <SectionHeader>Connectivity</SectionHeader>
       <StatusRow label="API Status">
         {connectivity === 'pending' && (
-          <Box>
-            <Text>
-              <Spinner /> Testing...
-            </Text>
-          </Box>
+          <Text>
+            <Spinner /> Testing...
+          </Text>
         )}
         {connectivity === 'success' && (
           <Text color={Colors.AccentGreen}>✅ Reachable</Text>

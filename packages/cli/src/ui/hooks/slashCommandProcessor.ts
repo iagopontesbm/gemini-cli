@@ -197,6 +197,7 @@ export const useSlashCommandProcessor = (
         description: 'for help on gemini-cli',
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
+          setShowStatus(false);
           setShowHelp(true);
         },
       },
@@ -205,6 +206,7 @@ export const useSlashCommandProcessor = (
         description: 'show CLI status and connectivity info',
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening status.');
+          setShowHelp(false);
           setShowStatus(true);
         },
       },
@@ -244,6 +246,8 @@ export const useSlashCommandProcessor = (
         name: 'theme',
         description: 'change the theme',
         action: (_mainCommand, _subCommand, _args) => {
+          setShowHelp(false);
+          setShowStatus(false);
           openThemeDialog();
         },
       },
@@ -251,6 +255,8 @@ export const useSlashCommandProcessor = (
         name: 'auth',
         description: 'change the auth method',
         action: (_mainCommand, _subCommand, _args) => {
+          setShowHelp(false);
+          setShowStatus(false);
           openAuthDialog();
         },
       },
@@ -258,6 +264,8 @@ export const useSlashCommandProcessor = (
         name: 'editor',
         description: 'set external editor preference',
         action: (_mainCommand, _subCommand, _args) => {
+          setShowHelp(false);
+          setShowStatus(false);
           openEditorDialog();
         },
       },
