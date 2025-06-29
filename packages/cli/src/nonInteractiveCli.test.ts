@@ -117,12 +117,11 @@ describe('runNonInteractive', () => {
       expect(vol.existsSync('/test/output.txt')).toBe(true);
       const fileContent = vol.readFileSync('/test/output.txt', 'utf8');
       expect(fileContent).toBe('Hello World'); // No newline in file, only in stdout
+    } else {
+      expect(mockProcessStdoutWrite).toHaveBeenCalledWith('Hello');
+      expect(mockProcessStdoutWrite).toHaveBeenCalledWith(' World');
+      expect(mockProcessStdoutWrite).toHaveBeenCalledWith('\n');
     }
-
-    // Verify stdout was used (always happens in current implementation)
-    expect(mockProcessStdoutWrite).toHaveBeenCalledWith('Hello');
-    expect(mockProcessStdoutWrite).toHaveBeenCalledWith(' World');
-    expect(mockProcessStdoutWrite).toHaveBeenCalledWith('\n');
   });
 
   it('should handle a single tool call and respond', async () => {

@@ -62,7 +62,7 @@ export async function runNonInteractive(
   const chat = await geminiClient.getChat();
   const abortController = new AbortController();
   let currentMessages: Content[] = [{ role: 'user', parts: [{ text: input }] }];
-  let outputfs;
+  let outputfs: fs.WriteStream | undefined;
   try {
     const outputPath = config.getOutput();
     outputfs = outputPath ? fs.createWriteStream(outputPath) : undefined;
@@ -87,8 +87,11 @@ export async function runNonInteractive(
         }
         const textPart = getResponseText(resp);
         if (textPart) {
-          outputfs?.write(textPart);
-          process.stdout.write(textPart);
+          if (outputfs) {
+            outputfs.write(textPart);
+          } else {
+            process.stdout.write(textPart);
+          }
         }
         if (resp.functionCalls) {
           functionCalls.push(...resp.functionCalls);
@@ -154,7 +157,9 @@ export async function runNonInteractive(
     );
     process.exit(1);
   } finally {
-    outputfs?.end();
+    if (outputfs) {
+      await new Promise(resolve => outputfs?.end(resolve))
+    }
     if (isTelemetrySdkInitialized()) {
       await shutdownTelemetry();
     }
