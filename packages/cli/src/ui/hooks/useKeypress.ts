@@ -20,16 +20,15 @@ export interface Key {
 /**
  * A hook that listens for keypress events from stdin, providing a key object
  * that mirrors the one from Node's `readline` module, with a 'paste' flag
- * indicating whether the input is a paste. Paste detection primarily uses a raw
- * input listener to capture full paste content, with a timeout-based heuristic
+ * indicating whether the input is a paste. Paste detection uses bracketed paste
+ * mode (\x1b[200~ and \x1b[201~) when supported, with a timeout-based heuristic
  * (grouping rapid keypresses within 10ms) as a fallback. Bracketed paste mode
- * (\x1b[200~ and \x1b[201~) is automatically enabled if the terminal supports it,
- * determined by TTY status, TERM environment variable, and successful enabling.
+ * is automatically enabled if the terminal supports it, determined by TTY status,
+ * TERM environment variable, and successful enabling.
  *
  * Pasted content is sent as a single key event with the full paste in the
- * sequence field and paste set to true, ensuring all characters are captured.
- * Bracketed paste markers are parsed explicitly to avoid buffering them with
- * content, preventing data corruption if the pasted text contains similar sequences.
+ * sequence field and paste set to true. Special keys (e.g., arrow keys) are
+ * handled correctly via readline, ensuring terminal functionality is preserved.
  *
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
@@ -83,7 +82,7 @@ export function useKeypress(
         stdin.write('\x1b[?2004h');
         isBracketedPasteSupportedRef.current = true;
       } catch (err) {
-        // Silently handle error, fallback to other detection methods
+        // Silently handle error, fallback to timeout-based detection
         isBracketedPasteSupportedRef.current = false;
       }
     }
@@ -155,38 +154,11 @@ export function useKeypress(
             pasteBufferRef.current += content;
             remainingInput = nextMarkerPos === -1 ? '' : remainingInput.slice(nextMarkerPos);
           } else {
-            break; // Process non-paste input below
+            break; // Let readline handle non-paste input
           }
         }
-
-        // Handle remaining non-paste input
-        if (remainingInput.length > 0 && !isPasteModeRef.current) {
-          if (remainingInput.length > 1) {
-            pasteHandledRef.current = true;
-            onKeypressRef.current({
-              name: '',
-              ctrl: false,
-              meta: false,
-              shift: false,
-              paste: true,
-              sequence: remainingInput,
-            });
-            keyBufferRef.current = []; // Clear keypress buffer to prevent duplicate processing
-          }
-        }
-      } else if (input.length > 1) {
-        // Treat multi-character raw input as a paste when bracketed paste is disabled
-        pasteHandledRef.current = true;
-        onKeypressRef.current({
-          name: '',
-          ctrl: false,
-          meta: false,
-          shift: false,
-          paste: true,
-          sequence: input,
-        });
-        keyBufferRef.current = []; // Clear keypress buffer to prevent duplicate processing
       }
+      // Non-bracketed input is handled by handleKeypress via readline
     };
 
     const handleKeypress = (_: unknown, key: Key) => {
@@ -196,7 +168,7 @@ export function useKeypress(
         return;
       }
 
-      // Fallback to timeout-based detection for single characters
+      // Timeout-based detection for single characters and pastes
       keyBufferRef.current.push(key);
 
       if (timeoutRef.current) {
