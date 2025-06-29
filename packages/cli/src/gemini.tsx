@@ -118,8 +118,8 @@ export async function main() {
   if (config.getCheckpointingEnabled()) {
     try {
       await config.getGitService();
-    } catch {
-      // For now swallow the error, later log it.
+    } catch (error) {
+      console.error('Error initializing Git service. Continuing without Git service:', error);
     }
   }
 
