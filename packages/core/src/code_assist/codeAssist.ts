@@ -5,7 +5,7 @@
  */
 
 import { AuthType, ContentGenerator } from '../core/contentGenerator.js';
-import { getOauthClient } from './oauth2.js';
+import { getOauthClient, getManualOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
 import { CodeAssistServer, HttpOptions } from './server.js';
 
@@ -15,6 +15,12 @@ export async function createCodeAssistContentGenerator(
 ): Promise<ContentGenerator> {
   if (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
     const authClient = await getOauthClient();
+    const projectId = await setupUser(authClient);
+    return new CodeAssistServer(authClient, projectId, httpOptions);
+  }
+
+  if (authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
+    const authClient = await getManualOauthClient();
     const projectId = await setupUser(authClient);
     return new CodeAssistServer(authClient, projectId, httpOptions);
   }
