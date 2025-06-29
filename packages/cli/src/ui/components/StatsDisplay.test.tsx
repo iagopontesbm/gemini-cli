@@ -98,8 +98,8 @@ describe('<StatsDisplay />', () => {
 
     expect(output).toContain('gemini-2.5-pro');
     expect(output).toContain('gemini-2.5-flash');
-    expect(output).toContain('43,234');
-    expect(output).toContain('150,000,000');
+    expect(output).toContain('1,000');
+    expect(output).toContain('25,000');
     expect(output).toMatchSnapshot();
   });
 
@@ -142,8 +142,7 @@ describe('<StatsDisplay />', () => {
     expect(output).toContain('Performance');
     expect(output).toContain('Interaction Summary');
     expect(output).toContain('User Agreement');
-    expect(output).toContain('Efficiency & Optimizations');
-    expect(output).toContain('API Cache Efficiency');
+    expect(output).toContain('Savings Highlight');
     expect(output).toContain('gemini-2.5-pro');
     expect(output).toMatchSnapshot();
   });

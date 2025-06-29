@@ -78,5 +78,7 @@ export const computeSessionStats = (
     totalDecisions,
     successRate,
     agreementRate,
+    totalCachedTokens,
+    totalPromptTokens,
   };
 };

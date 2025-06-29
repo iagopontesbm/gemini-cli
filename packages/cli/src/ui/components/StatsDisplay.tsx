@@ -15,8 +15,6 @@ import {
   TOOL_SUCCESS_RATE_MEDIUM,
   USER_AGREEMENT_RATE_HIGH,
   USER_AGREEMENT_RATE_MEDIUM,
-  CACHE_EFFICIENCY_HIGH,
-  CACHE_EFFICIENCY_MEDIUM,
 } from '../utils/displayUtils.js';
 import { computeSessionStats } from '../utils/computeStats.js';
 
@@ -65,25 +63,31 @@ const Section: React.FC<SectionProps> = ({ title, children }) => (
   </Box>
 );
 
-const ModelUsageTable: React.FC<{ models: Record<string, ModelMetrics> }> = ({
-  models,
-}) => {
-  const nameWidth = 24;
-  const requestsWidth = 12;
-  const tokensWidth = 14;
+const ModelUsageTable: React.FC<{
+  models: Record<string, ModelMetrics>;
+  totalCachedTokens: number;
+  cacheEfficiency: number;
+}> = ({ models, totalCachedTokens, cacheEfficiency }) => {
+  const nameWidth = 25;
+  const requestsWidth = 8;
+  const inputTokensWidth = 15;
+  const outputTokensWidth = 15;
 
   return (
     <Box flexDirection="column" marginTop={1}>
       {/* Header */}
       <Box>
         <Box width={nameWidth}>
-          <Text bold>Model</Text>
+          <Text bold>Model Usage</Text>
         </Box>
-        <Box width={requestsWidth}>
-          <Text bold>Requests</Text>
+        <Box width={requestsWidth} justifyContent="flex-end">
+          <Text bold>Reqs</Text>
         </Box>
-        <Box width={tokensWidth}>
-          <Text bold>Total Tokens</Text>
+        <Box width={inputTokensWidth} justifyContent="flex-end">
+          <Text bold>Input Tokens</Text>
+        </Box>
+        <Box width={outputTokensWidth} justifyContent="flex-end">
+          <Text bold>Output Tokens</Text>
         </Box>
       </Box>
       {/* Divider */}
@@ -93,7 +97,7 @@ const ModelUsageTable: React.FC<{ models: Record<string, ModelMetrics> }> = ({
         borderTop={false}
         borderLeft={false}
         borderRight={false}
-        width={nameWidth + requestsWidth + tokensWidth - 2}
+        width={nameWidth + requestsWidth + inputTokensWidth + outputTokensWidth}
       ></Box>
 
       {/* Rows */}
@@ -102,16 +106,34 @@ const ModelUsageTable: React.FC<{ models: Record<string, ModelMetrics> }> = ({
           <Box width={nameWidth}>
             <Text>{name.replace('-001', '')}</Text>
           </Box>
-          <Box width={requestsWidth}>
+          <Box width={requestsWidth} justifyContent="flex-end">
             <Text>{modelMetrics.api.totalRequests}</Text>
           </Box>
-          <Box width={tokensWidth}>
+          <Box width={inputTokensWidth} justifyContent="flex-end">
             <Text color={Colors.AccentYellow}>
-              {modelMetrics.tokens.total.toLocaleString()}
+              {modelMetrics.tokens.prompt.toLocaleString()}
+            </Text>
+          </Box>
+          <Box width={outputTokensWidth} justifyContent="flex-end">
+            <Text color={Colors.AccentYellow}>
+              {modelMetrics.tokens.candidates.toLocaleString()}
             </Text>
           </Box>
         </Box>
       ))}
+      {cacheEfficiency > 0 && (
+        <Box flexDirection="column" marginTop={1}>
+          <Text>
+            <Text color={Colors.AccentGreen}>Savings Highlight:</Text>{' '}
+            {totalCachedTokens.toLocaleString()} ({cacheEfficiency.toFixed(1)}
+            %) of input tokens were served from the cache, reducing costs.
+          </Text>
+          <Box height={1} />
+          <Text color={Colors.Gray}>
+            » Tip: For a full token breakdown, run `/stats model`.
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 };
@@ -125,14 +147,6 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ duration }) => {
   const { metrics } = stats;
   const { models, tools } = metrics;
   const computed = computeSessionStats(metrics);
-
-  const cacheThresholds = {
-    green: CACHE_EFFICIENCY_HIGH,
-    yellow: CACHE_EFFICIENCY_MEDIUM,
-  };
-  const cacheColor = getStatusColor(computed.cacheEfficiency, cacheThresholds, {
-    defaultColor: Colors.Foreground,
-  });
 
   const successThresholds = {
     green: TOOL_SUCCESS_RATE_HIGH,
@@ -161,31 +175,6 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ duration }) => {
       </Text>
       <Box height={1} />
 
-      <Section title="Performance">
-        <StatRow title="Wall Time:">
-          <Text>{duration}</Text>
-        </StatRow>
-        <StatRow title="Agent Active:">
-          <Text>{formatDuration(computed.agentActiveTime)}</Text>
-        </StatRow>
-        <SubStatRow title="API Time:">
-          <Text>
-            {formatDuration(computed.totalApiTime)}{' '}
-            <Text color={Colors.Gray}>
-              ({computed.apiTimePercent.toFixed(1)}%)
-            </Text>
-          </Text>
-        </SubStatRow>
-        <SubStatRow title="Tool Time:">
-          <Text>
-            {formatDuration(computed.totalToolTime)}{' '}
-            <Text color={Colors.Gray}>
-              ({computed.toolTimePercent.toFixed(1)}%)
-            </Text>
-          </Text>
-        </SubStatRow>
-      </Section>
-
       {tools.totalCalls > 0 && (
         <Section title="Interaction Summary">
           <StatRow title="Tool Calls:">
@@ -211,17 +200,38 @@ export const StatsDisplay: React.FC<StatsDisplayProps> = ({ duration }) => {
         </Section>
       )}
 
-      {computed.cacheEfficiency > 0 && (
-        <Section title="Efficiency & Optimizations">
-          <StatRow title="API Cache Efficiency:">
-            <Text color={cacheColor}>
-              {computed.cacheEfficiency.toFixed(1)}%
+      <Section title="Performance">
+        <StatRow title="Wall Time:">
+          <Text>{duration}</Text>
+        </StatRow>
+        <StatRow title="Agent Active:">
+          <Text>{formatDuration(computed.agentActiveTime)}</Text>
+        </StatRow>
+        <SubStatRow title="API Time:">
+          <Text>
+            {formatDuration(computed.totalApiTime)}{' '}
+            <Text color={Colors.Gray}>
+              ({computed.apiTimePercent.toFixed(1)}%)
             </Text>
-          </StatRow>
-        </Section>
-      )}
+          </Text>
+        </SubStatRow>
+        <SubStatRow title="Tool Time:">
+          <Text>
+            {formatDuration(computed.totalToolTime)}{' '}
+            <Text color={Colors.Gray}>
+              ({computed.toolTimePercent.toFixed(1)}%)
+            </Text>
+          </Text>
+        </SubStatRow>
+      </Section>
 
-      {Object.keys(models).length > 0 && <ModelUsageTable models={models} />}
+      {Object.keys(models).length > 0 && (
+        <ModelUsageTable
+          models={models}
+          totalCachedTokens={computed.totalCachedTokens}
+          cacheEfficiency={computed.cacheEfficiency}
+        />
+      )}
     </Box>
   );
 };

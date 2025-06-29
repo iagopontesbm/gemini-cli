@@ -5,15 +5,15 @@ exports[`<StatsDisplay /> > Conditional Color Tests > renders success rate in gr
 │                                                                                                  │
 │  Session Stats                                                                                   │
 │                                                                                                  │
+│  Interaction Summary                                                                             │
+│  Tool Calls:                 10 ( ✔ 10 ✖ 0 )                                                     │
+│  Success Rate:               100.0%                                                              │
+│                                                                                                  │
 │  Performance                                                                                     │
 │  Wall Time:                  1s                                                                  │
 │  Agent Active:               0s                                                                  │
 │    » API Time:               0s (0.0%)                                                           │
 │    » Tool Time:              0s (0.0%)                                                           │
-│                                                                                                  │
-│  Interaction Summary                                                                             │
-│  Tool Calls:                 10 ( ✔ 10 ✖ 0 )                                                     │
-│  Success Rate:               100.0%                                                              │
 │                                                                                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
@@ -24,15 +24,15 @@ exports[`<StatsDisplay /> > Conditional Color Tests > renders success rate in re
 │                                                                                                  │
 │  Session Stats                                                                                   │
 │                                                                                                  │
+│  Interaction Summary                                                                             │
+│  Tool Calls:                 10 ( ✔ 5 ✖ 5 )                                                      │
+│  Success Rate:               50.0%                                                               │
+│                                                                                                  │
 │  Performance                                                                                     │
 │  Wall Time:                  1s                                                                  │
 │  Agent Active:               0s                                                                  │
 │    » API Time:               0s (0.0%)                                                           │
 │    » Tool Time:              0s (0.0%)                                                           │
-│                                                                                                  │
-│  Interaction Summary                                                                             │
-│  Tool Calls:                 10 ( ✔ 5 ✖ 5 )                                                      │
-│  Success Rate:               50.0%                                                               │
 │                                                                                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
@@ -43,15 +43,15 @@ exports[`<StatsDisplay /> > Conditional Color Tests > renders success rate in ye
 │                                                                                                  │
 │  Session Stats                                                                                   │
 │                                                                                                  │
+│  Interaction Summary                                                                             │
+│  Tool Calls:                 10 ( ✔ 9 ✖ 1 )                                                      │
+│  Success Rate:               90.0%                                                               │
+│                                                                                                  │
 │  Performance                                                                                     │
 │  Wall Time:                  1s                                                                  │
 │  Agent Active:               0s                                                                  │
 │    » API Time:               0s (0.0%)                                                           │
 │    » Tool Time:              0s (0.0%)                                                           │
-│                                                                                                  │
-│  Interaction Summary                                                                             │
-│  Tool Calls:                 10 ( ✔ 9 ✖ 1 )                                                      │
-│  Success Rate:               90.0%                                                               │
 │                                                                                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
@@ -69,9 +69,9 @@ exports[`<StatsDisplay /> > Conditional Rendering Tests > hides Efficiency secti
 │    » Tool Time:              0s (0.0%)                                                           │
 │                                                                                                  │
 │                                                                                                  │
-│  Model                   Requests    Total Tokens                                                │
-│  ────────────────────────────────────────────────                                                │
-│  gemini-2.5-pro          1           200                                                         │
+│  Model Usage                  Reqs   Input Tokens  Output Tokens                                 │
+│  ───────────────────────────────────────────────────────────────                                 │
+│  gemini-2.5-pro                  1            100            100                                 │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
 `;
@@ -81,15 +81,15 @@ exports[`<StatsDisplay /> > Conditional Rendering Tests > hides User Agreement w
 │                                                                                                  │
 │  Session Stats                                                                                   │
 │                                                                                                  │
+│  Interaction Summary                                                                             │
+│  Tool Calls:                 2 ( ✔ 1 ✖ 1 )                                                       │
+│  Success Rate:               50.0%                                                               │
+│                                                                                                  │
 │  Performance                                                                                     │
 │  Wall Time:                  1s                                                                  │
 │  Agent Active:               123ms                                                               │
 │    » API Time:               0s (0.0%)                                                           │
 │    » Tool Time:              123ms (100.0%)                                                      │
-│                                                                                                  │
-│  Interaction Summary                                                                             │
-│  Tool Calls:                 2 ( ✔ 1 ✖ 1 )                                                       │
-│  Success Rate:               50.0%                                                               │
 │                                                                                                  │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
@@ -106,14 +106,15 @@ exports[`<StatsDisplay /> > renders a table with two models correctly 1`] = `
 │    » API Time:               19.5s (100.0%)                                                      │
 │    » Tool Time:              0s (0.0%)                                                           │
 │                                                                                                  │
-│  Efficiency & Optimizations                                                                      │
-│  API Cache Efficiency:       40.4%                                                               │
 │                                                                                                  │
+│  Model Usage                  Reqs   Input Tokens  Output Tokens                                 │
+│  ───────────────────────────────────────────────────────────────                                 │
+│  gemini-2.5-pro                  3          1,000          2,000                                 │
+│  gemini-2.5-flash                5         25,000         15,000                                 │
 │                                                                                                  │
-│  Model                   Requests    Total Tokens                                                │
-│  ────────────────────────────────────────────────                                                │
-│  gemini-2.5-pro          3           43,234                                                      │
-│  gemini-2.5-flash        5           150,000,000                                                 │
+│  Savings Highlight: 10,500 (40.4%) of input tokens were served from the cache, reducing costs.   │
+│                                                                                                  │
+│  » Tip: For a full token breakdown, run \`/stats model\`.                                          │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
 `;
@@ -123,24 +124,25 @@ exports[`<StatsDisplay /> > renders all sections when all data is present 1`] = 
 │                                                                                                  │
 │  Session Stats                                                                                   │
 │                                                                                                  │
+│  Interaction Summary                                                                             │
+│  Tool Calls:                 2 ( ✔ 1 ✖ 1 )                                                       │
+│  Success Rate:               50.0%                                                               │
+│  User Agreement:             100.0% (1 reviewed)                                                 │
+│                                                                                                  │
 │  Performance                                                                                     │
 │  Wall Time:                  1s                                                                  │
 │  Agent Active:               223ms                                                               │
 │    » API Time:               100ms (44.8%)                                                       │
 │    » Tool Time:              123ms (55.2%)                                                       │
 │                                                                                                  │
-│  Interaction Summary                                                                             │
-│  Tool Calls:                 2 ( ✔ 1 ✖ 1 )                                                       │
-│  Success Rate:               50.0%                                                               │
-│  User Agreement:             100.0% (1 reviewed)                                                 │
 │                                                                                                  │
-│  Efficiency & Optimizations                                                                      │
-│  API Cache Efficiency:       50.0%                                                               │
+│  Model Usage                  Reqs   Input Tokens  Output Tokens                                 │
+│  ───────────────────────────────────────────────────────────────                                 │
+│  gemini-2.5-pro                  1            100            100                                 │
 │                                                                                                  │
+│  Savings Highlight: 50 (50.0%) of input tokens were served from the cache, reducing costs.       │
 │                                                                                                  │
-│  Model                   Requests    Total Tokens                                                │
-│  ────────────────────────────────────────────────                                                │
-│  gemini-2.5-pro          1           250                                                         │
+│  » Tip: For a full token breakdown, run \`/stats model\`.                                          │
 │                                                                                                  │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────╯"
 `;

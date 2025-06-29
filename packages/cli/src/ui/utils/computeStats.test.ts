@@ -135,6 +135,8 @@ describe('computeSessionStats', () => {
       totalDecisions: 0,
       successRate: 0,
       agreementRate: 0,
+      totalPromptTokens: 0,
+      totalCachedTokens: 0,
     });
   });
 
