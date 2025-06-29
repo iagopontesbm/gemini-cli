@@ -32,8 +32,7 @@ class MockFileDiscoveryService {
   shouldGeminiIgnoreFile = vi.fn();
   filterFiles = vi.fn();
   getGeminiIgnorePatterns = vi.fn();
-  private gitIgnoreFilter = vi.fn();
-  private geminiIgnoreFilter = vi.fn();
+// Removed unused private methods gitIgnoreFilter and geminiIgnoreFilter
   projectRoot = '/testroot';
 }
 
