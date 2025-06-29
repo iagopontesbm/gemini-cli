@@ -98,8 +98,14 @@ export function ManualAuthInProgress({
         </Box>
         <Box marginLeft={3} marginTop={1}>
           <Text color={Colors.AccentGreen}>
-            ssh -L {new URL(callbackUrl).port}:localhost:
-            {new URL(callbackUrl).port} &lt;your-ssh-connection&gt;
+            {(() => {
+              try {
+                const port = new URL(callbackUrl).port;
+                return `ssh -L ${port}:localhost:${port} <your-ssh-connection>`;
+              } catch {
+                return 'Invalid callback URL. Cannot generate SSH command.';
+              }
+            })()}
           </Text>
         </Box>
         <Box marginLeft={3}>
