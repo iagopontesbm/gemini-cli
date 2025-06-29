@@ -16,9 +16,15 @@ export type EditorType =
   | 'zed';
 
 function isValidEditorType(editor: string): editor is EditorType {
-  return ['vscode', 'vscodium', 'windsurf', 'cursor', 'vim', 'neovim', 'zed'].includes(
-    editor,
-  );
+  return [
+    'vscode',
+    'vscodium',
+    'windsurf',
+    'cursor',
+    'vim',
+    'neovim',
+    'zed',
+  ].includes(editor);
 }
 
 interface DiffCommand {
