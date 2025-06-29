@@ -110,14 +110,11 @@ export const useSlashCommandProcessor = (
       } else if (message.type === MessageType.STATS) {
         historyItemContent = {
           type: 'stats',
-          stats: message.stats,
-          lastTurnStats: message.lastTurnStats,
           duration: message.duration,
         };
       } else if (message.type === MessageType.QUIT) {
         historyItemContent = {
           type: 'quit',
-          stats: message.stats,
           duration: message.duration,
         };
       } else if (message.type === MessageType.COMPRESSION) {
@@ -265,13 +262,11 @@ export const useSlashCommandProcessor = (
         description: 'check session stats',
         action: (_mainCommand, _subCommand, _args) => {
           const now = new Date();
-          const { sessionStartTime, cumulative, currentTurn } = session.stats;
+          const { sessionStartTime } = session.stats;
           const wallDuration = now.getTime() - sessionStartTime.getTime();
 
           addMessage({
             type: MessageType.STATS,
-            stats: cumulative,
-            lastTurnStats: currentTurn,
             duration: formatDuration(wallDuration),
             timestamp: new Date(),
           });
@@ -805,7 +800,7 @@ export const useSlashCommandProcessor = (
         description: 'exit the cli',
         action: async (mainCommand, _subCommand, _args) => {
           const now = new Date();
-          const { sessionStartTime, cumulative } = session.stats;
+          const { sessionStartTime } = session.stats;
           const wallDuration = now.getTime() - sessionStartTime.getTime();
 
           setQuittingMessages([
@@ -816,7 +811,6 @@ export const useSlashCommandProcessor = (
             },
             {
               type: 'quit',
-              stats: cumulative,
               duration: formatDuration(wallDuration),
               id: now.getTime(),
             },

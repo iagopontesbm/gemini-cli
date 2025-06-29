@@ -8,7 +8,6 @@ import {
   ToolCallConfirmationDetails,
   ToolResultDisplay,
 } from '@google/gemini-cli-core';
-import { CumulativeStats } from './contexts/SessionContext.js';
 
 // Only defining the state enum needed by the UI
 export enum StreamingState {
@@ -100,14 +99,11 @@ export type HistoryItemAbout = HistoryItemBase & {
 
 export type HistoryItemStats = HistoryItemBase & {
   type: 'stats';
-  stats: CumulativeStats;
-  lastTurnStats: CumulativeStats;
   duration: string;
 };
 
 export type HistoryItemQuit = HistoryItemBase & {
   type: 'quit';
-  stats: CumulativeStats;
   duration: string;
 };
 
@@ -178,15 +174,12 @@ export type Message =
   | {
       type: MessageType.STATS;
       timestamp: Date;
-      stats: CumulativeStats;
-      lastTurnStats: CumulativeStats;
       duration: string;
       content?: string;
     }
   | {
       type: MessageType.QUIT;
       timestamp: Date;
-      stats: CumulativeStats;
       duration: string;
       content?: string;
     }

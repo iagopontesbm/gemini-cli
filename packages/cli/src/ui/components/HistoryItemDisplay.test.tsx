@@ -8,7 +8,7 @@ import { render } from 'ink-testing-library';
 import { describe, it, expect, vi } from 'vitest';
 import { HistoryItemDisplay } from './HistoryItemDisplay.js';
 import { HistoryItem, MessageType } from '../types.js';
-import { CumulativeStats } from '../contexts/SessionContext.js';
+import { SessionStatsProvider } from '../contexts/SessionContext.js';
 
 // Mock child components
 vi.mock('./messages/ToolGroupMessage.js', () => ({
@@ -36,25 +36,15 @@ describe('<HistoryItemDisplay />', () => {
   });
 
   it('renders StatsDisplay for "stats" type', () => {
-    const stats: CumulativeStats = {
-      turnCount: 1,
-      promptTokenCount: 10,
-      candidatesTokenCount: 20,
-      totalTokenCount: 30,
-      cachedContentTokenCount: 5,
-      toolUsePromptTokenCount: 2,
-      thoughtsTokenCount: 3,
-      apiTimeMs: 123,
-    };
     const item: HistoryItem = {
       ...baseItem,
       type: MessageType.STATS,
-      stats,
-      lastTurnStats: stats,
       duration: '1s',
     };
     const { lastFrame } = render(
-      <HistoryItemDisplay {...baseItem} item={item} />,
+      <SessionStatsProvider>
+        <HistoryItemDisplay {...baseItem} item={item} />
+      </SessionStatsProvider>,
     );
     expect(lastFrame()).toContain('Stats');
   });
@@ -77,24 +67,15 @@ describe('<HistoryItemDisplay />', () => {
   });
 
   it('renders SessionSummaryDisplay for "quit" type', () => {
-    const stats: CumulativeStats = {
-      turnCount: 1,
-      promptTokenCount: 10,
-      candidatesTokenCount: 20,
-      totalTokenCount: 30,
-      cachedContentTokenCount: 5,
-      toolUsePromptTokenCount: 2,
-      thoughtsTokenCount: 3,
-      apiTimeMs: 123,
-    };
     const item: HistoryItem = {
       ...baseItem,
       type: 'quit',
-      stats,
       duration: '1s',
     };
     const { lastFrame } = render(
-      <HistoryItemDisplay {...baseItem} item={item} />,
+      <SessionStatsProvider>
+        <HistoryItemDisplay {...baseItem} item={item} />
+      </SessionStatsProvider>,
     );
     expect(lastFrame()).toContain('Agent powering down. Goodbye!');
   });
