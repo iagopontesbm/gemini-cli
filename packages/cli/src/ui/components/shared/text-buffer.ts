@@ -527,45 +527,6 @@ export function useTextBuffer({
     return _restoreState(state);
   }, [redoStack, lines, cursorRow, cursorCol, _restoreState]);
 
-  const insertStr = useCallback(
-    (str: string): boolean => {
-      dbg('insertStr', { str, beforeCursor: [cursorRow, cursorCol] });
-      if (str === '') return false;
-
-      pushUndo();
-      let normalised = str.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-      normalised = stripUnsafeCharacters(normalised);
-
-      const parts = normalised.split('\n');
-
-      const newLines = [...lines];
-      const lineContent = currentLine(cursorRow);
-      const before = cpSlice(lineContent, 0, cursorCol);
-      const after = cpSlice(lineContent, cursorCol);
-      newLines[cursorRow] = before + parts[0];
-
-      if (parts.length > 1) {
-        // Adjusted condition for inserting multiple lines
-        const remainingParts = parts.slice(1);
-        const lastPartOriginal = remainingParts.pop() ?? '';
-        newLines.splice(cursorRow + 1, 0, ...remainingParts);
-        newLines.splice(
-          cursorRow + parts.length - 1,
-          0,
-          lastPartOriginal + after,
-        );
-        setCursorRow(cursorRow + parts.length - 1);
-        setCursorCol(cpLen(lastPartOriginal));
-      } else {
-        setCursorCol(cpLen(before) + cpLen(parts[0]));
-      }
-      setLines(newLines);
-      setPreferredCol(null);
-      return true;
-    },
-    [pushUndo, cursorRow, cursorCol, lines, currentLine, setPreferredCol],
-  );
-
   const applyOperations = useCallback((ops: UpdateOperation[]) => {
     if (ops.length === 0) return;
     setOpQueue((prev) => [...prev, ...ops]);
@@ -671,10 +632,6 @@ export function useTextBuffer({
 
   const insert = useCallback(
     (ch: string): void => {
-      if (/[\n\r]/.test(ch)) {
-        insertStr(ch);
-        return;
-      }
       dbg('insert', { ch, beforeCursor: [cursorRow, cursorCol] });
 
       ch = stripUnsafeCharacters(ch);
@@ -687,8 +644,8 @@ export function useTextBuffer({
         let potentialPath = ch;
         if (
           potentialPath.length > 2 &&
-          potentialPath.startsWith("'") &&
-          potentialPath.endsWith("'")
+          potentialPath.startsWith('') &&
+          potentialPath.endsWith('')
         ) {
           potentialPath = ch.slice(1, -1);
         }
@@ -701,7 +658,7 @@ export function useTextBuffer({
       }
       applyOperations([{ type: 'insert', payload: ch }]);
     },
-    [applyOperations, cursorRow, cursorCol, isValidPath, insertStr],
+    [applyOperations, cursorRow, cursorCol, isValidPath],
   );
 
   const newline = useCallback((): void => {
@@ -1404,8 +1361,9 @@ export function useTextBuffer({
     }, [selectionAnchor, cursorRow, cursorCol, currentLine, setClipboard]),
     paste: useCallback(() => {
       if (clipboard === null) return false;
-      return insertStr(clipboard);
-    }, [clipboard, insertStr]),
+      applyOperations([{ type: 'insert', payload: clipboard }]);
+      return true;
+    }, [clipboard, applyOperations]),
     startSelection: useCallback(
       () => setSelectionAnchor([cursorRow, cursorCol]),
       [cursorRow, cursorCol, setSelectionAnchor],
