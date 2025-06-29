@@ -102,6 +102,111 @@ export interface ManualOauthLogin {
   loginCompletePromise: Promise<void>;
 }
 
+interface AuthCommonResult {
+  authUrl: string;
+  redirectUri: string;
+  loginCompletePromise: Promise<void>;
+}
+
+/**
+ * Common OAuth authentication logic shared by both web and manual flows
+ */
+async function authCommon(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<AuthCommonResult> {
+  // Ensure any existing OAuth server is shut down first
+  await ensureOAuthServerCleanup();
+
+  // Setup process cleanup handlers
+  setupProcessCleanupHandlers();
+
+  const port = await resolveOAuthPort(configuredPort);
+  const redirectUri = `http://localhost:${port}/oauth2callback`;
+  const state = crypto.randomBytes(32).toString('hex');
+  const authUrl: string = client.generateAuthUrl({
+    redirect_uri: redirectUri,
+    access_type: 'offline',
+    scope: OAUTH_SCOPE,
+    state,
+  });
+
+  const loginCompletePromise = new Promise<void>((resolve, reject) => {
+    const server = http.createServer(async (req, res) => {
+      try {
+        if (req.url!.indexOf('/oauth2callback') === -1) {
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
+          res.end();
+          reject(new Error('Unexpected request: ' + req.url));
+        }
+        // acquire the code from the querystring, and close the web server.
+        const qs = new url.URL(req.url!, 'http://localhost:3000').searchParams;
+        if (qs.get('error')) {
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
+          res.end();
+
+          reject(new Error(`Error during authentication: ${qs.get('error')}`));
+        } else if (qs.get('state') !== state) {
+          res.end('State mismatch. Possible CSRF attack');
+
+          reject(new Error('State mismatch. Possible CSRF attack'));
+        } else if (qs.get('code')) {
+          const { tokens } = await client.getToken({
+            code: qs.get('code')!,
+            redirect_uri: redirectUri,
+          });
+          client.setCredentials(tokens);
+          await cacheCredentials(client.credentials);
+
+          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
+          res.end();
+          resolve();
+        } else {
+          reject(new Error('No code found in request'));
+        }
+      } catch (e) {
+        reject(e);
+      } finally {
+        server.close();
+        activeOAuthServer = null;
+      }
+    });
+
+    // Track the active server globally
+    activeOAuthServer = server;
+    server.listen(port);
+  });
+
+  return {
+    authUrl,
+    redirectUri,
+    loginCompletePromise,
+  };
+}
+
+async function authWithWeb(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<OauthWebLogin> {
+  const result = await authCommon(client, configuredPort);
+  return {
+    authUrl: result.authUrl,
+    loginCompletePromise: result.loginCompletePromise,
+  };
+}
+
+async function authWithManual(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<ManualOauthLogin> {
+  const result = await authCommon(client, configuredPort);
+  return {
+    authUrl: result.authUrl,
+    callbackUrl: result.redirectUri,
+    loginCompletePromise: result.loginCompletePromise,
+  };
+}
+
 export async function getOauthClient(
   configuredPort?: number,
 ): Promise<OAuth2Client> {
@@ -122,8 +227,8 @@ export async function getOauthClient(
 
   console.log(
     `\n\nCode Assist login required.\n` +
-      `Attempting to open authentication page in your browser.\n` +
-      `Otherwise navigate to:\n\n${displayUrl}\n\n`,
+    `Attempting to open authentication page in your browser.\n` +
+    `Otherwise navigate to:\n\n${displayUrl}\n\n`,
   );
   await open(webLogin.authUrl);
   console.log('Waiting for authentication...');
@@ -182,151 +287,6 @@ export async function getManualOauthInfo(
   }
 
   return await authWithManual(client, configuredPort);
-}
-
-async function authWithWeb(
-  client: OAuth2Client,
-  configuredPort?: number,
-): Promise<OauthWebLogin> {
-  // Ensure any existing OAuth server is shut down first
-  await ensureOAuthServerCleanup();
-  
-  // Setup process cleanup handlers
-  setupProcessCleanupHandlers();
-  
-  const port = await resolveOAuthPort(configuredPort);
-  const redirectUri = `http://localhost:${port}/oauth2callback`;
-  const state = crypto.randomBytes(32).toString('hex');
-  const authUrl: string = client.generateAuthUrl({
-    redirect_uri: redirectUri,
-    access_type: 'offline',
-    scope: OAUTH_SCOPE,
-    state,
-  });
-
-  const loginCompletePromise = new Promise<void>((resolve, reject) => {
-    const server = http.createServer(async (req, res) => {
-      try {
-        if (req.url!.indexOf('/oauth2callback') === -1) {
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-          res.end();
-          reject(new Error('Unexpected request: ' + req.url));
-        }
-        // acquire the code from the querystring, and close the web server.
-        const qs = new url.URL(req.url!, 'http://localhost:3000').searchParams;
-        if (qs.get('error')) {
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-          res.end();
-
-          reject(new Error(`Error during authentication: ${qs.get('error')}`));
-        } else if (qs.get('state') !== state) {
-          res.end('State mismatch. Possible CSRF attack');
-
-          reject(new Error('State mismatch. Possible CSRF attack'));
-        } else if (qs.get('code')) {
-          const { tokens } = await client.getToken({
-            code: qs.get('code')!,
-            redirect_uri: redirectUri,
-          });
-          client.setCredentials(tokens);
-          await cacheCredentials(client.credentials);
-
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
-          res.end();
-          resolve();
-        } else {
-          reject(new Error('No code found in request'));
-        }
-      } catch (e) {
-        reject(e);
-      } finally {
-        server.close();
-        activeOAuthServer = null;
-      }
-    });
-    
-    // Track the active server globally
-    activeOAuthServer = server;
-    server.listen(port);
-  });
-
-  return {
-    authUrl,
-    loginCompletePromise,
-  };
-}
-
-async function authWithManual(
-  client: OAuth2Client,
-  configuredPort?: number,
-): Promise<ManualOauthLogin> {
-  // Ensure any existing OAuth server is shut down first
-  await ensureOAuthServerCleanup();
-  
-  // Setup process cleanup handlers
-  setupProcessCleanupHandlers();
-  
-  const port = await resolveOAuthPort(configuredPort);
-  const redirectUri = `http://localhost:${port}/oauth2callback`;
-  const state = crypto.randomBytes(32).toString('hex');
-  const authUrl: string = client.generateAuthUrl({
-    redirect_uri: redirectUri,
-    access_type: 'offline',
-    scope: OAUTH_SCOPE,
-    state,
-  });
-
-  const loginCompletePromise = new Promise<void>((resolve, reject) => {
-    const server = http.createServer(async (req, res) => {
-      try {
-        if (req.url!.indexOf('/oauth2callback') === -1) {
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-          res.end();
-          reject(new Error('Unexpected request: ' + req.url));
-        }
-        // acquire the code from the querystring, and close the web server.
-        const qs = new url.URL(req.url!, 'http://localhost:3000').searchParams;
-        if (qs.get('error')) {
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_FAILURE_URL });
-          res.end();
-
-          reject(new Error(`Error during authentication: ${qs.get('error')}`));
-        } else if (qs.get('state') !== state) {
-          res.end('State mismatch. Possible CSRF attack');
-
-          reject(new Error('State mismatch. Possible CSRF attack'));
-        } else if (qs.get('code')) {
-          const { tokens } = await client.getToken({
-            code: qs.get('code')!,
-            redirect_uri: redirectUri,
-          });
-          client.setCredentials(tokens);
-          await cacheCredentials(client.credentials);
-
-          res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
-          res.end();
-          resolve();
-        } else {
-          reject(new Error('No code found in request'));
-        }
-      } catch (e) {
-        reject(e);
-      } finally {
-        server.close();
-        activeOAuthServer = null;
-      }
-    });
-    
-    // Track the active server globally
-    activeOAuthServer = server;
-    server.listen(port);
-  });
-
-  return {
-    authUrl,
-    callbackUrl: redirectUri,
-    loginCompletePromise,
-  };
 }
 
 export function getAvailablePort(): Promise<number> {
@@ -449,7 +409,7 @@ async function ensureOAuthServerCleanup(): Promise<void> {
   if (serverCleanupPromise) {
     await serverCleanupPromise;
   }
-  
+
   // Shutdown active server if exists
   if (activeOAuthServer) {
     serverCleanupPromise = shutdownActiveOAuthServer();
@@ -464,14 +424,19 @@ async function ensureOAuthServerCleanup(): Promise<void> {
 function setupProcessCleanupHandlers() {
   // Only setup once
   if (process.listenerCount('SIGTERM') === 0) {
-    const cleanup = async () => {
-      await shutdownActiveOAuthServer();
-      process.exit(0);
+    const cleanupAndExit = () => {
+      shutdownActiveOAuthServer().finally(() => process.exit());
     };
 
-    process.on('SIGTERM', cleanup);
-    process.on('SIGINT', cleanup);
-    process.on('beforeExit', cleanup);
+    const cleanupWithoutExit = () => {
+      shutdownActiveOAuthServer().catch(() => {
+        // Ignore errors on exit
+      });
+    };
+
+    process.on('SIGTERM', cleanupAndExit);
+    process.on('SIGINT', cleanupAndExit);
+    process.on('beforeExit', cleanupWithoutExit);
   }
 }
 

@@ -85,8 +85,8 @@ describe('modifyWithEditor', () => {
 
     (fs.existsSync as Mock).mockReturnValue(true);
     (fs.mkdirSync as Mock).mockImplementation(() => undefined);
-    (fs.writeFileSync as Mock).mockImplementation(() => {});
-    (fs.unlinkSync as Mock).mockImplementation(() => {});
+    (fs.writeFileSync as Mock).mockImplementation(() => { });
+    (fs.unlinkSync as Mock).mockImplementation(() => { });
 
     (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
       if (filePath.includes('-new-')) {
@@ -306,7 +306,7 @@ describe('modifyWithEditor', () => {
   it('should handle temp file cleanup errors gracefully', async () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
-      .mockImplementation(() => {});
+      .mockImplementation(() => { });
     (fs.unlinkSync as Mock).mockImplementation((_filePath: string) => {
       throw new Error('Failed to delete file');
     });
@@ -343,8 +343,8 @@ describe('modifyWithEditor', () => {
     const oldFilePath = writeFileCalls[0][0];
     const newFilePath = writeFileCalls[1][0];
 
-    expect(oldFilePath).toMatch(/gemini-cli-modify-test-file\.txt-old-\d+$/);
-    expect(newFilePath).toMatch(/gemini-cli-modify-test-file\.txt-new-\d+$/);
+    expect(oldFilePath).toMatch(/gemini-cli-modify-test-file-old-\d+\.txt$/);
+    expect(newFilePath).toMatch(/gemini-cli-modify-test-file-new-\d+\.txt$/);
     expect(oldFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
     expect(newFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
   });
