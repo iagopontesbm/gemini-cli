@@ -61,7 +61,11 @@ export const useStatusCheck = (
   const [isComplete, setIsComplete] = useState(false);
 
   useEffect(() => {
-    getCliVersion().then(setCliVersion);
+    getCliVersion()
+      .then(setCliVersion)
+      .catch(() => {
+        setCliVersion('unknown');
+      });
   }, []);
 
   useEffect(() => {
