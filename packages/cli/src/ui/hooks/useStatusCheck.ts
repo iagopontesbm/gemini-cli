@@ -10,6 +10,7 @@ import {
   AuthType,
   ApprovalMode,
   getAllGeminiMdFilenames,
+  getErrorMessage,
 } from '@google/gemini-cli-core';
 import { LoadedSettings } from '../../config/settings.js';
 import { getCliVersion } from '../../utils/version.js';
@@ -108,9 +109,7 @@ export const useStatusCheck = (
       } catch (e) {
         if (isMounted) {
           setConnectivity('error');
-          setError(
-            e instanceof Error ? e.message : 'An unknown error occurred.',
-          );
+          setError(getErrorMessage(e));
         }
       } finally {
         if (isMounted) {
