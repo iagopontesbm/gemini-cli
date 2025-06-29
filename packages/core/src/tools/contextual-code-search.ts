@@ -31,7 +31,7 @@ export interface ContextualCodeSearchToolResult extends ToolResult {
 }
 
 export interface GetCodeCustomizationAvailabilityRequest {
-  project: string;
+  project?: string;
 }
 
 export interface GetCodeCustomizationAvailabilityResponse {
@@ -40,7 +40,7 @@ export interface GetCodeCustomizationAvailabilityResponse {
 
 export interface RetrieveSnippetsRequest {
   query: string;
-  project: string;
+  project?: string;
 }
 
 export interface RetrieveSnippetsResponse {
@@ -54,7 +54,7 @@ export interface Snippet {
   content: string;
 }
 
-export const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || '';
+export const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT;
 
 export const SCOPES = ['https://www.googleapis.com/auth/cloud-platform'];
 
@@ -117,6 +117,12 @@ export class ContextualCodeSearchTool extends BaseTool<
       };
     }
 
+    if (!PROJECT_ID) {
+      return {
+        llmContent: 'Error: GOOGLE_CLOUD_PROJECT property not found.',
+        returnDisplay: 'Error: GOOGLE_CLOUD_PROJECT property not found.',
+      };
+    }
     try {
       // 1. Fetch the snippets
       const req: RetrieveSnippetsRequest = {
@@ -162,6 +168,9 @@ export class ContextualCodeSearchTool extends BaseTool<
   }
 
   static async getCodeCustomizationAvailability(): Promise<GetCodeCustomizationAvailabilityResponse> {
+    if (!PROJECT_ID) {
+      throw new Error('GOOGLE_CLOUD_PROJECT property not found.');
+    }
     return this.callEndpoint<GetCodeCustomizationAvailabilityResponse>(
       'fetchCodeCustomizationState',
       { project: PROJECT_ID },
