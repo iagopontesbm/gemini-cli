@@ -10,7 +10,7 @@ import {
   CoreToolScheduler,
   ToolCall,
   ValidatingToolCall,
-  convertToFunctionResponse
+  convertToFunctionResponse,
 } from './coreToolScheduler.js';
 import {
   BaseTool,

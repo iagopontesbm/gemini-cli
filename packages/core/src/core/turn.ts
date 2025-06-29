@@ -18,7 +18,11 @@ import {
 } from '../tools/tools.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { reportError } from '../utils/errorReporting.js';
-import { getErrorMessage, UnauthorizedError, toFriendlyError } from '../utils/errors.js';
+import {
+  getErrorMessage,
+  UnauthorizedError,
+  toFriendlyError,
+} from '../utils/errors.js';
 import { GeminiChat } from './geminiChat.js';
 
 // Define a structure for tools passed to the server

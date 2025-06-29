@@ -8,7 +8,11 @@ import path from 'path';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
 import { BaseTool, ToolResult } from './tools.js';
-import { isWithinRoot, processSingleFileContent, getSpecificMimeType } from '../utils/fileUtils.js';
+import {
+  isWithinRoot,
+  processSingleFileContent,
+  getSpecificMimeType,
+} from '../utils/fileUtils.js';
 import { Config } from '../config/config.js';
 import {
   recordFileOperationMetric,
