@@ -19,7 +19,7 @@ export class SchemaValidator {
     // In a real application, you would use a library like Ajv for proper validation
 
     if (typeof data !== 'object' || data === null) {
-      return `Expected an object, but received ${typeof data}`;
+      return `Expected an object, but received ${data === null ? 'null' : typeof data}`;
     }
 
     const dataObj = data as Record<string, unknown>;
