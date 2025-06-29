@@ -8,8 +8,10 @@ import { BaseTool, ToolResult } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { getErrorMessage } from '../utils/errors.js';
 import { GoogleAuth } from 'google-auth-library';
-import { CODE_ASSIST_API_VERSION, CODE_ASSIST_ENDPOINT } from '../code_assist/server.js';
-
+import {
+  CODE_ASSIST_API_VERSION,
+  CODE_ASSIST_ENDPOINT,
+} from '../code_assist/server.js';
 
 /**
  * Parameters for the ContextualCodeSearchTool.
@@ -25,7 +27,7 @@ export interface ContextualCodeSearchToolParams {
  * Extends ToolResult for remote data fetching.
  */
 export interface ContextualCodeSearchToolResult extends ToolResult {
-  data?: any;
+  data?: RetrieveSnippetsResponse;
 }
 
 export interface GetCodeCustomizationAvailabilityRequest {
@@ -52,7 +54,7 @@ export interface Snippet {
   content: string;
 }
 
-export const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || ''
+export const PROJECT_ID = process.env.GOOGLE_CLOUD_PROJECT || '';
 
 export const SCOPES = ['https://www.googleapis.com/auth/cloud-platform'];
 
@@ -64,7 +66,7 @@ export class ContextualCodeSearchTool extends BaseTool<
   ContextualCodeSearchToolResult
 > {
   static readonly Name: string = 'contextual_code_search';
-  
+
   constructor() {
     super(
       ContextualCodeSearchTool.Name,
@@ -91,7 +93,7 @@ export class ContextualCodeSearchTool extends BaseTool<
         params,
       )
     ) {
-      return "Parameters failed schema validation.";
+      return 'Parameters failed schema validation.';
     }
     if (!params.prompt || params.prompt.trim() === '') {
       return "The 'prompt' parameter cannot be empty.";
@@ -122,13 +124,13 @@ export class ContextualCodeSearchTool extends BaseTool<
         project: PROJECT_ID,
       };
 
-      const data = await ContextualCodeSearchTool.retrieveSnippets(req);
+      const data = await ContextualCodeSearchTool.retrieveSnippets(req, signal);
 
       // 2. Format the response
       let formattedResponse = '';
       if (data && data.snippets && data.snippets.length > 0) {
         formattedResponse += '\n--- Found Snippets ---\n';
-        data.snippets.forEach((snippet: any, index: number) => {
+        data.snippets.forEach((snippet: Snippet, index: number) => {
           formattedResponse += `\n--- Snippet ${index + 1} ---\n`;
           formattedResponse += `Distance: ${snippet.distance}\n`;
           formattedResponse += `Repo URL: ${snippet.repoUri}\n`;
@@ -166,14 +168,23 @@ export class ContextualCodeSearchTool extends BaseTool<
     );
   }
 
-  static async retrieveSnippets(req: RetrieveSnippetsRequest): Promise<RetrieveSnippetsResponse> {
+  static async retrieveSnippets(
+    req: RetrieveSnippetsRequest,
+    signal?: AbortSignal,
+  ): Promise<RetrieveSnippetsResponse> {
     return this.callEndpoint<RetrieveSnippetsResponse>(
-      'searchSnippets',req
+      'searchSnippets',
+      req,
+      signal,
     );
   }
 
-  private static async callEndpoint<T>(method: string, req: object): Promise<T> {
-    const auth = new GoogleAuth({scopes: SCOPES})
+  private static async callEndpoint<T>(
+    method: string,
+    req: object,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    const auth = new GoogleAuth({ scopes: SCOPES });
     const client = await auth.getClient();
     const res = await client.request({
       url: `${CODE_ASSIST_ENDPOINT}/${CODE_ASSIST_API_VERSION}:${method}`,
@@ -183,6 +194,7 @@ export class ContextualCodeSearchTool extends BaseTool<
       },
       responseType: 'json',
       body: JSON.stringify(req),
+      signal,
     });
     return res.data as T;
   }

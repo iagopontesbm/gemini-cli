@@ -492,12 +492,12 @@ export function createToolRegistry(config: Config): Promise<ToolRegistry> {
     try {
       const data =
         await ContextualCodeSearchTool.getCodeCustomizationAvailability();
-      if (data && data.state == 'ENABLED') {
+      if (data && data.state === 'ENABLED') {
         registerCoreTool(ContextualCodeSearchTool);
       }
     } catch (error) {
       // If the request fails, log the error and continue without the tool.
-      console.error('Failed to register contextual code search tool.');
+      console.error('Failed to register contextual code search tool.', error);
     }
     await registry.discoverTools();
     return registry;
