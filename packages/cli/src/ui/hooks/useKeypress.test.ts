@@ -30,7 +30,7 @@ describe('useKeypress Hook', () => {
     write: vi.fn(),
     prependListener: vi.fn(),
     removeListener: vi.fn(),
-    emit: vi.fn(), // Simulate event emission
+    emit: vi.fn(),
   };
   const mockSetRawMode = vi.fn();
   const mockRl = {
@@ -293,11 +293,9 @@ describe('useKeypress Hook', () => {
     expect(dataListener).toBeDefined();
 
     act(() => {
-      // Simulate paste with nested end marker: \x1b[200~text\x1b[201~more\x1b[201~
       dataListener(Buffer.from('\x1b[200~text\x1b[201~more\x1b[201~'));
     });
 
-    // Expect first paste to terminate at nested end marker
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
@@ -307,7 +305,6 @@ describe('useKeypress Hook', () => {
       sequence: 'text',
     });
 
-    // Expect remaining content to be processed as another paste
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
@@ -334,14 +331,10 @@ describe('useKeypress Hook', () => {
     expect(keypressListener).toBeDefined();
 
     act(() => {
-      // Start paste
       dataListener(Buffer.from('\x1b[200~Partial paste'));
-
-      // Simulate arrow key (non-paste escape sequence)
       dataListener(Buffer.from('\x1b[A'));
       vi.advanceTimersByTime(50); // Max input delay
 
-      // Simulate readline emitting the arrow key
       keypressListener(null, {
         name: 'up',
         ctrl: false,
@@ -352,7 +345,6 @@ describe('useKeypress Hook', () => {
       vi.advanceTimersByTime(50); // Max input delay
     });
 
-    // Expect partial paste to be processed
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
@@ -362,7 +354,6 @@ describe('useKeypress Hook', () => {
       sequence: 'Partial paste',
     });
 
-    // Expect arrow key to be processed as a single keypress
     expect(onKeypress).toHaveBeenCalledWith({
       name: 'up',
       ctrl: false,
@@ -385,11 +376,9 @@ describe('useKeypress Hook', () => {
     expect(dataListener).toBeDefined();
 
     act(() => {
-      // Simulate paste with multiple end markers: \x1b[200~a\x1b[201~b\x1b[201~c\x1b[201~
       dataListener(Buffer.from('\x1b[200~a\x1b[201~b\x1b[201~c\x1b[201~'));
     });
 
-    // Expect three paste events
     expect(onKeypress).toHaveBeenCalledTimes(3);
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
@@ -429,12 +418,10 @@ describe('useKeypress Hook', () => {
     expect(dataListener).toBeDefined();
 
     act(() => {
-      // Simulate incomplete end marker: \x1b[200~text\x1b[201
       dataListener(Buffer.from('\x1b[200~text\x1b[201'));
       vi.advanceTimersByTime(1000); // Paste timeout duration
     });
 
-    // Expect partial paste to be processed via timeout
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
@@ -445,12 +432,97 @@ describe('useKeypress Hook', () => {
     });
 
     act(() => {
-      // Simulate incomplete start marker followed by content and end marker
       dataListener(Buffer.from('\x1b[200'));
       dataListener(Buffer.from('~more\x1b[201~'));
     });
 
-    // Expect the content to be processed as a paste
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'more',
+    });
+  });
+
+  it('should handle keypress after bracketed paste', async () => {
+    const { result } = renderHook(() =>
+      useKeypress(onKeypress, { isActive: true }),
+    );
+
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+    const keypressListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'keypress',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+    expect(keypressListener).toBeDefined();
+
+    act(() => {
+      // Simulate bracketed paste
+      dataListener(Buffer.from('\x1b[200~hello\x1b[201~'));
+      vi.advanceTimersByTime(50); // Ensure paste is processed
+      // Simulate a subsequent keypress
+      keypressListener(null, {
+        name: 'a',
+        ctrl: false,
+        meta: false,
+        shift: false,
+        sequence: 'a',
+      });
+      vi.advanceTimersByTime(50); // Max input delay for keypress
+    });
+
+    // Expect paste event
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'hello',
+    });
+
+    // Expect subsequent keypress to be processed
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: 'a',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: false,
+      sequence: 'a',
+    });
+  });
+
+  it('should handle new paste within timeout of previous paste', async () => {
+    const { result } = renderHook(() =>
+      useKeypress(onKeypress, { isActive: true }),
+    );
+
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+
+    act(() => {
+      dataListener(Buffer.from('\x1b[200~text\x1b[201~'));
+      vi.advanceTimersByTime(500); // Within 1-second timeout
+      dataListener(Buffer.from('\x1b[200~more\x1b[201~'));
+    });
+
+    expect(onKeypress).toHaveBeenCalledTimes(2);
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'text',
+    });
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
