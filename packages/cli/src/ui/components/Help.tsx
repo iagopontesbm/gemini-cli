@@ -13,8 +13,6 @@ interface Help {
   commands: SlashCommand[];
 }
 
-const isVSCodeTerminal = process.env.TERM_PROGRAM === 'vscode';
-
 export const Help: React.FC<Help> = ({ commands }) => (
   <Box
     flexDirection="column"
@@ -99,17 +97,12 @@ export const Help: React.FC<Help> = ({ commands }) => (
     </Text>
     <Text color={Colors.Foreground}>
       <Text bold color={Colors.AccentPurple}>
-        {process.platform === 'darwin' && isVSCodeTerminal
-          ? 'option(⌥)+Enter'
-          : process.platform === 'darwin' && !isVSCodeTerminal
-            ? 'Ctrl+J'
-            : process.platform === 'linux' ||
-                (process.platform === 'win32' && isVSCodeTerminal)
-              ? 'Shift/Alt+Enter'
-              : 'Shift/Ctrl+Enter'}
+        {process.platform === 'win32'
+          ? 'Ctrl+Enter'
+          : 'Ctrl+J'}
       </Text>{' '}
       {process.platform === 'linux'
-        ? '- New line (Ctrl+J works for certain linux distros)'
+        ? '- New line (Alt+Enter works for certain linux distros)'
         : '- New line'}
     </Text>
     <Text color={Colors.Foreground}>
