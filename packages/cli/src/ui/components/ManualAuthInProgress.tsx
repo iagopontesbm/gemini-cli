@@ -98,13 +98,12 @@ export function ManualAuthInProgress({
         </Box>
         <Box marginLeft={3} marginTop={1}>
           <Text color={Colors.AccentGreen}>
-            ssh -L {new URL(callbackUrl).port}:localhost:{new URL(callbackUrl).port} &lt;your-ssh-connection&gt;
+            ssh -L {new URL(callbackUrl).port}:localhost:
+            {new URL(callbackUrl).port} &lt;your-ssh-connection&gt;
           </Text>
         </Box>
         <Box marginLeft={3}>
-          <Text color={Colors.Gray}>
-            Or access: {callbackUrl}
-          </Text>
+          <Text color={Colors.Gray}>Or access: {callbackUrl}</Text>
         </Box>
 
         <Box marginTop={1}>
@@ -125,14 +124,18 @@ export function ManualAuthInProgress({
       {/* Auth URL displayed outside box for easy copying */}
       <Box marginTop={1}>
         <Text bold color={Colors.AccentBlue}>
-          {isUrlShortening ? 'Shortening authentication URL...' : 'Authentication URL (click to select and copy):'}
+          {isUrlShortening
+            ? 'Shortening authentication URL...'
+            : 'Authentication URL (click to select and copy):'}
         </Text>
       </Box>
 
       {/* Show shortened URL if available */}
       {displayUrl !== authUrl && !isUrlShortening && (
         <Box marginTop={1}>
-          <Text bold color={Colors.AccentGreen}>Shortened URL:</Text>
+          <Text bold color={Colors.AccentGreen}>
+            Shortened URL:
+          </Text>
           <Box marginTop={1}>
             <Text color={Colors.AccentBlue} wrap="wrap">
               {displayUrl}
@@ -147,8 +150,19 @@ export function ManualAuthInProgress({
           {displayUrl !== authUrl && !isUrlShortening ? 'Original URL:' : ''}
         </Text>
         <Box marginTop={displayUrl !== authUrl && !isUrlShortening ? 1 : 0}>
-          <Text color={displayUrl !== authUrl && !isUrlShortening ? Colors.Gray : Colors.AccentBlue} wrap="wrap">
-            {displayUrl !== authUrl && !isUrlShortening ? authUrl : (isUrlShortening ? 'Shortening...' : displayUrl)}
+          <Text
+            color={
+              displayUrl !== authUrl && !isUrlShortening
+                ? Colors.Gray
+                : Colors.AccentBlue
+            }
+            wrap="wrap"
+          >
+            {displayUrl !== authUrl && !isUrlShortening
+              ? authUrl
+              : isUrlShortening
+                ? 'Shortening...'
+                : displayUrl}
           </Text>
         </Box>
       </Box>

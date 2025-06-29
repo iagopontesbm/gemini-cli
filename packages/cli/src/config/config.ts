@@ -250,7 +250,10 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
-    oauthPort: argv['oauth-port'] || parseInt(process.env.GEMINI_OAUTH_PORT || '0') || undefined,
+    oauthPort:
+      argv['oauth-port'] ||
+      parseInt(process.env.GEMINI_OAUTH_PORT || '0', 10) ||
+      undefined,
   });
 }
 
