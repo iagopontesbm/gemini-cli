@@ -48,15 +48,17 @@ export function ThemeDialog({
   );
   const [showCustomThemeEditor, setShowCustomThemeEditor] = useState(false);
   const [editingTheme, setEditingTheme] = useState<CustomTheme | undefined>();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteThemeIndex, setDeleteThemeIndex] = useState<number | null>(null);
 
   // Generate theme items
   const availableThemes = themeManager.getAvailableThemes();
-  const themeItems = availableThemes.map((theme) => {
+  const themeItems = availableThemes.map((theme, idx) => {
     const typeString = theme.type.charAt(0).toUpperCase() + theme.type.slice(1);
     const label = theme.isCustom ? `[Custom] ${theme.name}` : theme.name;
     return {
       label,
-      value: theme.name,
+      value: idx,
       themeNameDisplay: theme.name,
       themeTypeDisplay: typeString,
       isCustom: theme.isCustom,
@@ -88,7 +90,9 @@ export function ThemeDialog({
     { label: 'Workspace Settings', value: SettingScope.Workspace },
   ];
 
-  const handleThemeSelect = (themeName: string) => {
+  const handleThemeSelect = (idx: number) => {
+    const themeName = availableThemes[idx].name;
+    const selectedTheme = availableThemes[idx];
     if (themeName === '__CREATE_CUSTOM__') {
       // Pre-fill with a default custom theme based on the current theme type
       const currentTheme = themeManager.findThemeByName(settings.merged.theme) || DEFAULT_THEME;
@@ -98,7 +102,6 @@ export function ThemeDialog({
       return;
     }
 
-    const selectedTheme = availableThemes.find(t => t.name === themeName);
     if (selectedTheme?.isCustom) {
       // For custom themes, we could add edit/delete options here
       // For now, just select the theme
@@ -132,21 +135,105 @@ export function ThemeDialog({
     setEditingTheme(undefined);
   };
 
-  const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>(
-    'theme',
-  );
+  // Add a new state for the focus: 'theme', 'create', or 'scope'
+  const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(initialThemeIndex >= 0 ? initialThemeIndex : 0);
 
+  // Add a handler for navigation
   useInput((input, key) => {
-    if (showCustomThemeEditor) {
-      // Let the CustomThemeEditor handle input
+    if (showCustomThemeEditor) return;
+    if (showDeleteConfirm) {
+      if (input === 'y' || input === 'Y') {
+        if (deleteThemeIndex !== null) {
+          const themeToDelete = availableThemes[deleteThemeIndex];
+          if (themeToDelete.isCustom && onCustomThemeDelete) {
+            onCustomThemeDelete(themeToDelete.name, selectedScope);
+          }
+        }
+        setShowDeleteConfirm(false);
+        setDeleteThemeIndex(null);
+        return;
+      }
+      if (input === 'n' || input === 'N' || key.escape) {
+        setShowDeleteConfirm(false);
+        setDeleteThemeIndex(null);
+        return;
+      }
       return;
     }
-
+    // j/k navigation
+    if (input === 'j' || key.downArrow) {
+      if (focusedSection === 'theme') {
+        if (selectedThemeIndex < themeItems.length - 1) {
+          setSelectedThemeIndex(selectedThemeIndex + 1);
+        } else {
+          setFocusedSection('create');
+        }
+      } else if (focusedSection === 'create') {
+        setFocusedSection('scope');
+      } else if (focusedSection === 'scope') {
+        setFocusedSection('theme');
+      }
+      return;
+    }
+    if (input === 'k' || key.upArrow) {
+      if (focusedSection === 'scope') {
+        setFocusedSection('create');
+      } else if (focusedSection === 'create') {
+        setFocusedSection('theme');
+        setSelectedThemeIndex(themeItems.length - 1);
+      } else if (focusedSection === 'theme') {
+        if (selectedThemeIndex > 0) {
+          setSelectedThemeIndex(selectedThemeIndex - 1);
+        } else {
+          setFocusedSection('scope');
+        }
+      }
+      return;
+    }
     if (key.tab) {
-      setFocusedSection((prev) => (prev === 'theme' ? 'scope' : 'theme'));
+      if (focusedSection === 'theme') {
+        setFocusedSection('create');
+      } else if (focusedSection === 'create') {
+        setFocusedSection('scope');
+      } else {
+        setFocusedSection('theme');
+      }
+      return;
+    }
+    if (key.return) {
+      if (focusedSection === 'theme') {
+        handleThemeSelect(selectedThemeIndex);
+      } else if (focusedSection === 'create') {
+        // Pre-fill with a default custom theme based on the current theme type
+        const currentTheme = themeManager.findThemeByName(settings.merged.theme) || DEFAULT_THEME;
+        const defaultType = currentTheme.type === 'light' ? 'light' : 'dark';
+        setEditingTheme(createDefaultCustomTheme('', defaultType));
+        setShowCustomThemeEditor(true);
+      } else if (focusedSection === 'scope') {
+        // No-op for now
+      }
+      return;
     }
     if (key.escape) {
       onSelect(undefined, selectedScope);
+    }
+    if (focusedSection === 'theme') {
+      const selectedTheme = availableThemes[selectedThemeIndex];
+      if (input === 'e' && selectedTheme.isCustom) {
+        // Look up the full CustomTheme object from settings
+        const customThemeObj = settings.merged.customThemes?.[selectedTheme.name];
+        if (customThemeObj) {
+          setEditingTheme(customThemeObj);
+          setShowCustomThemeEditor(true);
+        }
+        return;
+      }
+      if (input === 'd' && selectedTheme.isCustom) {
+        setShowDeleteConfirm(true);
+        setDeleteThemeIndex(selectedThemeIndex);
+        return;
+      }
     }
   });
 
@@ -242,6 +329,30 @@ export function ThemeDialog({
   const diffHeight = Math.floor(availableTerminalHeightCodeBlock / 2) - 1;
   const codeBlockHeight = Math.ceil(availableTerminalHeightCodeBlock / 2) + 1;
 
+  let previewThemeName =
+    focusedSection === 'theme' && availableThemes[selectedThemeIndex]
+      ? availableThemes[selectedThemeIndex].name
+      : settings.merged.theme || DEFAULT_THEME.name;
+
+  // Temporarily set the preview theme as active for preview rendering
+  const previousTheme = themeManager.getActiveTheme();
+  const previewThemeObj = themeManager.findThemeByName(previewThemeName);
+  if (previewThemeObj) {
+    themeManager.setActiveTheme(previewThemeName);
+  }
+
+  const selectedTheme = availableThemes[selectedThemeIndex];
+  let themeInstructions = '';
+  if (focusedSection === 'theme') {
+    if (selectedTheme?.isCustom) {
+      themeInstructions = 'Press e to edit, d to delete this custom theme.';
+    } else {
+      themeInstructions = 'Press Enter to select.';
+    }
+  } else if (focusedSection === 'create') {
+    themeInstructions = 'Press Enter to create a new custom theme.';
+  }
+
   return (
     <Box
       borderStyle="round"
@@ -256,24 +367,31 @@ export function ThemeDialog({
       <Box flexDirection="row">
         {/* Left Column: Selection */}
         <Box flexDirection="column" width="45%" paddingRight={2}>
-          <Text bold={currenFocusedSection === 'theme'} wrap="truncate">
-            {currenFocusedSection === 'theme' ? '> ' : '  '}Select Theme{' '}
+          <Text bold={focusedSection === 'theme'} wrap="truncate">
+            {focusedSection === 'theme' ? '> ' : '  '}Select Theme{' '}
             <Text color={Colors.Gray}>{otherScopeModifiedMessage}</Text>
           </Text>
           <RadioButtonSelect
-            key={selectInputKey}
-            items={themeItemsWithCreate}
-            initialIndex={initialThemeIndex}
+            items={themeItems}
+            initialIndex={selectedThemeIndex}
             onSelect={handleThemeSelect}
-            onHighlight={onHighlight}
-            isFocused={currenFocusedSection === 'theme'}
+            onHighlight={(i: number) => setSelectedThemeIndex(i)}
+            isFocused={focusedSection === 'theme'}
           />
-
+          {/* Create Custom Theme Button */}
+          <Box marginTop={1}>
+            <Text bold={focusedSection === 'create'} color={focusedSection === 'create' ? Colors.AccentBlue : undefined}>
+              {focusedSection === 'create' ? '> ' : '  '}[Create Custom Theme]
+            </Text>
+          </Box>
+          <Box marginTop={1}>
+            <Text color={Colors.Gray}>{themeInstructions}</Text>
+          </Box>
           {/* Scope Selection */}
           {showScopeSelection && (
             <Box marginTop={1} flexDirection="column">
-              <Text bold={currenFocusedSection === 'scope'} wrap="truncate">
-                {currenFocusedSection === 'scope' ? '> ' : '  '}Apply To
+              <Text bold={focusedSection === 'scope'} wrap="truncate">
+                {focusedSection === 'scope' ? '> ' : '  '}Apply To
               </Text>
               <RadioButtonSelect
                 items={scopeItems}
@@ -299,29 +417,25 @@ export function ThemeDialog({
             flexDirection="column"
           >
             {colorizeCode(
-              `# function
--def fibonacci(n):
--    a, b = 0, 1
--    for _ in range(n):
--        a, b = b, a + b
--    return a`,
+              `# function\ndef fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a`,
               'python',
               codeBlockHeight,
-              colorizeCodeWidth,
+              colorizeCodeWidth
             )}
             <Box marginTop={1} />
             <DiffRenderer
-              diffContent={`--- a/old_file.txt
--+++ b/new_file.txt
--@@ -1,4 +1,5 @@
-- This is a context line.
---This line was deleted.
--+This line was added.
--`}
+              diffContent={`--- a/old_file.txt\n+++ b/new_file.txt\n@@ -1,4 +1,5 @@\n This is a context line.\n-This line was deleted.\n+This line was added.\n`}
               availableTerminalHeight={diffHeight}
               terminalWidth={colorizeCodeWidth}
             />
           </Box>
+          {showDeleteConfirm && (
+            <Box marginTop={1}>
+              <Text color={Colors.AccentRed}>
+                Delete theme "{deleteThemeIndex !== null ? availableThemes[deleteThemeIndex].name : ''}"? (y/n)
+              </Text>
+            </Box>
+          )}
         </Box>
       </Box>
       <Box marginTop={1}>
@@ -330,6 +444,14 @@ export function ThemeDialog({
           {showScopeSelection ? ', Tab to change focus' : ''})
         </Text>
       </Box>
+      {/* After rendering the preview, restore the previous active theme */}
+      {previousTheme && previousTheme.name !== previewThemeName && (
+        <Box marginTop={1}>
+          <Text color={Colors.Gray}>
+            Restored previous active theme: {previousTheme.name}
+          </Text>
+        </Box>
+      )}
     </Box>
   );
 }
