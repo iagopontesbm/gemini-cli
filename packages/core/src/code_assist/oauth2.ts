@@ -43,6 +43,43 @@ const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
 /**
+ * Shortens a URL using TinyURL service
+ * @param url The URL to shorten
+ * @returns Promise that resolves to the shortened URL, or the original URL if shortening fails
+ */
+async function shortenUrl(url: string): Promise<string> {
+  try {
+    // TinyURL API endpoint
+    const tinyUrlApi = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`;
+
+    const response = await fetch(tinyUrlApi, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'GeminiCLI URL Shortener',
+      },
+      // Set a timeout for the request
+      signal: AbortSignal.timeout(3000), // Shorter timeout for console output
+    });
+
+    if (response.ok) {
+      const shortenedUrl = await response.text();
+
+      // TinyURL returns the shortened URL directly as plain text
+      // Validate that we got a proper shortened URL back
+      if (shortenedUrl && shortenedUrl.startsWith('https://tinyurl.com/')) {
+        return shortenedUrl;
+      }
+    }
+
+    // If shortening failed, return the original URL
+    return url;
+  } catch (error) {
+    // If there's any error (network, timeout, etc.), return the original URL
+    return url;
+  }
+}
+
+/**
  * An Authentication URL for updating the credentials of a Oauth2Client
  * as well as a promise that will resolve when the credentials have
  * been refreshed (or which throws error when refreshing credentials failed).
@@ -74,10 +111,13 @@ export async function getOauthClient(configuredPort?: number): Promise<OAuth2Cli
 
   const webLogin = await authWithWeb(client, configuredPort);
 
+  // Try to shorten the URL for console display
+  const displayUrl = await shortenUrl(webLogin.authUrl);
+
   console.log(
     `\n\nCode Assist login required.\n` +
     `Attempting to open authentication page in your browser.\n` +
-    `Otherwise navigate to:\n\n${webLogin.authUrl}\n\n`,
+    `Otherwise navigate to:\n\n${displayUrl}\n\n`,
   );
   await open(webLogin.authUrl);
   console.log('Waiting for authentication...');
@@ -100,10 +140,13 @@ export async function getManualOauthClient(configuredPort?: number): Promise<OAu
 
   const manualLogin = await authWithManual(client, configuredPort);
 
+  // Try to shorten the URL for console display
+  const displayUrl = await shortenUrl(manualLogin.authUrl);
+
   console.log('\n\nCode Assist login required.');
   console.log('Please complete the following steps:\n');
   console.log('1. Copy and paste this URL into your browser:');
-  console.log(`   ${manualLogin.authUrl}\n`);
+  console.log(`   ${displayUrl}\n`);
   console.log('2. Set up port forwarding (if using SSH):');
   const port = new URL(manualLogin.callbackUrl).port;
   console.log(`   ssh -L ${port}:localhost:${port} <your-ssh-connection>`);
