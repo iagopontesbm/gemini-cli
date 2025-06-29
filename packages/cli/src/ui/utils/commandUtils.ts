@@ -27,46 +27,53 @@ export const isAtCommand = (query: string): boolean =>
  */
 export const isSlashCommand = (query: string): boolean => query.startsWith('/');
 
-export const copyToClipboard = (text: string) => {
-  let command: string;
-  let args: string[] = [];
+export const copyToClipboard = async (text: string): Promise<void> => {
+  const run = (cmd: string, args: string[]) =>
+    new Promise<void>((resolve, reject) => {
+      const child = spawn(cmd, args);
+      let stderr = '';
+      child.stderr.on('data', (chunk) => (stderr += chunk.toString()));
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code === 0) return resolve();
+        const errorMsg = stderr.trim();
+        reject(
+          new Error(
+            `'${cmd}' exited with code ${code}${errorMsg ? `: ${errorMsg}` : ''}`,
+          ),
+        );
+      });
+      child.stdin.write(text);
+      child.stdin.end();
+    });
 
   switch (process.platform) {
     case 'win32':
-      command = 'clip';
-      break;
+      return run('clip', []);
     case 'darwin':
-      command = 'pbcopy';
-      break;
+      return run('pbcopy', []);
     case 'linux':
-      // Try xclip first, fallback to xsel
-      command = 'xclip';
-      args = ['-selection', 'clipboard'];
-      break;
-    default:
-      console.error(`Unsupported platform: ${process.platform}`);
+      try {
+        await run('xclip', ['-selection', 'clipboard']);
+      } catch (error) {
+        console.error(error);
+        try {
+          // If xclip fails for any reason, try xsel as a fallback.
+          await run('xsel', ['--clipboard', '--input']);
+        } catch (fallbackError) {
+          const message =
+            fallbackError instanceof Error
+              ? fallbackError.message
+              : String(fallbackError);
+          throw new Error(
+            `Error: Failed to copy. Please ensure xclip or xsel is installed. ${message}`,
+          );
+        }
+      }
       return;
+    default:
+      throw new Error(`Unsupported platform: ${process.platform}`);
   }
-
-  const child = spawn(command, args);
-
-  // Handle fallback for Linux (xsel) if xclip fails
-  child.on('error', (err) => {
-    if (process.platform === 'linux' && command === 'xclip') {
-      console.warn('xclip not found, trying xsel...');
-      const fallbackChild = spawn('xsel', ['--clipboard', '--input']);
-      fallbackChild.on('error', () => {
-        console.error('xsel also not found. Clipboard not supported.');
-      });
-      fallbackChild.stdin.write(text);
-      fallbackChild.stdin.end();
-    } else {
-      console.error(`Failed to run ${command}:`, err.message);
-    }
-  });
-
-  child.stdin.write(text);
-  child.stdin.end();
 };
 
 export const getLastResultOrSnippet = (history: HistoryItem[]) => {

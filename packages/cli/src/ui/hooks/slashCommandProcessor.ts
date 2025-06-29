@@ -227,11 +227,17 @@ export const useSlashCommandProcessor = (
       {
         name: 'copy',
         description: 'Copy the last result or code snippet to clipboard',
-        action: () => {
+        action: async () => {
           const snippet = getLastResultOrSnippet(history);
           if (snippet) {
-            copyToClipboard(snippet);
-            onDebugMessage('Copied last result to clipboard!');
+            try {
+              await copyToClipboard(snippet);
+              onDebugMessage('Copied last result to clipboard!');
+            } catch (error) {
+              const message =
+                error instanceof Error ? error.message : String(error);
+              onDebugMessage(`Error: Could not copy to clipboard. ${message}`);
+            }
           } else {
             onDebugMessage('No result/snippet found to copy.');
           }
@@ -1016,7 +1022,7 @@ export const useSlashCommandProcessor = (
     setQuittingMessages,
     pendingCompressionItemRef,
     setPendingCompressionItem,
-    history
+    history,
   ]);
 
   const handleSlashCommand = useCallback(
