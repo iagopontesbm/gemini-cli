@@ -69,7 +69,7 @@ const SENSITIVE_PATTERNS = [
   /\b[A-Fa-f0-9]{32,}\b/, // Hex strings (32+ chars, likely tokens)
   /\bsk-[A-Za-z0-9_-]{20,}\b/, // OpenAI-style API keys
   /\bAI[A-Za-z0-9_-]{20,}\b/, // Google AI API keys
-  /\bya29\.[A-Za-z0-9_-]+\b/, // Google OAuth tokens
+/\bya29\.[A-Za-z0-9_.-]+\b/, // Google OAuth tokens
   /\b[A-Za-z0-9_-]{40,}\b/, // Generic long tokens
 ];
 
