@@ -66,7 +66,7 @@ export function ManualAuthInProgress({
         <Box marginTop={1}>
           <Text>Please complete the following steps:</Text>
         </Box>
-        
+
         <Box marginTop={1}>
           <Text bold>1. Copy and paste the URL below into your browser</Text>
         </Box>
@@ -88,7 +88,7 @@ export function ManualAuthInProgress({
         <Box marginTop={1}>
           <Text bold>3. Complete the authentication in your browser</Text>
         </Box>
-        
+
         <Box marginTop={1}>
           <Text bold>4. The browser will redirect to the callback URL</Text>
         </Box>
@@ -104,7 +104,7 @@ export function ManualAuthInProgress({
       <Box marginTop={1}>
         <Text bold color={Colors.AccentBlue}>Authentication URL (click to select and copy):</Text>
       </Box>
-      <Box marginTop={1} paddingX={1}>
+      <Box marginTop={1}>
         <Text color={Colors.AccentBlue} wrap="wrap">
           {authUrl}
         </Text>
