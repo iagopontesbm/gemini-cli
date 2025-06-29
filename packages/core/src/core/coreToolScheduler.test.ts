@@ -10,7 +10,6 @@ import {
   CoreToolScheduler,
   ToolCall,
   ValidatingToolCall,
-  convertToFunctionResponse,
 } from './coreToolScheduler.js';
 import {
   BaseTool,
@@ -20,6 +19,7 @@ import {
   Config,
 } from '../index.js';
 import { Part, PartListUnion } from '@google/genai';
+import { convertToFunctionResponse } from './coreToolScheduler.js';
 
 class MockTool extends BaseTool<Record<string, unknown>, ToolResult> {
   shouldConfirm = false;
