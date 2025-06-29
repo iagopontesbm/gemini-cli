@@ -77,9 +77,10 @@ const findAllFences = (content: string): Fence[] => {
 /**
  * Pairs up opening and closing fences to identify complete code blocks.
  * @param fences A sorted array of fences found in the content.
+ * @param content content string to getCodeBlocks to get its length
  * @returns An array of CodeBlock objects.
  */
-const getCodeBlocks = (fences: Fence[]): CodeBlock[] => {
+const getCodeBlocks = (fences: Fence[], content: string): CodeBlock[] => {
   const blocks: CodeBlock[] = [];
   const openFences: Fence[] = [];
 
@@ -99,6 +100,18 @@ const getCodeBlocks = (fences: Fence[]): CodeBlock[] => {
       openFences.push(currentFence);
     }
   }
+
+  // After processing all fences, any remaining fence in the stack indicates an unclosed block.
+  if (openFences.length > 0) {
+    // The last fence on the stack is the start of the innermost unclosed block.
+    const lastOpenFence = openFences[openFences.length - 1];
+    blocks.push({
+      blockStart: lastOpenFence.startIndex,
+      // The block extends to the end of the content.
+      blockEnd: content.length,
+    });
+  }
+
   return blocks;
 };
 
@@ -114,7 +127,7 @@ const memoizedGetCodeBlocks = (function () {
       return lastResult;
     }
     const fences = findAllFences(content);
-    const result = getCodeBlocks(fences);
+    const result = getCodeBlocks(fences, content);
     lastContent = content;
     lastResult = result;
     return result;

@@ -160,4 +160,26 @@ describe('markdownUtilities', () => {
       expect(findLastSafeSplitPoint(content)).toBe(content.length);
     });
   })
+
+  describe('findLastSafeSplitPoint regression tests for unclosed code blocks', () => {
+
+    it('should not split if the entire content is an unclosed code block with a newline', () => {
+      const content = '```\nThis is an unclosed block.\n\nIt has a newline.';
+      expect(findLastSafeSplitPoint(content)).toBe(content.length);
+    });
+
+
+    it('should find the last safe split point before an unclosed block', () => {
+      const closedBlock = '```\nClosed block\n```';
+      const middleText = '\n\nSome text.';
+      const unclosedBlock = '\n\n```\nUnclosed block with a \n\n newline.';
+      const content = closedBlock + middleText + unclosedBlock;
+
+      // The only safe place to split is after the middle text.
+      const expectedSplitPoint = (closedBlock + middleText).length + 2;
+
+      expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
+    });
+
+  });
 });
