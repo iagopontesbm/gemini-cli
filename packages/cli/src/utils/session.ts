@@ -52,22 +52,21 @@ export async function listSessions(): Promise<
       (file) => file.startsWith('session-') && file.endsWith('.json'),
     );
 
-    const sortedFiles = await Promise.all(
+    const filesWithStats = await Promise.all(
       sessionFiles.map(async (file) => {
         const filePath = join(sessionsDir, file);
         const stats = await fs.stat(filePath);
-        const id = file.replace('.json', '');
-        const timestamp = new Date(stats.mtimeMs).toLocaleString();
-        return { fullId: id, timestamp };
+        return { file, mtimeMs: stats.mtimeMs };
       }),
     );
 
-    sortedFiles.sort((a, b) => b.timestamp.localeCompare(a.timestamp)); // Sort by newest first
+    // Sort by modification time, newest first, which is reliable
+    filesWithStats.sort((a, b) => b.mtimeMs - a.mtimeMs);
 
-    return sortedFiles.map((session, index) => ({
+    return filesWithStats.map((item, index) => ({
       shortId: index + 1,
-      fullId: session.fullId,
-      timestamp: session.timestamp,
+      fullId: item.file.replace('.json', ''),
+      timestamp: new Date(item.mtimeMs).toLocaleString(),
     }));
   } catch (error) {
     console.warn(`Could not list sessions: ${error}`);
