@@ -30,7 +30,9 @@ export interface Key {
  * sequence field and paste set to true. Special keys (e.g., arrow keys) are
  * handled correctly via readline, ensuring terminal functionality is preserved.
  * Robustly handles edge cases like split paste chunks, malformed sequences, and
- * nested paste markers (treated as paste content).
+ * nested paste markers (treated as paste content). Includes a 1-second timeout
+ * to reset paste state for unterminated paste sequences, preventing memory
+ * accumulation and state corruption.
  *
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
@@ -44,6 +46,7 @@ export function useKeypress(
   const onKeypressRef = useRef(onKeypress);
   const keyBufferRef = useRef<Key[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPasteModeRef = useRef(false);
   const pasteBufferRef = useRef<string>('');
   const pasteHandledRef = useRef(false);
@@ -89,7 +92,8 @@ export function useKeypress(
       }
     }
 
-    const maxInputDelay = 50; // Milliseconds, increased for reliability
+    const maxInputDelay = 50; // Milliseconds, for reliable paste detection
+    const pasteTimeoutDuration = 1000; // 1 second for unterminated pastes
 
     const handleInput = () => {
       const keys = keyBufferRef.current;
@@ -108,6 +112,27 @@ export function useKeypress(
 
       keyBufferRef.current = [];
       timeoutRef.current = null;
+    };
+
+    const resetPasteState = () => {
+      if (isPasteModeRef.current && pasteBufferRef.current.length > 0) {
+        // Process partial paste as a fallback
+        onKeypressRef.current({
+          name: '',
+          ctrl: false,
+          meta: false,
+          shift: false,
+          paste: true,
+          sequence: pasteBufferRef.current,
+        });
+      }
+      isPasteModeRef.current = false;
+      pasteBufferRef.current = '';
+      pasteHandledRef.current = false;
+      if (pasteTimeoutRef.current) {
+        clearTimeout(pasteTimeoutRef.current);
+        pasteTimeoutRef.current = null;
+      }
     };
 
     const handleRawData = (data: Buffer) => {
@@ -139,7 +164,18 @@ export function useKeypress(
             pasteBufferRef.current = '';
             isPasteModeRef.current = false;
             remainingInput = remainingInput.slice(endMarkerIndex + 6);
+            if (pasteTimeoutRef.current) {
+              clearTimeout(pasteTimeoutRef.current);
+              pasteTimeoutRef.current = null;
+            }
           } else {
+            // Check for non-paste escape sequences (e.g., arrow keys)
+            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
+            if (nonPasteSequences.some(seq => remainingInput.startsWith(seq))) {
+              resetPasteState();
+              break; // Let readline handle the input
+            }
+
             pasteBufferRef.current += remainingInput;
             break; // Wait for the next data chunk for the end marker
           }
@@ -148,6 +184,8 @@ export function useKeypress(
             isPasteModeRef.current = true;
             pasteBufferRef.current = '';
             remainingInput = remainingInput.slice(6);
+            // Start timeout for unterminated paste
+            pasteTimeoutRef.current = setTimeout(resetPasteState, pasteTimeoutDuration);
           } else {
             // Not in paste mode and doesn't start with a paste marker.
             // Let readline handle this data.
@@ -223,6 +261,10 @@ export function useKeypress(
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
         timeoutRef.current = null;
+      }
+      if (pasteTimeoutRef.current) {
+        clearTimeout(pasteTimeoutRef.current);
+        pasteTimeoutRef.current = null;
       }
 
       isPasteModeRef.current = false;
