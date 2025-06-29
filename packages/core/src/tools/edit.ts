@@ -54,6 +54,21 @@ export interface EditToolParams {
    * Whether the edit was modified manually by the user.
    */
   modified_by_user?: boolean;
+
+  /**
+   * Optional: If true, old_string will be treated as a regular expression.
+   */
+  use_regex?: boolean;
+
+  /**
+   * Optional: The 0-based line number to start replacement from (inclusive).
+   */
+  start_line?: number;
+
+  /**
+   * Optional: The 0-based line number to end replacement at (inclusive).
+   */
+  end_line?: number;
 }
 
 interface CalculatedEdit {
@@ -118,6 +133,21 @@ Expectation for required parameters:
               'Number of replacements expected. Defaults to 1 if not specified. Use when you want to replace multiple occurrences.',
             minimum: 1,
           },
+          use_regex: {
+            type: 'boolean',
+            description:
+              'Optional: If true, old_string will be treated as a regular expression.',
+          },
+          start_line: {
+            type: 'number',
+            description:
+              'Optional: The 0-based line number to start replacement from (inclusive).',
+          },
+          end_line: {
+            type: 'number',
+            description:
+              'Optional: The 0-based line number to end replacement at (inclusive).',
+          },
         },
         required: ['file_path', 'old_string', 'new_string'],
         type: 'object',
@@ -150,7 +180,7 @@ Expectation for required parameters:
    * @param params Parameters to validate
    * @returns Error message string or null if valid
    */
-  validateToolParams(params: EditToolParams): string | null {
+  override validateToolParams(params: EditToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -169,6 +199,30 @@ Expectation for required parameters:
       return `File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`;
     }
 
+    if (params.start_line !== undefined && params.start_line < 0) {
+      return 'Start line must be a non-negative number';
+    }
+    if (params.end_line !== undefined && params.end_line < 0) {
+      return 'End line must be a non-negative number';
+    }
+    if (
+      params.start_line !== undefined &&
+      params.end_line !== undefined &&
+      params.start_line > params.end_line
+    ) {
+      return 'Start line cannot be greater than end line';
+    }
+    if (params.use_regex && !params.old_string) {
+      return 'old_string cannot be empty when use_regex is true';
+    }
+    if (params.use_regex) {
+      try {
+        new RegExp(params.old_string);
+      } catch (e) {
+        return `Invalid regex pattern for old_string: ${e.message}`;
+      }
+    }
+
     return null;
   }
 
@@ -177,6 +231,7 @@ Expectation for required parameters:
     oldString: string,
     newString: string,
     isNewFile: boolean,
+    useRegex: boolean,
   ): string {
     if (isNewFile) {
       return newString;
@@ -189,7 +244,13 @@ Expectation for required parameters:
     if (oldString === '' && !isNewFile) {
       return currentContent;
     }
-    return currentContent.replaceAll(oldString, newString);
+
+    if (useRegex) {
+      const regex = new RegExp(oldString, 'g');
+      return currentContent.replace(regex, newString);
+    } else {
+      return currentContent.replaceAll(oldString, newString);
+    }
   }
 
   /**
@@ -235,8 +296,16 @@ Expectation for required parameters:
       };
     } else if (currentContent !== null) {
       // Editing an existing file
+      let contentToEdit = currentContent;
+      if (params.start_line !== undefined && params.end_line !== undefined) {
+        const lines = currentContent.split('\n');
+        contentToEdit = lines
+          .slice(params.start_line, params.end_line + 1)
+          .join('\n');
+      }
+
       const correctedEdit = await ensureCorrectEdit(
-        currentContent,
+        contentToEdit,
         params,
         this.client,
         abortSignal,
@@ -270,12 +339,27 @@ Expectation for required parameters:
       };
     }
 
-    const newContent = this._applyReplacement(
+    let newContent = this._applyReplacement(
       currentContent,
       finalOldString,
       finalNewString,
       isNewFile,
+      params.use_regex || false,
     );
+
+    if (
+      params.start_line !== undefined &&
+      params.end_line !== undefined &&
+      currentContent !== null
+    ) {
+      const lines = currentContent.split('\n');
+      lines.splice(
+        params.start_line,
+        params.end_line - params.start_line + 1,
+        newContent,
+      );
+      newContent = lines.join('\n');
+    }
 
     return {
       currentContent,
@@ -352,11 +436,11 @@ Expectation for required parameters:
     }
 
     const oldStringSnippet =
-      params.old_string.split('\n')[0].substring(0, 30) +
-      (params.old_string.length > 30 ? '...' : '');
+      params.old_string?.split('\n')[0].substring(0, 30) +
+      (params.old_string?.length > 30 ? '...' : '');
     const newStringSnippet =
-      params.new_string.split('\n')[0].substring(0, 30) +
-      (params.new_string.length > 30 ? '...' : '');
+      params.new_string?.split('\n')[0].substring(0, 30) +
+      (params.new_string?.length > 30 ? '...' : '');
 
     if (params.old_string === params.new_string) {
       return `No file changes to ${shortenPath(relativePath)}`;

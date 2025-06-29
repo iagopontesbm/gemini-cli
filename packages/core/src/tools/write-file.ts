@@ -50,6 +50,16 @@ export interface WriteFileToolParams {
    * Whether the proposed content was modified by the user.
    */
   modified_by_user?: boolean;
+
+  /**
+   * Optional: If true, content will be appended to the file instead of overwriting.
+   */
+  append?: boolean;
+
+  /**
+   * Optional: If true, content will be prepended to the file instead of overwriting.
+   */
+  prepend?: boolean;
 }
 
 interface GetCorrectedFileContentResult {
@@ -87,6 +97,16 @@ export class WriteFileTool
             description: 'The content to write to the file.',
             type: 'string',
           },
+          append: {
+            description:
+              'Optional: If true, content will be appended to the file instead of overwriting.',
+            type: 'boolean',
+          },
+          prepend: {
+            description:
+              'Optional: If true, content will be prepended to the file instead of overwriting.',
+            type: 'boolean',
+          },
         },
         required: ['file_path', 'content'],
         type: 'object',
@@ -108,7 +128,7 @@ export class WriteFileTool
     );
   }
 
-  validateToolParams(params: WriteFileToolParams): string | null {
+  override validateToolParams(params: WriteFileToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -124,6 +144,10 @@ export class WriteFileTool
     }
     if (!this.isWithinRoot(filePath)) {
       return `File path must be within the root directory (${this.config.getTargetDir()}): ${filePath}`;
+    }
+
+    if (params.append && params.prepend) {
+      return 'Cannot use both append and prepend modes simultaneously.';
     }
 
     try {
@@ -251,16 +275,32 @@ export class WriteFileTool
       (correctedContentResult.error !== undefined &&
         !correctedContentResult.fileExists);
 
+    const { file_path, content, append, prepend } = params;
+
     try {
-      const dirName = path.dirname(params.file_path);
+      const dirName = path.dirname(file_path);
       if (!fs.existsSync(dirName)) {
         fs.mkdirSync(dirName, { recursive: true });
       }
 
-      fs.writeFileSync(params.file_path, fileContent, 'utf8');
+      if (append) {
+        fs.appendFileSync(file_path, content, 'utf8');
+      } else if (prepend) {
+        const existingContent = fs.existsSync(file_path)
+          ? fs.readFileSync(file_path, 'utf8')
+          : '';
+        const tempFilePath = `${file_path}.tmp.${Date.now()}`;
+        fs.writeFileSync(tempFilePath, content + existingContent, 'utf8');
+        fs.renameSync(tempFilePath, file_path);
+      } else {
+        // Atomic write for overwrite mode
+        const tempFilePath = `${file_path}.tmp.${Date.now()}`;
+        fs.writeFileSync(tempFilePath, content, 'utf8');
+        fs.renameSync(tempFilePath, file_path);
+      }
 
       // Generate diff for display result
-      const fileName = path.basename(params.file_path);
+      const fileName = path.basename(file_path);
       // If there was a readError, originalContent in correctedContentResult is '',
       // but for the diff, we want to show the original content as it was before the write if possible.
       // However, if it was unreadable, currentContentForDiff will be empty.
@@ -279,20 +319,20 @@ export class WriteFileTool
 
       const llmSuccessMessageParts = [
         isNewFile
-          ? `Successfully created and wrote to new file: ${params.file_path}.`
-          : `Successfully overwrote file: ${params.file_path}.`,
+          ? `Successfully created and wrote to new file: ${file_path}.`
+          : `Successfully overwrote file: ${file_path}.`,
       ];
       if (params.modified_by_user) {
         llmSuccessMessageParts.push(
-          `User modified the \`content\` to be: ${params.content}`,
+          `User modified the 'content' to be: ${params.content}`,
         );
       }
 
       const displayResult: FileDiff = { fileDiff, fileName };
 
       const lines = fileContent.split('\n').length;
-      const mimetype = getSpecificMimeType(params.file_path);
-      const extension = path.extname(params.file_path); // Get extension
+      const mimetype = getSpecificMimeType(file_path);
+      const extension = path.extname(file_path); // Get extension
       if (isNewFile) {
         recordFileOperationMetric(
           this.config,
@@ -318,7 +358,7 @@ export class WriteFileTool
     } catch (error) {
       const errorMsg = `Error writing to file: ${error instanceof Error ? error.message : String(error)}`;
       return {
-        llmContent: `Error writing to file ${params.file_path}: ${errorMsg}`,
+        llmContent: `Error writing to file ${file_path}: ${errorMsg}`,
         returnDisplay: `Error: ${errorMsg}`,
       };
     }

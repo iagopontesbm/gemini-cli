@@ -340,15 +340,15 @@ The MCP integration tracks the following states for each server and the overall 
 
 #### Server Status (`MCPServerStatus`)
 
--   **`DISCONNECTED`:** The server is not connected, or a connection attempt failed.
--   **`CONNECTING`:** A connection attempt to the server is currently in progress.
--   **`CONNECTED`:** The server is successfully connected and ready to expose tools.
+- **`DISCONNECTED`:** The server is not connected, or a connection attempt failed.
+- **`CONNECTING`:** A connection attempt to the server is currently in progress.
+- **`CONNECTED`:** The server is successfully connected and ready to expose tools.
 
 #### Discovery State (`MCPDiscoveryState`)
 
--   **`NOT_STARTED`:** The tool discovery process has not yet begun.
--   **`IN_PROGRESS`:** The CLI is currently in the process of discovering tools from configured servers.
--   **`COMPLETED`:** The tool discovery process has finished, whether all servers connected successfully or not.
+- **`NOT_STARTED`:** The tool discovery process has not yet begun.
+- **`IN_PROGRESS`:** The CLI is currently in the process of discovering tools from configured servers.
+- **`COMPLETED`:** The tool discovery process has finished, whether all servers connected successfully or not.
 
 ### Common Issues and Solutions
 

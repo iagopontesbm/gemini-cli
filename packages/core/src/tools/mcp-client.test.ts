@@ -187,7 +187,7 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     );
     const registeredTool = mockToolRegistry.registerTool.mock
-      .calls[0][0] as DiscoveredMCPTool;
+      .calls[0]![0] as DiscoveredMCPTool;
     expect(registeredTool.name).toBe('tool1');
     expect(registeredTool.serverToolName).toBe('tool1');
   });
@@ -230,7 +230,7 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     );
     const registeredTool = mockToolRegistry.registerTool.mock
-      .calls[0][0] as DiscoveredMCPTool;
+      .calls[0]![0] as DiscoveredMCPTool;
     expect(registeredTool.name).toBe('tool-stdio');
   });
 
@@ -263,7 +263,7 @@ describe('discoverMcpTools', () => {
       expect.any(DiscoveredMCPTool),
     );
     const registeredTool = mockToolRegistry.registerTool.mock
-      .calls[0][0] as DiscoveredMCPTool;
+      .calls[0]![0] as DiscoveredMCPTool;
     expect(registeredTool.name).toBe('tool-sse');
   });
 
@@ -410,7 +410,7 @@ describe('discoverMcpTools', () => {
 
     expect(mockToolRegistry.registerTool).toHaveBeenCalledTimes(1);
     const registeredTool = mockToolRegistry.registerTool.mock
-      .calls[0][0] as DiscoveredMCPTool;
+      .calls[0]![0] as DiscoveredMCPTool;
     const cleanedParams = registeredTool.schema.parameters as any;
 
     expect(cleanedParams).not.toHaveProperty('$schema');
@@ -564,7 +564,7 @@ describe('sanitizeParameters', () => {
       ],
     };
     sanitizeParameters(schema);
-    expect(schema.anyOf![0].default).toBeUndefined();
+    expect(schema.anyOf![0]!.default).toBeUndefined();
   });
 
   it('should recursively sanitize items in items', () => {
@@ -588,7 +588,7 @@ describe('sanitizeParameters', () => {
       },
     };
     sanitizeParameters(schema);
-    expect(schema.properties!.prop1.default).toBeUndefined();
+    expect(schema.properties!.prop1!.default).toBeUndefined();
   });
 
   it('should handle complex nested schemas', () => {
@@ -617,7 +617,7 @@ describe('sanitizeParameters', () => {
     sanitizeParameters(schema);
     expect(schema.properties!.prop1.items!.default).toBeUndefined();
     const nestedProp =
-      schema.properties!.prop2.anyOf![0].properties!.nestedProp;
+      schema.properties!.prop2.anyOf![0]!.properties!.nestedProp;
     expect(nestedProp?.default).toBeUndefined();
   });
 });

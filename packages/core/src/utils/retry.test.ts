@@ -266,7 +266,7 @@ describe('retryWithBackoff', () => {
       await vi.runAllTimersAsync();
 
       // Should succeed after fallback
-      await expect(promise).resolves.toBe('success');
+      expect(promise).resolves.toBe('success');
 
       // Verify callback was called with correct auth type
       expect(fallbackCallback).toHaveBeenCalledWith('oauth-personal');
@@ -329,7 +329,7 @@ describe('retryWithBackoff', () => {
 
       await vi.runAllTimersAsync();
 
-      await expect(promise).resolves.toBe('success');
+      expect(promise).resolves.toBe('success');
       expect(fallbackCallback).toHaveBeenCalledOnce();
     });
 
@@ -395,7 +395,7 @@ describe('retryWithBackoff', () => {
 
       await vi.runAllTimersAsync();
 
-      await expect(promise).resolves.toBe('success');
+      expect(promise).resolves.toBe('success');
 
       // Should trigger fallback after 2 consecutive 429s (attempts 2-3)
       expect(fallbackCallback).toHaveBeenCalledWith('oauth-personal');

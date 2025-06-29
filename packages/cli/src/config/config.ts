@@ -43,7 +43,7 @@ interface CliArgs {
   model: string | undefined;
   sandbox: boolean | string | undefined;
   'sandbox-image': string | undefined;
-  debug: boolean | undefined;
+  
   prompt: string | undefined;
   all_files: boolean | undefined;
   show_memory_usage: boolean | undefined;
@@ -73,7 +73,8 @@ async function parseArguments(): Promise<CliArgs> {
     .option('prompt', {
       alias: 'p',
       type: 'string',
-      description: 'A direct prompt, appended to any input from the stdin stream.',
+      description:
+        'A direct prompt, appended to any input from the stdin stream.',
     })
     .option('all_files', {
       alias: 'a',
@@ -99,7 +100,8 @@ async function parseArguments(): Promise<CliArgs> {
     .option('yolo', {
       alias: 'y',
       type: 'boolean',
-      description: 'The incantation for "You Only Live Once" mode. Accepts all actions automatically.',
+      description:
+        'The incantation for "You Only Live Once" mode. Accepts all actions automatically.',
       default: false,
     })
 
@@ -125,7 +127,8 @@ async function parseArguments(): Promise<CliArgs> {
     })
     .option('telemetry-log-prompts', {
       type: 'boolean',
-      description: 'A ward to control the logging of user prompts for telemetry.',
+      description:
+        'A ward to control the logging of user prompts for telemetry.',
     })
 
     // --- Feature Flag Options ---
@@ -137,7 +140,8 @@ async function parseArguments(): Promise<CliArgs> {
     })
     .option('show_memory_usage', {
       type: 'boolean',
-      description: 'Reveals memory usage in the status bar, a glimpse into the ether.',
+      description:
+        'Reveals memory usage in the status bar, a glimpse into the ether.',
       default: false,
     })
 
@@ -202,15 +206,17 @@ export function loadEnvironment(): void {
 function mergeMcpServers(settings: Settings, extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
-    Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
-      if (mcpServers[key]) {
-        logger.warn(
-          `An extension tried to register an MCP server for key "${key}", but it is already claimed. The extension's configuration will be ignored.`,
-        );
-        return;
-      }
-      mcpServers[key] = server;
-    });
+    Object.entries(extension.config.mcpServers || {}).forEach(
+      ([key, server]) => {
+        if (mcpServers[key]) {
+          logger.warn(
+            `An extension tried to register an MCP server for key "${key}", but it is already claimed. The extension's configuration will be ignored.`,
+          );
+          return;
+        }
+        mcpServers[key] = server;
+      },
+    );
   }
   return mcpServers;
 }
@@ -226,7 +232,9 @@ export async function loadHierarchicalGeminiMemory(
   extensionContextFilePaths: string[] = [],
 ): Promise<{ memoryContent: string; fileCount: number }> {
   if (debugMode) {
-    logger.debug(`Delegating hierarchical memory load to core for CWD: ${currentWorkingDirectory}`);
+    logger.debug(
+      `Delegating hierarchical memory load to core for CWD: ${currentWorkingDirectory}`,
+    );
   }
   // Directly invoke the core library's spell.
   return loadServerHierarchicalMemory(
@@ -256,10 +264,12 @@ export async function loadCliConfig(
   // --- 3. Set the Context Scroll Name ---
   // This must be done before memory is loaded.
   // TODO(b/343434939): This is a temporary enchantment. This logic should be moved to the core library.
-  setServerGeminiMdFilename(settings.contextFileName || getCurrentGeminiMdFilename());
+  setServerGeminiMdFilename(
+    settings.contextFileName || getCurrentGeminiMdFilename(),
+  );
 
   // --- 4. Weave the Hierarchical Memory ---
-  const extensionContextFilePaths = extensions.flatMap(e => e.contextFiles);
+  const extensionContextFilePaths = extensions.flatMap((e) => e.contextFiles);
   const fileService = new FileDiscoveryService(process.cwd());
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
     process.cwd(),
@@ -287,7 +297,11 @@ export async function loadCliConfig(
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     cwd: process.cwd(),
-    proxy: process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy,
+    proxy:
+      process.env.HTTPS_PROXY ||
+      process.env.https_proxy ||
+      process.env.HTTP_PROXY ||
+      process.env.http_proxy,
 
     // --- Tools & Extensions ---
     coreTools: settings.coreTools,
@@ -305,14 +319,19 @@ export async function loadCliConfig(
     checkpointing: argv.checkpointing || settings.checkpointing?.enabled,
 
     // --- UI & Accessibility ---
-    showMemoryUsage: argv.show_memory_usage || settings.showMemoryUsage || false,
+    showMemoryUsage:
+      argv.show_memory_usage || settings.showMemoryUsage || false,
     accessibility: settings.accessibility,
 
     // --- Telemetry & Statistics ---
     telemetry: {
       enabled: argv.telemetry ?? settings.telemetry?.enabled,
-      target: (argv.telemetryTarget ?? settings.telemetry?.target) as TelemetryTarget,
-      otlpEndpoint: argv.telemetryOtlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetry?.otlpEndpoint,
+      target: (argv.telemetryTarget ??
+        settings.telemetry?.target) as TelemetryTarget,
+      otlpEndpoint:
+        argv.telemetryOtlpEndpoint ??
+        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
+        settings.telemetry?.otlpEndpoint,
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
     },
     usageStatisticsEnabled: settings.usageStatisticsEnabled ?? true,
@@ -321,7 +340,8 @@ export async function loadCliConfig(
     fileDiscoveryService: fileService,
     fileFiltering: {
       respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
-      enableRecursiveFileSearch: settings.fileFiltering?.enableRecursiveFileSearch,
+      enableRecursiveFileSearch:
+        settings.fileFiltering?.enableRecursiveFileSearch,
     },
 
     // --- Miscellaneous ---

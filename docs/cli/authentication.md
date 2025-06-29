@@ -41,33 +41,33 @@ The Gemini CLI requires you to authenticate with Google's AI services. On initia
         ```
 
 3.  **Vertex AI:**
-    -   **Method:** Use Vertex AI for enterprise-grade AI capabilities. This requires a Google Cloud project with the Vertex AI API enabled.
-    -   **Non-Express Mode (Recommended for Production):**
-        -   **Authentication:** Set up [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/provide-credentials-adc) by running `gcloud auth application-default login`.
-        -   **Environment Variables:** Set `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `GOOGLE_GENAI_USE_VERTEXAI=true`. Replace `YOUR_PROJECT_ID` and `YOUR_PROJECT_LOCATION` with your values.
-            -   **Temporary (current session):**
-                ```bash
-                export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
-                export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION" # e.g., us-central1
-                export GOOGLE_GENAI_USE_VERTEXAI=true
-                ```
-            -   **Permanent (all sessions):** Add to your `.env` file or shell configuration.
-                ```bash
-                echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc
-                echo 'export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"' >> ~/.bashrc
-                echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
-                source ~/.bashrc
-                ```
-    -   **Express Mode (for Quick Start/Development):**
-        -   **Authentication:** Set the `GOOGLE_API_KEY` environment variable with your Vertex AI API key provided by express mode.
-            -   **Temporary (current session):**
-                ```bash
-                export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
-                export GOOGLE_GENAI_USE_VERTEXAI=true
-                ```
-            -   **Permanent (all sessions):** Add to your `.env` file or shell configuration.
-                ```bash
-                echo 'export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"' >> ~/.bashrc
-                echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
-                source ~/.bashrc
-                ```
+    - **Method:** Use Vertex AI for enterprise-grade AI capabilities. This requires a Google Cloud project with the Vertex AI API enabled.
+    - **Non-Express Mode (Recommended for Production):**
+      - **Authentication:** Set up [Application Default Credentials (ADC)](https://cloud.google.com/docs/authentication/provide-credentials-adc) by running `gcloud auth application-default login`.
+      - **Environment Variables:** Set `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, and `GOOGLE_GENAI_USE_VERTEXAI=true`. Replace `YOUR_PROJECT_ID` and `YOUR_PROJECT_LOCATION` with your values.
+        - **Temporary (current session):**
+          ```bash
+          export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"
+          export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION" # e.g., us-central1
+          export GOOGLE_GENAI_USE_VERTEXAI=true
+          ```
+        - **Permanent (all sessions):** Add to your `.env` file or shell configuration.
+          ```bash
+          echo 'export GOOGLE_CLOUD_PROJECT="YOUR_PROJECT_ID"' >> ~/.bashrc
+          echo 'export GOOGLE_CLOUD_LOCATION="YOUR_PROJECT_LOCATION"' >> ~/.bashrc
+          echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
+          source ~/.bashrc
+          ```
+    - **Express Mode (for Quick Start/Development):**
+      - **Authentication:** Set the `GOOGLE_API_KEY` environment variable with your Vertex AI API key provided by express mode.
+        - **Temporary (current session):**
+          ```bash
+          export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"
+          export GOOGLE_GENAI_USE_VERTEXAI=true
+          ```
+        - **Permanent (all sessions):** Add to your `.env` file or shell configuration.
+          ```bash
+          echo 'export GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY"' >> ~/.bashrc
+          echo 'export GOOGLE_GENAI_USE_VERTEXAI=true' >> ~/.bashrc
+          source ~/.bashrc
+          ```

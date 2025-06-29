@@ -98,14 +98,14 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
     let url = urls[0];
 
     // Convert GitHub blob URL to raw URL
-    if (url.includes('github.com') && url.includes('/blob/')) {
+    if (url && url.includes('github.com') && url.includes('/blob/')) {
       url = url
         .replace('github.com', 'raw.githubusercontent.com')
         .replace('/blob/', '/');
     }
 
     try {
-      const response = await fetchWithTimeout(url, URL_FETCH_TIMEOUT_MS);
+      const response = await fetchWithTimeout(url!, URL_FETCH_TIMEOUT_MS);
       if (!response.ok) {
         throw new Error(
           `Request failed with status code ${response.status} ${response.statusText}`,
@@ -230,7 +230,7 @@ ${textContent}
     const userPrompt = params.prompt;
     const urls = extractUrls(userPrompt);
     const url = urls[0];
-    const isPrivate = isPrivateIp(url);
+    const isPrivate = isPrivateIp(url!);
 
     if (isPrivate) {
       return this.executeFallback(params, signal);

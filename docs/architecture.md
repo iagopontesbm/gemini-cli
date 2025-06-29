@@ -58,9 +58,9 @@ A typical interaction with the Gemini CLI follows this flow:
 
 The Gemini CLI is built upon a modern and efficient technology stack, primarily leveraging:
 
--   **Node.js:** The runtime environment for both the CLI and Core packages.
--   **TypeScript:** Ensures type safety, improves code quality, and enhances developer productivity across the entire codebase.
--   **React (with Ink):** Used for building the interactive command-line interface, providing a rich and responsive user experience within the terminal.
--   **esbuild:** A fast bundler used for packaging the application for distribution and efficient execution.
--   **Git:** Integrated for version control, especially for features like checkpointing and file filtering.
--   **Docker/Podman:** Utilized for container-based sandboxing, providing isolated environments for tool execution.
+- **Node.js:** The runtime environment for both the CLI and Core packages.
+- **TypeScript:** Ensures type safety, improves code quality, and enhances developer productivity across the entire codebase.
+- **React (with Ink):** Used for building the interactive command-line interface, providing a rich and responsive user experience within the terminal.
+- **esbuild:** A fast bundler used for packaging the application for distribution and efficient execution.
+- **Git:** Integrated for version control, especially for features like checkpointing and file filtering.
+- **Docker/Podman:** Utilized for container-based sandboxing, providing isolated environments for tool execution.

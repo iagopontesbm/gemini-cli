@@ -218,10 +218,10 @@ Environment variables are a fundamental way to configure applications, especiall
 
 ### Best Practices for Environment Variables
 
--   **Security:** Never hardcode sensitive information (like API keys, secrets, or credentials) directly into your code or commit them to version control. Always use environment variables.
--   **`.env` Files:** For local development, use `.env` files to manage environment variables. Ensure your `.env` file is added to your `.gitignore` to prevent accidental exposure.
--   **Consistency:** Use a consistent naming convention for your environment variables (e.g., `UPPER_SNAKE_CASE`).
--   **Documentation:** Document any required environment variables for your project, including their purpose and expected values.
+- **Security:** Never hardcode sensitive information (like API keys, secrets, or credentials) directly into your code or commit them to version control. Always use environment variables.
+- **`.env` Files:** For local development, use `.env` files to manage environment variables. Ensure your `.env` file is added to your `.gitignore` to prevent accidental exposure.
+- **Consistency:** Use a consistent naming convention for your environment variables (e.g., `UPPER_SNAKE_CASE`).
+- **Documentation:** Document any required environment variables for your project, including their purpose and expected values.
 
 - **`GEMINI_API_KEY`** (Required):
   - Your API key for the Gemini API.

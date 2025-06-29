@@ -10,15 +10,20 @@ import { Config } from '../config/config.js';
 import { spawn, execSync } from 'node:child_process';
 import { discoverMcpTools } from './mcp-client.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
+import { ReadFileTool } from './read-file.js';
+import { WriteFileTool } from './write-file.js';
+import { EditTool } from './edit.js';
+import { InsertLinesTool } from './insert-lines.js';
+import { DeleteLinesTool } from './delete-lines.js';
 
 type ToolParams = Record<string, unknown>;
 
 export class DiscoveredTool extends BaseTool<ToolParams, ToolResult> {
   constructor(
     private readonly config: Config,
-    readonly name: string,
-    readonly description: string,
-    readonly parameterSchema: Record<string, unknown>,
+    override readonly name: string,
+    override readonly description: string,
+    override readonly parameterSchema: Record<string, unknown>,
   ) {
     const discoveryCmd = config.getToolDiscoveryCommand()!;
     const callCommand = config.getToolCallCommand()!;
@@ -128,6 +133,18 @@ export class ToolRegistry {
 
   constructor(config: Config) {
     this.config = config;
+    // Register built-in tools
+    this.registerTool(
+      new ReadFileTool(this.config.getTargetDir(), this.config),
+    );
+    this.registerTool(new WriteFileTool(this.config));
+    this.registerTool(new EditTool(this.config));
+    this.registerTool(
+      new InsertLinesTool(this.config.getTargetDir(), this.config),
+    );
+    this.registerTool(
+      new DeleteLinesTool(this.config.getTargetDir(), this.config),
+    );
   }
 
   /**

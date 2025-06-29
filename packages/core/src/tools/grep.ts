@@ -134,7 +134,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
    * @param params Parameters to validate
    * @returns An error message string if invalid, null otherwise
    */
-  validateToolParams(params: GrepToolParams): string | null {
+  override validateToolParams(params: GrepToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -220,7 +220,7 @@ export class GrepTool extends BaseTool<GrepToolParams, ToolResult> {
 
       for (const filePath in matchesByFile) {
         llmContent += `File: ${filePath}\n`;
-        matchesByFile[filePath].forEach((match) => {
+        matchesByFile[filePath]!.forEach((match) => {
           const trimmedLine = match.line.trim();
           llmContent += `L${match.lineNumber}: ${trimmedLine}\n`;
         });

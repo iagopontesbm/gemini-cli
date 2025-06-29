@@ -35,6 +35,7 @@ export default tseslint.config(
       'packages/server/dist/**',
       'eslint-rules/*',
       'bundle/**',
+      'nc.js',
     ],
   },
   eslint.configs.recommended,
@@ -178,6 +179,38 @@ export default tseslint.config(
   },
   // Prettier config must be last
   prettierConfig,
+  // extra settings for scripts that we run directly with node
+  {
+    files: ['./neoncli.js'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        process: 'readonly',
+        console: 'readonly',
+        currentGenTemperature: 'writable',
+      },
+    },
+    rules: {
+      'license-header/header': [
+        'error',
+        [
+          '/**',
+          ' * @license',
+          ' * Copyright 2025 Google LLC',
+          ' * SPDX-License-Identifier: Apache-2.0',
+          ' */',
+        ],
+      ],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        {
+          argsIgnorePattern: '^_',
+          varsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
+        },
+      ],
+    },
+  },
   // extra settings for scripts that we run directly with node
   {
     files: ['./integration-tests/**/*.js'],

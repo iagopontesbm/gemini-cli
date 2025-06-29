@@ -27,7 +27,11 @@ import { AppWrapper } from './ui/App.js';
 import { loadCliConfig } from './config/config.js';
 import { readStdin } from './utils/readStdin.js';
 import { start_sandbox } from './utils/sandbox.js';
-import { LoadedSettings, loadSettings, SettingScope } from './config/settings.js';
+import {
+  LoadedSettings,
+  loadSettings,
+  SettingScope,
+} from './config/settings.js';
 import { themeManager } from './ui/themes/theme-manager.js';
 import { getStartupWarnings } from './utils/startupWarnings.js';
 import { runNonInteractive } from './nonInteractiveCli.js';
@@ -48,7 +52,9 @@ const Colors = {
 // Improvement 2: A dedicated incantation for logging errors with vibrant hues.
 const logError = (message: string, ...details: unknown[]) => {
   console.error(`${Colors.RED}${message}${Colors.RESET}`);
-  details.forEach(detail => console.error(`${Colors.YELLOW}`, detail, `${Colors.RESET}`));
+  details.forEach((detail) =>
+    console.error(`${Colors.YELLOW}`, detail, `${Colors.RESET}`),
+  );
 };
 
 // Improvement 3: A spell for casting warnings to the console.
@@ -68,12 +74,18 @@ const TARGET_MEMORY_MULTIPLIER = 0.5; // 50% of total memory.
 function getNodeMemoryArgs(config: Config): string[] {
   const totalMemoryMB = os.totalmem() / (1024 * 1024);
   const heapStats = v8.getHeapStatistics();
-  const currentMaxOldSpaceSizeMb = Math.floor(heapStats.heap_size_limit / 1024 / 1024);
+  const currentMaxOldSpaceSizeMb = Math.floor(
+    heapStats.heap_size_limit / 1024 / 1024,
+  );
 
-  const targetMaxOldSpaceSizeInMB = Math.floor(totalMemoryMB * TARGET_MEMORY_MULTIPLIER);
+  const targetMaxOldSpaceSizeInMB = Math.floor(
+    totalMemoryMB * TARGET_MEMORY_MULTIPLIER,
+  );
 
   if (config.getDebugMode()) {
-    console.debug(`Current heap size limit: ${currentMaxOldSpaceSizeMb.toFixed(2)} MB`);
+    console.debug(
+      `Current heap size limit: ${currentMaxOldSpaceSizeMb.toFixed(2)} MB`,
+    );
   }
 
   // The GEMINI_CLI_NO_RELAUNCH ward prevents infinite relaunch loops.
@@ -83,7 +95,9 @@ function getNodeMemoryArgs(config: Config): string[] {
 
   if (targetMaxOldSpaceSizeInMB > currentMaxOldSpaceSizeMb) {
     if (config.getDebugMode()) {
-      console.debug(`Relaunching to claim more memory: ${targetMaxOldSpaceSizeInMB.toFixed(2)} MB`);
+      console.debug(
+        `Relaunching to claim more memory: ${targetMaxOldSpaceSizeInMB.toFixed(2)} MB`,
+      );
     }
     return [`--max-old-space-size=${targetMaxOldSpaceSizeInMB}`];
   }
@@ -105,7 +119,7 @@ async function relaunchWithAdditionalArgs(additionalArgs: string[]) {
     env: newEnv,
   });
 
-  await new Promise(resolve => child.on('close', resolve));
+  await new Promise((resolve) => child.on('close', resolve));
   process.exit(0);
 }
 
@@ -128,15 +142,22 @@ function setWindowTitle(title: string, settings: LoadedSettings) {
 /**
  * Improvement 8: A spell to initialize settings and handle any errors found in the scrolls.
  */
-async function handleSettingsInitialization(workspaceRoot: string): Promise<LoadedSettings> {
+async function handleSettingsInitialization(
+  workspaceRoot: string,
+): Promise<LoadedSettings> {
   await cleanupCheckpoints();
   const settings = loadSettings(workspaceRoot);
 
   if (settings.errors.length > 0) {
     // Improvement 19: More descriptive error logging for settings issues.
-    logError('Errors were found in your configuration scrolls. The ritual cannot proceed.');
+    logError(
+      'Errors were found in your configuration scrolls. The ritual cannot proceed.',
+    );
     for (const error of settings.errors) {
-      logError(`In ${error.path}: ${error.message}`, `Please mend the scroll and try again.`);
+      logError(
+        `In ${error.path}: ${error.message}`,
+        `Please mend the scroll and try again.`,
+      );
     }
     process.exit(1);
   }
@@ -146,14 +167,21 @@ async function handleSettingsInitialization(workspaceRoot: string): Promise<Load
 /**
  * Improvement 9: A spell to conjure the core configuration and initialize essential services.
  */
-async function initializeCoreServices(settings: LoadedSettings, workspaceRoot: string) {
+async function initializeCoreServices(
+  settings: LoadedSettings,
+  workspaceRoot: string,
+) {
   const extensions = loadExtensions(workspaceRoot);
   const config = await loadCliConfig(settings.merged, extensions, sessionId);
 
   // Improvement 20: A fallback enchantment to use GEMINI_API_KEY if no other auth method is chosen.
   // This must be cast after loadCliConfig, which summons the environment variables.
   if (!settings.merged.selectedAuthType && process.env.GEMINI_API_KEY) {
-    settings.setValue(SettingScope.User, 'selectedAuthType', AuthType.USE_GEMINI);
+    settings.setValue(
+      SettingScope.User,
+      'selectedAuthType',
+      AuthType.USE_GEMINI,
+    );
   }
 
   setMaxSizedBoxDebugging(config.getDebugMode());
@@ -165,14 +193,18 @@ async function initializeCoreServices(settings: LoadedSettings, workspaceRoot: s
       await config.getGitService();
     } catch {
       // Improvement 13: Log a warning instead of silently swallowing the Git service error.
-      logWarning('Could not initialize Git service. Checkpointing may be affected.');
+      logWarning(
+        'Could not initialize Git service. Checkpointing may be affected.',
+      );
     }
   }
 
   // Improvement 21: An enchantment to load the user's chosen theme.
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {
-      logWarning(`Theme "${settings.merged.theme}" not found. The default theme will be used.`);
+      logWarning(
+        `Theme "${settings.merged.theme}" not found. The default theme will be used.`,
+      );
     }
   }
 
@@ -182,8 +214,13 @@ async function initializeCoreServices(settings: LoadedSettings, workspaceRoot: s
 /**
  * Improvement 10: A powerful spell to prepare the execution environment, handling sandboxing and memory.
  */
-async function prepareExecutionEnvironment(config: Config, settings: LoadedSettings) {
-  const memoryArgs = settings.merged.autoConfigureMaxOldSpaceSize ? getNodeMemoryArgs(config) : [];
+async function prepareExecutionEnvironment(
+  config: Config,
+  settings: LoadedSettings,
+) {
+  const memoryArgs = settings.merged.autoConfigureMaxOldSpaceSize
+    ? getNodeMemoryArgs(config)
+    : [];
 
   // If not already in a sandbox, and sandboxing is enabled, we must enter it.
   if (!process.env.SANDBOX) {
@@ -215,7 +252,11 @@ async function prepareExecutionEnvironment(config: Config, settings: LoadedSetti
 /**
  * Improvement 11: The spell to invoke the interactive TTY-based user interface.
  */
-async function runInteractiveMode(config: Config, settings: LoadedSettings, workspaceRoot: string) {
+async function runInteractiveMode(
+  config: Config,
+  settings: LoadedSettings,
+  workspaceRoot: string,
+) {
   const startupWarnings = await getStartupWarnings();
   // Improvement 14: Set the window title to orient the user in their terminal.
   setWindowTitle(basename(workspaceRoot), settings);
@@ -224,7 +265,11 @@ async function runInteractiveMode(config: Config, settings: LoadedSettings, work
   // Improvement 25: exitOnCtrlC is false because we have our own graceful shutdown handler in index.ts.
   render(
     <React.StrictMode>
-      <AppWrapper config={config} settings={settings} startupWarnings={startupWarnings} />
+      <AppWrapper
+        config={config}
+        settings={settings}
+        startupWarnings={startupWarnings}
+      />
     </React.StrictMode>,
     { exitOnCtrlC: false },
   );
@@ -257,7 +302,11 @@ async function runNonInteractiveMode(
     prompt_length: input.length,
   });
 
-  const nonInteractiveConfig = await loadNonInteractiveConfig(config, extensions, settings);
+  const nonInteractiveConfig = await loadNonInteractiveConfig(
+    config,
+    extensions,
+    settings,
+  );
   await runNonInteractive(nonInteractiveConfig, input);
   process.exit(0);
 }
@@ -270,7 +319,10 @@ async function runNonInteractiveMode(
 export async function main() {
   const workspaceRoot = process.cwd();
   const settings = await handleSettingsInitialization(workspaceRoot);
-  const { config, extensions } = await initializeCoreServices(settings, workspaceRoot);
+  const { config, extensions } = await initializeCoreServices(
+    settings,
+    workspaceRoot,
+  );
 
   await prepareExecutionEnvironment(config, settings);
 
@@ -280,29 +332,52 @@ export async function main() {
   if (process.stdin.isTTY && input?.length === 0) {
     await runInteractiveMode(config, settings, workspaceRoot);
   } else {
-    await runNonInteractiveMode(config, settings, extensions, input);
+    runNonInteractiveMode(config, settings, extensions, input);
   }
 }
 
 // --- Configuration Spells for Non-Interactive Mode ---
 
-async function loadNonInteractiveConfig(config: Config, extensions: Extension[], settings: LoadedSettings) {
+async function loadNonInteractiveConfig(
+  config: Config,
+  extensions: Extension[],
+  settings: LoadedSettings,
+) {
   let finalConfig = config;
   // Improvement 15: If not in YOLO mode, we must disable interactive tools that require user approval.
   // This is a critical ward to prevent scripts from hanging indefinitely.
   if (config.getApprovalMode() !== ApprovalMode.YOLO) {
     const existingExcludeTools = settings.merged.excludeTools || [];
-    const interactiveTools = [ShellTool.Name, EditTool.Name, WriteFileTool.Name];
-    const newExcludeTools = [...new Set([...existingExcludeTools, ...interactiveTools])];
+    const interactiveTools = [
+      ShellTool.Name,
+      EditTool.Name,
+      WriteFileTool.Name,
+    ];
+    const newExcludeTools = [
+      ...new Set([...existingExcludeTools, ...interactiveTools]),
+    ];
 
-    const nonInteractiveSettings = { ...settings.merged, excludeTools: newExcludeTools };
-    finalConfig = await loadCliConfig(nonInteractiveSettings, extensions, config.getSessionId());
+    const nonInteractiveSettings = {
+      ...settings.merged,
+      excludeTools: newExcludeTools,
+    };
+    finalConfig = await loadCliConfig(
+      nonInteractiveSettings,
+      extensions,
+      config.getSessionId(),
+    );
   }
 
-  return await validateNonInterActiveAuth(settings.merged.selectedAuthType, finalConfig);
+  return await validateNonInterActiveAuth(
+    settings.merged.selectedAuthType,
+    finalConfig,
+  );
 }
 
-async function validateNonInterActiveAuth(selectedAuthType: AuthType | undefined, nonInteractiveConfig: Config) {
+async function validateNonInterActiveAuth(
+  selectedAuthType: AuthType | undefined,
+  nonInteractiveConfig: Config,
+) {
   // A special case for headless environments: if GEMINI_API_KEY is set, we use it.
   if (!selectedAuthType && !process.env.GEMINI_API_KEY) {
     // Improvement 16: Using the styled logger for auth errors.
@@ -327,9 +402,15 @@ async function validateNonInterActiveAuth(selectedAuthType: AuthType | undefined
 // --- The Final Ward: Global Unhandled Rejection Catcher ---
 // Improvement 17: A fortified global ward to catch any promise spirits that escape our grasp.
 process.on('unhandledRejection', (reason, _promise) => {
-  console.error(`${Colors.RED}=========================================${Colors.RESET}`);
-  console.error(`${Colors.RED}CRITICAL: A Promise Spirit Was Left Unhandled!${Colors.RESET}`);
-  console.error(`${Colors.RED}=========================================${Colors.RESET}`);
+  console.error(
+    `${Colors.RED}=========================================${Colors.RESET}`,
+  );
+  console.error(
+    `${Colors.RED}CRITICAL: A Promise Spirit Was Left Unhandled!${Colors.RESET}`,
+  );
+  console.error(
+    `${Colors.RED}=========================================${Colors.RESET}`,
+  );
   logError('Reason:', reason);
   if (!(reason instanceof Error)) {
     logError('The spirit was not of a known Error form:', reason);

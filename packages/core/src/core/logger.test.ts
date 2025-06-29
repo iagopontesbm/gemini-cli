@@ -261,9 +261,9 @@ describe('Logger', () => {
       await logger.logMessage(MessageSenderType.USER, 'Second');
       const logs = await readLogFile();
       expect(logs.length).toBe(2);
-      expect(logs[0].messageId).toBe(0);
-      expect(logs[1].messageId).toBe(1);
-      expect(logs[1].timestamp).not.toBe(logs[0].timestamp);
+      expect(logs[0]?.messageId).toBe(0);
+      expect(logs[1]?.messageId).toBe(1);
+      expect(logs[1]?.timestamp).not.toBe(logs[0]?.timestamp);
       expect(logger['messageId']).toBe(2);
     });
 

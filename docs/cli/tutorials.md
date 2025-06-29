@@ -13,8 +13,8 @@ This tutorial demonstrates how to set up a Model Context Protocol (MCP) server, 
 
 Before you begin this tutorial, ensure you have the following installed and configured on your system:
 
--   **Docker:** Install and run [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for macOS/Windows) or [Docker Engine](https://docs.docker.com/engine/install/) (for Linux). This is essential for running the containerized MCP server.
--   **GitHub Personal Access Token (PAT):** Create a new [classic](https://github.com/settings/tokens/new) or [fine-grained](https://github.com/settings/personal-access-tokens/new) PAT with the necessary scopes for repository access (e.g., `repo` scope for classic PATs, or specific repository permissions for fine-grained PATs). This token will allow the MCP server to interact with your GitHub repositories.
+- **Docker:** Install and run [Docker Desktop](https://www.docker.com/products/docker-desktop/) (for macOS/Windows) or [Docker Engine](https://docs.docker.com/engine/install/) (for Linux). This is essential for running the containerized MCP server.
+- **GitHub Personal Access Token (PAT):** Create a new [classic](https://github.com/settings/tokens/new) or [fine-grained](https://github.com/settings/personal-access-tokens/new) PAT with the necessary scopes for repository access (e.g., `repo` scope for classic PATs, or specific repository permissions for fine-grained PATs). This token will allow the MCP server to interact with your GitHub repositories.
 
 ### Guide
 
@@ -84,18 +84,18 @@ Look for `github (CONNECTED)` in the output, and a list of tools like `github__c
 
 If you encounter issues while setting up or using the MCP server, consider the following:
 
--   **Docker Not Running:** Ensure Docker Desktop (or Docker Engine) is running and accessible. Check its status and restart if necessary.
--   **Incorrect PAT:** Double-check that your `GITHUB_PERSONAL_ACCESS_TOKEN` is correct and has the necessary permissions. A common issue is an expired or improperly scoped token.
--   **`settings.json` Syntax Errors:** Verify that your `.gemini/settings.json` file is valid JSON. Even a small syntax error can prevent the CLI from loading the configuration.
--   **Network Issues:** Ensure your system has a stable internet connection to pull the Docker image and for the MCP server to communicate with GitHub.
--   **MCP Server Logs:** If the MCP server fails to start or connect, check the Gemini CLI's verbose output (run with `--debug_mode`) for any error messages from the Docker container or the MCP server itself.
--   **Firewall/Proxy:** If you are behind a firewall or proxy, ensure that Docker and the Gemini CLI have the necessary network access.
+- **Docker Not Running:** Ensure Docker Desktop (or Docker Engine) is running and accessible. Check its status and restart if necessary.
+- **Incorrect PAT:** Double-check that your `GITHUB_PERSONAL_ACCESS_TOKEN` is correct and has the necessary permissions. A common issue is an expired or improperly scoped token.
+- **`settings.json` Syntax Errors:** Verify that your `.gemini/settings.json` file is valid JSON. Even a small syntax error can prevent the CLI from loading the configuration.
+- **Network Issues:** Ensure your system has a stable internet connection to pull the Docker image and for the MCP server to communicate with GitHub.
+- **MCP Server Logs:** If the MCP server fails to start or connect, check the Gemini CLI's verbose output (run with `--debug_mode`) for any error messages from the Docker container or the MCP server itself.
+- **Firewall/Proxy:** If you are behind a firewall or proxy, ensure that Docker and the Gemini CLI have the necessary network access.
 
 ### Next Steps
 
 Now that you have successfully set up an MCP server, consider exploring these advanced topics:
 
--   **Explore More Tools:** Use the `/tools` command to see all available tools, including those exposed by your MCP server. Experiment with different prompts to utilize these new capabilities.
--   **Create Custom MCP Servers:** Learn how to build your own MCP servers to expose custom tools tailored to your specific workflows or internal systems. Refer to the [MCP Server documentation](../tools/mcp-server.md) for more details.
--   **Integrate with CI/CD:** Explore how to use Gemini CLI in non-interactive mode within your continuous integration and deployment pipelines to automate tasks.
--   **Advanced Configuration:** Dive deeper into the [CLI Configuration](./configuration.md) to fine-tune other aspects of Gemini CLI's behavior, such as sandboxing or telemetry.
+- **Explore More Tools:** Use the `/tools` command to see all available tools, including those exposed by your MCP server. Experiment with different prompts to utilize these new capabilities.
+- **Create Custom MCP Servers:** Learn how to build your own MCP servers to expose custom tools tailored to your specific workflows or internal systems. Refer to the [MCP Server documentation](../tools/mcp-server.md) for more details.
+- **Integrate with CI/CD:** Explore how to use Gemini CLI in non-interactive mode within your continuous integration and deployment pipelines to automate tasks.
+- **Advanced Configuration:** Dive deeper into the [CLI Configuration](./configuration.md) to fine-tune other aspects of Gemini CLI's behavior, such as sandboxing or telemetry.

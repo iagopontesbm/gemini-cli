@@ -206,14 +206,14 @@ describe('ToolRegistry', () => {
 
       const toolsFromServer1 = toolRegistry.getToolsByServer(server1Name);
       expect(toolsFromServer1).toHaveLength(1);
-      expect(toolsFromServer1[0].name).toBe(mcpTool1.name);
+      expect(toolsFromServer1[0]!.name).toBe(mcpTool1.name);
       expect((toolsFromServer1[0] as DiscoveredMCPTool).serverName).toBe(
         server1Name,
       );
 
       const toolsFromServer2 = toolRegistry.getToolsByServer(server2Name);
       expect(toolsFromServer2).toHaveLength(1);
-      expect(toolsFromServer2[0].name).toBe(mcpTool2.name);
+      expect(toolsFromServer2[0]!.name).toBe(mcpTool2.name);
       expect((toolsFromServer2[0] as DiscoveredMCPTool).serverName).toBe(
         server2Name,
       );

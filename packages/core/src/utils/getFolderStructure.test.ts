@@ -44,13 +44,27 @@ class MockDirent implements FSDirent {
     this.parentPath = ''; // Initialize as empty string
   }
 
-  isFile(): boolean { return this._type === 'file'; }
-  isDirectory(): boolean { return this._type === 'dir'; }
-  isBlockDevice(): boolean { return false; }
-  isCharacterDevice(): boolean { return false; }
-  isSymbolicLink(): boolean { return false; }
-  isFIFO(): boolean { return false; }
-  isSocket(): boolean { return false; }
+  isFile(): boolean {
+    return this._type === 'file';
+  }
+  isDirectory(): boolean {
+    return this._type === 'dir';
+  }
+  isBlockDevice(): boolean {
+    return false;
+  }
+  isCharacterDevice(): boolean {
+    return false;
+  }
+  isSymbolicLink(): boolean {
+    return false;
+  }
+  isFIFO(): boolean {
+    return false;
+  }
+  isSocket(): boolean {
+    return false;
+  }
 }
 
 const createDirent = (name: string, type: 'file' | 'dir'): FSDirent => {

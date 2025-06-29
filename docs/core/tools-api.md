@@ -6,27 +6,27 @@ This document provides a comprehensive guide to the robust Tool API system withi
 
 At the heart of the Tool API are several key concepts that define how tools are structured, managed, and executed:
 
--   **Tool Interface (`tools.ts`):** All tools in the Gemini CLI adhere to a common interface and extend a `BaseTool` class. This ensures consistency and defines the contract for how tools interact with the core. Each tool must implement or define:
-    -   `name`: A unique, internal identifier for the tool, used in API calls to the Gemini model.
-    -   `displayName`: A user-friendly name for display in the CLI.
-    -   `description`: A clear, concise explanation of the tool's functionality, provided to the Gemini model to help it decide when and how to use the tool.
-    -   `parameterSchema`: A JSON schema that rigorously defines the parameters the tool accepts. This is crucial for the Gemini model to construct valid tool calls.
-    -   `validateToolParams()`: A method to perform runtime validation of incoming parameters before tool execution.
-    -   `getDescription()`: A method that generates a human-readable description of what the tool will do with specific parameters, presented to the user for confirmation.
-    -   `shouldConfirmExecute()`: A method that determines if explicit user confirmation is required before executing the tool (e.g., for operations that modify the file system or execute shell commands).
-    -   `execute()`: The core method that performs the tool's intended action and returns a `ToolResult`.
+- **Tool Interface (`tools.ts`):** All tools in the Gemini CLI adhere to a common interface and extend a `BaseTool` class. This ensures consistency and defines the contract for how tools interact with the core. Each tool must implement or define:
+  - `name`: A unique, internal identifier for the tool, used in API calls to the Gemini model.
+  - `displayName`: A user-friendly name for display in the CLI.
+  - `description`: A clear, concise explanation of the tool's functionality, provided to the Gemini model to help it decide when and how to use the tool.
+  - `parameterSchema`: A JSON schema that rigorously defines the parameters the tool accepts. This is crucial for the Gemini model to construct valid tool calls.
+  - `validateToolParams()`: A method to perform runtime validation of incoming parameters before tool execution.
+  - `getDescription()`: A method that generates a human-readable description of what the tool will do with specific parameters, presented to the user for confirmation.
+  - `shouldConfirmExecute()`: A method that determines if explicit user confirmation is required before executing the tool (e.g., for operations that modify the file system or execute shell commands).
+  - `execute()`: The core method that performs the tool's intended action and returns a `ToolResult`.
 
--   **`ToolResult` (`tools.ts`):** This interface defines the standardized structure for the outcome of a tool's execution. It typically includes:
-    -   `llmContent`: The factual string content that is sent back to the Language Model (LLM) for context and further processing.
-    -   `returnDisplay`: A user-friendly string (often Markdown formatted) or a special object (like `FileDiff`) intended for direct display in the CLI to inform the user of the tool's action and result.
+- **`ToolResult` (`tools.ts`):** This interface defines the standardized structure for the outcome of a tool's execution. It typically includes:
+  - `llmContent`: The factual string content that is sent back to the Language Model (LLM) for context and further processing.
+  - `returnDisplay`: A user-friendly string (often Markdown formatted) or a special object (like `FileDiff`) intended for direct display in the CLI to inform the user of the tool's action and result.
 
--   **Tool Registry (`tool-registry.ts`):** The `ToolRegistry` class is central to managing all available tools. Its responsibilities include:
-    -   **Registering Tools:** It maintains a collection of all built-in tools (e.g., `ReadFileTool`, `ShellTool`) upon startup.
-    -   **Dynamic Tool Discovery:** It can dynamically discover and register custom tools through various mechanisms:
-        -   **Command-based Discovery:** If a `toolDiscoveryCommand` is configured in `settings.json`, the registry executes this command. The command is expected to output a JSON array of [function declarations](https://ai.google.dev/gemini-api/docs/function-calling#function-declarations), which are then registered as `DiscoveredTool` instances.
-        -   **MCP-based Discovery:** If `mcpServerCommand` (or `mcpServers`) is configured, the registry connects to one or more Model Context Protocol (MCP) servers to list and register tools (`DiscoveredMCPTool`).
-    -   **Schema Provisioning:** It exposes the `FunctionDeclaration` schemas of all registered tools to the Gemini model, enabling the model to understand what tools are available and how to invoke them correctly.
-    -   **Tool Retrieval:** It provides methods for the core to retrieve a specific tool by its registered name for execution.
+- **Tool Registry (`tool-registry.ts`):** The `ToolRegistry` class is central to managing all available tools. Its responsibilities include:
+  - **Registering Tools:** It maintains a collection of all built-in tools (e.g., `ReadFileTool`, `ShellTool`) upon startup.
+  - **Dynamic Tool Discovery:** It can dynamically discover and register custom tools through various mechanisms:
+    - **Command-based Discovery:** If a `toolDiscoveryCommand` is configured in `settings.json`, the registry executes this command. The command is expected to output a JSON array of [function declarations](https://ai.google.dev/gemini-api/docs/function-calling#function-declarations), which are then registered as `DiscoveredTool` instances.
+    - **MCP-based Discovery:** If `mcpServerCommand` (or `mcpServers`) is configured, the registry connects to one or more Model Context Protocol (MCP) servers to list and register tools (`DiscoveredMCPTool`).
+  - **Schema Provisioning:** It exposes the `FunctionDeclaration` schemas of all registered tools to the Gemini model, enabling the model to understand what tools are available and how to invoke them correctly.
+  - **Tool Retrieval:** It provides methods for the core to retrieve a specific tool by its registered name for execution.
 
 ## Built-in Tools
 

@@ -305,7 +305,7 @@ export class GeminiChat {
           automaticFunctionCallingHistory,
         );
       })();
-      await this.sendPromise.catch(() => {
+      this.sendPromise.catch(() => {
         // Resets sendPromise to avoid subsequent calls failing
         this.sendPromise = Promise.resolve();
       });
@@ -602,6 +602,7 @@ export class GeminiChat {
       content.role === 'model' &&
       content.parts &&
       content.parts.length > 0 &&
+      content.parts[0] &&
       typeof content.parts[0].text === 'string' &&
       content.parts[0].text !== ''
     );
@@ -615,6 +616,7 @@ export class GeminiChat {
       content.role === 'model' &&
       content.parts &&
       content.parts.length > 0 &&
+      content.parts[0] &&
       typeof content.parts[0].thought === 'boolean' &&
       content.parts[0].thought === true
     );

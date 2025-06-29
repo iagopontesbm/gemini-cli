@@ -75,7 +75,7 @@ Process Group PGID: Process group started or \`(none)\``,
     );
   }
 
-  getDescription(params: ShellToolParams): string {
+  override getDescription(params: ShellToolParams): string {
     let description = `${params.command}`;
     // append optional [in directory]
     // note description is needed even if validation fails due to absolute path
@@ -98,7 +98,7 @@ Process Group PGID: Process group started or \`(none)\``,
       .pop(); // take last part and return command root (or undefined if previous line was empty)
   }
 
-  validateToolParams(params: ShellToolParams): string | null {
+  override validateToolParams(params: ShellToolParams): string | null {
     if (
       !SchemaValidator.validate(
         this.parameterSchema as Record<string, unknown>,
@@ -128,7 +128,7 @@ Process Group PGID: Process group started or \`(none)\``,
     return null;
   }
 
-  async shouldConfirmExecute(
+  override async shouldConfirmExecute(
     params: ShellToolParams,
     _abortSignal: AbortSignal,
   ): Promise<ToolCallConfirmationDetails | false> {

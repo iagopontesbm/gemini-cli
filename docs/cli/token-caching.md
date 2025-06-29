@@ -21,6 +21,6 @@ You can view your token usage and the savings achieved through token caching usi
 
 ## Best Practices for Maximizing Caching
 
--   **Leverage Context Files:** Utilize `GEMINI.md` files to provide stable, project-specific instructions and context. This content is highly cacheable.
--   **Consistent Prompts:** While dynamic prompts are essential, try to maintain consistency in the structural elements of your prompts where possible.
--   **Update Infrequently:** If you have large, static instructional content, avoid frequent, minor edits to it, as this can invalidate the cache.
+- **Leverage Context Files:** Utilize `GEMINI.md` files to provide stable, project-specific instructions and context. This content is highly cacheable.
+- **Consistent Prompts:** While dynamic prompts are essential, try to maintain consistency in the structural elements of your prompts where possible.
+- **Update Infrequently:** If you have large, static instructional content, avoid frequent, minor edits to it, as this can invalidate the cache.

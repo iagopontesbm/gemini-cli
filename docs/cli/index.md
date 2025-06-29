@@ -15,9 +15,9 @@ Within Gemini CLI, `packages/cli` is the frontend for users to send and receive 
 
 Gemini CLI supports two primary modes of operation to suit different workflows:
 
--   **Interactive Mode:** This is the default REPL (Read-Eval-Print Loop) experience, where you engage in a continuous conversation with the AI, receiving responses and issuing follow-up prompts. This mode is ideal for exploratory coding, debugging, and iterative problem-solving.
+- **Interactive Mode:** This is the default REPL (Read-Eval-Print Loop) experience, where you engage in a continuous conversation with the AI, receiving responses and issuing follow-up prompts. This mode is ideal for exploratory coding, debugging, and iterative problem-solving.
 
--   **Non-Interactive Mode:** This mode is designed for scripting, automation, and single-shot tasks. You provide input to the CLI (e.g., via piping or command-line flags), it executes the command, and then exits. This is useful for integrating Gemini CLI into automated scripts or CI/CD pipelines.
+- **Non-Interactive Mode:** This mode is designed for scripting, automation, and single-shot tasks. You provide input to the CLI (e.g., via piping or command-line flags), it executes the command, and then exits. This is useful for integrating Gemini CLI into automated scripts or CI/CD pipelines.
 
 ### Non-interactive mode
 

@@ -43,14 +43,14 @@ It's important to always review confirmation prompts carefully before allowing a
 
 Gemini CLI's built-in tools are categorized by their primary function:
 
--   **[File System Tools](./file-system.md):** Interact with files and directories (read, write, list, search, modify).
--   **[Shell Tool](./shell.md) (`run_shell_command`):** Execute shell commands directly from the CLI.
--   **[Web Fetch Tool](./web-fetch.md) (`web_fetch`):** Retrieve and process content from URLs.
--   **[Web Search Tool](./web-search.md) (`google_web_search`):** Perform web searches via Google Search.
--   **[Multi-File Read Tool](./multi-file.md) (`read_many_files`):** Read and concatenate content from multiple files or directories, often used by the `@` command.
--   **[Memory Tool](./memory.md) (`save_memory`):** Save and recall specific facts or information across sessions.
+- **[File System Tools](./file-system.md):** Interact with files and directories (read, write, list, search, modify).
+- **[Shell Tool](./shell.md) (`run_shell_command`):** Execute shell commands directly from the CLI.
+- **[Web Fetch Tool](./web-fetch.md) (`web_fetch`):** Retrieve and process content from URLs.
+- **[Web Search Tool](./web-search.md) (`google_web_search`):** Perform web searches via Google Search.
+- **[Multi-File Read Tool](./multi-file.md) (`read_many_files`):** Read and concatenate content from multiple files or directories, often used by the `@` command.
+- **[Memory Tool](./memory.md) (`save_memory`):** Save and recall specific facts or information across sessions.
 
 Additionally, the tool system incorporates advanced concepts:
 
--   **[MCP Servers](./mcp-server.md):** Model-Context Protocol (MCP) servers act as a bridge, allowing the Gemini model to discover and utilize custom tools that interact with external systems or APIs.
--   **[Sandboxing](../sandbox.md):** Sandboxing isolates the model and its operations from your environment, significantly reducing potential risks associated with tool execution.
+- **[MCP Servers](./mcp-server.md):** Model-Context Protocol (MCP) servers act as a bridge, allowing the Gemini model to discover and utilize custom tools that interact with external systems or APIs.
+- **[Sandboxing](../sandbox.md):** Sandboxing isolates the model and its operations from your environment, significantly reducing potential risks associated with tool execution.

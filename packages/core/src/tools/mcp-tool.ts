@@ -38,7 +38,7 @@ export class DiscoveredMCPTool extends BaseTool<ToolParams, ToolResult> {
     );
   }
 
-  async shouldConfirmExecute(
+  override async shouldConfirmExecute(
     _params: ToolParams,
     _abortSignal: AbortSignal,
   ): Promise<ToolCallConfirmationDetails | false> {
@@ -138,7 +138,7 @@ function getStringifiedResultForDisplay(result: Part[]) {
 
   const processedResults =
     result.length === 1
-      ? processFunctionResponse(result[0])
+      ? processFunctionResponse(result[0]!)
       : result.map(processFunctionResponse);
   if (typeof processedResults === 'string') {
     return processedResults;

@@ -181,9 +181,7 @@ export class Turn {
           // (e.g., **Subject**). The rest of the string is considered the description.
           const rawText = thoughtPart.text ?? '';
           const subjectStringMatches = rawText.match(/\*\*(.*?)\*\*/s);
-          const subject = subjectStringMatches
-            ? subjectStringMatches[1].trim()
-            : '';
+          const subject = subjectStringMatches?.[1]?.trim() ?? '';
           const description = rawText.replace(/\*\*(.*?)\*\*/s, '').trim();
           const thought: ThoughtSummary = {
             subject,

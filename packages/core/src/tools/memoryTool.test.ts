@@ -104,10 +104,10 @@ describe('MemoryTool', () => {
       );
       expect(mockFsAdapter.writeFile).toHaveBeenCalledOnce();
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
-      expect(writeFileCall[0]).toBe(testFilePath);
+      expect(writeFileCall![0]).toBe(testFilePath);
       const expectedContent = `${MEMORY_SECTION_HEADER}\n- ${fact}\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
-      expect(writeFileCall[2]).toBe('utf-8');
+      expect(writeFileCall![1]).toBe(expectedContent);
+      expect(writeFileCall![2]).toBe('utf-8');
     });
 
     it('should create section and save a fact if file is empty', async () => {
@@ -116,7 +116,7 @@ describe('MemoryTool', () => {
       await MemoryTool.performAddMemoryEntry(fact, testFilePath, mockFsAdapter);
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
       const expectedContent = `${MEMORY_SECTION_HEADER}\n- ${fact}\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
+      expect(writeFileCall![1]).toBe(expectedContent);
     });
 
     it('should add a fact to an existing section', async () => {
@@ -128,7 +128,7 @@ describe('MemoryTool', () => {
       expect(mockFsAdapter.writeFile).toHaveBeenCalledOnce();
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
       const expectedContent = `Some preamble.\n\n${MEMORY_SECTION_HEADER}\n- Existing fact 1\n- ${fact}\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
+      expect(writeFileCall![1]).toBe(expectedContent);
     });
 
     it('should add a fact to an existing empty section', async () => {
@@ -140,7 +140,7 @@ describe('MemoryTool', () => {
       expect(mockFsAdapter.writeFile).toHaveBeenCalledOnce();
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
       const expectedContent = `Some preamble.\n\n${MEMORY_SECTION_HEADER}\n- ${fact}\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
+      expect(writeFileCall![1]).toBe(expectedContent);
     });
 
     it('should add a fact when other ## sections exist and preserve spacing', async () => {
@@ -153,7 +153,7 @@ describe('MemoryTool', () => {
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
       // Note: The implementation ensures a single newline at the end if content exists.
       const expectedContent = `${MEMORY_SECTION_HEADER}\n- Fact 1\n- ${fact}\n\n## Another Section\nSome other text.\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
+      expect(writeFileCall![1]).toBe(expectedContent);
     });
 
     it('should correctly trim and add a fact that starts with a dash', async () => {
@@ -162,7 +162,7 @@ describe('MemoryTool', () => {
       await MemoryTool.performAddMemoryEntry(fact, testFilePath, mockFsAdapter);
       const writeFileCall = mockFsAdapter.writeFile.mock.calls[0];
       const expectedContent = `${MEMORY_SECTION_HEADER}\n- My fact with dashes\n`;
-      expect(writeFileCall[1]).toBe(expectedContent);
+      expect(writeFileCall![1]).toBe(expectedContent);
     });
 
     it('should handle error from fsAdapter.writeFile', async () => {

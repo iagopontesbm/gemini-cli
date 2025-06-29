@@ -21,9 +21,11 @@ const Colors = {
 const logError = (message: string, ...args: unknown[]) => {
   process.stderr.write(`${Colors.RED}${message}${Colors.RESET}\n`);
   if (args.length > 0) {
-    args.forEach(arg => {
+    args.forEach((arg) => {
       if (arg instanceof Error) {
-        process.stderr.write(`${Colors.YELLOW}${arg.stack || arg.message}${Colors.RESET}\n`);
+        process.stderr.write(
+          `${Colors.YELLOW}${arg.stack || arg.message}${Colors.RESET}\n`,
+        );
       } else {
         process.stderr.write(`${Colors.YELLOW}${String(arg)}${Colors.RESET}\n`);
       }
@@ -42,8 +44,12 @@ const EXIT_CODES = {
 const MIN_NODE_VERSION = 18;
 const [major] = process.versions.node.split('.').map(Number);
 if (major < MIN_NODE_VERSION) {
-  logError(`Halt, seeker! Your Node.js version (v${process.versions.node}) is too ancient.`);
-  logError(`This incantation requires Node.js v${MIN_NODE_VERSION} or newer to weave its magic.`);
+  logError(
+    `Halt, seeker! Your Node.js version (v${process.versions.node}) is too ancient.`,
+  );
+  logError(
+    `This incantation requires Node.js v${MIN_NODE_VERSION} or newer to weave its magic.`,
+  );
   process.exit(EXIT_CODES.NODE_VERSION_ERROR);
 }
 
@@ -58,7 +64,9 @@ import { main } from './src/gemini.js';
 
 // Improvement 8: A function for graceful shutdown, to release the spirits gently.
 const gracefulShutdown = (signal: string) => {
-  console.log(`\n${Colors.CYAN}# Received ${signal}. The spirits are departing gracefully...${Colors.RESET}`);
+  console.log(
+    `\n${Colors.CYAN}# Received ${signal}. The spirits are departing gracefully...${Colors.RESET}`,
+  );
   // Improvement 9: Add any cleanup logic here (e.g., closing files, connections).
   process.exit(EXIT_CODES.SUCCESS);
 };
@@ -69,7 +77,7 @@ process.on('SIGINT', () => gracefulShutdown('SIGINT'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 // Improvement 12: Warding against unhandled promise rejections, lost souls in the ether.
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   logError('A promise was lost in the ether (unhandledRejection):', reason);
   // Improvement 13: Logging the promise itself for deeper divination.
   // console.error('Promise:', promise); // Uncomment for deep debugging
@@ -77,7 +85,10 @@ process.on('unhandledRejection', (reason, promise) => {
 
 // Improvement 14: A global ward for uncaught exceptions, the most chaotic of spirits.
 process.on('uncaughtException', (error, origin) => {
-  logError(`A chaotic spirit has broken free (uncaughtException at ${origin}):`, error);
+  logError(
+    `A chaotic spirit has broken free (uncaughtException at ${origin}):`,
+    error,
+  );
   // Improvement 15: Forcing exit on uncaught exception is a best practice.
   // The application is in an undefined state.
   process.exit(EXIT_CODES.UNCAUGHT_ERROR);
@@ -94,7 +105,7 @@ process.on('uncaughtException', (error, origin) => {
   } catch (error) {
     // Improvement 19: A more descriptive and mystical error message.
     logError('# A critical spell has failed. The digital weave is disturbed.');
-    
+
     // Improvement 20: Enhanced error type checking and logging.
     if (error instanceof Error) {
       // Improvement 21: Distinguishing between known and unknown errors could be done here.
@@ -104,7 +115,7 @@ process.on('uncaughtException', (error, origin) => {
       // Improvement 22: Handling non-Error objects thrown.
       logError('A formless terror was encountered:', String(error));
     }
-    
+
     // Improvement 23: A concluding remark for the error.
     logError('# The session is terminated to prevent further corruption.');
 

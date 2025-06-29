@@ -340,8 +340,8 @@ describe('modifyWithEditor', () => {
     const writeFileCalls = (fs.writeFileSync as Mock).mock.calls;
     expect(writeFileCalls).toHaveLength(2);
 
-    const oldFilePath = writeFileCalls[0][0];
-    const newFilePath = writeFileCalls[1][0];
+    const oldFilePath = writeFileCalls![0][0];
+    const newFilePath = writeFileCalls![1][0];
 
     expect(oldFilePath).toMatch(/gemini-cli-modify-test-file\.txt-old-\d+$/);
     expect(newFilePath).toMatch(/gemini-cli-modify-test-file\.txt-new-\d+$/);

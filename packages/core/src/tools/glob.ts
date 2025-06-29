@@ -140,7 +140,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
   /**
    * Validates the parameters for the tool.
    */
-  validateToolParams(params: GlobToolParams): string | null {
+  override validateToolParams(params: GlobToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { promises as fs } from 'fs';
 import path from 'path';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
@@ -34,6 +35,36 @@ export interface ReadFileToolParams {
    * The number of lines to read (optional)
    */
   limit?: number;
+
+  /**
+   * Optional: For text files, the 0-based line number to start reading from.
+   */
+  start_line?: number;
+
+  /**
+   * Optional: For text files, the 0-based line number to end reading at (inclusive).
+   */
+  end_line?: number;
+
+  /**
+   * Optional: A regular expression pattern to filter lines by.
+   */
+  pattern?: string;
+
+  /**
+   * Optional: The 0-based byte offset to start reading from.
+   */
+  start_byte?: number;
+
+  /**
+   * Optional: The 0-based byte offset to end reading at (exclusive).
+   */
+  end_byte?: number;
+
+  /**
+   * Optional: The character encoding to use for text files (e.g., 'utf-8', 'latin-1').
+   */
+  encoding?: string;
 }
 
 /**
@@ -68,6 +99,36 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
               "Optional: For text files, maximum number of lines to read. Use with 'offset' to paginate through large files. If omitted, reads the entire file (if feasible, up to a default limit).",
             type: 'number',
           },
+          start_line: {
+            description:
+              'Optional: For text files, the 0-based line number to start reading from.',
+            type: 'number',
+          },
+          end_line: {
+            description:
+              'Optional: For text files, the 0-based line number to end reading at (inclusive).',
+            type: 'number',
+          },
+          pattern: {
+            description:
+              'Optional: A regular expression pattern to filter lines by.',
+            type: 'string',
+          },
+          start_byte: {
+            description:
+              'Optional: The 0-based byte offset to start reading from.',
+            type: 'number',
+          },
+          end_byte: {
+            description:
+              'Optional: The 0-based byte offset to end reading at (exclusive).',
+            type: 'number',
+          },
+          encoding: {
+            description:
+              "Optional: The character encoding to use for text files (e.g., 'utf-8', 'latin-1').",
+            type: 'string',
+          },
         },
         required: ['absolute_path'],
         type: 'object',
@@ -76,7 +137,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     this.rootDirectory = path.resolve(rootDirectory);
   }
 
-  validateToolParams(params: ReadFileToolParams): string | null {
+  override validateToolParams(params: ReadFileToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -99,6 +160,39 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     if (params.limit !== undefined && params.limit <= 0) {
       return 'Limit must be a positive number';
     }
+    if (params.start_line !== undefined && params.start_line < 0) {
+      return 'Start line must be a non-negative number';
+    }
+    if (params.end_line !== undefined && params.end_line < 0) {
+      return 'End line must be a non-negative number';
+    }
+    if (
+      params.start_line !== undefined &&
+      params.end_line !== undefined &&
+      params.start_line > params.end_line
+    ) {
+      return 'Start line cannot be greater than end line';
+    }
+    if (params.start_byte !== undefined && params.start_byte < 0) {
+      return 'Start byte must be a non-negative number';
+    }
+    if (params.end_byte !== undefined && params.end_byte < 0) {
+      return 'End byte must be a non-negative number';
+    }
+    if (
+      params.start_byte !== undefined &&
+      params.end_byte !== undefined &&
+      params.start_byte > params.end_byte
+    ) {
+      return 'Start byte cannot be greater than end byte';
+    }
+    if (params.pattern) {
+      try {
+        new RegExp(params.pattern);
+      } catch (e: unknown) {
+        return `Invalid regex pattern: ${e instanceof Error ? e.message : String(e)}`;
+      }
+    }
 
     const fileService = this.config.getFileService();
     if (fileService.shouldGeminiIgnoreFile(params.absolute_path)) {
@@ -112,7 +206,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     return null;
   }
 
-  getDescription(params: ReadFileToolParams): string {
+  override getDescription(params: ReadFileToolParams): string {
     if (
       !params ||
       typeof params.absolute_path !== 'string' ||
@@ -136,11 +230,45 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       };
     }
 
+    const {
+      absolute_path,
+      offset,
+      limit,
+      start_line,
+      end_line,
+      pattern,
+      start_byte,
+      end_byte,
+      encoding,
+    } = params;
+
+    // Handle byte range reading first
+    if (start_byte !== undefined && end_byte !== undefined) {
+      try {
+        const buffer = Buffer.alloc(end_byte - start_byte);
+        const fd = await fs.open(absolute_path, 'r');
+        try {
+          await fd.read(buffer, 0, buffer.length, start_byte);
+          return {
+            llmContent: buffer.toString(encoding as BufferEncoding),
+            returnDisplay: `Read ${buffer.length} bytes from ${shortenPath(absolute_path)}`,
+          };
+        } finally {
+          await fd.close();
+        }
+      } catch (e: unknown) {
+        return {
+          llmContent: `Error reading file by byte range: ${(e as Error).message}`,
+          returnDisplay: `Error reading file by byte range: ${(e as Error).message}`,
+        };
+      }
+    }
+
     const result = await processSingleFileContent(
-      params.absolute_path,
+      absolute_path,
       this.rootDirectory,
-      params.offset,
-      params.limit,
+      offset,
+      limit,
     );
 
     if (result.error) {
@@ -150,21 +278,40 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       };
     }
 
-    const lines =
-      typeof result.llmContent === 'string'
-        ? result.llmContent.split('\n').length
-        : undefined;
-    const mimetype = getSpecificMimeType(params.absolute_path);
+    let content = result.llmContent;
+
+    // Apply line range filtering if start_line and end_line are provided
+    if (
+      typeof content === 'string' &&
+      start_line !== undefined &&
+      end_line !== undefined
+    ) {
+      const lines = content.split('\n');
+      content = lines.slice(start_line, end_line + 1).join('\n');
+    }
+
+    // Apply content pattern filtering
+    if (typeof content === 'string' && pattern) {
+      const regex = new RegExp(pattern);
+      content = content
+        .split('\n')
+        .filter((line) => regex.test(line))
+        .join('\n');
+    }
+
+    const linesCount =
+      typeof content === 'string' ? content.split('\n').length : undefined;
+    const mimetype = getSpecificMimeType(absolute_path);
     recordFileOperationMetric(
       this.config,
       FileOperation.READ,
-      lines,
+      linesCount,
       mimetype,
-      path.extname(params.absolute_path),
+      path.extname(absolute_path),
     );
 
     return {
-      llmContent: result.llmContent,
+      llmContent: content,
       returnDisplay: result.returnDisplay,
     };
   }

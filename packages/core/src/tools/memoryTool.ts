@@ -65,7 +65,7 @@ export function setGeminiMdFilename(newFilename: string | string[]): void {
 
 export function getCurrentGeminiMdFilename(): string {
   if (Array.isArray(currentGeminiMdFilename)) {
-    return currentGeminiMdFilename[0];
+    return currentGeminiMdFilename[0]!;
   }
   return currentGeminiMdFilename;
 }

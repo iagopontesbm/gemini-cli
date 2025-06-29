@@ -131,7 +131,7 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
    * @param params Parameters to validate
    * @returns An error message string if invalid, null otherwise
    */
-  validateToolParams(params: LSToolParams): string | null {
+  override validateToolParams(params: LSToolParams): string | null {
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
