@@ -42,6 +42,10 @@ const SIGN_IN_FAILURE_URL =
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
+// Global OAuth server management
+let activeOAuthServer: http.Server | null = null;
+let serverCleanupPromise: Promise<void> | null = null;
+
 /**
  * Shortens a URL using TinyURL service
  * @param url The URL to shorten
@@ -184,6 +188,12 @@ async function authWithWeb(
   client: OAuth2Client,
   configuredPort?: number,
 ): Promise<OauthWebLogin> {
+  // Ensure any existing OAuth server is shut down first
+  await ensureOAuthServerCleanup();
+  
+  // Setup process cleanup handlers
+  setupProcessCleanupHandlers();
+  
   const port = await resolveOAuthPort(configuredPort);
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
@@ -231,8 +241,12 @@ async function authWithWeb(
         reject(e);
       } finally {
         server.close();
+        activeOAuthServer = null;
       }
     });
+    
+    // Track the active server globally
+    activeOAuthServer = server;
     server.listen(port);
   });
 
@@ -246,6 +260,12 @@ async function authWithManual(
   client: OAuth2Client,
   configuredPort?: number,
 ): Promise<ManualOauthLogin> {
+  // Ensure any existing OAuth server is shut down first
+  await ensureOAuthServerCleanup();
+  
+  // Setup process cleanup handlers
+  setupProcessCleanupHandlers();
+  
   const port = await resolveOAuthPort(configuredPort);
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
@@ -293,8 +313,12 @@ async function authWithManual(
         reject(e);
       } finally {
         server.close();
+        activeOAuthServer = null;
       }
     });
+    
+    // Track the active server globally
+    activeOAuthServer = server;
     server.listen(port);
   });
 
@@ -401,4 +425,66 @@ export async function clearCachedCredentialFile() {
   } catch (_) {
     /* empty */
   }
+}
+
+/**
+ * Shuts down the active OAuth server if one exists
+ */
+async function shutdownActiveOAuthServer(): Promise<void> {
+  if (activeOAuthServer) {
+    return new Promise<void>((resolve) => {
+      activeOAuthServer!.close(() => {
+        activeOAuthServer = null;
+        resolve();
+      });
+    });
+  }
+}
+
+/**
+ * Ensures any existing OAuth server is shut down before starting a new one
+ */
+async function ensureOAuthServerCleanup(): Promise<void> {
+  // Wait for any pending cleanup to complete
+  if (serverCleanupPromise) {
+    await serverCleanupPromise;
+  }
+  
+  // Shutdown active server if exists
+  if (activeOAuthServer) {
+    serverCleanupPromise = shutdownActiveOAuthServer();
+    await serverCleanupPromise;
+    serverCleanupPromise = null;
+  }
+}
+
+/**
+ * Sets up process termination handlers to ensure OAuth server cleanup
+ */
+function setupProcessCleanupHandlers() {
+  // Only setup once
+  if (process.listenerCount('SIGTERM') === 0) {
+    const cleanup = async () => {
+      await shutdownActiveOAuthServer();
+      process.exit(0);
+    };
+
+    process.on('SIGTERM', cleanup);
+    process.on('SIGINT', cleanup);
+    process.on('beforeExit', cleanup);
+  }
+}
+
+/**
+ * Export for testing - shuts down active OAuth server
+ */
+export async function shutdownOAuthServer(): Promise<void> {
+  await shutdownActiveOAuthServer();
+}
+
+/**
+ * Export for testing - checks if OAuth server is active
+ */
+export function isOAuthServerActive(): boolean {
+  return activeOAuthServer !== null;
 }
