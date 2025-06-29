@@ -185,7 +185,7 @@ export function useKeypress(
             continue; // Continue processing remaining input
           } else {
             // Check for non-paste escape sequences (e.g., arrow keys)
-            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
+            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D', '\x1b[H', '\x1b[F', '\x1b[1~', '\x1b[4~', '\x1b[5~', '\x1b[6~', '\x1b[2~', '\x1b[3~'];
             if (nonPasteSequences.some(seq => remainingInput.startsWith(seq))) {
               resetPasteState();
               break; // Let readline handle the input
