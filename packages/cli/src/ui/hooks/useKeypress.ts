@@ -196,9 +196,10 @@ export function useKeypress(
 
       if (charsToIgnoreRef.current > 0) {
         // This keypress is from a paste that was already handled by `handleRawData`.
-        // We decrement the counter and ignore the keypress.
-        charsToIgnoreRef.current--;
+        // We decrement the counter by the length of the key's sequence and ignore the keypress.
+        charsToIgnoreRef.current -= key.sequence.length;
         return;
+      }
       }
 
       // Timeout-based detection for single characters and pastes
