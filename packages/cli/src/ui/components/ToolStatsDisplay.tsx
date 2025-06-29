@@ -46,7 +46,7 @@ const StatRow: React.FC<{
         <Text color={successColor}>{successRate.toFixed(1)}%</Text>
       </Box>
       <Box width={AVG_DURATION_COL_WIDTH} justifyContent="flex-end">
-        <Text>{formatDuration(Math.round(avgDuration))}</Text>
+        <Text>{formatDuration(avgDuration)}</Text>
       </Box>
     </Box>
   );

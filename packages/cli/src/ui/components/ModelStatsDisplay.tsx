@@ -33,10 +33,7 @@ const StatRow: React.FC<StatRowProps> = ({
 }) => (
   <Box>
     <Box width={METRIC_COL_WIDTH}>
-      <Text
-        bold={isSection}
-        color={isSection ? Colors.Foreground : Colors.LightBlue}
-      >
+      <Text bold={isSection} color={isSection ? undefined : Colors.LightBlue}>
         {isSubtle ? `  ↳ ${title}` : title}
       </Text>
     </Box>
@@ -91,7 +88,7 @@ export const ModelStatsDisplay: React.FC = () => {
       paddingX={2}
     >
       <Text bold color={Colors.AccentPurple}>
-        Deep-Dive Model Stats
+        Model Stats For Nerds
       </Text>
       <Box height={1} />
 
@@ -148,7 +145,7 @@ export const ModelStatsDisplay: React.FC = () => {
       <Box height={1} />
 
       {/* Tokens Section */}
-      <StatRow title="TOKENS" values={[]} isSection />
+      <StatRow title="Tokens" values={[]} isSection />
       <StatRow
         title="Total"
         values={getModelValues((m) => (

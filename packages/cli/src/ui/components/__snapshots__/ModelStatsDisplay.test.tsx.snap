@@ -3,7 +3,7 @@
 exports[`<ModelStatsDisplay /> > should display a single model correctly 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│  Deep-Dive Model Stats                                                                           │
+│  Model Stats For Nerds                                                                           │
 │                                                                                                  │
 │  Metric                      gemini-2.5-pro                                                      │
 │  ──────────────────────────────────────────────────────────────────────────────────────────────  │
@@ -12,7 +12,7 @@ exports[`<ModelStatsDisplay /> > should display a single model correctly 1`] = `
 │  Errors                      0 (0.0%)                                                            │
 │  Avg Latency                 100ms                                                               │
 │                                                                                                  │
-│  TOKENS                                                                                          │
+│  Tokens                                                                                          │
 │  Total                       30                                                                  │
 │    ↳ Prompt                  10                                                                  │
 │    ↳ Cached                  5 (50.0%)                                                           │
@@ -26,7 +26,7 @@ exports[`<ModelStatsDisplay /> > should display a single model correctly 1`] = `
 exports[`<ModelStatsDisplay /> > should display conditional rows if at least one model has data 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│  Deep-Dive Model Stats                                                                           │
+│  Model Stats For Nerds                                                                           │
 │                                                                                                  │
 │  Metric                      gemini-2.5-pro        gemini-2.5-flash                              │
 │  ──────────────────────────────────────────────────────────────────────────────────────────────  │
@@ -35,7 +35,7 @@ exports[`<ModelStatsDisplay /> > should display conditional rows if at least one
 │  Errors                      0 (0.0%)              0 (0.0%)                                      │
 │  Avg Latency                 100ms                 50ms                                          │
 │                                                                                                  │
-│  TOKENS                                                                                          │
+│  Tokens                                                                                          │
 │  Total                       30                    15                                            │
 │    ↳ Prompt                  10                    5                                             │
 │    ↳ Cached                  5 (50.0%)             0 (0.0%)                                      │
@@ -49,7 +49,7 @@ exports[`<ModelStatsDisplay /> > should display conditional rows if at least one
 exports[`<ModelStatsDisplay /> > should display stats for multiple models correctly 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│  Deep-Dive Model Stats                                                                           │
+│  Model Stats For Nerds                                                                           │
 │                                                                                                  │
 │  Metric                      gemini-2.5-pro        gemini-2.5-flash                              │
 │  ──────────────────────────────────────────────────────────────────────────────────────────────  │
@@ -58,7 +58,7 @@ exports[`<ModelStatsDisplay /> > should display stats for multiple models correc
 │  Errors                      1 (10.0%)             2 (10.0%)                                     │
 │  Avg Latency                 100ms                 25ms                                          │
 │                                                                                                  │
-│  TOKENS                                                                                          │
+│  Tokens                                                                                          │
 │  Total                       300                   600                                           │
 │    ↳ Prompt                  100                   200                                           │
 │    ↳ Cached                  50 (50.0%)            100 (50.0%)                                   │
@@ -72,16 +72,16 @@ exports[`<ModelStatsDisplay /> > should display stats for multiple models correc
 exports[`<ModelStatsDisplay /> > should handle large values without wrapping or overlapping 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│  Deep-Dive Model Stats                                                                           │
+│  Model Stats For Nerds                                                                           │
 │                                                                                                  │
 │  Metric                      gemini-2.5-pro                                                      │
 │  ──────────────────────────────────────────────────────────────────────────────────────────────  │
 │  API                                                                                             │
 │  Requests                    999,999,999                                                         │
 │  Errors                      123,456,789 (12.3%)                                                 │
-│  Avg Latency                 0.000009876000009876ms                                              │
+│  Avg Latency                 0ms                                                                 │
 │                                                                                                  │
-│  TOKENS                                                                                          │
+│  Tokens                                                                                          │
 │  Total                       999,999,999                                                         │
 │    ↳ Prompt                  987,654,321                                                         │
 │    ↳ Cached                  123,456,789 (12.5%)                                                 │
@@ -95,7 +95,7 @@ exports[`<ModelStatsDisplay /> > should handle large values without wrapping or 
 exports[`<ModelStatsDisplay /> > should not display conditional rows if no model has data for them 1`] = `
 "╭──────────────────────────────────────────────────────────────────────────────────────────────────╮
 │                                                                                                  │
-│  Deep-Dive Model Stats                                                                           │
+│  Model Stats For Nerds                                                                           │
 │                                                                                                  │
 │  Metric                      gemini-2.5-pro                                                      │
 │  ──────────────────────────────────────────────────────────────────────────────────────────────  │
@@ -104,7 +104,7 @@ exports[`<ModelStatsDisplay /> > should not display conditional rows if no model
 │  Errors                      0 (0.0%)                                                            │
 │  Avg Latency                 100ms                                                               │
 │                                                                                                  │
-│  TOKENS                                                                                          │
+│  Tokens                                                                                          │
 │  Total                       30                                                                  │
 │    ↳ Prompt                  10                                                                  │
 │    ↳ Output                  20                                                                  │
