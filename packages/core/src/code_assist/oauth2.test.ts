@@ -195,7 +195,7 @@ describe('oauth2', () => {
     });
 
     // Mock console.log to avoid cluttering test output
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
     const clientPromise = getManualOauthClient();
 
@@ -220,12 +220,22 @@ describe('oauth2', () => {
 
     // Verify manual instructions were logged
     expect(consoleSpy).toHaveBeenCalledWith('\n\nCode Assist login required.');
-    expect(consoleSpy).toHaveBeenCalledWith('Please complete the following steps:\n');
-    expect(consoleSpy).toHaveBeenCalledWith('1. Copy and paste this URL into your browser:');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      'Please complete the following steps:\n',
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '1. Copy and paste this URL into your browser:',
+    );
     expect(consoleSpy).toHaveBeenCalledWith(`   ${mockAuthUrl}\n`);
-    expect(consoleSpy).toHaveBeenCalledWith('2. Set up port forwarding (if using SSH):');
-    expect(consoleSpy).toHaveBeenCalledWith(`   ssh -L ${capturedPort}:localhost:${capturedPort} <your-ssh-connection>`);
-    expect(consoleSpy).toHaveBeenCalledWith(`   Or access: http://localhost:${capturedPort}/oauth2callback\n`);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      '2. Set up port forwarding (if using SSH):',
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `   ssh -L ${capturedPort}:localhost:${capturedPort} <your-ssh-connection>`,
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      `   Or access: http://localhost:${capturedPort}/oauth2callback\n`,
+    );
 
     expect(mockGetToken).toHaveBeenCalledWith({
       code: mockCode,
@@ -251,7 +261,9 @@ describe('oauth2', () => {
     fs.mkdirSync(path.dirname(tokenPath), { recursive: true });
     fs.writeFileSync(tokenPath, JSON.stringify(mockTokens));
 
-    const mockGetAccessToken = vi.fn().mockResolvedValue({ token: 'valid-token' });
+    const mockGetAccessToken = vi
+      .fn()
+      .mockResolvedValue({ token: 'valid-token' });
     const mockGetTokenInfo = vi.fn().mockResolvedValue({});
     const mockSetCredentials = vi.fn();
     const mockOAuth2Client = {
