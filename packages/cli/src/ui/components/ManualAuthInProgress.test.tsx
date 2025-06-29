@@ -23,7 +23,8 @@ describe('ManualAuthInProgress', () => {
     const output = lastFrame();
     expect(output).toContain('Manual Login with Google');
     expect(output).toContain('Please complete the following steps:');
-    expect(output).toContain('1. Copy and paste this URL into your browser:');
+    expect(output).toContain('1. Copy and paste the URL below into your browser');
+    expect(output).toContain('Authentication URL (click to select and copy):');
     expect(output).toContain('https://accounts.google.com/oauth/authorize'); // Just check part of URL
     expect(output).toContain('2. Set up port forwarding (if using SSH):');
     expect(output).toContain('ssh -L 8080:localhost:8080');
@@ -96,5 +97,25 @@ describe('ManualAuthInProgress', () => {
     // Check that URLs are displayed without wrapping issues
     expect(output).toContain('https://accounts.google.com/oauth/authorize');
     expect(output).toContain('localhost:8080/oauth2callback');
+  });
+
+  it('should display auth URL outside the instructions box for easy copying', () => {
+    const { lastFrame } = render(<ManualAuthInProgress {...mockProps} />);
+
+    const output = lastFrame();
+    
+    // Check that the auth URL is prominently displayed with a clear label
+    expect(output).toContain('Authentication URL (click to select and copy):');
+    expect(output).toContain('https://accounts.google.com/oauth/authorize'); // Check part of URL
+    
+    // Verify the structure includes both the instructions box and the separate URL
+    expect(output).toContain('Manual Login with Google'); // In the box
+    expect(output).toContain('Authentication URL (click to select and copy):'); // Outside the box
+    
+    // Verify the URL appears after the instructions box
+    const lines = output?.split('\n') || [];
+    const instructionsBoxEndIndex = lines.findIndex(line => line.includes('╰'));
+    const authUrlLabelIndex = lines.findIndex(line => line.includes('Authentication URL'));
+    expect(authUrlLabelIndex).toBeGreaterThan(instructionsBoxEndIndex);
   });
 });
