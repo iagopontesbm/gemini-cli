@@ -1,7 +1,7 @@
 /**
  * @license
  * Copyright 2025 Google LLC
- * SPDX-License-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { useEffect, useRef } from 'react';
@@ -197,17 +197,7 @@ export function useKeypress(
             startMarkerIndex !== -1 &&
             (endMarkerIndex === -1 || startMarkerIndex < endMarkerIndex)
           ) {
-            const regularInput = input.slice(0, startMarkerIndex);
-            if (regularInput.length > 0) {
-              onKeypressRef.current({
-                name: '',
-                ctrl: false,
-                meta: false,
-                shift: false,
-                paste: false,
-                sequence: regularInput,
-              });
-            }
+            // Skip regular input before start marker; let readline handle it
             isPasteModeRef.current = true;
             pasteBufferRef.current = '';
             input = input.slice(startMarkerIndex + startMarker.length);
@@ -216,6 +206,7 @@ export function useKeypress(
               pasteTimeoutDuration,
             );
           } else if (endMarkerIndex !== -1) {
+            // Handle stray end marker as a paste (e.g., content before it)
             const pastedContent = input.slice(0, endMarkerIndex);
             if (pastedContent.length > 0) {
               onKeypressRef.current({
@@ -233,16 +224,7 @@ export function useKeypress(
               partialStartMarkerRef.current = input;
               input = '';
             } else {
-              if (input.length > 0) {
-                onKeypressRef.current({
-                  name: '',
-                  ctrl: false,
-                  meta: false,
-                  shift: false,
-                  paste: false,
-                  sequence: input,
-                });
-              }
+              // Skip non-paste input; let readline handle it
               input = '';
             }
           }

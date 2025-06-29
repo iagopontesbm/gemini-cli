@@ -1,7 +1,7 @@
 /**
  * @license
  * Copyright 2025 Google LLC
- * SPDX-License-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -75,16 +75,23 @@ describe('useKeypress Hook', () => {
     expect(mockRl.close).toHaveBeenCalled();
   });
 
-  it('should handle single keypress', async () => {
+  it('should handle single keypress via readline only', async () => {
     renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const keypressListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'keypress',
     )?.[1];
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
 
     expect(keypressListener).toBeDefined();
+    expect(dataListener).toBeDefined();
 
     act(() => {
+      // Simulate regular input via data (handleRawData should ignore it)
+      dataListener(Buffer.from('a'));
+      // Simulate readline emitting keypress
       keypressListener(null, {
         name: 'a',
         ctrl: false,
@@ -95,6 +102,8 @@ describe('useKeypress Hook', () => {
       vi.advanceTimersByTime(50); // Max input delay
     });
 
+    // Should only be called once via readline
+    expect(onKeypress).toHaveBeenCalledTimes(1);
     expect(onKeypress).toHaveBeenCalledWith({
       name: 'a',
       ctrl: false,
