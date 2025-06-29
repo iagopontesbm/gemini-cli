@@ -172,7 +172,9 @@ describe('Secure Logging', () => {
 
     it('should handle primitives', () => {
       expect(redactSecrets('normal string')).toBe('normal string');
-      expect(redactSecrets('sk-1234567890abcdefghijklmnopqrstuvwxyz')).toBe('[REDACTED]');
+      expect(redactSecrets('sk-1234567890abcdefghijklmnopqrstuvwxyz')).toBe(
+        '[REDACTED]',
+      );
       expect(redactSecrets(123)).toBe(123);
       expect(redactSecrets(true)).toBe(true);
       expect(redactSecrets(null)).toBe(null);
@@ -256,7 +258,7 @@ describe('Secure Logging', () => {
       expect(consoleSpy.debug).toHaveBeenCalledWith(
         '[DEBUG]',
         'Config loaded',
-        { apiKey: '[REDACTED]', normalData: 'value' }
+        { apiKey: '[REDACTED]', normalData: 'value' },
       );
     });
 
@@ -269,13 +271,14 @@ describe('Secure Logging', () => {
       expect(consoleSpy.error).toHaveBeenCalledWith(
         '[ERROR]',
         'An error occurred',
-        { password: '[REDACTED]', error: 'Something failed' }
+        { password: '[REDACTED]', error: 'Something failed' },
       );
     });
 
     it('should redact sensitive messages', () => {
       const logger = new SecureLogger(true);
-      const sensitiveMessage = 'API key: sk-1234567890abcdefghijklmnopqrstuvwxyz';
+      const sensitiveMessage =
+        'API key: sk-1234567890abcdefghijklmnopqrstuvwxyz';
 
       logger.info(sensitiveMessage);
 
@@ -317,7 +320,7 @@ describe('Secure Logging', () => {
       // Create an object that will cause JSON serialization issues
       const problematicData: Record<string, unknown> = {};
       problematicData.circular = problematicData;
-      
+
       // Add a property that will throw during access
       Object.defineProperty(problematicData, 'throwOnAccess', {
         get() {
@@ -332,14 +335,18 @@ describe('Secure Logging', () => {
     });
 
     it('should handle environment redaction errors gracefully', () => {
-      const mockConsoleWarn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-      
+      const mockConsoleWarn = vi
+        .spyOn(console, 'warn')
+        .mockImplementation(() => {});
+
       // Force an error by passing invalid data
-      const result = redactEnvironmentSecrets(null as unknown as Record<string, string | undefined>);
-      
+      const result = redactEnvironmentSecrets(
+        null as unknown as Record<string, string | undefined>,
+      );
+
       expect(result).toEqual({ '[REDACTION_FAILED]': '[REDACTION_FAILED]' });
       expect(mockConsoleWarn).toHaveBeenCalled();
-      
+
       mockConsoleWarn.mockRestore();
     });
   });
@@ -364,7 +371,9 @@ describe('Secure Logging', () => {
     });
 
     it('should detect long base64-like strings', () => {
-      const data = { encoded: 'SGVsbG8gV29ybGQhIFRoaXMgaXMgYSBsb25nIGJhc2U2NCBzdHJpbmc=' };
+      const data = {
+        encoded: 'SGVsbG8gV29ybGQhIFRoaXMgaXMgYSBsb25nIGJhc2U2NCBzdHJpbmc=',
+      };
       const result = redactSecrets(data) as Record<string, unknown>;
       expect(result.encoded).toBe('[REDACTED]');
     });

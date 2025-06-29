@@ -69,7 +69,7 @@ const SENSITIVE_PATTERNS = [
   /\b[A-Fa-f0-9]{32,}\b/, // Hex strings (32+ chars, likely tokens)
   /\bsk-[A-Za-z0-9_-]{20,}\b/, // OpenAI-style API keys
   /\bAI[A-Za-z0-9_-]{20,}\b/, // Google AI API keys
-/\bya29\.[A-Za-z0-9_.-]+\b/, // Google OAuth tokens
+  /\bya29\.[A-Za-z0-9_.-]+\b/, // Google OAuth tokens
   /\b[A-Za-z0-9_-]{40,}\b/, // Generic long tokens
 ];
 
@@ -80,8 +80,8 @@ const REDACTED_VALUE = '[REDACTED]';
  */
 function isSensitiveKey(key: string): boolean {
   const lowerKey = key.toLowerCase();
-  return SENSITIVE_KEYS.some(sensitiveKey => 
-    lowerKey.includes(sensitiveKey.toLowerCase())
+  return SENSITIVE_KEYS.some((sensitiveKey) =>
+    lowerKey.includes(sensitiveKey.toLowerCase()),
   );
 }
 
@@ -92,14 +92,18 @@ function isSensitiveValue(value: string): boolean {
   if (typeof value !== 'string' || value.length < 10) {
     return false;
   }
-  
-  return SENSITIVE_PATTERNS.some(pattern => pattern.test(value));
+
+  return SENSITIVE_PATTERNS.some((pattern) => pattern.test(value));
 }
 
 /**
  * Recursively redacts sensitive information from an object
  */
-function redactObject(obj: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+function redactObject(
+  obj: unknown,
+  depth = 0,
+  seen = new WeakSet<object>(),
+): unknown {
   // Prevent infinite recursion from very deep (but not circular) objects
   if (depth > 10) {
     return '[MAX_DEPTH_REACHED]';
@@ -119,7 +123,7 @@ function redactObject(obj: unknown, depth = 0, seen = new WeakSet<object>()): un
 
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => redactObject(item, depth + 1, seen));
+    return obj.map((item) => redactObject(item, depth + 1, seen));
   }
 
   // Handle primitives
@@ -132,7 +136,7 @@ function redactObject(obj: unknown, depth = 0, seen = new WeakSet<object>()): un
 
   // Handle objects
   const result: Record<string, unknown> = {};
-  
+
   for (const [key, value] of Object.entries(obj)) {
     if (isSensitiveKey(key)) {
       result[key] = REDACTED_VALUE;
@@ -149,9 +153,11 @@ function redactObject(obj: unknown, depth = 0, seen = new WeakSet<object>()): un
 /**
  * Redacts sensitive information from environment variables
  */
-function redactEnvironment(env: Record<string, string | undefined>): Record<string, string | undefined> {
+function redactEnvironment(
+  env: Record<string, string | undefined>,
+): Record<string, string | undefined> {
   const result: Record<string, string | undefined> = {};
-  
+
   for (const [key, value] of Object.entries(env)) {
     if (isSensitiveKey(key)) {
       result[key] = value ? REDACTED_VALUE : value;
@@ -181,7 +187,9 @@ export function redactSecrets(data: unknown): unknown {
 /**
  * Redacts secrets specifically from environment variables
  */
-export function redactEnvironmentSecrets(env: Record<string, string | undefined> = process.env): Record<string, string | undefined> {
+export function redactEnvironmentSecrets(
+  env: Record<string, string | undefined> = process.env,
+): Record<string, string | undefined> {
   try {
     return redactEnvironment(env);
   } catch (error) {
@@ -202,11 +210,12 @@ export class SecureLogger {
 
   debug(message: string, data?: unknown): void {
     if (!this.debugEnabled) return;
-    
-    const safeMessage = typeof message === 'string' && isSensitiveValue(message) 
-      ? REDACTED_VALUE 
-      : message;
-      
+
+    const safeMessage =
+      typeof message === 'string' && isSensitiveValue(message)
+        ? REDACTED_VALUE
+        : message;
+
     if (data !== undefined) {
       const safeData = redactSecrets(data);
       console.debug('[DEBUG]', safeMessage, safeData);
@@ -216,10 +225,11 @@ export class SecureLogger {
   }
 
   info(message: string, data?: unknown): void {
-    const safeMessage = typeof message === 'string' && isSensitiveValue(message) 
-      ? REDACTED_VALUE 
-      : message;
-      
+    const safeMessage =
+      typeof message === 'string' && isSensitiveValue(message)
+        ? REDACTED_VALUE
+        : message;
+
     if (data !== undefined) {
       const safeData = redactSecrets(data);
       console.info('[INFO]', safeMessage, safeData);
@@ -229,10 +239,11 @@ export class SecureLogger {
   }
 
   warn(message: string, data?: unknown): void {
-    const safeMessage = typeof message === 'string' && isSensitiveValue(message) 
-      ? REDACTED_VALUE 
-      : message;
-      
+    const safeMessage =
+      typeof message === 'string' && isSensitiveValue(message)
+        ? REDACTED_VALUE
+        : message;
+
     if (data !== undefined) {
       const safeData = redactSecrets(data);
       console.warn('[WARN]', safeMessage, safeData);
@@ -242,10 +253,11 @@ export class SecureLogger {
   }
 
   error(message: string, data?: unknown): void {
-    const safeMessage = typeof message === 'string' && isSensitiveValue(message) 
-      ? REDACTED_VALUE 
-      : message;
-      
+    const safeMessage =
+      typeof message === 'string' && isSensitiveValue(message)
+        ? REDACTED_VALUE
+        : message;
+
     if (data !== undefined) {
       const safeData = redactSecrets(data);
       console.error('[ERROR]', safeMessage, safeData);
@@ -267,7 +279,7 @@ export function createSecureLogger(debugEnabled = false): SecureLogger {
  */
 export function logConfigSafely(config: unknown, debugEnabled = false): void {
   if (!debugEnabled) return;
-  
+
   const logger = createSecureLogger(debugEnabled);
   logger.debug('Configuration loaded', config);
 }
@@ -275,9 +287,12 @@ export function logConfigSafely(config: unknown, debugEnabled = false): void {
 /**
  * Utility function to safely log environment variables
  */
-export function logEnvironmentSafely(env: Record<string, string | undefined> = process.env, debugEnabled = false): void {
+export function logEnvironmentSafely(
+  env: Record<string, string | undefined> = process.env,
+  debugEnabled = false,
+): void {
   if (!debugEnabled) return;
-  
+
   const logger = createSecureLogger(debugEnabled);
   logger.debug('Environment variables', env);
 }
