@@ -5,8 +5,16 @@
  */
 
 import { render } from 'ink-testing-library';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ManualAuthInProgress } from './ManualAuthInProgress.js';
+
+// Mock the URL shortener
+vi.mock('../../utils/urlShortener.js', () => ({
+  shortenUrlWithFallback: vi.fn((url: string) => Promise.resolve(url)),
+}));
+
+// Mock fetch for URL shortening
+global.fetch = vi.fn();
 
 describe('ManualAuthInProgress', () => {
   const wait = (ms = 50) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -16,6 +24,14 @@ describe('ManualAuthInProgress', () => {
     callbackUrl: 'http://localhost:8080/oauth2callback',
     onTimeout: vi.fn(),
   };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('should display manual authentication instructions', () => {
     const { lastFrame } = render(<ManualAuthInProgress {...mockProps} />);
@@ -59,14 +75,14 @@ describe('ManualAuthInProgress', () => {
   it('should show timeout message after 3 minutes', async () => {
     vi.useFakeTimers();
     const onTimeout = vi.fn();
-    
+
     const { lastFrame, unmount } = render(
       <ManualAuthInProgress {...mockProps} onTimeout={onTimeout} />,
     );
 
     // Fast-forward time by 3 minutes
     vi.advanceTimersByTime(180000);
-    
+
     // Wait for React to update
     await vi.runAllTimersAsync();
 
@@ -93,7 +109,7 @@ describe('ManualAuthInProgress', () => {
     const { lastFrame } = render(<ManualAuthInProgress {...mockProps} />);
 
     const output = lastFrame();
-    
+
     // Check that URLs are displayed without wrapping issues
     expect(output).toContain('https://accounts.google.com/oauth/authorize');
     expect(output).toContain('localhost:8080/oauth2callback');
@@ -103,15 +119,15 @@ describe('ManualAuthInProgress', () => {
     const { lastFrame } = render(<ManualAuthInProgress {...mockProps} />);
 
     const output = lastFrame();
-    
+
     // Check that the auth URL is prominently displayed with a clear label
     expect(output).toContain('Authentication URL (click to select and copy):');
     expect(output).toContain('https://accounts.google.com/oauth/authorize'); // Check part of URL
-    
+
     // Verify the structure includes both the instructions box and the separate URL
     expect(output).toContain('Manual Login with Google'); // In the box
     expect(output).toContain('Authentication URL (click to select and copy):'); // Outside the box
-    
+
     // Verify the URL appears after the instructions box
     const lines = output?.split('\n') || [];
     const instructionsBoxEndIndex = lines.findIndex(line => line.includes('╰'));
