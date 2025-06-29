@@ -91,9 +91,17 @@ export const useStatusCheck = (
     let isMounted = true;
     const checkConnectivity = async () => {
       try {
-        await config.refreshAuth(
-          settings.merged.selectedAuthType || AuthType.USE_GEMINI,
-        );
+        const client = config.getGeminiClient();
+        if (client) {
+          // Use an existing client to perform a lightweight, non-destructive connectivity check.
+          await client.checkConnectivity();
+        } else {
+          // If no client exists, `refreshAuth` is needed for the initial check.
+          await config.refreshAuth(
+            settings.merged.selectedAuthType || AuthType.USE_GEMINI,
+          );
+        }
+
         if (isMounted) {
           setConnectivity('success');
         }
