@@ -174,7 +174,6 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     ```
 
 - **`hideTips`** (boolean):
-
   - **Description:** Enables or disables helpful tips in the CLI interface.
   - **Default:** `false`
   - **Example:**
