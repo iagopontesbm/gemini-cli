@@ -87,7 +87,7 @@ export function useKeypress(
       }
     }
 
-    const maxInputDelay = 10; // Milliseconds, increased for reliability
+    const maxInputDelay = 20; // Milliseconds for paste detection reliability
 
     const handleInput = () => {
       const keys = keyBufferRef.current;
