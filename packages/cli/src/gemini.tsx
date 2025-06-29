@@ -119,7 +119,7 @@ export async function main() {
     try {
       await config.getGitService();
     } catch (error) {
-      console.error('Error initializing Git service. Continuing without Git service:', error);
+      console.warn('Warning: Failed to initialize Git service. Git-related features (like checkpointing) may not function correctly.', error);
     }
   }
 
