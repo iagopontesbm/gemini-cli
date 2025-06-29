@@ -34,17 +34,95 @@ import {
   sessionId,
   logUserPrompt,
   AuthType,
+  getProjectTempDir,
 } from '@google/gemini-cli-core';
 import { validateAuthMethod } from './config/auth.js';
 import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 import { Content } from '@google/genai';
+import fs from 'fs';
+import path from 'path';
 
 let lastSessionHistory: Content[] = [];
 
-process.on('exit', async () => {
-  if (lastSessionHistory.length > 0) {
-    await saveSession(lastSessionHistory);
+// Synchronous session save for immediate exits
+function saveSessionSync(history: Content[]) {
+  try {
+    const tempDir = getProjectTempDir(process.cwd());
+    const sessionsDir = path.join(tempDir, 'sessions');
+    fs.mkdirSync(sessionsDir, { recursive: true });
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const fileName = `session-${timestamp}.json`;
+    const filePath = path.join(sessionsDir, fileName);
+
+    fs.writeFileSync(filePath, JSON.stringify(history, null, 2));
+    console.log(`Session saved to ${filePath}`);
+  } catch (error) {
+    console.error('Failed to save session on exit:', error);
   }
+}
+
+// Track if we're already in the exit process to avoid double-saving
+let isExiting = false;
+
+// Handle graceful shutdown with async operations
+process.on('beforeExit', async () => {
+  if (!isExiting && lastSessionHistory.length > 0) {
+    isExiting = true;
+    try {
+      await saveSession(lastSessionHistory);
+    } catch (error) {
+      console.error('Failed to save session on beforeExit:', error);
+      // Fallback to sync save if async fails
+      saveSessionSync(lastSessionHistory);
+    }
+  }
+});
+
+// Handle various exit signals
+function handleExitSignal(signal: string) {
+  return () => {
+    if (!isExiting && lastSessionHistory.length > 0) {
+      isExiting = true;
+      console.log(`\nReceived ${signal}, saving session...`);
+      saveSessionSync(lastSessionHistory);
+    }
+    process.exit(0);
+  };
+}
+
+// Handle SIGINT (Ctrl+C)
+process.on('SIGINT', handleExitSignal('SIGINT'));
+
+// Handle SIGTERM (termination)
+process.on('SIGTERM', handleExitSignal('SIGTERM'));
+
+// Handle SIGHUP (hang up)
+process.on('SIGHUP', handleExitSignal('SIGHUP'));
+
+// Handle SIGQUIT (quit)
+process.on('SIGQUIT', handleExitSignal('SIGQUIT'));
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  if (!isExiting && lastSessionHistory.length > 0) {
+    isExiting = true;
+    console.log('Saving session before crash...');
+    saveSessionSync(lastSessionHistory);
+  }
+  process.exit(1);
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  if (!isExiting && lastSessionHistory.length > 0) {
+    isExiting = true;
+    console.log('Saving session before crash...');
+    saveSessionSync(lastSessionHistory);
+  }
+  process.exit(1);
 });
 
 function getNodeMemoryArgs(config: Config): string[] {
