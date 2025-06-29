@@ -174,6 +174,9 @@ export class ClearcutLogger {
     const returnVal = {
       nextRequestWaitMs: Number(ms),
     };
+    if (this.config?.getDebugMode()) {
+      console.log('Clearcut response: ', returnVal);
+    }
     return returnVal;
   }
 

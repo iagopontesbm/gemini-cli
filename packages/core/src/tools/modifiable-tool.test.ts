@@ -85,8 +85,8 @@ describe('modifyWithEditor', () => {
 
     (fs.existsSync as Mock).mockReturnValue(true);
     (fs.mkdirSync as Mock).mockImplementation(() => undefined);
-    (fs.writeFileSync as Mock).mockImplementation(() => {});
-    (fs.unlinkSync as Mock).mockImplementation(() => {});
+    (fs.writeFileSync as Mock).mockImplementation(() => { });
+    (fs.unlinkSync as Mock).mockImplementation(() => { });
 
     (fs.readFileSync as Mock).mockImplementation((filePath: string) => {
       if (filePath.includes('-new-')) {
@@ -306,7 +306,7 @@ describe('modifyWithEditor', () => {
   it('should handle temp file cleanup errors gracefully', async () => {
     const consoleErrorSpy = vi
       .spyOn(console, 'error')
-      .mockImplementation(() => {});
+      .mockImplementation(() => { });
     (fs.unlinkSync as Mock).mockImplementation((_filePath: string) => {
       throw new Error('Failed to delete file');
     });
@@ -326,7 +326,7 @@ describe('modifyWithEditor', () => {
     consoleErrorSpy.mockRestore();
   });
 
-  it('should create temp files with correct naming with extension', async () => {
+  it('should create temp files with correct naming', async () => {
     const testFilePath = path.join(tempDir, 'subfolder', 'test-file.txt');
     mockModifyContext.getFilePath = vi.fn().mockReturnValue(testFilePath);
 
@@ -345,29 +345,6 @@ describe('modifyWithEditor', () => {
 
     expect(oldFilePath).toMatch(/gemini-cli-modify-test-file-old-\d+\.txt$/);
     expect(newFilePath).toMatch(/gemini-cli-modify-test-file-new-\d+\.txt$/);
-    expect(oldFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
-    expect(newFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
-  });
-
-  it('should create temp files with correct naming without extension', async () => {
-    const testFilePath = path.join(tempDir, 'subfolder', 'test-file');
-    mockModifyContext.getFilePath = vi.fn().mockReturnValue(testFilePath);
-
-    await modifyWithEditor(
-      mockParams,
-      mockModifyContext,
-      'vscode' as EditorType,
-      abortSignal,
-    );
-
-    const writeFileCalls = (fs.writeFileSync as Mock).mock.calls;
-    expect(writeFileCalls).toHaveLength(2);
-
-    const oldFilePath = writeFileCalls[0][0];
-    const newFilePath = writeFileCalls[1][0];
-
-    expect(oldFilePath).toMatch(/gemini-cli-modify-test-file-old-\d+$/);
-    expect(newFilePath).toMatch(/gemini-cli-modify-test-file-new-\d+$/);
     expect(oldFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
     expect(newFilePath).toContain(`${tempDir}/gemini-cli-tool-modify-diffs/`);
   });

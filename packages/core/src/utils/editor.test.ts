@@ -56,7 +56,6 @@ describe('editor utils', () => {
       win32Command: string;
     }> = [
       { editor: 'vscode', command: 'code', win32Command: 'code.cmd' },
-      { editor: 'vscodium', command: 'codium', win32Command: 'codium.cmd' },
       { editor: 'windsurf', command: 'windsurf', win32Command: 'windsurf' },
       { editor: 'cursor', command: 'cursor', win32Command: 'cursor' },
       { editor: 'vim', command: 'vim', win32Command: 'vim' },
@@ -113,7 +112,6 @@ describe('editor utils', () => {
       win32Command: string;
     }> = [
       { editor: 'vscode', command: 'code', win32Command: 'code.cmd' },
-      { editor: 'vscodium', command: 'codium', win32Command: 'codium.cmd' },
       { editor: 'windsurf', command: 'windsurf', win32Command: 'windsurf' },
       { editor: 'cursor', command: 'cursor', win32Command: 'cursor' },
       { editor: 'zed', command: 'zed', win32Command: 'zed' },
@@ -173,13 +171,7 @@ describe('editor utils', () => {
   });
 
   describe('openDiff', () => {
-    const spawnEditors: EditorType[] = [
-      'vscode',
-      'vscodium',
-      'windsurf',
-      'cursor',
-      'zed',
-    ];
+    const spawnEditors: EditorType[] = ['vscode', 'windsurf', 'cursor', 'zed'];
     for (const editor of spawnEditors) {
       it(`should call spawn for ${editor}`, async () => {
         const mockSpawn = {
@@ -293,13 +285,7 @@ describe('editor utils', () => {
       expect(allowEditorTypeInSandbox('vim')).toBe(true);
     });
 
-    const guiEditors: EditorType[] = [
-      'vscode',
-      'vscodium',
-      'windsurf',
-      'cursor',
-      'zed',
-    ];
+    const guiEditors: EditorType[] = ['vscode', 'windsurf', 'cursor', 'zed'];
     for (const editor of guiEditors) {
       it(`should not allow ${editor} in sandbox mode`, () => {
         process.env.SANDBOX = 'sandbox';

@@ -264,6 +264,10 @@ The CLI automatically loads environment variables from an `.env` file. The loadi
 - **`CODE_ASSIST_ENDPOINT`**:
   - Specifies the endpoint for the code assist server.
   - This is useful for development and testing.
+- **`GEMINI_OAUTH_PORT`**:
+  - Specifies the port number for the OAuth authentication server when using manual login with Google (SSH).
+  - Can also be set via the `--oauth-port` command line argument.
+  - Example: `GEMINI_OAUTH_PORT=8080`
 
 ## Command-Line Arguments
 
@@ -282,6 +286,9 @@ Arguments passed directly when running the CLI can override other configurations
   - Enables debug mode for this session, providing more verbose output.
 - **`--all_files`** (**`-a`**):
   - If set, recursively includes all files within the current directory as context for the prompt.
+- **`--oauth-port <port>`**:
+  - Specifies the port number for the OAuth authentication server. Can also be set via the `GEMINI_OAUTH_PORT` environment variable.
+  - Example: `npm start -- --oauth-port 8080`
 - **`--help`** (or **`-h`**):
   - Displays help information about command-line arguments.
 - **`--show_memory_usage`**:

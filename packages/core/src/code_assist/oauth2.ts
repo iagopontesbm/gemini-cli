@@ -42,6 +42,47 @@ const SIGN_IN_FAILURE_URL =
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
 
+// Global OAuth server management
+let activeOAuthServer: http.Server | null = null;
+let serverCleanupPromise: Promise<void> | null = null;
+
+/**
+ * Shortens a URL using TinyURL service
+ * @param url The URL to shorten
+ * @returns Promise that resolves to the shortened URL, or the original URL if shortening fails
+ */
+async function shortenUrl(url: string): Promise<string> {
+  try {
+    // TinyURL API endpoint
+    const tinyUrlApi = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`;
+
+    const response = await fetch(tinyUrlApi, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'GeminiCLI URL Shortener',
+      },
+      // Set a timeout for the request
+      signal: AbortSignal.timeout(3000), // Shorter timeout for console output
+    });
+
+    if (response.ok) {
+      const shortenedUrl = await response.text();
+
+      // TinyURL returns the shortened URL directly as plain text
+      // Validate that we got a proper shortened URL back
+      if (shortenedUrl && shortenedUrl.startsWith('https://tinyurl.com/')) {
+        return shortenedUrl;
+      }
+    }
+
+    // If shortening failed, return the original URL
+    return url;
+  } catch (_error) {
+    // If there's any error (network, timeout, etc.), return the original URL
+    return url;
+  }
+}
+
 /**
  * An Authentication URL for updating the credentials of a Oauth2Client
  * as well as a promise that will resolve when the credentials have
@@ -52,34 +93,35 @@ export interface OauthWebLogin {
   loginCompletePromise: Promise<void>;
 }
 
-export async function getOauthClient(): Promise<OAuth2Client> {
-  const client = new OAuth2Client({
-    clientId: OAUTH_CLIENT_ID,
-    clientSecret: OAUTH_CLIENT_SECRET,
-  });
-
-  if (await loadCachedCredentials(client)) {
-    // Found valid cached credentials.
-    return client;
-  }
-
-  const webLogin = await authWithWeb(client);
-
-  console.log(
-    `\n\nCode Assist login required.\n` +
-      `Attempting to open authentication page in your browser.\n` +
-      `Otherwise navigate to:\n\n${webLogin.authUrl}\n\n`,
-  );
-  await open(webLogin.authUrl);
-  console.log('Waiting for authentication...');
-
-  await webLogin.loginCompletePromise;
-
-  return client;
+/**
+ * Manual authentication information for SSH users.
+ */
+export interface ManualOauthLogin {
+  authUrl: string;
+  callbackUrl: string;
+  loginCompletePromise: Promise<void>;
 }
 
-async function authWithWeb(client: OAuth2Client): Promise<OauthWebLogin> {
-  const port = await getAvailablePort();
+interface AuthCommonResult {
+  authUrl: string;
+  redirectUri: string;
+  loginCompletePromise: Promise<void>;
+}
+
+/**
+ * Common OAuth authentication logic shared by both web and manual flows
+ */
+async function authCommon(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<AuthCommonResult> {
+  // Ensure any existing OAuth server is shut down first
+  await ensureOAuthServerCleanup();
+
+  // Setup process cleanup handlers
+  setupProcessCleanupHandlers();
+
+  const port = await resolveOAuthPort(configuredPort);
   const redirectUri = `http://localhost:${port}/oauth2callback`;
   const state = crypto.randomBytes(32).toString('hex');
   const authUrl: string = client.generateAuthUrl({
@@ -126,15 +168,125 @@ async function authWithWeb(client: OAuth2Client): Promise<OauthWebLogin> {
         reject(e);
       } finally {
         server.close();
+        activeOAuthServer = null;
       }
     });
+
+    // Track the active server globally
+    activeOAuthServer = server;
     server.listen(port);
   });
 
   return {
     authUrl,
+    redirectUri,
     loginCompletePromise,
   };
+}
+
+async function authWithWeb(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<OauthWebLogin> {
+  const result = await authCommon(client, configuredPort);
+  return {
+    authUrl: result.authUrl,
+    loginCompletePromise: result.loginCompletePromise,
+  };
+}
+
+async function authWithManual(
+  client: OAuth2Client,
+  configuredPort?: number,
+): Promise<ManualOauthLogin> {
+  const result = await authCommon(client, configuredPort);
+  return {
+    authUrl: result.authUrl,
+    callbackUrl: result.redirectUri,
+    loginCompletePromise: result.loginCompletePromise,
+  };
+}
+
+export async function getOauthClient(
+  configuredPort?: number,
+): Promise<OAuth2Client> {
+  const client = new OAuth2Client({
+    clientId: OAUTH_CLIENT_ID,
+    clientSecret: OAUTH_CLIENT_SECRET,
+  });
+
+  if (await loadCachedCredentials(client)) {
+    // Found valid cached credentials.
+    return client;
+  }
+
+  const webLogin = await authWithWeb(client, configuredPort);
+
+  // Try to shorten the URL for console display
+  const displayUrl = await shortenUrl(webLogin.authUrl);
+
+  console.log(
+    `\n\nCode Assist login required.\n` +
+    `Attempting to open authentication page in your browser.\n` +
+    `Otherwise navigate to:\n\n${displayUrl}\n\n`,
+  );
+  await open(webLogin.authUrl);
+  console.log('Waiting for authentication...');
+
+  await webLogin.loginCompletePromise;
+
+  return client;
+}
+
+export async function getManualOauthClient(
+  configuredPort?: number,
+): Promise<OAuth2Client> {
+  const client = new OAuth2Client({
+    clientId: OAUTH_CLIENT_ID,
+    clientSecret: OAUTH_CLIENT_SECRET,
+  });
+
+  if (await loadCachedCredentials(client)) {
+    // Found valid cached credentials.
+    return client;
+  }
+
+  const manualLogin = await authWithManual(client, configuredPort);
+
+  // Try to shorten the URL for console display
+  const displayUrl = await shortenUrl(manualLogin.authUrl);
+
+  console.log('\n\nCode Assist login required.');
+  console.log('Please complete the following steps:\n');
+  console.log('1. Copy and paste this URL into your browser:');
+  console.log(`   ${displayUrl}\n`);
+  console.log('2. Set up port forwarding (if using SSH):');
+  const port = new URL(manualLogin.callbackUrl).port;
+  console.log(`   ssh -L ${port}:localhost:${port} <your-ssh-connection>`);
+  console.log(`   Or access: ${manualLogin.callbackUrl}\n`);
+  console.log('3. Complete the authentication in your browser');
+  console.log('4. The browser will redirect to the callback URL');
+  console.log('\nWaiting for authentication...');
+
+  await manualLogin.loginCompletePromise;
+
+  return client;
+}
+
+export async function getManualOauthInfo(
+  configuredPort?: number,
+): Promise<ManualOauthLogin> {
+  const client = new OAuth2Client({
+    clientId: OAUTH_CLIENT_ID,
+    clientSecret: OAUTH_CLIENT_SECRET,
+  });
+
+  if (await loadCachedCredentials(client)) {
+    // Found valid cached credentials - return empty info as we don't need manual flow
+    throw new Error('Already authenticated');
+  }
+
+  return await authWithManual(client, configuredPort);
 }
 
 export function getAvailablePort(): Promise<number> {
@@ -156,6 +308,40 @@ export function getAvailablePort(): Promise<number> {
       reject(e);
     }
   });
+}
+
+/**
+ * Resolves the OAuth port to use. Checks for configured port first,
+ * then falls back to finding an available port.
+ */
+async function resolveOAuthPort(configuredPort?: number): Promise<number> {
+  // Check for configured port from parameter, environment variable, or other sources
+  const envPort =
+    parseInt(process.env.GEMINI_OAUTH_PORT || '0', 10) || undefined;
+  const portToUse = configuredPort || envPort;
+
+  if (portToUse) {
+    // Validate that the configured port is available
+    return new Promise((resolve, reject) => {
+      const server = net.createServer();
+      server.listen(portToUse, () => {
+        server.close();
+        server.unref();
+        resolve(portToUse);
+      });
+      server.on('error', (error) => {
+        // If configured port is not available, reject with a descriptive error
+        reject(
+          new Error(
+            `Configured OAuth port ${portToUse} is not available: ${error.message}`,
+          ),
+        );
+      });
+    });
+  }
+
+  // Fall back to finding any available port
+  return getAvailablePort();
 }
 
 async function loadCachedCredentials(client: OAuth2Client): Promise<boolean> {
@@ -199,4 +385,71 @@ export async function clearCachedCredentialFile() {
   } catch (_) {
     /* empty */
   }
+}
+
+/**
+ * Shuts down the active OAuth server if one exists
+ */
+async function shutdownActiveOAuthServer(): Promise<void> {
+  if (activeOAuthServer) {
+    return new Promise<void>((resolve) => {
+      activeOAuthServer!.close(() => {
+        activeOAuthServer = null;
+        resolve();
+      });
+    });
+  }
+}
+
+/**
+ * Ensures any existing OAuth server is shut down before starting a new one
+ */
+async function ensureOAuthServerCleanup(): Promise<void> {
+  // Wait for any pending cleanup to complete
+  if (serverCleanupPromise) {
+    await serverCleanupPromise;
+  }
+
+  // Shutdown active server if exists
+  if (activeOAuthServer) {
+    serverCleanupPromise = shutdownActiveOAuthServer();
+    await serverCleanupPromise;
+    serverCleanupPromise = null;
+  }
+}
+
+/**
+ * Sets up process termination handlers to ensure OAuth server cleanup
+ */
+function setupProcessCleanupHandlers() {
+  // Only setup once
+  if (process.listenerCount('SIGTERM') === 0) {
+    const cleanupAndExit = () => {
+      shutdownActiveOAuthServer().finally(() => process.exit());
+    };
+
+    const cleanupWithoutExit = () => {
+      shutdownActiveOAuthServer().catch(() => {
+        // Ignore errors on exit
+      });
+    };
+
+    process.on('SIGTERM', cleanupAndExit);
+    process.on('SIGINT', cleanupAndExit);
+    process.on('beforeExit', cleanupWithoutExit);
+  }
+}
+
+/**
+ * Export for testing - shuts down active OAuth server
+ */
+export async function shutdownOAuthServer(): Promise<void> {
+  await shutdownActiveOAuthServer();
+}
+
+/**
+ * Export for testing - checks if OAuth server is active
+ */
+export function isOAuthServerActive(): boolean {
+  return activeOAuthServer !== null;
 }

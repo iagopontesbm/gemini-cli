@@ -53,6 +53,7 @@ interface CliArgs {
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
+  'oauth-port': number | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -127,6 +128,10 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description: 'Enables checkpointing of file edits',
       default: false,
+    })
+    .option('oauth-port', {
+      type: 'number',
+      description: 'Set the OAuth port',
     })
     .version(await getCliVersion()) // This will enable the --version flag based on package.json
     .alias('v', 'version')
@@ -245,6 +250,10 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
+    oauthPort:
+      argv['oauth-port'] ||
+      parseInt(process.env.GEMINI_OAUTH_PORT || '0', 10) ||
+      undefined,
   });
 }
 

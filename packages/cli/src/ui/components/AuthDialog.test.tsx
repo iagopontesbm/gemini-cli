@@ -112,4 +112,103 @@ describe('AuthDialog', () => {
     expect(onSelect).toHaveBeenCalledWith(undefined, SettingScope.User);
     unmount();
   });
+
+  it('should display manual login with Google option', () => {
+    const settings: LoadedSettings = new LoadedSettings(
+      {
+        settings: {
+          selectedAuthType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
+        },
+        path: '',
+      },
+      {
+        settings: {},
+        path: '',
+      },
+      [],
+    );
+
+    const { lastFrame } = render(
+      <AuthDialog
+        onSelect={() => {}}
+        onHighlight={() => {}}
+        settings={settings}
+      />,
+    );
+
+    expect(lastFrame()).toContain('Login with Google');
+    expect(lastFrame()).toContain('Manual Login with Google (SSH)');
+    expect(lastFrame()).toContain('Gemini API Key (AI Studio)');
+    expect(lastFrame()).toContain('Vertex AI');
+  });
+
+  it('should include manual login option when manual auth type is pre-selected', () => {
+    const settings: LoadedSettings = new LoadedSettings(
+      {
+        settings: {
+          selectedAuthType: AuthType.MANUAL_LOGIN_WITH_GOOGLE,
+        },
+        path: '',
+      },
+      {
+        settings: {},
+        path: '',
+      },
+      [],
+    );
+
+    const { lastFrame } = render(
+      <AuthDialog
+        onSelect={() => {}}
+        onHighlight={() => {}}
+        settings={settings}
+      />,
+    );
+
+    const output = lastFrame();
+    expect(output).toContain('Manual Login with Google (SSH)');
+  });
+
+  it('should have manual login as second option in the list', () => {
+    const settings: LoadedSettings = new LoadedSettings(
+      {
+        settings: {
+          selectedAuthType: AuthType.MANUAL_LOGIN_WITH_GOOGLE,
+        },
+        path: '',
+      },
+      {
+        settings: {},
+        path: '',
+      },
+      [],
+    );
+
+    const { lastFrame } = render(
+      <AuthDialog
+        onSelect={() => {}}
+        onHighlight={() => {}}
+        settings={settings}
+      />,
+    );
+
+    const output = lastFrame();
+    const lines = output?.split('\n') || [];
+
+    // Find the lines with auth options
+    const authOptions = lines.filter(
+      (line) =>
+        line.includes('Login with Google') ||
+        line.includes('Manual Login with Google') ||
+        line.includes('Gemini API Key') ||
+        line.includes('Vertex AI'),
+    );
+
+    expect(authOptions.length).toBeGreaterThan(0);
+    expect(
+      authOptions.some((line) =>
+        line.includes('Manual Login with Google (SSH)'),
+      ),
+    ).toBe(true);
+  });
 });
