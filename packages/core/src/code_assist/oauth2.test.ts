@@ -185,7 +185,7 @@ describe('oauth2', () => {
     });
 
     // Mock console.log to avoid cluttering test output
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
     const clientPromise = getManualOauthClient();
 
@@ -207,14 +207,14 @@ describe('oauth2', () => {
 
     // Verify that browser was NOT opened for manual login
     expect(open).not.toHaveBeenCalled();
-    
+
     // Verify manual instructions were logged
     expect(consoleSpy).toHaveBeenCalledWith('\n\nCode Assist login required.');
     expect(consoleSpy).toHaveBeenCalledWith('Please complete the following steps:\n');
     expect(consoleSpy).toHaveBeenCalledWith('1. Copy and paste this URL into your browser:');
     expect(consoleSpy).toHaveBeenCalledWith(`   ${mockAuthUrl}\n`);
     expect(consoleSpy).toHaveBeenCalledWith('2. Set up port forwarding (if using SSH):');
-    expect(consoleSpy).toHaveBeenCalledWith(`   ssh -L 8080:localhost:8080 <your-ssh-connection>`);
+    expect(consoleSpy).toHaveBeenCalledWith(`   ssh -L ${capturedPort}:localhost:${capturedPort} <your-ssh-connection>`);
     expect(consoleSpy).toHaveBeenCalledWith(`   Or access: http://localhost:${capturedPort}/oauth2callback\n`);
 
     expect(mockGetToken).toHaveBeenCalledWith({
@@ -262,7 +262,7 @@ describe('oauth2', () => {
     expect(mockSetCredentials).toHaveBeenCalledWith(mockTokens);
     expect(mockGetAccessToken).toHaveBeenCalled();
     expect(mockGetTokenInfo).toHaveBeenCalledWith('valid-token');
-    
+
     // Should not attempt to create server for cached credentials
     expect(http.createServer).not.toHaveBeenCalled();
     expect(open).not.toHaveBeenCalled();
