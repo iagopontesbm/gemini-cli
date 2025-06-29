@@ -13,14 +13,7 @@ import {
 } from './types.js';
 import { CodeAssistServer } from './server.js';
 import { OAuth2Client } from 'google-auth-library';
-
-export class ProjectIdRequiredError extends Error {
-  constructor() {
-    super(
-      'This account requires setting the GOOGLE_CLOUD_PROJECT env var. See https://goo.gle/gemini-cli-auth-docs#workspace-gca',
-    );
-  }
-}
+import { ProjectIdRequiredError } from './errors.js';
 
 /**
  *

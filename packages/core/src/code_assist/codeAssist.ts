@@ -8,6 +8,7 @@ import { AuthType, ContentGenerator } from '../core/contentGenerator.js';
 import { getOauthClient } from './oauth2.js';
 import { setupUser } from './setup.js';
 import { CodeAssistServer, HttpOptions } from './server.js';
+import { UnsupportedAuthTypeError } from './errors.js';
 
 export async function createCodeAssistContentGenerator(
   httpOptions: HttpOptions,
@@ -19,5 +20,5 @@ export async function createCodeAssistContentGenerator(
     return new CodeAssistServer(authClient, projectId, httpOptions);
   }
 
-  throw new Error(`Unsupported authType: ${authType}`);
+  throw new UnsupportedAuthTypeError(authType);
 }
