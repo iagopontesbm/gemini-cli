@@ -96,6 +96,56 @@ describe('Custom Theme Functionality', () => {
     expect(validation.error).toContain('Invalid color format');
   });
 
+  it('should accept CSS color names in custom themes', () => {
+    const customThemeWithCssColors: CustomTheme = {
+      type: 'custom',
+      name: 'CSS Colors Theme',
+      Background: 'darkkhaki',
+      Foreground: 'whitesmoke',
+      LightBlue: 'lightblue',
+      AccentBlue: 'cornflowerblue',
+      AccentPurple: 'mediumpurple',
+      AccentCyan: 'turquoise',
+      AccentGreen: 'forestgreen',
+      AccentYellow: 'goldenrod',
+      AccentRed: 'tomato',
+      Comment: 'gray',
+      Gray: 'silver',
+    };
+
+    const validation = validateCustomTheme(customThemeWithCssColors);
+    expect(validation.isValid).toBe(true);
+    expect(validation.error).toBeUndefined();
+
+    // Verify that the theme can be created successfully
+    const theme = createCustomTheme(customThemeWithCssColors);
+    expect(theme).toBeInstanceOf(Theme);
+    expect(theme.name).toBe('CSS Colors Theme');
+    expect(theme.type).toBe('custom');
+  });
+
+  it('should accept mixed hex and CSS color names in custom themes', () => {
+    const mixedTheme: CustomTheme = {
+      type: 'custom',
+      name: 'Mixed Colors Theme',
+      Background: '#1a1a1a',
+      Foreground: 'whitesmoke',
+      LightBlue: 'lightblue',
+      AccentBlue: '#3b82f6',
+      AccentPurple: 'mediumpurple',
+      AccentCyan: 'turquoise',
+      AccentGreen: '#10b981',
+      AccentYellow: 'goldenrod',
+      AccentRed: 'tomato',
+      Comment: 'gray',
+      Gray: '#9ca3af',
+    };
+
+    const validation = validateCustomTheme(mixedTheme);
+    expect(validation.isValid).toBe(true);
+    expect(validation.error).toBeUndefined();
+  });
+
   it('should create default custom theme from light base', () => {
     const customTheme = createDefaultCustomTheme('Light Custom', 'light');
     expect(customTheme.type).toBe('custom');

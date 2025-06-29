@@ -92,23 +92,7 @@ export function ThemeDialog({
 
   const handleThemeSelect = (idx: number) => {
     const themeName = availableThemes[idx].name;
-    const selectedTheme = availableThemes[idx];
-    if (themeName === '__CREATE_CUSTOM__') {
-      // Pre-fill with a default custom theme based on the current theme type
-      const currentTheme = themeManager.findThemeByName(settings.merged.theme) || DEFAULT_THEME;
-      const defaultType = currentTheme.type === 'light' ? 'light' : 'dark';
-      setEditingTheme(createDefaultCustomTheme('New Custom Theme', defaultType));
-      setShowCustomThemeEditor(true);
-      return;
-    }
-
-    if (selectedTheme?.isCustom) {
-      // For custom themes, we could add edit/delete options here
-      // For now, just select the theme
-      onSelect(themeName, selectedScope);
-    } else {
-      onSelect(themeName, selectedScope);
-    }
+    onSelect(themeName, selectedScope);
   };
 
   const handleScopeHighlight = (scope: SettingScope) => {
