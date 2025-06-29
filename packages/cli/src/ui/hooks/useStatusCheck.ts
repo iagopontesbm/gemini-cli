@@ -7,7 +7,6 @@
 import { useState, useEffect } from 'react';
 import {
   type Config,
-  AuthType,
   ApprovalMode,
   getAllGeminiMdFilenames,
   getErrorMessage,
@@ -94,17 +93,12 @@ export const useStatusCheck = (
       try {
         const client = config.getGeminiClient();
         if (client) {
-          // Use an existing client to perform a lightweight, non-destructive connectivity check.
           await client.checkConnectivity();
+          if (isMounted) {
+            setConnectivity('success');
+          }
         } else {
-          // If no client exists, `refreshAuth` is needed for the initial check.
-          await config.refreshAuth(
-            settings.merged.selectedAuthType || AuthType.USE_GEMINI,
-          );
-        }
-
-        if (isMounted) {
-          setConnectivity('success');
+          throw new Error('Gemini client not initialized.');
         }
       } catch (e) {
         if (isMounted) {
