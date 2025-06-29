@@ -105,18 +105,21 @@ const getCodeBlocks = (fences: Fence[]): CodeBlock[] => {
 // --- Memoization for Performance ---
 // Since we might call these functions multiple times on the same content,
 // we memoize the expensive parsing step.
-const memoizedGetCodeBlocks = (content: string): CodeBlock[] => {
-  if (memoizedGetCodeBlocks.lastContent === content) {
-    return memoizedGetCodeBlocks.lastResult;
-  }
-  const fences = findAllFences(content);
-  const result = getCodeBlocks(fences);
-  memoizedGetCodeBlocks.lastContent = content;
-  memoizedGetCodeBlocks.lastResult = result;
-  return result;
-};
-memoizedGetCodeBlocks.lastContent = '';
-memoizedGetCodeBlocks.lastResult = [] as CodeBlock[];
+const memoizedGetCodeBlocks = (function () {
+  let lastContent: string;
+  let lastResult: CodeBlock[];
+
+  return function (content: string): CodeBlock[] {
+    if (lastContent === content) {
+      return lastResult;
+    }
+    const fences = findAllFences(content);
+    const result = getCodeBlocks(fences);
+    lastContent = content;
+    lastResult = result;
+    return result;
+  };
+})();
 
 /**
  * Checks if a given character index within a string is inside a fenced code block.
