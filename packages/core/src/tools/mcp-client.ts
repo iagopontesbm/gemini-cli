@@ -389,8 +389,7 @@ export function sanitizeParameters(schema?: Schema) {
       const isDefined = definedProperties.includes(requiredProp);
       if (!isDefined) {
         console.warn(
-          `Removing undefined required property '${requiredProp}' from schema. ` +
-          `Available properties: [${definedProperties.join(', ')}]`
+          `Removing undefined required property '${requiredProp}' from schema. Available properties: [${definedProperties.join(', ')}]`
         );
       }
       return isDefined;
