@@ -620,4 +620,45 @@ describe('sanitizeParameters', () => {
       schema.properties!.prop2.anyOf![0].properties!.nestedProp;
     expect(nestedProp?.default).toBeUndefined();
   });
+
+  it('should remove undefined required properties and warn', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const schema: Schema = {
+      type: Type.OBJECT,
+      properties: {
+        validProp: { type: Type.STRING },
+        anotherValidProp: { type: Type.NUMBER },
+      },
+      required: ['validProp', 'connectionConfig', 'anotherValidProp', 'undefinedProp'],
+    };
+    
+    sanitizeParameters(schema);
+    
+    expect(schema.required).toEqual(['validProp', 'anotherValidProp']);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Removing undefined required property 'connectionConfig' from schema")
+    );
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Removing undefined required property 'undefinedProp' from schema")
+    );
+    
+    consoleSpy.mockRestore();
+  });
+
+  it('should handle schema without properties but with required array', () => {
+    const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const schema: Schema = {
+      type: Type.OBJECT,
+      required: ['someProp'],
+    };
+    
+    sanitizeParameters(schema);
+    
+    expect(schema.required).toEqual([]);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("Removing undefined required property 'someProp' from schema")
+    );
+    
+    consoleSpy.mockRestore();
+  });
 });

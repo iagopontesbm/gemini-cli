@@ -381,4 +381,19 @@ export function sanitizeParameters(schema?: Schema) {
       sanitizeParameters(item);
     }
   }
+  
+  // Validate that all required properties are defined in properties
+  if (schema.required && Array.isArray(schema.required)) {
+    const definedProperties = schema.properties ? Object.keys(schema.properties) : [];
+    schema.required = schema.required.filter((requiredProp: string) => {
+      const isDefined = definedProperties.includes(requiredProp);
+      if (!isDefined) {
+        console.warn(
+          `Removing undefined required property '${requiredProp}' from schema. ` +
+          `Available properties: [${definedProperties.join(', ')}]`
+        );
+      }
+      return isDefined;
+    });
+  }
 }

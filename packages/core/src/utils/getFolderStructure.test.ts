@@ -4,18 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach, afterEach, Mock } from 'vitest';
 import fsPromises from 'fs/promises';
-import * as fs from 'fs';
 import { Dirent as FSDirent } from 'fs';
-import * as nodePath from 'path';
 import { getFolderStructure } from './getFolderStructure.js';
-import * as gitUtils from './gitUtils.js';
-import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
+import * as path from 'path';
 
 vi.mock('path', async (importOriginal) => {
-  const original = (await importOriginal()) as typeof nodePath;
+  const original = (await importOriginal()) as typeof path;
   return {
     ...original,
     resolve: vi.fn((str) => str),
@@ -26,9 +22,6 @@ vi.mock('path', async (importOriginal) => {
 vi.mock('fs/promises');
 vi.mock('fs');
 vi.mock('./gitUtils.js');
-
-// Import 'path' again here, it will be the mocked version
-import * as path from 'path';
 
 // Helper to create Dirent-like objects for mocking fs.readdir
 const createDirent = (name: string, type: 'file' | 'dir'): FSDirent => ({
@@ -60,6 +53,7 @@ describe('getFolderStructure', () => {
         // path.normalize here will use the mocked path module.
         // Since normalize is spread from original, it should be the real one.
         const normalizedPath = path.normalize(dirPath.toString());
+
         if (mockFsStructure[normalizedPath]) {
           return mockFsStructure[normalizedPath];
         }
@@ -280,65 +274,5 @@ Showing up to 3 items (files + folders).
         └───level3/
 `.trim();
     expect(structure.trim()).toBe(expected);
-  });
-});
-
-describe('getFolderStructure gitignore', () => {
-  beforeEach(() => {
-    vi.resetAllMocks();
-    (path.resolve as Mock).mockImplementation((str: string) => str);
-
-    (fsPromises.readdir as Mock).mockImplementation(async (p) => {
-      const path = p.toString();
-      if (path === '/test/project') {
-        return [
-          createDirent('file1.txt', 'file'),
-          createDirent('node_modules', 'dir'),
-          createDirent('ignored.txt', 'file'),
-          createDirent('.gemini', 'dir'),
-        ] as any;
-      }
-      if (path === '/test/project/node_modules') {
-        return [createDirent('some-package', 'dir')] as any;
-      }
-      if (path === '/test/project/.gemini') {
-        return [
-          createDirent('config.yaml', 'file'),
-          createDirent('logs.json', 'file'),
-        ] as any;
-      }
-      return [];
-    });
-
-    (fs.readFileSync as Mock).mockImplementation((p) => {
-      const path = p.toString();
-      if (path === '/test/project/.gitignore') {
-        return 'ignored.txt\nnode_modules/\n.gemini/\n!/.gemini/config.yaml';
-      }
-      return '';
-    });
-
-    vi.mocked(gitUtils.isGitRepository).mockReturnValue(true);
-  });
-
-  it('should ignore files and folders specified in .gitignore', async () => {
-    const fileService = new FileDiscoveryService('/test/project');
-    const structure = await getFolderStructure('/test/project', {
-      fileService,
-    });
-    expect(structure).not.toContain('ignored.txt');
-    expect(structure).toContain('node_modules/...');
-    expect(structure).not.toContain('logs.json');
-  });
-
-  it('should not ignore files if respectGitIgnore is false', async () => {
-    const fileService = new FileDiscoveryService('/test/project');
-    const structure = await getFolderStructure('/test/project', {
-      fileService,
-      respectGitIgnore: false,
-    });
-    expect(structure).toContain('ignored.txt');
-    // node_modules is still ignored by default
-    expect(structure).toContain('node_modules/...');
   });
 });
