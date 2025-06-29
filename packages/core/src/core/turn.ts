@@ -216,12 +216,24 @@ export class Turn {
             resp.usageMetadata as GenerateContentResponseUsageMetadata;
         }
 
-        // Check if response was truncated due to token limits
+        // Check if response was truncated or stopped for various reasons
         const finishReason = resp.candidates?.[0]?.finishReason;
-        if (finishReason === 'MAX_TOKENS') {
+        
+        const finishReasonMessages: Record<string, string> = {
+          'MAX_TOKENS': '\n\n⚠️  Response truncated due to token limits.',
+          'SAFETY': '\n\n⚠️  Response stopped due to safety reasons.',
+          'RECITATION': '\n\n⚠️  Response stopped due to recitation policy.',
+          'LANGUAGE': '\n\n⚠️  Response stopped due to unsupported language.',
+          'BLOCKLIST': '\n\n⚠️  Response stopped due to forbidden terms.',
+          'PROHIBITED_CONTENT': '\n\n⚠️  Response stopped due to prohibited content.',
+          'SPII': '\n\n⚠️  Response stopped due to sensitive personally identifiable information.',
+          'OTHER': '\n\n⚠️  Response stopped for other reasons.',
+        };
+        
+        if (finishReason && finishReasonMessages[finishReason]) {
           yield {
             type: GeminiEventType.Content,
-            value: '\n\n⚠️  Response truncated due to token limits.',
+            value: finishReasonMessages[finishReason],
           };
         }
       }
