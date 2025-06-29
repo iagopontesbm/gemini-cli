@@ -34,6 +34,7 @@ export interface Key {
  * fragments like '~' from paste content). Embedded paste-end markers (\x1b[201~)
  * in pasted content terminate the paste, per terminal protocol behavior, and
  * subsequent content is treated as a new paste if followed by another end marker.
+ * Ensures terminal responsiveness by resetting paste state after a short timeout.
  *
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
@@ -132,7 +133,7 @@ export function useKeypress(
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
       pasteHandledRef.current = false;
-      partialStartMarkerRef.current = false; // Reset partial marker state
+      partialStartMarkerRef.current = false;
       if (pasteTimeoutRef.current) {
         clearTimeout(pasteTimeoutRef.current);
         pasteTimeoutRef.current = null;
@@ -239,12 +240,21 @@ export function useKeypress(
     };
 
     const handleKeypress = (_: unknown, key: Key) => {
-      if (isPasteModeRef.current || pasteHandledRef.current) {
-        // Skip processing if in bracketed paste mode or paste was handled by raw data
+      if (isPasteModeRef.current) {
         return;
       }
 
-      // Timeout-based detection for single characters and pastes
+      if (pasteHandledRef.current) {
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = setTimeout(() => {
+          pasteHandledRef.current = false;
+          timeoutRef.current = null;
+        }, maxInputDelay);
+        return;
+      }
+
       keyBufferRef.current.push(key);
 
       if (timeoutRef.current) {
@@ -254,7 +264,6 @@ export function useKeypress(
       timeoutRef.current = setTimeout(() => {
         const keys = keyBufferRef.current;
         if (keys.length === 1) {
-          // Single keypress
           const singleKey = keys[0];
           if (singleKey.name === 'return' && singleKey.sequence === '\x1b\r') {
             singleKey.meta = true;
@@ -262,7 +271,6 @@ export function useKeypress(
           onKeypressRef.current({ ...singleKey, paste: false });
           keyBufferRef.current = [];
           timeoutRef.current = null;
-          pasteHandledRef.current = false; // Reset after single keypress
         } else {
           handleInput();
         }
