@@ -121,7 +121,7 @@ describe('SchemaValidator', () => {
       };
 
       const result = SchemaValidator.validate(schema, null);
-      expect(result).toBe('Expected an object, but received object');
+      expect(result).toBe('Expected an object, but received null');
     });
 
     it('should validate minimum value for numbers', () => {
