@@ -132,7 +132,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
 
-  const statusInfo = useStatusCheck(config, settings);
+  const statusInfo = useStatusCheck(config, settings, showStatus);
 
   useEffect(() => {
     if (statusInfo.isComplete) {

@@ -52,6 +52,7 @@ export interface StatusInfo {
 export const useStatusCheck = (
   config: Config,
   settings: LoadedSettings,
+  enabled: boolean,
 ): StatusInfo => {
   const [connectivity, setConnectivity] =
     useState<ConnectivityStatus>('pending');
@@ -64,6 +65,13 @@ export const useStatusCheck = (
   }, []);
 
   useEffect(() => {
+    if (!enabled) {
+      setConnectivity('pending');
+      setError(null);
+      setIsComplete(false);
+      return;
+    }
+
     let isMounted = true;
     const checkConnectivity = async () => {
       try {
@@ -92,7 +100,7 @@ export const useStatusCheck = (
     return () => {
       isMounted = false;
     };
-  }, [config, settings]);
+  }, [config, settings, enabled]);
 
   // Gather all the required information.
   const contextFileNames = (() => {
