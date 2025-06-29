@@ -16,7 +16,7 @@ If you want to undo the change or simply go back, you can use the `/restore` com
 - Restore the conversation history in the CLI.
 - Re-propose the original tool call, allowing you to run it again, modify it, or simply ignore it.
 
-All checkpoint data, including the Git snapshot and conversation history, is stored locally on your machine. The Git snapshot is stored in the shadow repository while the conversation history and tool calls are saved in a JSON file in your project's temporary directory, typically located at `~/.gemini/tmp/<project_hash>/checkpoints`.
+All checkpoint data, including the Git snapshot and conversation history, is stored locally on your machine. The Git snapshot is stored in a dedicated, hidden Git repository at `~/.gemini/history/<project_hash>`, while the conversation history and tool calls are saved in a JSON file within your project's temporary directory, typically located at `~/.gemini/tmp/<project_hash>/checkpoints`.
 
 ## Enabling the Feature
 

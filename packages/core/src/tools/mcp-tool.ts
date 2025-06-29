@@ -21,9 +21,9 @@ export class DiscoveredMCPTool extends BaseTool<ToolParams, ToolResult> {
   constructor(
     private readonly mcpTool: CallableTool,
     readonly serverName: string,
-    readonly name: string,
-    readonly description: string,
-    readonly parameterSchema: Record<string, unknown>,
+    override readonly name: string,
+    override readonly description: string,
+    override readonly parameterSchema: Record<string, unknown>,
     readonly serverToolName: string,
     readonly timeout?: number,
     readonly trust?: boolean,

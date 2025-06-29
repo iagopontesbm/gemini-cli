@@ -25,7 +25,21 @@ esbuild
       'process.env.CLI_VERSION': JSON.stringify(pkg.version),
     },
     banner: {
-      js: `import { createRequire } from 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);`,
+      js: `import { createRequire } = 'module'; const require = createRequire(import.meta.url); globalThis.__filename = require('url').fileURLToPath(import.meta.url); globalThis.__dirname = require('path').dirname(globalThis.__filename);`,
     },
+    minify: true,
+    sourcemap: true,
+  })
+  .catch(() => process.exit(1));
+
+esbuild
+  .build({
+    entryPoints: ['packages/core/index.ts'],
+    bundle: true,
+    outfile: 'bundle/gemini-core.js',
+    platform: 'node',
+    format: 'esm',
+    minify: true,
+    sourcemap: true,
   })
   .catch(() => process.exit(1));

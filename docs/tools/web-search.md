@@ -1,6 +1,6 @@
-# Web Search Tool (`google_web_search`)
+# Web Search Tool (`google_web_search`): Leveraging Google Search
 
-This document describes the `google_web_search` tool.
+This document describes the `google_web_search` tool for the Gemini CLI, a powerful utility that enables the Gemini model to perform web searches directly through Google Search. This tool provides a concise summary of web results, complete with sources, allowing the AI to access and synthesize information from the broader internet.
 
 ## Description
 

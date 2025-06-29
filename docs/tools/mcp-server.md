@@ -332,76 +332,78 @@ Once discovered, MCP tools are available to the Gemini model like built-in tools
 
 ## Status Monitoring and Troubleshooting
 
+Effective monitoring of your MCP server setup is crucial for smooth operation. The Gemini CLI provides detailed status tracking and various debugging options to help you identify and resolve issues.
+
 ### Connection States
 
-The MCP integration tracks several states:
+The MCP integration tracks the following states for each server and the overall discovery process:
 
 #### Server Status (`MCPServerStatus`)
 
-- **`DISCONNECTED`:** Server is not connected or has errors
-- **`CONNECTING`:** Connection attempt in progress
-- **`CONNECTED`:** Server is connected and ready
+-   **`DISCONNECTED`:** The server is not connected, or a connection attempt failed.
+-   **`CONNECTING`:** A connection attempt to the server is currently in progress.
+-   **`CONNECTED`:** The server is successfully connected and ready to expose tools.
 
 #### Discovery State (`MCPDiscoveryState`)
 
-- **`NOT_STARTED`:** Discovery hasn't begun
-- **`IN_PROGRESS`:** Currently discovering servers
-- **`COMPLETED`:** Discovery finished (with or without errors)
+-   **`NOT_STARTED`:** The tool discovery process has not yet begun.
+-   **`IN_PROGRESS`:** The CLI is currently in the process of discovering tools from configured servers.
+-   **`COMPLETED`:** The tool discovery process has finished, whether all servers connected successfully or not.
 
 ### Common Issues and Solutions
 
 #### Server Won't Connect
 
-**Symptoms:** Server shows `DISCONNECTED` status
+**Symptoms:** The `/mcp` command shows the server status as `DISCONNECTED`.
 
-**Troubleshooting:**
+**Troubleshooting Steps:**
 
-1. **Check configuration:** Verify `command`, `args`, and `cwd` are correct
-2. **Test manually:** Run the server command directly to ensure it works
-3. **Check dependencies:** Ensure all required packages are installed
-4. **Review logs:** Look for error messages in the CLI output
-5. **Verify permissions:** Ensure the CLI can execute the server command
+1.  **Configuration Check:** Verify that the `command`, `args`, and `cwd` (for Stdio transport) or `url`/`httpUrl` are correctly specified in your `settings.json`.
+2.  **Manual Test:** Attempt to run the MCP server command directly from your terminal to ensure it starts without errors.
+3.  **Dependencies:** Confirm that all required packages or binaries for your MCP server are installed on your system.
+4.  **Review CLI Logs:** Run the Gemini CLI with `--debug_mode` and inspect the output for any error messages related to the MCP server startup or connection.
+5.  **Permissions:** Ensure the Gemini CLI has the necessary permissions to execute the server command or access the specified working directory.
 
 #### No Tools Discovered
 
-**Symptoms:** Server connects but no tools are available
+**Symptoms:** The server connects successfully, but no tools are listed under it when running `/mcp`.
 
-**Troubleshooting:**
+**Troubleshooting Steps:**
 
-1. **Verify tool registration:** Ensure your server actually registers tools
-2. **Check MCP protocol:** Confirm your server implements the MCP tool listing correctly
-3. **Review server logs:** Check stderr output for server-side errors
-4. **Test tool listing:** Manually test your server's tool discovery endpoint
+1.  **Tool Registration:** Verify that your MCP server is correctly registering and exposing its tools according to the MCP protocol.
+2.  **MCP Protocol Implementation:** Double-check that your server's tool listing endpoint correctly implements the MCP specification for returning function declarations.
+3.  **Server-Side Logs:** Review the stderr output or log files of your MCP server for any errors during its tool exposure process.
+4.  **Test Tool Listing Manually:** If possible, manually query your server's tool discovery endpoint (e.g., via `curl` for HTTP/SSE servers) to ensure it returns valid tool definitions.
 
 #### Tools Not Executing
 
-**Symptoms:** Tools are discovered but fail during execution
+**Symptoms:** Tools are discovered and listed, but they fail during execution when requested by the Gemini model.
 
-**Troubleshooting:**
+**Troubleshooting Steps:**
 
-1. **Parameter validation:** Ensure your tool accepts the expected parameters
-2. **Schema compatibility:** Verify your input schemas are valid JSON Schema
-3. **Error handling:** Check if your tool is throwing unhandled exceptions
-4. **Timeout issues:** Consider increasing the `timeout` setting
+1.  **Parameter Validation:** Ensure that the arguments your tool expects match the `parameterSchema` defined in its function declaration. Mismatches can cause execution failures.
+2.  **Schema Compatibility:** Verify that your tool's input schemas are valid JSON Schema and are fully compatible with the Gemini API's requirements (e.g., no unsupported properties).
+3.  **Error Handling:** Implement robust error handling within your MCP tool's logic to catch and report exceptions gracefully.
+4.  **Timeout Issues:** If the tool performs long-running operations, consider increasing the `timeout` setting for that MCP server in `settings.json`.
 
 #### Sandbox Compatibility
 
-**Symptoms:** MCP servers fail when sandboxing is enabled
+**Symptoms:** MCP servers or their tools fail to operate correctly when sandboxing is enabled in the Gemini CLI.
 
 **Solutions:**
 
-1. **Docker-based servers:** Use Docker containers that include all dependencies
-2. **Path accessibility:** Ensure server executables are available in the sandbox
-3. **Network access:** Configure sandbox to allow necessary network connections
-4. **Environment variables:** Verify required environment variables are passed through
+1.  **Docker-based Servers:** For container-based sandboxing, ensure your Docker image for the MCP server includes all necessary dependencies and executables.
+2.  **Path Accessibility:** Verify that any files or executables the MCP server needs are accessible within the sandbox environment (e.g., by mounting volumes correctly).
+3.  **Network Access:** If your MCP server needs to access external networks (e.g., GitHub API), ensure your sandbox profile allows the necessary network connections.
+4.  **Environment Variables:** Confirm that all required environment variables (like API keys) are correctly passed through to the MCP server process within the sandbox.
 
 ### Debugging Tips
 
-1. **Enable debug mode:** Run the CLI with `--debug_mode` for verbose output
-2. **Check stderr:** MCP server stderr is captured and logged (INFO messages filtered)
-3. **Test isolation:** Test your MCP server independently before integrating
-4. **Incremental setup:** Start with simple tools before adding complex functionality
-5. **Use `/mcp` frequently:** Monitor server status during development
+1.  **Enable Debug Mode:** Run the Gemini CLI with the `--debug_mode` flag for verbose output, which can provide more insights into MCP server interactions.
+2.  **Check Stderr:** The stderr output from MCP server subprocesses is captured and logged by the CLI (INFO messages are typically filtered out).
+3.  **Test in Isolation:** Develop and test your MCP server independently before integrating it with the Gemini CLI to isolate issues.
+4.  **Incremental Setup:** Start with a very simple MCP tool and gradually add complexity.
+5.  **Use `/mcp` Frequently:** Regularly use the `/mcp` command to monitor server status and tool discovery during development and troubleshooting.
 
 ## Important Notes
 

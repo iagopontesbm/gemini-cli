@@ -186,7 +186,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
   /**
    * Gets a description of the glob operation.
    */
-  getDescription(params: GlobToolParams): string {
+  override getDescription(params: GlobToolParams): string {
     let description = `'${params.pattern}'`;
     if (params.path) {
       const searchDir = path.resolve(this.rootDirectory, params.path || '.');
@@ -199,7 +199,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
   /**
    * Executes the glob search with the given parameters
    */
-  async execute(
+  override async execute(
     params: GlobToolParams,
     signal: AbortSignal,
   ): Promise<ToolResult> {

@@ -1,6 +1,6 @@
-# Multi File Read Tool (`read_many_files`)
+# Multi-File Read Tool (`read_many_files`): Efficient Content Aggregation
 
-This document describes the `read_many_files` tool for the Gemini CLI.
+This document describes the `read_many_files` tool for the Gemini CLI, a versatile utility designed to efficiently read and aggregate content from multiple files. This tool is invaluable for tasks requiring a broad overview of a codebase, detailed analysis of documentation, or gathering context from various configuration files.
 
 ## Description
 

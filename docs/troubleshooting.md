@@ -56,21 +56,35 @@ This guide provides solutions to common issues and debugging tips.
 
 ## Debugging Tips
 
-- **CLI debugging:**
-  - Use the `--verbose` flag (if available) with CLI commands for more detailed output.
-  - Check the CLI logs, often found in a user-specific configuration or cache directory.
+When encountering issues, these tips can help you gather more information and pinpoint the root cause:
 
-- **Core debugging:**
-  - Check the server console output for error messages or stack traces.
-  - Increase log verbosity if configurable.
-  - Use Node.js debugging tools (e.g., `node --inspect`) if you need to step through server-side code.
+-   **CLI Debugging:**
+    -   Use the `--debug_mode` (or `-d`) flag when starting the CLI for more verbose output, which can reveal underlying issues.
+    -   Check the CLI's internal logs, often located in a user-specific configuration or temporary directory (e.g., `~/.gemini/tmp/<project_hash>/`).
 
-- **Tool issues:**
-  - If a specific tool is failing, try to isolate the issue by running the simplest possible version of the command or operation the tool performs.
-  - For `run_shell_command`, check that the command works directly in your shell first.
-  - For file system tools, double-check paths and permissions.
+-   **Core Debugging:**
+    -   Inspect the console output of the core server for any error messages or stack traces.
+    -   If configurable, increase the log verbosity of the core component.
+    -   For Node.js-based core issues, consider using Node.js debugging tools (e.g., `node --inspect`) to step through the server-side code.
 
-- **Pre-flight checks:**
-  - Always run `npm run preflight` before committing code. This can catch many common issues related to formatting, linting, and type errors.
+-   **Tool-Specific Issues:**
+    -   If a particular tool is failing, try to isolate the issue by running the simplest possible version of the command or operation that the tool performs directly in your shell.
+    -   For `run_shell_command`, first verify that the command works as expected when executed directly in your terminal.
+    -   For file system tools (e.g., `read_file`, `write_file`), double-check the absolute paths and ensure correct file permissions.
 
-If you encounter an issue not covered here, consider searching the project's issue tracker on GitHub or reporting a new issue with detailed information.
+-   **Pre-flight Checks:**
+    -   Always run `npm run preflight` (or `make preflight`) before committing code. This comprehensive script can catch many common issues related to formatting, linting, and TypeScript type errors early in the development cycle.
+
+## Reporting Issues
+
+If you encounter an issue that is not covered in this troubleshooting guide, or if you believe you've found a bug, please consider reporting it. When reporting, provide as much detail as possible:
+
+-   **CLI Version:** Use `/about` to get the exact version.
+-   **Operating System:** Your OS and version.
+-   **Steps to Reproduce:** Clear, step-by-step instructions on how to trigger the issue.
+-   **Expected Behavior:** What you expected to happen.
+-   **Actual Behavior:** What actually happened, including full error messages and stack traces.
+-   **Relevant Logs:** Include any relevant output from debug mode or log files.
+-   **Context:** Any specific project setup, configuration, or environment variables that might be relevant.
+
+You can file a new issue on the [Gemini CLI GitHub repository](https://github.com/google-gemini/gemini-cli/issues/new/choose).

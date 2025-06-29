@@ -36,50 +36,50 @@ Selected themes are saved in Gemini CLI's [configuration](./configuration.md) so
 
 ### ANSI
 
-<img src="../assets/theme-ansi.png" alt="ANSI theme" width="600" />
+![ANSI theme screenshot](../assets/theme-ansi.png)
 
 ### Atom OneDark
 
-<img src="../assets/theme-atom-one.png" alt="Atom One theme" width="600">
+![Atom One theme screenshot](../assets/theme-atom-one.png)
 
 ### Ayu
 
-<img src="../assets/theme-ayu.png" alt="Ayu theme" width="600">
+![Ayu theme screenshot](../assets/theme-ayu.png)
 
 ### Default
 
-<img src="../assets/theme-default.png" alt="Default theme" width="600">
+![Default theme screenshot](../assets/theme-default.png)
 
 ### Dracula
 
-<img src="../assets/theme-dracula.png" alt="Dracula theme" width="600">
+![Dracula theme screenshot](../assets/theme-dracula.png)
 
 ### GitHub
 
-<img src="../assets/theme-github.png" alt="GitHub theme" width="600">
+![GitHub theme screenshot](../assets/theme-github.png)
 
 ## Light Themes
 
 ### ANSI Light
 
-<img src="../assets/theme-ansi-light.png" alt="ANSI Light theme" width="600">
+![ANSI Light theme screenshot](../assets/theme-ansi-light.png)
 
 ### Ayu Light
 
-<img src="../assets/theme-ayu-light.png" alt="Ayu Light theme" width="600">
+![Ayu Light theme screenshot](../assets/theme-ayu-light.png)
 
 ### Default Light
 
-<img src="../assets/theme-default-light.png" alt="Default Light theme" width="600">
+![Default Light theme screenshot](../assets/theme-default-light.png)
 
 ### GitHub Light
 
-<img src="../assets/theme-github-light.png" alt="GitHub Light theme" width="600">
+![GitHub Light theme screenshot](../assets/theme-github-light.png)
 
 ### Google Code
 
-<img src="../assets/theme-google-light.png" alt="Google Code theme" width="600">
+![Google Code theme screenshot](../assets/theme-google-light.png)
 
 ### Xcode
 
-<img src="../assets/theme-xcode-light.png" alt="Xcode Light theme" width="600">
+![Xcode Light theme screenshot](../assets/theme-xcode-light.png)

@@ -179,7 +179,7 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
    * @param params Parameters for the file reading
    * @returns A string describing the file being read
    */
-  getDescription(params: LSToolParams): string {
+  override getDescription(params: LSToolParams): string {
     const relativePath = makeRelative(params.path, this.rootDirectory);
     return shortenPath(relativePath);
   }
@@ -198,7 +198,7 @@ export class LSTool extends BaseTool<LSToolParams, ToolResult> {
    * @param params Parameters for the LS operation
    * @returns Result of the LS operation
    */
-  async execute(
+  override async execute(
     params: LSToolParams,
     _signal: AbortSignal,
   ): Promise<ToolResult> {

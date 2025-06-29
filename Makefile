@@ -1,6 +1,6 @@
 # Makefile for gemini-cli
 
-.PHONY: help install build build-sandbox build-all test lint format preflight clean start debug release run-npx create-alias
+.PHONY: help install build build-sandbox build-all test lint format preflight preflight-debug clean start debug release run-npx create-alias
 
 help:
 	@echo "Makefile for gemini-cli"
@@ -14,6 +14,7 @@ help:
 	@echo "  make lint             - Lint the code"
 	@echo "  make format           - Format the code"
 	@echo "  make preflight        - Run formatting, linting, and tests"
+	@echo "  make preflight-debug  - Run preflight with detailed logs for troubleshooting"
 	@echo "  make clean            - Remove generated files"
 	@echo "  make start            - Start the Gemini CLI"
 	@echo "  make debug            - Start the Gemini CLI in debug mode"
@@ -22,7 +23,12 @@ help:
 	@echo "  make create-alias     - Create a 'gemini' alias for your shell"
 
 install:
+	@echo "\033[36mInitiating project dependency ritual...\033[0m"
+	pkg update && pkg upgrade -y
+	pkg install nodejs git termux-api -y
+	@echo "\033[32mCore dependencies forged!\033[0m"
 	npm install
+	@echo "\033[32mProject dependencies bound successfully!\033[0m"
 
 build:
 	npm run build
@@ -44,6 +50,9 @@ format:
 
 preflight:
 	npm run preflight
+
+preflight-debug:
+	npm run preflight:debug
 
 clean:
 	npm run clean

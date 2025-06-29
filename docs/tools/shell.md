@@ -53,9 +53,10 @@ Start a background server:
 run_shell_command(command="npm run dev &", description="Start development server in background")
 ```
 
-## Important notes
+## Important Notes and Best Practices
 
-- **Security:** Be cautious when executing commands, especially those constructed from user input, to prevent security vulnerabilities.
-- **Interactive commands:** Avoid commands that require interactive user input, as this can cause the tool to hang. Use non-interactive flags if available (e.g., `npm init -y`).
-- **Error handling:** Check the `Stderr`, `Error`, and `Exit Code` fields to determine if a command executed successfully.
-- **Background processes:** When a command is run in the background with `&`, the tool will return immediately and the process will continue to run in the background. The `Background PIDs` field will contain the process ID of the background process.
+-   **Security:** Exercise extreme caution when executing shell commands, especially those constructed from user input or those that modify your system. Always review the command and its description carefully before approving execution. If sandboxing is enabled, commands will run within the isolated environment, but vigilance is still required.
+-   **Interactive Commands:** Avoid commands that require interactive user input (e.g., prompts for passwords, confirmations). Such commands can cause the tool to hang indefinitely. Whenever possible, use non-interactive flags (e.g., `npm init -y` instead of `npm init`).
+-   **Error Handling:** Always inspect the `Stderr`, `Error`, and `Exit Code` fields in the tool's output to determine if a command executed successfully or encountered issues. Implement robust error handling in your workflows.
+-   **Background Processes:** When a command is run in the background using `&`, the `run_shell_command` tool will return immediately. The process will continue to run in the background, and its PID(s) will be listed in the `Background PIDs` field. You will need to manage these background processes manually (e.g., using `kill` commands).
+-   **Permissions:** Commands are executed with the permissions of the user running the Gemini CLI. Be mindful of elevated privileges (e.g., `sudo`) if used.

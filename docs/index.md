@@ -1,6 +1,6 @@
-# Welcome to Gemini CLI documentation
+# Welcome to the Gemini CLI Documentation
 
-This documentation provides a comprehensive guide to installing, using, and developing Gemini CLI. This tool lets you interact with Gemini models through a command-line interface.
+This comprehensive documentation serves as your guide to installing, using, and contributing to the Gemini Command-Line Interface (CLI). The Gemini CLI empowers you to interact with Google's advanced Gemini models directly from your terminal, streamlining your development workflows.
 
 ## Overview
 

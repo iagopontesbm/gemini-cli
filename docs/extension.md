@@ -1,6 +1,6 @@
-# Gemini CLI Extensions
+# Gemini CLI Extensions: Customizing and Expanding Functionality
 
-Gemini CLI supports extensions that can be used to configure and extend its functionality.
+Gemini CLI offers a powerful extension mechanism that allows you to configure and significantly extend its capabilities. This document guides you through understanding, creating, and managing extensions to tailor the CLI to your specific needs and integrate with custom tools or workflows.
 
 ## How it works
 

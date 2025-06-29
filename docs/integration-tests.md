@@ -130,9 +130,9 @@ This structure makes it easy to locate the artifacts for a specific test run, fi
             └── ...other test artifacts...
 ```
 
-## Continuous integration
+## Continuous Integration
 
-To ensure the integration tests are always run, a GitHub Actions workflow is defined in `.github/workflows/e2e.yml`. This workflow automatically runs the integration tests on every pull request and push to the `main` branch.
+Continuous Integration (CI) is vital for maintaining code quality and ensuring that new changes do not introduce regressions. A dedicated GitHub Actions workflow, defined in `.github/workflows/e2e.yml`, automatically runs the integration tests on every pull request and push to the `main` branch.
 
 The workflow runs the tests in different sandboxing environments to ensure Gemini CLI is tested across each:
 

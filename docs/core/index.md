@@ -45,10 +45,8 @@ If you are using the default "pro" model and the CLI detects that you are being 
 
 The file discovery service is responsible for finding files in the project that are relevant to the current context. It is used by the `@` command and other tools that need to access files.
 
-## Memory discovery service
+## Memory Discovery Service
 
-The memory discovery service is responsible for finding and loading the `GEMINI.md` files that provide context to the model. It searches for these files in a hierarchical manner, starting from the current working directory and moving up to the project root and the user's home directory. It also searches in subdirectories.
+This service is dedicated to finding and loading `GEMINI.md` files, which provide crucial instructional context to the Gemini model. It employs a hierarchical search, starting from the current working directory and extending up to the project root and the user's home directory, as well as scanning subdirectories. This ensures that global, project-level, and component-level context files are all combined to provide the model with the most relevant and layered information.
 
-This allows you to have global, project-level, and component-level context files, which are all combined to provide the model with the most relevant information.
-
-You can use the [`/memory` command](../cli/commands.md) to `show`, `add`, and `refresh` the content of loaded `GEMINI.md` files.
+You can manage this hierarchical memory using the [`/memory` command](../cli/commands.md) to `show`, `add`, and `refresh` the content of loaded `GEMINI.md` files.

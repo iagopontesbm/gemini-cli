@@ -49,6 +49,18 @@ A typical interaction with the Gemini CLI follows this flow:
 
 ## Key Design Principles
 
-- **Modularity:** Separating the CLI (frontend) from the Core (backend) allows for independent development and potential future extensions (e.g., different frontends for the same backend).
-- **Extensibility:** The tool system is designed to be extensible, allowing new capabilities to be added.
-- **User experience:** The CLI focuses on providing a rich and interactive terminal experience.
+- **Modularity:** The clear separation between the CLI (frontend) and Core (backend) packages promotes independent development, easier maintenance, and allows for potential future extensions (e.g., alternative frontends interacting with the same Core logic).
+- **Extensibility:** The robust tool system is designed for easy extension, enabling the addition of new capabilities and integrations with external systems (e.g., via MCP servers).
+- **User Experience (UX):** A primary focus is on delivering a rich, interactive, and intuitive terminal experience, making AI-powered coding assistance seamless and efficient.
+- **Security:** Critical operations, especially those involving file system modifications or shell command execution, are designed with security in mind, often incorporating user confirmation and sandboxing mechanisms to protect the host system.
+
+## Technology Stack
+
+The Gemini CLI is built upon a modern and efficient technology stack, primarily leveraging:
+
+-   **Node.js:** The runtime environment for both the CLI and Core packages.
+-   **TypeScript:** Ensures type safety, improves code quality, and enhances developer productivity across the entire codebase.
+-   **React (with Ink):** Used for building the interactive command-line interface, providing a rich and responsive user experience within the terminal.
+-   **esbuild:** A fast bundler used for packaging the application for distribution and efficient execution.
+-   **Git:** Integrated for version control, especially for features like checkpointing and file filtering.
+-   **Docker/Podman:** Utilized for container-based sandboxing, providing isolated environments for tool execution.
