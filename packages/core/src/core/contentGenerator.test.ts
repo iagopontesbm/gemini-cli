@@ -42,6 +42,7 @@ describe('contentGenerator', () => {
         },
       },
       AuthType.MANUAL_LOGIN_WITH_GOOGLE,
+      undefined, // oauthPort parameter
     );
     expect(generator).toBe(mockGenerator);
   });

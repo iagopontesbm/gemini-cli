@@ -7,6 +7,7 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
+import { shortenUrlWithFallback } from '../../utils/urlShortener.js';
 
 interface ManualAuthInProgressProps {
   authUrl: string;
@@ -20,6 +21,8 @@ export function ManualAuthInProgress({
   onTimeout,
 }: ManualAuthInProgressProps): React.JSX.Element {
   const [timedOut, setTimedOut] = useState(false);
+  const [displayUrl, setDisplayUrl] = useState(authUrl);
+  const [isUrlShortening, setIsUrlShortening] = useState(false);
 
   useInput((_, key) => {
     if (key.escape) {
@@ -35,6 +38,25 @@ export function ManualAuthInProgress({
 
     return () => clearTimeout(timer);
   }, [onTimeout]);
+
+  // Shorten the URL when component mounts
+  useEffect(() => {
+    const shortenAuthUrl = async () => {
+      setIsUrlShortening(true);
+      try {
+        const shortened = await shortenUrlWithFallback(authUrl);
+        setDisplayUrl(shortened);
+      } catch (error) {
+        // If shortening fails, keep the original URL
+        console.warn('Failed to shorten auth URL:', error);
+        setDisplayUrl(authUrl);
+      } finally {
+        setIsUrlShortening(false);
+      }
+    };
+
+    shortenAuthUrl();
+  }, [authUrl]);
 
   if (timedOut) {
     return (
@@ -102,12 +124,33 @@ export function ManualAuthInProgress({
 
       {/* Auth URL displayed outside box for easy copying */}
       <Box marginTop={1}>
-        <Text bold color={Colors.AccentBlue}>Authentication URL (click to select and copy):</Text>
-      </Box>
-      <Box marginTop={1}>
-        <Text color={Colors.AccentBlue} wrap="wrap">
-          {authUrl}
+        <Text bold color={Colors.AccentBlue}>
+          {isUrlShortening ? 'Shortening authentication URL...' : 'Authentication URL (click to select and copy):'}
         </Text>
+      </Box>
+
+      {/* Show shortened URL if available */}
+      {displayUrl !== authUrl && !isUrlShortening && (
+        <Box marginTop={1}>
+          <Text bold color={Colors.AccentGreen}>Shortened URL:</Text>
+          <Box marginTop={1}>
+            <Text color={Colors.AccentBlue} wrap="wrap">
+              {displayUrl}
+            </Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Always show original URL */}
+      <Box marginTop={1}>
+        <Text bold color={Colors.AccentBlue}>
+          {displayUrl !== authUrl && !isUrlShortening ? 'Original URL:' : ''}
+        </Text>
+        <Box marginTop={displayUrl !== authUrl && !isUrlShortening ? 1 : 0}>
+          <Text color={displayUrl !== authUrl && !isUrlShortening ? Colors.Gray : Colors.AccentBlue} wrap="wrap">
+            {displayUrl !== authUrl && !isUrlShortening ? authUrl : (isUrlShortening ? 'Shortening...' : displayUrl)}
+          </Text>
+        </Box>
       </Box>
     </Box>
   );

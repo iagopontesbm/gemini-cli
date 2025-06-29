@@ -14,6 +14,9 @@ import open from 'open';
 import crypto from 'crypto';
 import * as os from 'os';
 
+// Mock fetch for URL shortening
+global.fetch = vi.fn();
+
 vi.mock('os', async (importOriginal) => {
   const os = await importOriginal<typeof import('os')>();
   return {
@@ -35,9 +38,16 @@ describe('oauth2', () => {
       path.join(os.tmpdir(), 'gemini-cli-test-home-'),
     );
     vi.mocked(os.homedir).mockReturnValue(tempHomeDir);
+
+    // Mock URL shortening to return original URL (no shortening for tests)
+    vi.mocked(fetch).mockResolvedValue({
+      ok: false,
+      status: 500,
+    } as Response);
   });
   afterEach(() => {
     fs.rmSync(tempHomeDir, { recursive: true, force: true });
+    vi.clearAllMocks();
   });
 
   it('should perform a web login', async () => {
