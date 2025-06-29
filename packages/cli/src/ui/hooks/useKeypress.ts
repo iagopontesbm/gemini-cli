@@ -200,7 +200,6 @@ export function useKeypress(
         charsToIgnoreRef.current -= key.sequence.length;
         return;
       }
-      }
 
       // Timeout-based detection for single characters and pastes
       keyBufferRef.current.push(key);
