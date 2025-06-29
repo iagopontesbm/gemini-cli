@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { Colors } from '../colors.js';
 import { themeManager, DEFAULT_THEME } from '../themes/theme-manager.js';
@@ -334,12 +334,20 @@ export function ThemeDialog({
       ? availableThemes[selectedThemeIndex].name
       : settings.merged.theme || DEFAULT_THEME.name;
 
-  // Temporarily set the preview theme as active for preview rendering
-  const previousTheme = themeManager.getActiveTheme();
-  const previewThemeObj = themeManager.findThemeByName(previewThemeName);
-  if (previewThemeObj) {
-    themeManager.setActiveTheme(previewThemeName);
-  }
+  // useEffect to handle preview theme switching and restoration
+  useEffect(() => {
+    const previousTheme = themeManager.getActiveTheme();
+    const previewThemeObj = themeManager.findThemeByName(previewThemeName);
+    if (previewThemeObj) {
+      themeManager.setActiveTheme(previewThemeName);
+    }
+    return () => {
+      // Restore the previous theme if it was changed
+      if (previousTheme && previousTheme.name !== previewThemeName) {
+        themeManager.setActiveTheme(previousTheme.name);
+      }
+    };
+  }, [previewThemeName]);
 
   const selectedTheme = availableThemes[selectedThemeIndex];
   let themeInstructions = '';
@@ -444,14 +452,6 @@ export function ThemeDialog({
           {showScopeSelection ? ', Tab to change focus' : ''})
         </Text>
       </Box>
-      {/* After rendering the preview, restore the previous active theme */}
-      {previousTheme && previousTheme.name !== previewThemeName && (
-        <Box marginTop={1}>
-          <Text color={Colors.Gray}>
-            Restored previous active theme: {previousTheme.name}
-          </Text>
-        </Box>
-      )}
     </Box>
   );
 }
