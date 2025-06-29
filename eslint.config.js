@@ -27,7 +27,7 @@ const projectRoot = __dirname;
 export default [
   {
     languageOptions: {
-      parser: parser,
+      parser: tseslint.parser,
       parserOptions: {
         project: [
           './tsconfig.json',
@@ -39,7 +39,7 @@ export default [
       },
     },
     plugins: {
-      '@typescript-eslint': plugin,
+      '@typescript-eslint': tseslint.plugin,
     },
   },
   {
@@ -235,4 +235,4 @@ export default [
       ],
     },
   },
-);
+];

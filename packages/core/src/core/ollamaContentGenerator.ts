@@ -16,8 +16,9 @@ import {
   ContentGenerator,
   ContentGeneratorConfig,
 } from './contentGenerator.js';
+import { InferenceProvider } from './inferenceProvider.js';
 
-export class OllamaContentGenerator implements ContentGenerator {
+export class OllamaApiProvider implements ContentGenerator, InferenceProvider {
   private readonly baseUrl: string;
   private readonly model: string;
 
@@ -39,7 +40,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       },
       body: JSON.stringify({
         model: this.model,
-        prompt: request.contents[0].parts[0].text, // Assuming single text part for simplicity
+        prompt: this.extractPromptFromRequest(request), // Extract text properly
         stream: false,
       }),
     });
@@ -50,6 +51,7 @@ export class OllamaContentGenerator implements ContentGenerator {
 
     const data = await response.json();
     return {
+      text: data.response,
       candidates: [
         {
           content: {
@@ -58,12 +60,14 @@ export class OllamaContentGenerator implements ContentGenerator {
           },
         },
       ],
-    };
+    } as GenerateContentResponse;
   }
 
   async generateContentStream(
     request: GenerateContentParameters,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
+    const prompt = this.extractPromptFromRequest(request);
+    
     const response = await fetch(`${this.baseUrl}/api/generate`, {
       method: 'POST',
       headers: {
@@ -71,7 +75,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       },
       body: JSON.stringify({
         model: this.model,
-        prompt: request.contents[0].parts[0].text,
+        prompt,
         stream: true,
       }),
     });
@@ -103,6 +107,7 @@ export class OllamaContentGenerator implements ContentGenerator {
               const data = JSON.parse(line);
               if (data.response) {
                 yield {
+                  text: data.response,
                   candidates: [
                     {
                       content: {
@@ -111,7 +116,7 @@ export class OllamaContentGenerator implements ContentGenerator {
                       },
                     },
                   ],
-                };
+                } as GenerateContentResponse;
               }
             } catch (e) {
               console.error('Error parsing Ollama stream line:', e);
@@ -133,9 +138,7 @@ export class OllamaContentGenerator implements ContentGenerator {
   ): Promise<CountTokensResponse> {
     // Ollama does not have a direct token counting API, so we'll estimate or return a placeholder.
     // For a more accurate count, you'd need to integrate with a tokenizer library compatible with Ollama's models.
-    const text = request.contents
-      .map((c) => c.parts.map((p) => ('text' in p ? p.text : '')).join(''))
-      .join('');
+    const text = this.extractPromptFromRequest(request);
     const estimatedTokens = Math.ceil(text.length / 4); // Rough estimate: 1 token ~ 4 characters
     return { totalTokens: estimatedTokens };
   }
@@ -150,7 +153,7 @@ export class OllamaContentGenerator implements ContentGenerator {
       },
       body: JSON.stringify({
         model: this.model,
-        prompt: request.content.parts[0].text, // Assuming single text part
+        prompt: this.extractPromptFromRequest(request), // Extract text properly
       }),
     });
 
@@ -162,7 +165,7 @@ export class OllamaContentGenerator implements ContentGenerator {
     return {
       embeddings: [
         {
-          value: data.embedding,
+          values: data.embedding,
         },
       ],
     };
@@ -175,5 +178,19 @@ export class OllamaContentGenerator implements ContentGenerator {
     }
     const data = await response.json();
     return data.models.map((model: { name: string }) => model.name);
+  }
+
+  private extractPromptFromRequest(request: GenerateContentParameters | CountTokensParameters | EmbedContentParameters): string {
+    // Extract text from the request structure
+    if ('contents' in request && request.contents && Array.isArray(request.contents) && request.contents.length > 0) {
+      const content = request.contents[0];
+      if (content && typeof content === 'object' && 'parts' in content && content.parts && Array.isArray(content.parts) && content.parts.length > 0) {
+        const part = content.parts[0];
+        if (part && typeof part === 'object' && 'text' in part && typeof part.text === 'string') {
+          return part.text;
+        }
+      }
+    }
+    return '';
   }
 }

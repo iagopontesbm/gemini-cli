@@ -14,8 +14,10 @@ import {
   GoogleGenAI,
 } from '@google/genai';
 import { createCodeAssistContentGenerator } from '../code_assist/codeAssist.js';
-import { OllamaContentGenerator } from './ollamaContentGenerator.js';
+import { OllamaApiProvider } from './ollamaContentGenerator.js';
 import { GoogleGenAIGenerator } from './googleGenAIGenerator.js';
+import { GeminiApiProvider } from './geminiApiProvider.js';
+import { InferenceProvider } from './inferenceProvider.js';
 import { DEFAULT_GEMINI_MODEL } from '../config/models.js';
 import { getEffectiveModel } from './modelCheck.js';
 
@@ -117,6 +119,29 @@ export async function createContentGeneratorConfig(
   return contentGeneratorConfig;
 }
 
+/**
+ * Creates an InferenceProvider instance based on the configuration.
+ * This provides the abstraction layer for pluggable inference backends.
+ */
+export async function createInferenceProvider(
+  config: ContentGeneratorConfig,
+): Promise<InferenceProvider> {
+  if (config.authType === AuthType.USE_OLLAMA) {
+    return new OllamaApiProvider(config);
+  }
+
+  if (
+    config.authType === AuthType.USE_GEMINI ||
+    config.authType === AuthType.USE_VERTEX_AI
+  ) {
+    return new GeminiApiProvider(config);
+  }
+
+  throw new Error(
+    `Error creating InferenceProvider: Unsupported authType: ${config.authType}`,
+  );
+}
+
 export async function createContentGenerator(
   config: ContentGeneratorConfig,
 ): Promise<ContentGenerator> {
@@ -144,7 +169,7 @@ export async function createContentGenerator(
   }
 
   if (config.authType === AuthType.USE_OLLAMA) {
-    return new OllamaContentGenerator(config);
+    return new OllamaApiProvider(config);
   }
 
   throw new Error(
