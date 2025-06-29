@@ -55,18 +55,21 @@ export const copyToClipboard = async (text: string): Promise<void> => {
     case 'linux':
       try {
         await run('xclip', ['-selection', 'clipboard']);
-      } catch (error) {
-        console.error(error);
+      } catch (primaryError) {
         try {
           // If xclip fails for any reason, try xsel as a fallback.
           await run('xsel', ['--clipboard', '--input']);
         } catch (fallbackError) {
-          const message =
+          const primaryMsg =
+            primaryError instanceof Error
+              ? primaryError.message
+              : String(primaryError);
+          const fallbackMsg =
             fallbackError instanceof Error
               ? fallbackError.message
               : String(fallbackError);
           throw new Error(
-            `Error: Failed to copy. Please ensure xclip or xsel is installed. ${message}`,
+            `All copy commands failed. xclip: "${primaryMsg}", xsel: "${fallbackMsg}". Please ensure xclip or xsel is installed and configured.`,
           );
         }
       }
