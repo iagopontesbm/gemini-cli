@@ -99,8 +99,8 @@ function isSensitiveValue(value: string): boolean {
 /**
  * Recursively redacts sensitive information from an object
  */
-function redactObject(obj: unknown, depth = 0): unknown {
-  // Prevent infinite recursion
+function redactObject(obj: unknown, depth = 0, seen = new WeakSet<object>()): unknown {
+  // Prevent infinite recursion from very deep (but not circular) objects
   if (depth > 10) {
     return '[MAX_DEPTH_REACHED]';
   }
@@ -109,9 +109,17 @@ function redactObject(obj: unknown, depth = 0): unknown {
     return obj;
   }
 
+  // Use WeakSet to detect and handle circular references
+  if (typeof obj === 'object') {
+    if (seen.has(obj)) {
+      return '[CIRCULAR]';
+    }
+    seen.add(obj);
+  }
+
   // Handle arrays
   if (Array.isArray(obj)) {
-    return obj.map(item => redactObject(item, depth + 1));
+    return obj.map(item => redactObject(item, depth + 1, seen));
   }
 
   // Handle primitives
@@ -131,7 +139,7 @@ function redactObject(obj: unknown, depth = 0): unknown {
     } else if (typeof value === 'string' && isSensitiveValue(value)) {
       result[key] = REDACTED_VALUE;
     } else {
-      result[key] = redactObject(value, depth + 1);
+      result[key] = redactObject(value, depth + 1, seen);
     }
   }
 
