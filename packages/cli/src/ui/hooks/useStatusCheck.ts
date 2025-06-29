@@ -69,10 +69,11 @@ export const useStatusCheck = (
   }, []);
 
   useEffect(() => {
+    setConnectivity('pending');
+    setError(null);
+    setIsComplete(false);
+
     if (!enabled) {
-      setConnectivity('pending');
-      setError(null);
-      setIsComplete(false);
       return;
     }
 
