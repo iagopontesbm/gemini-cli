@@ -169,13 +169,6 @@ export function useKeypress(
               pasteTimeoutRef.current = null;
             }
           } else {
-            // Check for non-paste escape sequences (e.g., arrow keys)
-            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
-            if (nonPasteSequences.some(seq => remainingInput.startsWith(seq))) {
-              resetPasteState();
-              break; // Let readline handle the input
-            }
-
             pasteBufferRef.current += remainingInput;
             break; // Wait for the next data chunk for the end marker
           }
