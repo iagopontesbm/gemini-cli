@@ -141,6 +141,7 @@ export class GeminiChat {
     private readonly contentGenerator: ContentGenerator,
     private readonly generationConfig: GenerateContentConfig = {},
     private history: Content[] = [],
+    private readonly getCircuitBreaker?: (authType: string) => CircuitBreaker,
   ) {
     validateHistory(history);
   }
@@ -181,6 +182,12 @@ export class GeminiChat {
     const authType = this.config.getContentGeneratorConfig()?.authType;
     if (!authType) return undefined;
 
+    // Use the provided circuit breaker function if available
+    if (this.getCircuitBreaker) {
+      return this.getCircuitBreaker(authType);
+    }
+
+    // Fallback to creating our own (for backwards compatibility)
     if (!this.circuitBreakers.has(authType)) {
       const circuitBreakerConfig = this.config.getCircuitBreakerConfig();
       const circuitBreaker = new CircuitBreaker(authType, circuitBreakerConfig);
