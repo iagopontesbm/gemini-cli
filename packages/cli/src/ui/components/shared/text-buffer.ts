@@ -416,20 +416,20 @@ export function useTextBuffer({
   const [cursorRow, setCursorRow] = useState<number>(initialCursorRow);
   const [cursorCol, setCursorCol] = useState<number>(initialCursorCol);
   const [preferredCol, setPreferredCol] = useState<number | null>(null); // Visual preferred col
-  
+
   // Refs to access the latest state values in callbacks
   const linesRef = useRef(lines);
   const cursorRowRef = useRef(cursorRow);
   const cursorColRef = useRef(cursorCol);
-  
+
   useEffect(() => {
     linesRef.current = lines;
   }, [lines]);
-  
+
   useEffect(() => {
     cursorRowRef.current = cursorRow;
   }, [cursorRow]);
-  
+
   useEffect(() => {
     cursorColRef.current = cursorCol;
   }, [cursorCol]);
@@ -596,7 +596,8 @@ export function useTextBuffer({
         if (op.type === 'insert') {
           let currentText = '';
           for (const char of toCodePoints(op.payload)) {
-            if (char.codePointAt(0) === 127) { // \x7f
+            if (char.codePointAt(0) === 127) {
+              // \x7f
               if (currentText.length > 0) {
                 expandedOps.push({ type: 'insert', payload: currentText });
                 currentText = '';
@@ -679,7 +680,7 @@ export function useTextBuffer({
       setCursorRow(newCursorRow);
       setCursorCol(newCursorCol);
       setPreferredCol(null);
-      
+
       // Update refs immediately
       linesRef.current = newLines;
       cursorRowRef.current = newCursorRow;
