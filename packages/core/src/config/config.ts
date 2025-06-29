@@ -39,6 +39,10 @@ import {
   StartSessionEvent,
 } from '../telemetry/index.js';
 import {
+  CircuitBreakerConfig,
+  DEFAULT_CIRCUIT_BREAKER_CONFIG,
+} from '../utils/retry.js';
+import {
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   DEFAULT_GEMINI_FLASH_MODEL,
 } from './models.js';
@@ -129,6 +133,7 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  circuitBreaker?: CircuitBreakerConfig;
 }
 
 export class Config {
@@ -168,6 +173,7 @@ export class Config {
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
   private modelSwitchedDuringSession: boolean = false;
+  private readonly circuitBreakerConfig: CircuitBreakerConfig;
   flashFallbackHandler?: FlashFallbackHandler;
 
   constructor(params: ConfigParameters) {
@@ -210,6 +216,10 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    this.circuitBreakerConfig = {
+      ...DEFAULT_CIRCUIT_BREAKER_CONFIG,
+      ...params.circuitBreaker,
+    };
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -450,6 +460,10 @@ export class Config {
       await this.gitService.initialize();
     }
     return this.gitService;
+  }
+
+  getCircuitBreakerConfig(): CircuitBreakerConfig {
+    return this.circuitBreakerConfig;
   }
 }
 
