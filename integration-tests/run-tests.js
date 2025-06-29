@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { spawnSync, spawn } from 'child_process';
+import { spawnSync } from 'child_process';
+import { spawn } from 'child_process';
 import { mkdirSync, rmSync, createWriteStream } from 'fs';
 import { join, dirname, basename } from 'path';
 import { fileURLToPath } from 'url';

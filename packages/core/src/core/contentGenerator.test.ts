@@ -13,7 +13,7 @@ vi.mock('../code_assist/codeAssist.js');
 vi.mock('@google/genai');
 
 describe('contentGenerator', () => {
-  it('should create a CodeAssistContentGenerator', async () => {
+  it('should create a CodeAssistContentGenerator for regular Google login', async () => {
     const mockGenerator = {} as unknown;
     vi.mocked(createCodeAssistContentGenerator).mockResolvedValue(
       mockGenerator as never,
@@ -23,6 +23,27 @@ describe('contentGenerator', () => {
       authType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
     });
     expect(createCodeAssistContentGenerator).toHaveBeenCalled();
+    expect(generator).toBe(mockGenerator);
+  });
+
+  it('should create a CodeAssistContentGenerator for manual Google login', async () => {
+    const mockGenerator = {} as unknown;
+    vi.mocked(createCodeAssistContentGenerator).mockResolvedValue(
+      mockGenerator as never,
+    );
+    const generator = await createContentGenerator({
+      model: 'test-model',
+      authType: AuthType.MANUAL_LOGIN_WITH_GOOGLE,
+    });
+    expect(createCodeAssistContentGenerator).toHaveBeenCalledWith(
+      {
+        headers: {
+          'User-Agent': expect.any(String),
+        },
+      },
+      AuthType.MANUAL_LOGIN_WITH_GOOGLE,
+      undefined, // oauthPort parameter
+    );
     expect(generator).toBe(mockGenerator);
   });
 
