@@ -1,7 +1,7 @@
 /**
  * @license
  * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-License-Identifier: Apache-2.0
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -76,9 +76,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle single keypress', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const keypressListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'keypress',
@@ -108,9 +106,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle bracketed paste with valid content', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -133,9 +129,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle pasted content containing escape sequences', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -159,9 +153,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle unterminated paste with timeout', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -194,9 +186,7 @@ describe('useKeypress Hook', () => {
         return originalWrite(data);
       });
 
-      const { result } = renderHook(() =>
-        useKeypress(onKeypress, { isActive: true }),
-      );
+      renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
       const keypressListener = mockStdin.prependListener.mock.calls.find(
         (call) => call[0] === 'keypress',
@@ -236,9 +226,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should ignore keypress events for multi-character paste after bracketed paste', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -282,9 +270,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle bracketed paste with nested paste-end marker', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -305,6 +291,7 @@ describe('useKeypress Hook', () => {
       sequence: 'text',
     });
 
+    // The logic processes the second part as a new paste
     expect(onKeypress).toHaveBeenCalledWith({
       name: '',
       ctrl: false,
@@ -316,9 +303,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should reset paste state on non-paste escape sequence', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -332,8 +317,10 @@ describe('useKeypress Hook', () => {
 
     act(() => {
       dataListener(Buffer.from('\x1b[200~Partial paste'));
+      // This will now be treated as regular input inside the paste
       dataListener(Buffer.from('\x1b[A'));
-      vi.advanceTimersByTime(50); // Max input delay
+      // Timeout will fire and commit the paste
+      vi.advanceTimersByTime(1000);
 
       keypressListener(null, {
         name: 'up',
@@ -342,7 +329,7 @@ describe('useKeypress Hook', () => {
         shift: false,
         sequence: '\x1b[A',
       });
-      vi.advanceTimersByTime(50); // Max input delay
+      vi.advanceTimersByTime(50); // Max input delay for the single keypress
     });
 
     expect(onKeypress).toHaveBeenCalledWith({
@@ -351,7 +338,7 @@ describe('useKeypress Hook', () => {
       meta: false,
       shift: false,
       paste: true,
-      sequence: 'Partial paste',
+      sequence: 'Partial paste\x1b[A', // The escape is part of the paste
     });
 
     expect(onKeypress).toHaveBeenCalledWith({
@@ -365,9 +352,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle multiple nested paste-end markers', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -406,10 +391,8 @@ describe('useKeypress Hook', () => {
     });
   });
 
-  it('should handle partial paste markers', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+  it('should handle partial paste end markers', async () => {
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -430,26 +413,45 @@ describe('useKeypress Hook', () => {
       paste: true,
       sequence: 'text\x1b[201',
     });
+  });
 
-    act(() => {
-      dataListener(Buffer.from('\x1b[200'));
-      dataListener(Buffer.from('~more\x1b[201~'));
-    });
+  it('should handle partial paste start markers with various split points', async () => {
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
-    expect(onKeypress).toHaveBeenCalledWith({
-      name: '',
-      ctrl: false,
-      meta: false,
-      shift: false,
-      paste: true,
-      sequence: 'more',
-    });
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+
+    const testCases = [
+      ['\x1b', '[200~text\x1b[201~'],
+      ['\x1b[', '200~text\x1b[201~'],
+      ['\x1b[2', '00~text\x1b[201~'],
+      ['\x1b[20', '0~text\x1b[201~'],
+      ['\x1b[200', '~text\x1b[201~'],
+    ];
+
+    for (const [firstChunk, secondChunk] of testCases) {
+      act(() => {
+        onKeypress.mockClear();
+        dataListener(Buffer.from(firstChunk));
+        dataListener(Buffer.from(secondChunk));
+      });
+
+      expect(onKeypress).toHaveBeenCalledWith({
+        name: '',
+        ctrl: false,
+        meta: false,
+        shift: false,
+        paste: true,
+        sequence: 'text',
+      });
+    }
   });
 
   it('should handle keypress after bracketed paste', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',
@@ -498,9 +500,7 @@ describe('useKeypress Hook', () => {
   });
 
   it('should handle new paste within timeout of previous paste', async () => {
-    const { result } = renderHook(() =>
-      useKeypress(onKeypress, { isActive: true }),
-    );
+    renderHook(() => useKeypress(onKeypress, { isActive: true }));
 
     const dataListener = mockStdin.prependListener.mock.calls.find(
       (call) => call[0] === 'data',

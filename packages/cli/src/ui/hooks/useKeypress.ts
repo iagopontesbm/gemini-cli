@@ -1,7 +1,7 @@
 /**
  * @license
  * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-License-Identifier: Apache-2.0
  */
 
 import { useEffect, useRef } from 'react';
@@ -55,7 +55,7 @@ export function useKeypress(
   const pasteBufferRef = useRef<string>('');
   const pasteHandledRef = useRef(false);
   const isBracketedPasteSupportedRef = useRef(false);
-  const partialStartMarkerRef = useRef(false); // Track incomplete \x1b[200
+  const partialStartMarkerRef = useRef<string>(''); // Track incomplete \x1b[200~
 
   useEffect(() => {
     onKeypressRef.current = onKeypress;
@@ -98,6 +98,8 @@ export function useKeypress(
 
     const maxInputDelay = 50; // Milliseconds, for reliable paste detection
     const pasteTimeoutDuration = 1000; // 1 second for unterminated pastes
+    const startMarker = '\x1b[200~';
+    const endMarker = '\x1b[201~';
 
     const handleInput = () => {
       const keys = keyBufferRef.current;
@@ -133,7 +135,7 @@ export function useKeypress(
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
       pasteHandledRef.current = false;
-      partialStartMarkerRef.current = false;
+      partialStartMarkerRef.current = '';
       if (pasteTimeoutRef.current) {
         clearTimeout(pasteTimeoutRef.current);
         pasteTimeoutRef.current = null;
@@ -145,71 +147,19 @@ export function useKeypress(
         return;
       }
 
-      let remainingInput = data.toString();
+      let input = data.toString('utf-8');
 
-      // Check for incomplete start marker from previous chunk
-      if (partialStartMarkerRef.current && remainingInput.startsWith('~')) {
-        isPasteModeRef.current = true;
-        pasteBufferRef.current = '';
-        remainingInput = remainingInput.slice(1); // Skip the '~'
-        pasteTimeoutRef.current = setTimeout(resetPasteState, pasteTimeoutDuration);
+      if (partialStartMarkerRef.current.length > 0) {
+        input = partialStartMarkerRef.current + input;
+        partialStartMarkerRef.current = '';
       }
 
-      while (remainingInput.length > 0) {
+      while (input.length > 0) {
         if (isPasteModeRef.current) {
-          const endMarkerIndex = remainingInput.indexOf('\x1b[201~');
+          const endMarkerIndex = input.indexOf(endMarker);
           if (endMarkerIndex !== -1) {
-            pasteBufferRef.current += remainingInput.slice(0, endMarkerIndex);
+            pasteBufferRef.current += input.slice(0, endMarkerIndex);
 
-            if (pasteBufferRef.current.length > 0) {
-              pasteHandledRef.current = true; // Set before emitting paste
-              onKeypressRef.current({
-                name: '',
-                ctrl: false,
-                meta: false,
-                shift: false,
-                paste: true,
-                sequence: pasteBufferRef.current,
-              });
-              keyBufferRef.current = []; // Clear keypress buffer
-              // Delay reset of pasteHandledRef to suppress concurrent keypress events
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-              }
-              timeoutRef.current = setTimeout(() => {
-                pasteHandledRef.current = false;
-                timeoutRef.current = null;
-              }, maxInputDelay);
-            }
-
-            pasteBufferRef.current = '';
-            isPasteModeRef.current = false;
-            remainingInput = remainingInput.slice(endMarkerIndex + 6);
-            continue;
-          } else {
-            // Check for non-paste escape sequences (e.g., arrow keys) to interrupt paste
-            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
-            if (nonPasteSequences.some((seq) => remainingInput.startsWith(seq))) {
-              resetPasteState();
-              break; // Let readline handle the input
-            }
-
-            pasteBufferRef.current += remainingInput;
-            break; // Wait for the next data chunk
-          }
-        } else {
-          const startMarkerIndex = remainingInput.indexOf('\x1b[200~');
-          if (startMarkerIndex !== -1) {
-            pasteHandledRef.current = true; // Set early to block keypresses
-            isPasteModeRef.current = true;
-            pasteBufferRef.current = '';
-            remainingInput = remainingInput.slice(startMarkerIndex + 6);
-            partialStartMarkerRef.current = false;
-            pasteTimeoutRef.current = setTimeout(resetPasteState, pasteTimeoutDuration);
-            continue;
-          } else if (remainingInput.indexOf('\x1b[201~') !== -1) {
-            const endMarkerIndex = remainingInput.indexOf('\x1b[201~');
-            pasteBufferRef.current = remainingInput.slice(0, endMarkerIndex);
             if (pasteBufferRef.current.length > 0) {
               pasteHandledRef.current = true;
               onKeypressRef.current({
@@ -220,42 +170,91 @@ export function useKeypress(
                 paste: true,
                 sequence: pasteBufferRef.current,
               });
-              keyBufferRef.current = []; // Clear keypress buffer
-              if (timeoutRef.current) {
-                clearTimeout(timeoutRef.current);
-              }
+              keyBufferRef.current = [];
+              if (timeoutRef.current) clearTimeout(timeoutRef.current);
               timeoutRef.current = setTimeout(() => {
                 pasteHandledRef.current = false;
                 timeoutRef.current = null;
               }, maxInputDelay);
             }
-            pasteBufferRef.current = '';
+
             isPasteModeRef.current = false;
-            remainingInput = remainingInput.slice(endMarkerIndex + 6);
-            partialStartMarkerRef.current = false;
-            continue;
-          } else if (remainingInput.startsWith('\x1b[200')) {
-            partialStartMarkerRef.current = true;
-            remainingInput = '';
-            break;
-          } else {
-            // Check for non-paste escape sequences (e.g., arrow keys) outside paste mode
-            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
-            if (nonPasteSequences.some((seq) => remainingInput.startsWith(seq))) {
-              break; // Let readline handle the input
+            pasteBufferRef.current = '';
+            if (pasteTimeoutRef.current) {
+              clearTimeout(pasteTimeoutRef.current);
+              pasteTimeoutRef.current = null;
             }
-            break; // Let readline handle other input
+            input = input.slice(endMarkerIndex + endMarker.length);
+          } else {
+            pasteBufferRef.current += input;
+            input = '';
+          }
+        } else {
+          const startMarkerIndex = input.indexOf(startMarker);
+          const endMarkerIndex = input.indexOf(endMarker);
+
+          if (
+            startMarkerIndex !== -1 &&
+            (endMarkerIndex === -1 || startMarkerIndex < endMarkerIndex)
+          ) {
+            const regularInput = input.slice(0, startMarkerIndex);
+            if (regularInput.length > 0) {
+              onKeypressRef.current({
+                name: '',
+                ctrl: false,
+                meta: false,
+                shift: false,
+                paste: false,
+                sequence: regularInput,
+              });
+            }
+            isPasteModeRef.current = true;
+            pasteBufferRef.current = '';
+            input = input.slice(startMarkerIndex + startMarker.length);
+            pasteTimeoutRef.current = setTimeout(
+              resetPasteState,
+              pasteTimeoutDuration,
+            );
+          } else if (endMarkerIndex !== -1) {
+            const pastedContent = input.slice(0, endMarkerIndex);
+            if (pastedContent.length > 0) {
+              onKeypressRef.current({
+                name: '',
+                ctrl: false,
+                meta: false,
+                shift: false,
+                paste: true,
+                sequence: pastedContent,
+              });
+            }
+            input = input.slice(endMarkerIndex + endMarker.length);
+          } else {
+            if (startMarker.startsWith(input)) {
+              partialStartMarkerRef.current = input;
+              input = '';
+            } else {
+              if (input.length > 0) {
+                onKeypressRef.current({
+                  name: '',
+                  ctrl: false,
+                  meta: false,
+                  shift: false,
+                  paste: false,
+                  sequence: input,
+                });
+              }
+              input = '';
+            }
           }
         }
       }
     };
 
-    const handleKeypress = (_: unknown, key: Key) => {
+    const handleKeypress = (str: string, key: Key) => {
       if (isPasteModeRef.current || pasteHandledRef.current) {
-        return; // Skip keypress events during or immediately after paste
+        return;
       }
 
-      // Timeout-based detection for single characters and pastes
       keyBufferRef.current.push(key);
 
       if (timeoutRef.current) {
@@ -265,7 +264,6 @@ export function useKeypress(
       timeoutRef.current = setTimeout(() => {
         const keys = keyBufferRef.current;
         if (keys.length === 1) {
-          // Single keypress
           const singleKey = keys[0];
           if (singleKey.name === 'return' && singleKey.sequence === '\x1b\r') {
             singleKey.meta = true;
@@ -296,7 +294,6 @@ export function useKeypress(
         }
       }
 
-      // Process any remaining buffered input
       if (isPasteModeRef.current && pasteBufferRef.current.length > 0) {
         onKeypressRef.current({
           name: '',
@@ -312,11 +309,9 @@ export function useKeypress(
 
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
       }
       if (pasteTimeoutRef.current) {
         clearTimeout(pasteTimeoutRef.current);
-        pasteTimeoutRef.current = null;
       }
 
       isPasteModeRef.current = false;
@@ -324,7 +319,7 @@ export function useKeypress(
       keyBufferRef.current = [];
       pasteHandledRef.current = false;
       isBracketedPasteSupportedRef.current = false;
-      partialStartMarkerRef.current = false;
+      partialStartMarkerRef.current = '';
     };
   }, [isActive, stdin, setRawMode]);
 }
