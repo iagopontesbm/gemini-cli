@@ -29,10 +29,10 @@ export interface Key {
  * Pasted content is sent as a single key event with the full paste in the
  * sequence field and paste set to true. Special keys (e.g., arrow keys) are
  * handled correctly via readline, ensuring terminal functionality is preserved.
- * Robustly handles edge cases like split paste chunks, malformed sequences, and
- * nested paste markers (treated as paste content). Includes a 1-second timeout
- * to reset paste state for unterminated paste sequences, preventing memory
- * accumulation and state corruption.
+ * Robustly handles edge cases like split paste chunks and unterminated sequences
+ * (via a 1-second timeout). Embedded paste-end markers (\x1b[201~) in pasted
+ * content terminate the paste, per terminal protocol behavior, and subsequent
+ * content is treated as a new paste if followed by another end marker.
  *
  * @param onKeypress - The callback function to execute on each keypress or paste.
  * @param options - Options to control the hook's behavior.
@@ -49,7 +49,7 @@ export function useKeypress(
   const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPasteModeRef = useRef(false);
   const pasteBufferRef = useRef<string>('');
-  const charsToIgnoreRef = useRef(0);
+  const pasteHandledRef = useRef(false);
   const isBracketedPasteSupportedRef = useRef(false);
 
   useEffect(() => {
@@ -112,6 +112,7 @@ export function useKeypress(
 
       keyBufferRef.current = [];
       timeoutRef.current = null;
+      pasteHandledRef.current = false; // Reset after paste processing
     };
 
     const resetPasteState = () => {
@@ -128,7 +129,7 @@ export function useKeypress(
       }
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
-      charsToIgnoreRef.current = 0;
+      pasteHandledRef.current = false;
       if (pasteTimeoutRef.current) {
         clearTimeout(pasteTimeoutRef.current);
         pasteTimeoutRef.current = null;
@@ -149,7 +150,7 @@ export function useKeypress(
             pasteBufferRef.current += remainingInput.slice(0, endMarkerIndex);
 
             if (pasteBufferRef.current.length > 0) {
-              charsToIgnoreRef.current = pasteBufferRef.current.length;
+              pasteHandledRef.current = true;
               onKeypressRef.current({
                 name: '',
                 ctrl: false,
@@ -168,20 +169,51 @@ export function useKeypress(
               clearTimeout(pasteTimeoutRef.current);
               pasteTimeoutRef.current = null;
             }
+            // Continue processing remaining input
+            continue;
           } else {
+            // Check for non-paste escape sequences (e.g., arrow keys)
+            const nonPasteSequences = ['\x1b[A', '\x1b[B', '\x1b[C', '\x1b[D'];
+            if (nonPasteSequences.some(seq => remainingInput.startsWith(seq))) {
+              resetPasteState();
+              break; // Let readline handle the input
+            }
+
             pasteBufferRef.current += remainingInput;
             break; // Wait for the next data chunk for the end marker
           }
         } else {
-          if (remainingInput.startsWith('\x1b[200~')) {
+          const startMarkerIndex = remainingInput.indexOf('\x1b[200~');
+          if (startMarkerIndex !== -1) {
+            // Start a new paste from the marker
             isPasteModeRef.current = true;
             pasteBufferRef.current = '';
-            remainingInput = remainingInput.slice(6);
-            // Start timeout for unterminated paste
+            remainingInput = remainingInput.slice(startMarkerIndex + 6);
             pasteTimeoutRef.current = setTimeout(resetPasteState, pasteTimeoutDuration);
+            continue;
+          } else if (remainingInput.indexOf('\x1b[201~') !== -1) {
+            // Treat content before an end marker as a paste if no start marker
+            const endMarkerIndex = remainingInput.indexOf('\x1b[201~');
+            pasteBufferRef.current = remainingInput.slice(0, endMarkerIndex);
+            if (pasteBufferRef.current.length > 0) {
+              pasteHandledRef.current = true;
+              onKeypressRef.current({
+                name: '',
+                ctrl: false,
+                meta: false,
+                shift: false,
+                paste: true,
+                sequence: pasteBufferRef.current,
+              });
+              keyBufferRef.current = []; // Clear keypress buffer
+            }
+            pasteBufferRef.current = '';
+            isPasteModeRef.current = false;
+            remainingInput = remainingInput.slice(endMarkerIndex + 6);
+            pasteTimeoutRef.current = setTimeout(resetPasteState, pasteTimeoutDuration);
+            continue;
           } else {
-            // Not in paste mode and doesn't start with a paste marker.
-            // Let readline handle this data.
+            // Not in paste mode and no paste marker; let readline handle it
             break;
           }
         }
@@ -189,15 +221,8 @@ export function useKeypress(
     };
 
     const handleKeypress = (_: unknown, key: Key) => {
-      if (isPasteModeRef.current) {
-        // While in bracketed paste mode, all input is handled by `handleRawData`.
-        return;
-      }
-
-      if (charsToIgnoreRef.current > 0) {
-        // This keypress is from a paste that was already handled by `handleRawData`.
-        // We decrement the counter by the length of the key's sequence and ignore the keypress.
-        charsToIgnoreRef.current -= key.sequence.length;
+      if (isPasteModeRef.current || pasteHandledRef.current) {
+        // Skip processing if in bracketed paste mode or paste was handled by raw data
         return;
       }
 
@@ -219,6 +244,7 @@ export function useKeypress(
           onKeypressRef.current({ ...singleKey, paste: false });
           keyBufferRef.current = [];
           timeoutRef.current = null;
+          pasteHandledRef.current = false; // Reset after single keypress
         } else {
           handleInput();
         }
@@ -269,7 +295,7 @@ export function useKeypress(
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
       keyBufferRef.current = [];
-      charsToIgnoreRef.current = 0;
+      pasteHandledRef.current = false;
       isBracketedPasteSupportedRef.current = false;
     };
   }, [isActive, stdin, setRawMode]);
