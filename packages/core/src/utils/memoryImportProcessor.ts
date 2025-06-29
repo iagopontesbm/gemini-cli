@@ -58,9 +58,9 @@ export async function processImports(
     return content;
   }
 
-  // Regex to match @path/to/file.md imports
+  // Regex to match @path/to/file imports (supports any file extension)
   // Supports both @path/to/file.md and @./path/to/file.md syntax
-  const importRegex = /@([./]?[^\s\n]+\.md)/g;
+  const importRegex = /@([./]?[^\s\n]+\.[^\s\n]+)/g;
 
   let processedContent = content;
   let match: RegExpExecArray | null;
@@ -68,6 +68,29 @@ export async function processImports(
   // Process all imports in the content
   while ((match = importRegex.exec(content)) !== null) {
     const importPath = match[1];
+
+    // Validate import path to prevent path traversal attacks
+    if (!validateImportPath(importPath, basePath, [basePath])) {
+      processedContent = processedContent.replace(
+        match[0],
+        `<!-- Import failed: ${importPath} - Path traversal attempt -->`,
+      );
+      continue;
+    }
+
+    // Check if the import is for a non-md file and warn
+    if (!importPath.endsWith('.md')) {
+      logger.warn(
+        `Import processor only supports .md files. Attempting to import non-md file: ${importPath}. This will fail.`,
+      );
+      // Replace the import with a warning comment
+      processedContent = processedContent.replace(
+        match[0],
+        `<!-- Import failed: ${importPath} - Only .md files are supported -->`,
+      );
+      continue;
+    }
+
     const fullPath = path.resolve(basePath, importPath);
 
     if (debugMode) {
@@ -98,6 +121,23 @@ export async function processImports(
         `<!-- File already processed: ${importPath} -->`,
       );
       continue;
+    }
+
+    // Check for potential circular imports by looking at the import chain
+    if (importState.currentFile) {
+      const currentFileDir = path.dirname(importState.currentFile);
+      const potentialCircularPath = path.resolve(currentFileDir, importPath);
+      if (potentialCircularPath === importState.currentFile) {
+        if (debugMode) {
+          logger.warn(`Circular import detected: ${importPath}`);
+        }
+        // Replace the import with a warning comment
+        processedContent = processedContent.replace(
+          match[0],
+          `<!-- Circular import detected: ${importPath} -->`,
+        );
+        continue;
+      }
     }
 
     try {
@@ -167,19 +207,8 @@ export function validateImportPath(
 
   const resolvedPath = path.resolve(basePath, importPath);
 
-  // Reject absolute paths not within allowed directories
-  if (path.isAbsolute(importPath)) {
-    return allowedDirectories.some((allowedDir) => {
-      const normalizedAllowedDir = path.resolve(allowedDir);
-      const normalizedResolvedPath = path.resolve(resolvedPath);
-      return normalizedResolvedPath.startsWith(normalizedAllowedDir);
-    });
-  }
-
-  // For relative paths, check if resolved path is within allowed directories
   return allowedDirectories.some((allowedDir) => {
     const normalizedAllowedDir = path.resolve(allowedDir);
-    const normalizedResolvedPath = path.resolve(resolvedPath);
-    return normalizedResolvedPath.startsWith(normalizedAllowedDir);
+    return resolvedPath.startsWith(normalizedAllowedDir);
   });
 }

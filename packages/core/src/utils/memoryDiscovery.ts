@@ -14,7 +14,7 @@ import {
   getAllGeminiMdFilenames,
 } from '../tools/memoryTool.js';
 import { FileDiscoveryService } from '../services/fileDiscoveryService.js';
-import { processImports } from './importProcessor.js';
+import { processImports } from './memoryImportProcessor.js';
 
 // Simple console logger, similar to the one previously in CLI's config.ts
 // TODO: Integrate with a more robust server-side logger if available/appropriate.
