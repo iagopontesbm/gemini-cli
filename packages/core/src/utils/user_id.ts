@@ -58,24 +58,24 @@ export function getInstallationId(): string {
 }
 
 /**
- * Retrieves the obfuscated GAIA ID for the currently authenticated user.
- * When OAuth is available, returns the user's cached GAIA ID. Otherwise, returns the installation ID.
- * @returns A string ID for the user (GAIA ID if available, otherwise installation ID).
+ * Retrieves the obfuscated Google Account ID for the currently authenticated user.
+ * When OAuth is available, returns the user's cached Google Account ID. Otherwise, returns the installation ID.
+ * @returns A string ID for the user (Google Account ID if available, otherwise installation ID).
  */
-export function getObfuscatedGaiaId(): string {
-  // Try to get cached GAIA ID first
+export function getObfuscatedGoogleAccountId(): string {
+  // Try to get cached Google Account ID first
   try {
     // Dynamically import to avoid circular dependencies
     // eslint-disable-next-line @typescript-eslint/no-require-imports, no-restricted-syntax
-    const { getCachedGaiaId } = require('../code_assist/oauth2.js');
-    const gaiaId = getCachedGaiaId();
-    if (gaiaId) {
-      return gaiaId;
+    const { getCachedGoogleAccountId } = require('../code_assist/oauth2.js');
+    const googleAccountId = getCachedGoogleAccountId();
+    if (googleAccountId) {
+      return googleAccountId;
     }
   } catch (_error) {
-    // If there's any error accessing GAIA ID, fall back to installation ID
+    // If there's any error accessing Google Account ID, fall back to installation ID
   }
 
-  // Fall back to installation ID when no GAIA ID is cached or on error
+  // Fall back to installation ID when no Google Account ID is cached or on error
   return getInstallationId();
 }

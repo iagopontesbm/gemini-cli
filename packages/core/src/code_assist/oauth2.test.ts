@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { getOauthClient, getCachedGaiaId } from './oauth2.js';
+import { getOauthClient, getCachedGoogleAccountId } from './oauth2.js';
 import { OAuth2Client } from 'google-auth-library';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -73,7 +73,7 @@ describe('oauth2', () => {
     // Mock the UserInfo API response
     vi.mocked(global.fetch).mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue({ id: 'test-gaia-id-123' }),
+      json: vi.fn().mockResolvedValue({ id: 'test-google-account-id-123' }),
     } as unknown as Response);
 
     let requestCallback!: http.RequestListener<
@@ -140,13 +140,17 @@ describe('oauth2', () => {
     const tokenData = JSON.parse(fs.readFileSync(tokenPath, 'utf-8'));
     expect(tokenData).toEqual(mockTokens);
 
-    // Verify GAIA ID was cached
-    const gaiaIdPath = path.join(tempHomeDir, '.gemini', 'gaia_id');
-    expect(fs.existsSync(gaiaIdPath)).toBe(true);
-    const cachedGaiaId = fs.readFileSync(gaiaIdPath, 'utf-8');
-    expect(cachedGaiaId).toBe('test-gaia-id-123');
+    // Verify Google Account ID was cached
+    const googleAccountIdPath = path.join(
+      tempHomeDir,
+      '.gemini',
+      'google_account_id',
+    );
+    expect(fs.existsSync(googleAccountIdPath)).toBe(true);
+    const cachedGoogleAccountId = fs.readFileSync(googleAccountIdPath, 'utf-8');
+    expect(cachedGoogleAccountId).toBe('test-google-account-id-123');
 
-    // Verify the getCachedGaiaId function works
-    expect(getCachedGaiaId()).toBe('test-gaia-id-123');
+    // Verify the getCachedGoogleAccountId function works
+    expect(getCachedGoogleAccountId()).toBe('test-google-account-id-123');
   });
 });

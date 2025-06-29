@@ -41,7 +41,7 @@ const SIGN_IN_FAILURE_URL =
 
 const GEMINI_DIR = '.gemini';
 const CREDENTIAL_FILENAME = 'oauth_creds.json';
-const GAIA_ID_FILENAME = 'gaia_id';
+const GOOGLE_ACCOUNT_ID_FILENAME = 'google_account_id';
 
 /**
  * An Authentication URL for updating the credentials of a Oauth2Client
@@ -61,16 +61,16 @@ export async function getOauthClient(): Promise<OAuth2Client> {
 
   if (await loadCachedCredentials(client)) {
     // Found valid cached credentials.
-    // Check if we need to retrieve GAIA ID
-    if (!getCachedGaiaId()) {
+    // Check if we need to retrieve Google Account ID
+    if (!getCachedGoogleAccountId()) {
       try {
-        const gaiaId = await getGaiaId(client);
-        if (gaiaId) {
-          await cacheGaiaId(gaiaId);
+        const googleAccountId = await getGoogleAccountId(client);
+        if (googleAccountId) {
+          await cacheGoogleAccountId(googleAccountId);
         }
       } catch (error) {
         console.error(
-          'Failed to retrieve GAIA ID for existing credentials:',
+          'Failed to retrieve Google Account ID for existing credentials:',
           error,
         );
         // Continue with existing auth flow
@@ -132,18 +132,18 @@ async function authWithWeb(client: OAuth2Client): Promise<OauthWebLogin> {
           client.setCredentials(tokens);
           await cacheCredentials(client.credentials);
 
-          // Retrieve and cache GAIA ID during authentication
+          // Retrieve and cache Google Account ID during authentication
           try {
-            const gaiaId = await getGaiaId(client);
-            if (gaiaId) {
-              await cacheGaiaId(gaiaId);
+            const googleAccountId = await getGoogleAccountId(client);
+            if (googleAccountId) {
+              await cacheGoogleAccountId(googleAccountId);
             }
           } catch (error) {
             console.error(
-              'Failed to retrieve GAIA ID during authentication:',
+              'Failed to retrieve Google Account ID during authentication:',
               error,
             );
-            // Don't fail the auth flow if GAIA ID retrieval fails
+            // Don't fail the auth flow if Google Account ID retrieval fails
           }
 
           res.writeHead(HTTP_REDIRECT, { Location: SIGN_IN_SUCCESS_URL });
@@ -223,19 +223,19 @@ function getCachedCredentialPath(): string {
   return path.join(os.homedir(), GEMINI_DIR, CREDENTIAL_FILENAME);
 }
 
-function getGaiaIdCachePath(): string {
-  return path.join(os.homedir(), GEMINI_DIR, GAIA_ID_FILENAME);
+function getGoogleAccountIdCachePath(): string {
+  return path.join(os.homedir(), GEMINI_DIR, GOOGLE_ACCOUNT_ID_FILENAME);
 }
 
-async function cacheGaiaId(gaiaId: string): Promise<void> {
-  const filePath = getGaiaIdCachePath();
+async function cacheGoogleAccountId(googleAccountId: string): Promise<void> {
+  const filePath = getGoogleAccountIdCachePath();
   await fs.mkdir(path.dirname(filePath), { recursive: true });
-  await fs.writeFile(filePath, gaiaId, 'utf-8');
+  await fs.writeFile(filePath, googleAccountId, 'utf-8');
 }
 
-export function getCachedGaiaId(): string | null {
+export function getCachedGoogleAccountId(): string | null {
   try {
-    const filePath = getGaiaIdCachePath();
+    const filePath = getGoogleAccountIdCachePath();
     // eslint-disable-next-line @typescript-eslint/no-require-imports, no-restricted-syntax
     const fs_sync = require('fs');
     if (fs_sync.existsSync(filePath)) {
@@ -250,19 +250,21 @@ export function getCachedGaiaId(): string | null {
 export async function clearCachedCredentialFile() {
   try {
     await fs.rm(getCachedCredentialPath(), { force: true });
-    // Clear the GAIA ID cache when credentials are cleared
-    await fs.rm(getGaiaIdCachePath(), { force: true });
+    // Clear the Google Account ID cache when credentials are cleared
+    await fs.rm(getGoogleAccountIdCachePath(), { force: true });
   } catch (_) {
     /* empty */
   }
 }
 
 /**
- * Retrieves the authenticated user's GAIA ID from Google's UserInfo API.
+ * Retrieves the authenticated user's Google Account ID from Google's UserInfo API.
  * @param client - The authenticated OAuth2Client
- * @returns The user's GAIA ID (Google Account ID) or null if not available
+ * @returns The user's Google Account ID or null if not available
  */
-export async function getGaiaId(client: OAuth2Client): Promise<string | null> {
+export async function getGoogleAccountId(
+  client: OAuth2Client,
+): Promise<string | null> {
   try {
     const { token } = await client.getAccessToken();
     if (!token) {
@@ -290,7 +292,7 @@ export async function getGaiaId(client: OAuth2Client): Promise<string | null> {
     const userInfo = await response.json();
     return userInfo.id || null;
   } catch (error) {
-    console.error('Error retrieving GAIA ID:', error);
+    console.error('Error retrieving Google Account ID:', error);
     return null;
   }
 }

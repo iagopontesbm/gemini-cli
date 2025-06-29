@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { getInstallationId, getObfuscatedGaiaId } from './user_id.js';
+import { getInstallationId, getObfuscatedGoogleAccountId } from './user_id.js';
 
 describe('user_id', () => {
   describe('getInstallationId', () => {
@@ -22,27 +22,27 @@ describe('user_id', () => {
     });
   });
 
-  describe('getObfuscatedGaiaId', () => {
+  describe('getObfuscatedGoogleAccountId', () => {
     it('should return a non-empty string', () => {
-      const result = getObfuscatedGaiaId();
+      const result = getObfuscatedGoogleAccountId();
 
       expect(result).toBeDefined();
       expect(typeof result).toBe('string');
       expect(result.length).toBeGreaterThan(0);
 
       // Should be consistent on subsequent calls
-      const secondCall = getObfuscatedGaiaId();
+      const secondCall = getObfuscatedGoogleAccountId();
       expect(secondCall).toBe(result);
     });
 
-    it('should return the same as installation ID when no GAIA ID is cached', () => {
-      // In a clean test environment, there should be no cached GAIA ID
-      // so getObfuscatedGaiaId should fall back to installation ID
-      const gaiaIdResult = getObfuscatedGaiaId();
+    it('should return the same as installation ID when no Google Account ID is cached', () => {
+      // In a clean test environment, there should be no cached Google Account ID
+      // so getObfuscatedGoogleAccountId should fall back to installation ID
+      const googleAccountIdResult = getObfuscatedGoogleAccountId();
       const installationIdResult = getInstallationId();
 
-      // They should be the same when no GAIA ID is cached
-      expect(gaiaIdResult).toBe(installationIdResult);
+      // They should be the same when no Google Account ID is cached
+      expect(googleAccountIdResult).toBe(installationIdResult);
     });
   });
 });
