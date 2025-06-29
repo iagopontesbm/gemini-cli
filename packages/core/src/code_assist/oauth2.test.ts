@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { 
-  getOauthClient, 
-  getManualOauthClient, 
-  shutdownOAuthServer, 
-  isOAuthServerActive 
+import {
+  getOauthClient,
+  getManualOauthClient,
+  shutdownOAuthServer,
+  isOAuthServerActive
 } from './oauth2.js';
 import { OAuth2Client } from 'google-auth-library';
 import * as fs from 'fs';
@@ -222,7 +222,7 @@ describe('oauth2', () => {
     });
 
     // Mock console.log to avoid cluttering test output
-    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => { });
 
     const clientPromise = getManualOauthClient();
 
@@ -318,14 +318,39 @@ describe('oauth2', () => {
   });
 
   describe('OAuth Server Lifecycle Management', () => {
+    let createdServers: http.Server[] = [];
+    let activePromises: Promise<any>[] = [];
+
     beforeEach(async () => {
       // Ensure clean state before each test
       await shutdownOAuthServer();
+      createdServers = [];
+      activePromises = [];
     });
 
     afterEach(async () => {
       // Clean up after each test
       await shutdownOAuthServer();
+
+      // Force close any tracked servers
+      for (const server of createdServers) {
+        try {
+          if (server && typeof server.close === 'function') {
+            await new Promise<void>((resolve) => {
+              server.close(() => resolve());
+            });
+          }
+        } catch (error) {
+          // Ignore cleanup errors
+        }
+      }
+      createdServers = [];
+
+      // Cancel any remaining promises
+      for (const promise of activePromises) {
+        promise.catch(() => { });
+      }
+      activePromises = [];
     });
 
     it('should track active OAuth server state', () => {
@@ -337,10 +362,11 @@ describe('oauth2', () => {
       const mockServer = {
         listen: vi.fn(),
         close: vi.fn((callback?: () => void) => {
-          if (callback) callback();
+          if (callback) setTimeout(callback, 0);
         }),
       } as unknown as http.Server;
 
+      createdServers.push(mockServer);
       vi.mocked(http.createServer).mockReturnValue(mockServer);
 
       const mockOAuth2Client = {
@@ -355,11 +381,11 @@ describe('oauth2', () => {
       vi.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from('test-state') as never);
 
       // Start an OAuth flow (this should create and track a server)
-      // We don't await this since it will hang waiting for OAuth callback
-      const promise = getOauthClient(8080);
-      
+      const promise = getOauthClient(8080).catch(() => { });
+      activePromises.push(promise);
+
       // Wait a bit for the server to be created
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Server should now be active
       expect(isOAuthServerActive()).toBe(true);
@@ -368,25 +394,24 @@ describe('oauth2', () => {
       await shutdownOAuthServer();
       expect(isOAuthServerActive()).toBe(false);
       expect(mockServer.close).toHaveBeenCalled();
-      
-      // Clean up the hanging promise
-      promise.catch(() => {});
     });
 
     it('should shutdown existing server before starting new OAuth flow', async () => {
       const mockServer1 = {
         listen: vi.fn(),
         close: vi.fn((callback?: () => void) => {
-          if (callback) callback();
+          if (callback) setTimeout(callback, 0);
         }),
       } as unknown as http.Server;
 
       const mockServer2 = {
         listen: vi.fn(),
         close: vi.fn((callback?: () => void) => {
-          if (callback) callback();
+          if (callback) setTimeout(callback, 0);
         }),
       } as unknown as http.Server;
+
+      createdServers.push(mockServer1, mockServer2);
 
       // First call returns server1, second call returns server2
       vi.mocked(http.createServer)
@@ -404,24 +429,22 @@ describe('oauth2', () => {
       vi.mocked(OAuth2Client).mockImplementation(() => mockOAuth2Client);
       vi.spyOn(crypto, 'randomBytes').mockReturnValue(Buffer.from('test-state') as never);
 
-      // Start first OAuth flow - don't await since it will hang
-      const promise1 = getOauthClient(8080);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Start first OAuth flow
+      const promise1 = getOauthClient(8080).catch(() => { });
+      activePromises.push(promise1);
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       expect(isOAuthServerActive()).toBe(true);
 
       // Start second OAuth flow - should shutdown first server
-      const promise2 = getManualOauthClient(8081);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      const promise2 = getManualOauthClient(8081).catch(() => { });
+      activePromises.push(promise2);
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // First server should have been closed
       expect(mockServer1.close).toHaveBeenCalled();
       // Second server should be tracked
       expect(isOAuthServerActive()).toBe(true);
-      
-      // Clean up hanging promises
-      promise1.catch(() => {});
-      promise2.catch(() => {});
     });
 
     it('should handle multiple shutdown calls gracefully', async () => {
@@ -458,11 +481,13 @@ describe('oauth2', () => {
         }),
       } as unknown as http.Server;
 
+      createdServers.push(mockServer);
       vi.mocked(http.createServer).mockReturnValue(mockServer);
 
-      // Start OAuth flow but don't await
-      const promise = getOauthClient(8080);
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Start OAuth flow
+      const promise = getOauthClient(8080).catch(() => { });
+      activePromises.push(promise);
+      await new Promise(resolve => setTimeout(resolve, 50));
 
       // Should have setup cleanup handlers
       expect(mockOn).toHaveBeenCalledWith('SIGTERM', expect.any(Function));
@@ -472,9 +497,6 @@ describe('oauth2', () => {
       // Restore original function
       process.listenerCount = originalListenerCount;
       mockOn.mockRestore();
-      
-      // Clean up
-      promise.catch(() => {});
     });
   });
 });
