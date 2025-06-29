@@ -43,11 +43,25 @@ import {
   DEFAULT_GEMINI_FLASH_MODEL,
 } from './models.js';
 import { ClearcutLogger } from '../telemetry/clearcut-logger/clearcut-logger.js';
+import { Tool } from '../tools/tools.js';
+
+const TOOL_ALLOW_LIST_KEY = 'toolAllowList';
 
 export enum ApprovalMode {
   DEFAULT = 'default',
   AUTO_EDIT = 'autoEdit',
   YOLO = 'yolo',
+}
+
+export interface SettingsCallback {
+  updateSettings(
+    key: keyof ConfigParameters | string,
+    value:
+      | string
+      | Record<string, MCPServerConfig>
+      | Record<string, ToolAllowListConfig>
+      | undefined,
+  ): void;
 }
 
 export interface AccessibilitySettings {
@@ -86,6 +100,8 @@ export class MCPServerConfig {
   ) {}
 }
 
+export type ToolAllowListConfig = boolean | string[];
+
 export interface SandboxConfig {
   command: 'docker' | 'podman' | 'sandbox-exec';
   image: string;
@@ -97,6 +113,7 @@ export type FlashFallbackHandler = (
 ) => Promise<boolean>;
 
 export interface ConfigParameters {
+  settingsCallback?: SettingsCallback;
   sessionId: string;
   embeddingModel?: string;
   sandbox?: SandboxConfig;
@@ -129,10 +146,12 @@ export interface ConfigParameters {
   bugCommand?: BugCommandSettings;
   model: string;
   extensionContextFilePaths?: string[];
+  toolAllowList?: Record<string, ToolAllowListConfig>;
 }
 
 export class Config {
   private toolRegistry!: ToolRegistry;
+  private readonly settingsCallback: SettingsCallback | undefined;
   private readonly sessionId: string;
   private contentGeneratorConfig!: ContentGeneratorConfig;
   private readonly embeddingModel: string;
@@ -167,10 +186,12 @@ export class Config {
   private readonly bugCommand: BugCommandSettings | undefined;
   private readonly model: string;
   private readonly extensionContextFilePaths: string[];
+  private readonly toolAllowList: Record<string, ToolAllowListConfig>;
   private modelSwitchedDuringSession: boolean = false;
   flashFallbackHandler?: FlashFallbackHandler;
 
   constructor(params: ConfigParameters) {
+    this.settingsCallback = params.settingsCallback || undefined;
     this.sessionId = params.sessionId;
     this.embeddingModel =
       params.embeddingModel ?? DEFAULT_GEMINI_EMBEDDING_MODEL;
@@ -210,6 +231,7 @@ export class Config {
     this.bugCommand = params.bugCommand;
     this.model = params.model;
     this.extensionContextFilePaths = params.extensionContextFilePaths ?? [];
+    this.toolAllowList = params.toolAllowList ?? {};
 
     if (params.contextFileName) {
       setGeminiMdFilename(params.contextFileName);
@@ -442,6 +464,52 @@ export class Config {
 
   getExtensionContextFilePaths(): string[] {
     return this.extensionContextFilePaths;
+  }
+
+  isToolAlwaysAllowed(tool: Tool | string): boolean {
+    const toolName = typeof tool === 'string' ? tool : tool.name;
+    const toolConfirmationConfig = this.toolAllowList[toolName];
+    if (typeof toolConfirmationConfig === 'boolean') {
+      return toolConfirmationConfig;
+    } else if (Array.isArray(toolConfirmationConfig)) {
+      return toolConfirmationConfig.length > 0;
+    }
+    return false;
+  }
+
+  isToolAllowedFor(tool: Tool | string, entry: string): boolean {
+    const toolName = typeof tool === 'string' ? tool : tool.name;
+    const toolConfirmationConfig = this.toolAllowList[toolName];
+    if (typeof toolConfirmationConfig === 'boolean') {
+      return toolConfirmationConfig;
+    } else if (Array.isArray(toolConfirmationConfig)) {
+      return toolConfirmationConfig.includes(entry);
+    }
+    return false;
+  }
+
+  setToolAlwaysAllowed(tool: Tool | string): void {
+    const toolName = typeof tool === 'string' ? tool : tool.name;
+    if (this.toolAllowList[toolName] !== true) {
+      this.toolAllowList[toolName] = true;
+      this.settingsCallback?.updateSettings(TOOL_ALLOW_LIST_KEY, this.toolAllowList);
+    }
+  }
+
+  setToolAllowedFor(tool: Tool | string, entry: string): void {
+    const toolName = typeof tool === 'string' ? tool : tool.name;
+    const toolConfirmationConfig = this.toolAllowList[toolName];
+    if (
+      Array.isArray(toolConfirmationConfig) &&
+      !toolConfirmationConfig.includes(entry)
+    ) {
+      toolConfirmationConfig.push(entry);
+    } else if (toolConfirmationConfig !== true) {
+      this.toolAllowList[toolName] = [entry];
+    } else {
+      return;
+    }
+    this.settingsCallback?.updateSettings(TOOL_ALLOW_LIST_KEY, this.toolAllowList);
   }
 
   async getGitService(): Promise<GitService> {
