@@ -1,3 +1,9 @@
+/**
+ * @license
+ * Copyright 2025 Google LLC
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useKeypress, Key } from './useKeypress';
@@ -364,6 +370,94 @@ describe('useKeypress Hook', () => {
       shift: false,
       paste: false,
       sequence: '\x1b[A',
+    });
+  });
+
+  it('should handle multiple nested paste-end markers', async () => {
+    const { result } = renderHook(() =>
+      useKeypress(onKeypress, { isActive: true }),
+    );
+
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+
+    act(() => {
+      // Simulate paste with multiple end markers: \x1b[200~a\x1b[201~b\x1b[201~c\x1b[201~
+      dataListener(Buffer.from('\x1b[200~a\x1b[201~b\x1b[201~c\x1b[201~'));
+    });
+
+    // Expect three paste events
+    expect(onKeypress).toHaveBeenCalledTimes(3);
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'a',
+    });
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'b',
+    });
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'c',
+    });
+  });
+
+  it('should handle partial paste markers', async () => {
+    const { result } = renderHook(() =>
+      useKeypress(onKeypress, { isActive: true }),
+    );
+
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+
+    act(() => {
+      // Simulate incomplete end marker: \x1b[200~text\x1b[201
+      dataListener(Buffer.from('\x1b[200~text\x1b[201'));
+      vi.advanceTimersByTime(1000); // Paste timeout duration
+    });
+
+    // Expect partial paste to be processed via timeout
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'text\x1b[201',
+    });
+
+    act(() => {
+      // Simulate incomplete start marker followed by content and end marker
+      dataListener(Buffer.from('\x1b[200'));
+      dataListener(Buffer.from('~more\x1b[201~'));
+    });
+
+    // Expect the content to be processed as a paste
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: 'more',
     });
   });
 });
