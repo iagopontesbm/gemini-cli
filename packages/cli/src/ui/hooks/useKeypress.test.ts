@@ -1,8 +1,3 @@
-/**
- * @license
- * Copyright 2025 Google LLC
- * SPDX-License-Identifier: Apache-2.0
- */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useKeypress, Key } from './useKeypress';
@@ -29,6 +24,7 @@ describe('useKeypress Hook', () => {
     write: vi.fn(),
     prependListener: vi.fn(),
     removeListener: vi.fn(),
+    emit: vi.fn(), // Added to simulate event emission
   };
   const mockSetRawMode = vi.fn();
   const mockRl = {
@@ -187,7 +183,7 @@ describe('useKeypress Hook', () => {
   it('should handle rapid keypresses as paste without bracketed mode', async () => {
     vi.useFakeTimers();
     (useStdin as any).mockReturnValue({
-      stdin: { ...mockStdin, isTTY: true }, // Keep isTTY true to ensure listeners are set up
+      stdin: { ...mockStdin, isTTY: true },
       setRawMode: mockSetRawMode,
     });
 
@@ -235,6 +231,53 @@ describe('useKeypress Hook', () => {
       shift: false,
       paste: true,
       sequence: 'hi',
+    });
+  });
+
+  it('should ignore keypress events for multi-character paste after bracketed paste', async () => {
+    vi.useFakeTimers();
+    const { result } = renderHook(() =>
+      useKeypress(onKeypress, { isActive: true }),
+    );
+
+    const dataListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'data',
+    )?.[1];
+    const keypressListener = mockStdin.prependListener.mock.calls.find(
+      (call) => call[0] === 'keypress',
+    )?.[1];
+
+    expect(dataListener).toBeDefined();
+    expect(keypressListener).toBeDefined();
+
+    const pastedContent = 'hello';
+
+    act(() => {
+      // Simulate bracketed paste via data event
+      dataListener(Buffer.from(`\x1b[200~${pastedContent}\x1b[201~`));
+
+      // Simulate readline emitting keypress events for each character
+      for (const char of pastedContent) {
+        keypressListener(null, {
+          name: char,
+          ctrl: false,
+          meta: false,
+          shift: false,
+          sequence: char,
+        });
+      }
+      vi.advanceTimersByTime(50); // Max input delay
+    });
+
+    // Verify paste is handled exactly once
+    expect(onKeypress).toHaveBeenCalledTimes(1);
+    expect(onKeypress).toHaveBeenCalledWith({
+      name: '',
+      ctrl: false,
+      meta: false,
+      shift: false,
+      paste: true,
+      sequence: pastedContent,
     });
   });
 });

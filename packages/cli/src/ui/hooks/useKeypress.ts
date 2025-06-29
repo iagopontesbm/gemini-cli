@@ -49,7 +49,7 @@ export function useKeypress(
   const pasteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isPasteModeRef = useRef(false);
   const pasteBufferRef = useRef<string>('');
-  const pasteHandledRef = useRef(false);
+  const charsToIgnoreRef = useRef(0);
   const isBracketedPasteSupportedRef = useRef(false);
 
   useEffect(() => {
@@ -128,7 +128,7 @@ export function useKeypress(
       }
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
-      pasteHandledRef.current = false;
+      charsToIgnoreRef.current = 0;
       if (pasteTimeoutRef.current) {
         clearTimeout(pasteTimeoutRef.current);
         pasteTimeoutRef.current = null;
@@ -149,7 +149,7 @@ export function useKeypress(
             pasteBufferRef.current += remainingInput.slice(0, endMarkerIndex);
 
             if (pasteBufferRef.current.length > 0) {
-              pasteHandledRef.current = true;
+              charsToIgnoreRef.current = pasteBufferRef.current.length;
               onKeypressRef.current({
                 name: '',
                 ctrl: false,
@@ -189,9 +189,15 @@ export function useKeypress(
     };
 
     const handleKeypress = (_: unknown, key: Key) => {
-      if (isPasteModeRef.current || pasteHandledRef.current) {
-        // Skip processing if in bracketed paste mode or paste was handled by raw data
-        pasteHandledRef.current = false; // Reset flag after skipping
+      if (isPasteModeRef.current) {
+        // While in bracketed paste mode, all input is handled by `handleRawData`.
+        return;
+      }
+
+      if (charsToIgnoreRef.current > 0) {
+        // This keypress is from a paste that was already handled by `handleRawData`.
+        // We decrement the counter and ignore the keypress.
+        charsToIgnoreRef.current--;
         return;
       }
 
@@ -263,7 +269,7 @@ export function useKeypress(
       isPasteModeRef.current = false;
       pasteBufferRef.current = '';
       keyBufferRef.current = [];
-      pasteHandledRef.current = false;
+      charsToIgnoreRef.current = 0;
       isBracketedPasteSupportedRef.current = false;
     };
   }, [isActive, stdin, setRawMode]);
