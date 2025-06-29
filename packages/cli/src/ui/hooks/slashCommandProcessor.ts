@@ -68,6 +68,7 @@ export const useSlashCommandProcessor = (
   loadHistory: UseHistoryManagerReturn['loadHistory'],
   refreshStatic: () => void,
   setShowHelp: React.Dispatch<React.SetStateAction<boolean>>,
+  setShowStatus: React.Dispatch<React.SetStateAction<boolean>>,
   onDebugMessage: (message: string) => void,
   openThemeDialog: () => void,
   openAuthDialog: () => void,
@@ -197,6 +198,14 @@ export const useSlashCommandProcessor = (
         action: (_mainCommand, _subCommand, _args) => {
           onDebugMessage('Opening help.');
           setShowHelp(true);
+        },
+      },
+      {
+        name: 'status',
+        description: 'show CLI status and connectivity info',
+        action: (_mainCommand, _subCommand, _args) => {
+          onDebugMessage('Opening status.');
+          setShowStatus(true);
         },
       },
       {
@@ -995,6 +1004,7 @@ export const useSlashCommandProcessor = (
   }, [
     onDebugMessage,
     setShowHelp,
+    setShowStatus,
     refreshStatic,
     openThemeDialog,
     openAuthDialog,
