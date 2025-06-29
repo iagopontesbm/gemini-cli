@@ -66,6 +66,7 @@ interface MockServerConfig {
   getAccessibility: Mock<() => AccessibilitySettings>;
   getProjectRoot: Mock<() => string | undefined>;
   getAllGeminiMdFilenames: Mock<() => string[]>;
+  getHideFooter: Mock<() => boolean>;
 }
 
 // Mock @google/gemini-cli-core and its Config class
@@ -98,6 +99,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         showMemoryUsage: opts.showMemoryUsage ?? false,
         accessibility: opts.accessibility ?? {},
         embeddingModel: opts.embeddingModel || 'test-embedding-model',
+        hideFooter: opts.hideFooter ?? false,
 
         getApiKey: vi.fn(() => opts.apiKey || 'test-key'),
         getModel: vi.fn(() => opts.model || 'test-model-in-mock-factory'),
@@ -127,6 +129,7 @@ vi.mock('@google/gemini-cli-core', async (importOriginal) => {
         getCheckpointingEnabled: vi.fn(() => opts.checkpointing ?? true),
         getAllGeminiMdFilenames: vi.fn(() => ['GEMINI.md']),
         setFlashFallbackHandler: vi.fn(),
+        getHideFooter: vi.fn(() => opts.hideFooter ?? false),
       };
     });
   return {
@@ -195,6 +198,7 @@ describe('App UI', () => {
   };
 
   beforeEach(() => {
+    vi.useFakeTimers();
     const ServerConfigMocked = vi.mocked(ServerConfig, true);
     mockConfig = new ServerConfigMocked({
       embeddingModel: 'test-embedding-model',
@@ -225,6 +229,7 @@ describe('App UI', () => {
       currentUnmount = undefined;
     }
     vi.clearAllMocks(); // Clear mocks after each test
+    vi.useRealTimers();
   });
 
   it('should display default "GEMINI.md" in footer when contextFileName is not set and count is 1', async () => {
@@ -424,5 +429,65 @@ describe('App UI', () => {
       );
       expect(lastFrame()).not.toContain('Select Theme');
     });
+  });
+
+  it('should toggle the footer visibility with /toggle-footer command', async () => {
+    vi.setConfig({ testTimeout: 10000 });
+    const ServerConfigMocked = vi.mocked(ServerConfig, true);
+
+    // Initial render with footer visible
+    let currentMockConfig = new ServerConfigMocked({
+      ...mockConfig,
+      hideFooter: false,
+      sessionId: 'test-session-id',
+      cwd: '/tmp',
+    }) as unknown as MockServerConfig;
+    const { lastFrame, unmount, stdin, rerender } = render(
+      <App
+        config={currentMockConfig as unknown as ServerConfig}
+        settings={mockSettings}
+      />,
+    );
+    currentUnmount = unmount;
+    await Promise.resolve();
+    expect(lastFrame()).toContain('no sandbox');
+
+    // Toggle off
+    stdin.write('/toggle-footer');
+    await Promise.resolve();
+    currentMockConfig = new ServerConfigMocked({
+      ...mockConfig,
+      hideFooter: true,
+      sessionId: 'test-session-id',
+      cwd: '/tmp',
+    }) as unknown as MockServerConfig;
+    rerender(
+      <App
+        config={currentMockConfig as unknown as ServerConfig}
+        settings={mockSettings}
+      />,
+    );
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(lastFrame()).not.toContain('no sandbox');
+
+    // Toggle on
+    stdin.write('/toggle-footer');
+    await Promise.resolve();
+    currentMockConfig = new ServerConfigMocked({
+      ...mockConfig,
+      hideFooter: false,
+      sessionId: 'test-session-id',
+      cwd: '/tmp',
+    }) as unknown as MockServerConfig;
+    rerender(
+      <App
+        config={currentMockConfig as unknown as ServerConfig}
+        settings={mockSettings}
+      />,
+    );
+    await Promise.resolve();
+    await vi.advanceTimersByTimeAsync(100);
+    expect(lastFrame()).toContain('no sandbox');
   });
 });

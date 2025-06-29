@@ -77,6 +77,7 @@ export const useSlashCommandProcessor = (
   showToolDescriptions: boolean = false,
   setQuittingMessages: (message: HistoryItem[]) => void,
   openPrivacyNotice: () => void,
+  toggleFooter: () => void,
 ) => {
   const session = useSessionStats();
   const gitService = useMemo(() => {
@@ -584,8 +585,15 @@ export const useSlashCommandProcessor = (
       },
       {
         name: 'corgi',
-        action: (_mainCommand, _subCommand, _args) => {
+        action: async (_mainCommand, _subCommand, _args) => {
           toggleCorgiMode();
+        },
+      },
+      {
+        name: 'toggle-footer',
+        description: 'toggle the visibility of the footer',
+        action: (_mainCommand, _subCommand, _args) => {
+          toggleFooter();
         },
       },
       {
@@ -1028,6 +1036,7 @@ export const useSlashCommandProcessor = (
     pendingCompressionItemRef,
     setPendingCompressionItem,
     openPrivacyNotice,
+    toggleFooter,
   ]);
 
   const handleSlashCommand = useCallback(

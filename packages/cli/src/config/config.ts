@@ -53,6 +53,7 @@ interface CliArgs {
   telemetryTarget: string | undefined;
   telemetryOtlpEndpoint: string | undefined;
   telemetryLogPrompts: boolean | undefined;
+  'hide-footer': boolean | undefined;
 }
 
 async function parseArguments(): Promise<CliArgs> {
@@ -121,6 +122,11 @@ async function parseArguments(): Promise<CliArgs> {
       type: 'boolean',
       description:
         'Enable or disable logging of user prompts for telemetry. Overrides settings files.',
+    })
+    .option('hide-footer', {
+      type: 'boolean',
+      description: 'Hides the footer from the UI.',
+      default: false,
     })
     .option('checkpointing', {
       alias: 'c',
@@ -245,6 +251,7 @@ export async function loadCliConfig(
     bugCommand: settings.bugCommand,
     model: argv.model!,
     extensionContextFilePaths,
+    hideFooter: argv['hide-footer'],
   });
 }
 
