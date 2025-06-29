@@ -112,6 +112,10 @@ export const useSlashCommandProcessor = (
           type: 'stats',
           duration: message.duration,
         };
+      } else if (message.type === MessageType.MODEL_STATS) {
+        historyItemContent = {
+          type: 'model_stats',
+        };
       } else if (message.type === MessageType.QUIT) {
         historyItemContent = {
           type: 'quit',
@@ -259,8 +263,16 @@ export const useSlashCommandProcessor = (
       {
         name: 'stats',
         altName: 'usage',
-        description: 'check session stats',
-        action: (_mainCommand, _subCommand, _args) => {
+        description: 'check session stats. Usage: /stats [model]',
+        action: (_mainCommand, subCommand, _args) => {
+          if (subCommand === 'model') {
+            addMessage({
+              type: MessageType.MODEL_STATS,
+              timestamp: new Date(),
+            });
+            return;
+          }
+
           const now = new Date();
           const { sessionStartTime } = session.stats;
           const wallDuration = now.getTime() - sessionStartTime.getTime();

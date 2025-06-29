@@ -323,6 +323,25 @@ describe('useSlashCommandProcessor', () => {
 
       vi.useRealTimers();
     });
+
+    it('should show model-specific statistics when using /stats model', async () => {
+      // Arrange
+      const { handleSlashCommand } = getProcessor();
+
+      // Act
+      await act(async () => {
+        handleSlashCommand('/stats model');
+      });
+
+      // Assert
+      expect(mockAddItem).toHaveBeenNthCalledWith(
+        2, // Called after the user message
+        expect.objectContaining({
+          type: MessageType.MODEL_STATS,
+        }),
+        expect.any(Number),
+      );
+    });
   });
 
   describe('/about command', () => {

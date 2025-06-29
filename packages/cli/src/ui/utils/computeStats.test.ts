@@ -5,8 +5,109 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { computeSessionStats } from './computeStats.js';
-import { SessionMetrics } from '../contexts/SessionContext.js';
+import {
+  calculateAverageLatency,
+  calculateCacheHitRate,
+  calculateErrorRate,
+  computeSessionStats,
+} from './computeStats.js';
+import { ModelMetrics, SessionMetrics } from '../contexts/SessionContext.js';
+
+describe('calculateErrorRate', () => {
+  it('should return 0 if totalRequests is 0', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 0, totalErrors: 0, totalLatencyMs: 0 },
+      tokens: {
+        prompt: 0,
+        candidates: 0,
+        total: 0,
+        cached: 0,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateErrorRate(metrics)).toBe(0);
+  });
+
+  it('should calculate the error rate correctly', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 10, totalErrors: 2, totalLatencyMs: 0 },
+      tokens: {
+        prompt: 0,
+        candidates: 0,
+        total: 0,
+        cached: 0,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateErrorRate(metrics)).toBe(20);
+  });
+});
+
+describe('calculateAverageLatency', () => {
+  it('should return 0 if totalRequests is 0', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 0, totalErrors: 0, totalLatencyMs: 1000 },
+      tokens: {
+        prompt: 0,
+        candidates: 0,
+        total: 0,
+        cached: 0,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateAverageLatency(metrics)).toBe(0);
+  });
+
+  it('should calculate the average latency correctly', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 10, totalErrors: 0, totalLatencyMs: 1500 },
+      tokens: {
+        prompt: 0,
+        candidates: 0,
+        total: 0,
+        cached: 0,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateAverageLatency(metrics)).toBe(150);
+  });
+});
+
+describe('calculateCacheHitRate', () => {
+  it('should return 0 if prompt tokens is 0', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 0, totalErrors: 0, totalLatencyMs: 0 },
+      tokens: {
+        prompt: 0,
+        candidates: 0,
+        total: 0,
+        cached: 100,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateCacheHitRate(metrics)).toBe(0);
+  });
+
+  it('should calculate the cache hit rate correctly', () => {
+    const metrics: ModelMetrics = {
+      api: { totalRequests: 0, totalErrors: 0, totalLatencyMs: 0 },
+      tokens: {
+        prompt: 200,
+        candidates: 0,
+        total: 0,
+        cached: 50,
+        thoughts: 0,
+        tool: 0,
+      },
+    };
+    expect(calculateCacheHitRate(metrics)).toBe(25);
+  });
+});
 
 describe('computeSessionStats', () => {
   it('should return all zeros for initial empty metrics', () => {

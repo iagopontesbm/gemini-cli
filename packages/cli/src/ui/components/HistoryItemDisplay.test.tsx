@@ -66,6 +66,21 @@ describe('<HistoryItemDisplay />', () => {
     expect(lastFrame()).toContain('About Gemini CLI');
   });
 
+  it('renders ModelStatsDisplay for "model_stats" type', () => {
+    const item: HistoryItem = {
+      ...baseItem,
+      type: 'model_stats',
+    };
+    const { lastFrame } = render(
+      <SessionStatsProvider>
+        <HistoryItemDisplay {...baseItem} item={item} />
+      </SessionStatsProvider>,
+    );
+    expect(lastFrame()).toContain(
+      'No API calls have been made in this session.',
+    );
+  });
+
   it('renders SessionSummaryDisplay for "quit" type', () => {
     const item: HistoryItem = {
       ...baseItem,

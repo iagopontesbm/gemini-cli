@@ -102,6 +102,10 @@ export type HistoryItemStats = HistoryItemBase & {
   duration: string;
 };
 
+export type HistoryItemModelStats = HistoryItemBase & {
+  type: 'model_stats';
+};
+
 export type HistoryItemQuit = HistoryItemBase & {
   type: 'quit';
   duration: string;
@@ -136,6 +140,7 @@ export type HistoryItemWithoutId =
   | HistoryItemAbout
   | HistoryItemToolGroup
   | HistoryItemStats
+  | HistoryItemModelStats
   | HistoryItemQuit
   | HistoryItemCompression;
 
@@ -148,6 +153,7 @@ export enum MessageType {
   USER = 'user',
   ABOUT = 'about',
   STATS = 'stats',
+  MODEL_STATS = 'model_stats',
   QUIT = 'quit',
   GEMINI = 'gemini',
   COMPRESSION = 'compression',
@@ -175,6 +181,11 @@ export type Message =
       type: MessageType.STATS;
       timestamp: Date;
       duration: string;
+      content?: string;
+    }
+  | {
+      type: MessageType.MODEL_STATS;
+      timestamp: Date;
       content?: string;
     }
   | {
