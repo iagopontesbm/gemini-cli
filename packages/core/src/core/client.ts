@@ -63,6 +63,7 @@ export class GeminiClient {
 
     this.model = config.getModel();
     this.embeddingModel = config.getEmbeddingModel();
+    this.generateContentConfig.labels = config.getLabels();
   }
 
   async initialize(contentGeneratorConfig: ContentGeneratorConfig) {
