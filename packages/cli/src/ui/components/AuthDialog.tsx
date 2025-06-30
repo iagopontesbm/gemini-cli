@@ -21,7 +21,6 @@ interface AuthDialogProps {
 
 export function AuthDialog({
   onSelect,
-  onHighlight,
   settings,
   initialErrorMessage,
 }: AuthDialogProps): React.JSX.Element {
@@ -81,7 +80,6 @@ export function AuthDialog({
         items={items}
         initialIndex={initialAuthIndex}
         onSelect={handleAuthSelect}
-        onHighlight={onHighlight}
         isFocused={true}
       />
       {errorMessage && (
