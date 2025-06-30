@@ -646,6 +646,140 @@ describe('GenerateCommitMessageTool', () => {
       expect(result.llmContent).toContain('Error during commit workflow');
       expect(result.llmContent).toContain('AI response parsing failed');
     });
+
+    it('should handle JSON with braces in string values', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+        'commit': ''
+      }));
+
+      const jsonResponse = {
+        analysis: {
+          changedFiles: ['file.txt'],
+          changeType: 'feat' as const,
+          scope: '',
+          purpose: 'Add feature with {braces} in description',
+          impact: 'Improves {functionality} with {special} characters',
+          hasSensitiveInfo: false,
+        },
+        commitMessage: {
+          header: 'feat: add feature with braces',
+          body: 'This commit message contains {braces} in the body text',
+          footer: '',
+        },
+      };
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: `Some text before ${JSON.stringify(jsonResponse)} and text after with more {braces}`,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\nfeat: add feature with braces\n\nThis commit message contains {braces} in the body text');
+    });
+
+    it('should validate commit message header format', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    analysis: {
+                      changedFiles: ['file.txt'],
+                      changeType: 'feat',
+                      purpose: 'Test purpose',
+                      impact: 'Test impact',
+                      hasSensitiveInfo: false,
+                    },
+                    commitMessage: {
+                      header: 'invalid header format', // Invalid format
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('conventional commits format');
+    });
+
+    it('should validate empty changedFiles array', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    analysis: {
+                      changedFiles: [], // Empty array
+                      changeType: 'feat',
+                      purpose: 'Test purpose',
+                      impact: 'Test impact',
+                      hasSensitiveInfo: false,
+                    },
+                    commitMessage: {
+                      header: 'feat: test',
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('must contain at least one file');
+    });
   });
 
   describe('Git index hash and race condition protection', () => {
@@ -721,6 +855,61 @@ describe('GenerateCommitMessageTool', () => {
       expect(result.llmContent).toContain('Failed to write to git process stdin');
     });
 
+    it('should handle stdin EPIPE errors with specific messages', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation((_command, args) => {
+        const child = new EventEmitter() as EventEmitter & {
+          stdout: { on: ReturnType<typeof vi.fn> };
+          stderr: { on: ReturnType<typeof vi.fn> };
+          stdin?: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
+        };
+        
+        child.stdout = { on: vi.fn((event: string, listener: (data: Buffer) => void) => {
+          if (event === 'data') {
+            const argString = args.join(' ');
+            if (argString.includes('status')) {
+              listener(Buffer.from(statusOutput));
+            } else if (argString.includes('diff --cached')) {
+              listener(Buffer.from(diff));
+            } else if (argString.includes('diff') && !argString.includes('--cached')) {
+              listener(Buffer.from(''));
+            } else if (argString.includes('log')) {
+              listener(Buffer.from(logOutput));
+            } else {
+              listener(Buffer.from(''));
+            }
+          }
+        }) };
+        
+        child.stderr = { on: vi.fn() };
+        
+        if (args.includes('commit')) {
+          child.stdin = {
+            write: vi.fn(),
+            end: vi.fn(),
+            on: vi.fn((event: string, listener: (error: Error & { code?: string }) => void) => {
+              if (event === 'error') {
+                const error = new Error('broken pipe') as Error & { code?: string };
+                error.code = 'EPIPE';
+                listener(error);
+              }
+            }),
+          };
+        }
+        
+        process.nextTick(() => child.emit('close', 0));
+        return child;
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Git process closed before commit message could be written');
+    });
+
     it('should handle AI API errors with specific messages', async () => {
       const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
       const statusOutput = 'M  file.txt';
@@ -739,6 +928,69 @@ describe('GenerateCommitMessageTool', () => {
 
       expect(result.llmContent).toContain('Error during commit workflow');
       expect(result.llmContent).toContain('API error during commit message generation');
+    });
+
+    it('should handle network errors with specific messages', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockRejectedValue(new Error('ENOTFOUND api.gemini.com'));
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Network error during commit message generation');
+      expect(result.llmContent).toContain('check your internet connection');
+    });
+
+    it('should handle authentication errors with specific messages', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockRejectedValue(new Error('401 Unauthorized'));
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Authentication error during commit message generation');
+      expect(result.llmContent).toContain('verify your API key');
+    });
+
+    it('should handle content policy errors with specific messages', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockRejectedValue(new Error('Content policy violation'));
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Content policy error during commit message generation');
+      expect(result.llmContent).toContain('safety filters');
     });
 
     it('should detect sensitive information in commits', async () => {
@@ -785,6 +1037,49 @@ describe('GenerateCommitMessageTool', () => {
 
       expect(result.llmContent).toContain('Error during commit workflow');
       expect(result.llmContent).toContain('potentially sensitive information');
+    });
+
+    it('should validate invalid changeType values', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    analysis: {
+                      changedFiles: ['file.txt'],
+                      changeType: 'invalid-type', // Invalid changeType
+                      purpose: 'Test purpose',
+                      impact: 'Test impact',
+                      hasSensitiveInfo: false,
+                    },
+                    commitMessage: {
+                      header: 'feat: test',
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('must be one of');
     });
   });
 });
