@@ -158,7 +158,7 @@ export async function runNonInteractive(
     process.exit(1);
   } finally {
     if (outputfs) {
-      await new Promise(resolve => outputfs?.end(resolve))
+      await new Promise((resolve) => outputfs?.end(resolve));
     }
     if (isTelemetrySdkInitialized()) {
       await shutdownTelemetry();

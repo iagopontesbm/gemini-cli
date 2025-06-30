@@ -321,7 +321,7 @@ export class Config {
     return this.question;
   }
 
-  getOutput() : string | undefined {
+  getOutput(): string | undefined {
     return this.output;
   }
 
