@@ -89,32 +89,6 @@ export function ThemeDialog({
 
   // Add a handler for navigation
   useInput((input, key) => {
-    // j/k navigation
-    if (input === 'j' || key.downArrow) {
-      if (focusedSection === 'theme') {
-        if (selectedThemeIndex < themeItems.length - 1) {
-          setSelectedThemeIndex(selectedThemeIndex + 1);
-        } else {
-          setFocusedSection('scope');
-        }
-      } else if (focusedSection === 'scope') {
-        setFocusedSection('theme');
-      }
-      return;
-    }
-    if (input === 'k' || key.upArrow) {
-      if (focusedSection === 'scope') {
-        setFocusedSection('theme');
-        setSelectedThemeIndex(themeItems.length - 1);
-      } else if (focusedSection === 'theme') {
-        if (selectedThemeIndex > 0) {
-          setSelectedThemeIndex(selectedThemeIndex - 1);
-        } else {
-          setFocusedSection('scope');
-        }
-      }
-      return;
-    }
     if (key.tab) {
       if (focusedSection === 'theme') {
         setFocusedSection('scope');
