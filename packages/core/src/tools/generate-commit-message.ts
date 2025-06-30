@@ -528,8 +528,9 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return indexHash || '';
     } catch (error) {
       console.debug('[GenerateCommitMessage] Failed to get git index hash:', error);
-      // Fallback to timestamp if git index operation fails
-      return Date.now().toString();
+      // Re-throw a more specific error. Masking this can lead to incorrect cache validation
+      // and misleading error messages for the user (e.g., "index has changed").
+      throw new Error(`Failed to read git index state: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
