@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
 import open from 'open';
 import process from 'node:process';
 import { UseHistoryManagerReturn } from './useHistoryManager.js';
+import { loadCustomSlashCommands, CustomSlashCommand } from './useCustomSlashCommand.js';
 import { useStateAndRef } from './useStateAndRef.js';
 import {
   Config,
@@ -78,6 +79,11 @@ export const useSlashCommandProcessor = (
   setQuittingMessages: (message: HistoryItem[]) => void,
   openPrivacyNotice: () => void,
 ) => {
+  const [customCommands, setCustomCommands] = useState<CustomSlashCommand[]>([]);
+  useEffect(() => {
+    loadCustomSlashCommands().then(setCustomCommands);
+  }, []);
+
   const session = useSessionStats();
   const gitService = useMemo(() => {
     if (!config?.getProjectRoot()) {
@@ -614,9 +620,8 @@ export const useSlashCommandProcessor = (
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX;
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${
-              process.env.SEATBELT_PROFILE || 'unknown'
-            })`;
+            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'
+              })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = await getCliVersion();
@@ -649,9 +654,8 @@ export const useSlashCommandProcessor = (
           if (process.env.SANDBOX && process.env.SANDBOX !== 'sandbox-exec') {
             sandboxEnv = process.env.SANDBOX.replace(/^gemini-(?:code-)?/, '');
           } else if (process.env.SANDBOX === 'sandbox-exec') {
-            sandboxEnv = `sandbox-exec (${
-              process.env.SEATBELT_PROFILE || 'unknown'
-            })`;
+            sandboxEnv = `sandbox-exec (${process.env.SEATBELT_PROFILE || 'unknown'
+              })`;
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = await getCliVersion();
@@ -1018,8 +1022,73 @@ export const useSlashCommandProcessor = (
         },
       });
     }
+
+    customCommands.forEach(cmd => {
+      commands.push({
+        name: cmd.name,
+        description: cmd.description,
+        action: async (_mainCommand, _subCommand, args) => {
+          let prompt = cmd.template.replace(/\$ARGUMENTS/g, args || '');
+
+          // !コマンドや@ファイルパスの展開
+          const lines = prompt.split('\n');
+          for (let i = 0; i < lines.length; i++) {
+            if (lines[i].startsWith('!')) {
+              const bashCmd = lines[i].slice(1).trim();
+              try {
+                const { execSync } = await import('child_process');
+                const output = execSync(bashCmd, { encoding: 'utf-8' });
+                lines[i] = output.trim();
+              } catch (e) {
+                lines[i] = `[failed: ${bashCmd}]`;
+              }
+            }
+            if (lines[i].startsWith('@')) {
+              const filePath = lines[i].slice(1).trim();
+              try {
+                const fileContent = await fs.readFile(filePath, 'utf-8');
+                lines[i] = fileContent;
+              } catch (e) {
+                lines[i] = `[file read failed: ${filePath}]`;
+              }
+            }
+          }
+          prompt = lines.join('\n');
+
+          const geminiClient = config?.getGeminiClient?.();
+          if (geminiClient) {
+            const chat = geminiClient.getChat();
+            const response = await chat.sendMessage({ message: { text: prompt } });
+            const aiResponse =
+              typeof response.text === 'string' && response.text
+                ? response.text
+                : typeof response.candidates?.[0]?.content === 'string' && response.candidates[0].content
+                  ? response.candidates[0].content
+                  : JSON.stringify(response);
+            addMessage({
+              type: MessageType.USER,
+              content: prompt,
+              timestamp: new Date(),
+            });
+            addMessage({
+              type: MessageType.INFO,
+              content: aiResponse,
+              timestamp: new Date(),
+            });
+          } else {
+            addMessage({
+              type: MessageType.USER,
+              content: prompt,
+              timestamp: new Date(),
+            });
+          }
+        },
+      });
+    });
+
     return commands;
   }, [
+    customCommands,
     onDebugMessage,
     setShowHelp,
     refreshStatic,
@@ -1082,7 +1151,11 @@ export const useSlashCommandProcessor = (
         return parts[0];
       })();
 
-      const mainCommand = commandToMatch;
+      const parts = trimmed.startsWith('/') || trimmed.startsWith('?')
+        ? trimmed.slice(1).split(/\s+/)
+        : [];
+      const mainCommand = parts[0];
+      args = parts.slice(1).join(' ');
 
       for (const cmd of slashCommands) {
         if (mainCommand === cmd.name || mainCommand === cmd.altName) {
