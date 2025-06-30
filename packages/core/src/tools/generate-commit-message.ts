@@ -16,6 +16,26 @@ import { GeminiClient } from '../core/client.js';
 import { spawn } from 'child_process';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 
+interface CommitAnalysis {
+  changedFiles: string[];
+  changeType: 'feat' | 'fix' | 'docs' | 'style' | 'refactor' | 'perf' | 'test' | 'build' | 'ci' | 'chore' | 'revert';
+  scope?: string;
+  purpose: string;
+  impact: string;
+  hasSensitiveInfo: boolean;
+}
+
+interface CommitMessageParts {
+  header: string;
+  body?: string;
+  footer?: string;
+}
+
+interface AICommitResponse {
+  analysis: CommitAnalysis;
+  commitMessage: CommitMessageParts;
+}
+
 const COMMIT_ANALYSIS_PROMPT = `You are an expert software engineer specializing in writing concise and meaningful git commit messages following the Conventional Commits format.
 
 Your task is to analyze git changes and generate commit messages that follow this specific workflow:
@@ -41,7 +61,22 @@ Your task is to analyze git changes and generate commit messages that follow thi
 - Focus on the motivation and impact, not just the implementation details
 
 # Output Format
-Please provide your analysis in <commit_analysis> tags, then provide the final commit message.
+You MUST respond with a valid JSON object in the following format:
+{
+  "analysis": {
+    "changedFiles": ["list of files"],
+    "changeType": "feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert",
+    "scope": "optional scope string",
+    "purpose": "description of why these changes were made",
+    "impact": "description of the impact on the project",
+    "hasSensitiveInfo": false
+  },
+  "commitMessage": {
+    "header": "type(scope): subject",
+    "body": "optional body text",
+    "footer": "optional footer text"
+  }
+}
 
 # Git Status
 \`\`\`
@@ -72,6 +107,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
     finalCommitMessage: string;
     timestamp: number;
     commitMode: 'staged-only' | 'all-changes';
+    indexHash: string;
   } | null = null;
 
   constructor(config: Config) {
@@ -134,20 +170,12 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
       const finalCommitMessage = this.addGeminiSignature(commitMessage);
       
-      // Determine commit strategy based on current git state
-      const hasStagedChanges = stagedDiff?.trim() !== '';
-      const hasUnstagedChanges = unstagedDiff?.trim() !== '';
-      const hasUntrackedFiles = statusOutput?.includes('??') || false;
+      // Determine commit strategy based on current git state with more precision
+      const gitState = this.analyzeGitState(statusOutput || '', stagedDiff || '', unstagedDiff || '');
+      const commitMode = this.determineCommitStrategy(gitState);
       
-      let commitMode: 'staged-only' | 'all-changes';
-      
-      if (hasStagedChanges && !hasUnstagedChanges && !hasUntrackedFiles) {
-        // Only staged changes exist, commit staged files only
-        commitMode = 'staged-only';
-      } else {
-        // In all other cases (unstaged, untracked, or mixed), we'll stage all changes.
-        commitMode = 'all-changes';
-      }
+      // Get current git index hash for race condition protection
+      const indexHash = await this.getGitIndexHash(signal);
       
       // Cache the data for execute method
       this.cachedCommitData = {
@@ -157,7 +185,8 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         commitMessage,
         finalCommitMessage,
         timestamp: Date.now(),
-        commitMode
+        commitMode,
+        indexHash
       };
 
       // Determine which files will be committed for display
@@ -181,7 +210,8 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       };
       return confirmationDetails;
     } catch (error) {
-      throw error;
+      const errorDetails = this.formatExecutionError(error);
+      throw new Error(errorDetails.message);
     }
   }
 
@@ -193,21 +223,9 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       let statusOutput: string;
 
       // Check if we have cached data from shouldConfirmExecute
-      if (this.cachedCommitData && (Date.now() - this.cachedCommitData.timestamp < 30000)) {
+      if (this.cachedCommitData && await this.isCacheValid(signal)) {
         console.debug('[GenerateCommitMessage] Using cached commit message from confirmation...');
         
-        // TOCTOU Fix: Verify git diff hasn't changed since confirmation
-        const [currentStagedDiff, currentUnstagedDiff] = await Promise.all([
-          this.executeGitCommand(['diff', '--cached'], signal),
-          this.executeGitCommand(['diff'], signal),
-        ]);
-        const currentDiffOutput = [currentStagedDiff, currentUnstagedDiff].filter(d => d?.trim()).join('\n');
-
-        if (currentDiffOutput !== this.cachedCommitData.diffOutput) {
-          this.cachedCommitData = null; // Invalidate cache
-          throw new Error('Git changes detected since confirmation. Please run the command again to generate an accurate commit message.');
-        }
-
         finalCommitMessage = this.cachedCommitData.finalCommitMessage;
         statusOutput = this.cachedCommitData.statusOutput;
         
@@ -247,21 +265,16 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
       // Step 3: Handle staging based on cached strategy or current state
       const cachedData = this.cachedCommitData;
-      if (cachedData && cachedData.commitMode === 'all-changes') {
-        // Stage all changes using git add .
-        console.debug('[GenerateCommitMessage] Staging all changes using git add .');
-        await this.executeGitCommand(['add', '.'], signal);
-      } else if (!cachedData) {
+      if (cachedData) {
+        await this.executeCommitStrategy(cachedData.commitMode, signal);
+      } else {
         // Fallback for non-cached execution - determine staging strategy
         const currentStagedDiff = await this.executeGitCommand(['diff', '--cached'], signal);
         const currentUnstagedDiff = await this.executeGitCommand(['diff'], signal);
-        const hasUnstagedChanges = !!currentUnstagedDiff?.trim();
-        const hasUntrackedFiles = statusOutput?.includes('??');
+        const currentGitState = this.analyzeGitState(statusOutput, currentStagedDiff || '', currentUnstagedDiff || '');
+        const currentCommitMode = this.determineCommitStrategy(currentGitState);
         
-        if (hasUnstagedChanges || hasUntrackedFiles) {
-          console.debug('[GenerateCommitMessage] Staging all changes using git add .');
-          await this.executeGitCommand(['add', '.'], signal);
-        }
+        await this.executeCommitStrategy(currentCommitMode, signal);
       }
 
       // Step 4: Create commit
@@ -312,10 +325,10 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
     } catch (error) {
       console.error('[GenerateCommitMessage] Error during execution:', error);
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorDetails = this.formatExecutionError(error);
       return {
-        llmContent: `Error during commit workflow: ${errorMessage}`,
-        returnDisplay: `Error during commit workflow: ${errorMessage}`,
+        llmContent: `Error during commit workflow: ${errorDetails.message}`,
+        returnDisplay: `Error during commit workflow: ${errorDetails.message}`,
       };
     }
   }
@@ -482,20 +495,15 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
       const generatedText = getResponseText(response) ?? '';
       
-      // Extract commit message from analysis (look for the message after </commit_analysis>)
-      const analysisEndIndex = generatedText.indexOf('</commit_analysis>');
-      if (analysisEndIndex !== -1) {
-        const commitMessage = generatedText
-          .substring(analysisEndIndex + '</commit_analysis>'.length)
-          .trim()
-          .replace(/^```[a-z]*\n?/, '')
-          .replace(/```$/, '')
-          .trim();
-        
-        return commitMessage;
+      // Parse JSON response with fallback to text parsing
+      const parsedResponse = this.parseAIResponse(generatedText);
+      
+      if (parsedResponse.analysis.hasSensitiveInfo) {
+        console.warn('[GenerateCommitMessage] AI detected potentially sensitive information in changes');
       }
-
-      return generatedText;
+      
+      // Build commit message from structured response
+      return this.buildCommitMessage(parsedResponse.commitMessage);
     } catch (error) {
       console.error('[GenerateCommitMessage] Error during Gemini API call:', error);
       throw new Error(`Failed to generate commit message: ${error instanceof Error ? error.message : String(error)}`);
@@ -505,5 +513,232 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
   private addGeminiSignature(commitMessage: string): string {
     // Return the commit message without any signature
     return commitMessage;
+  }
+
+  private async getGitIndexHash(signal: AbortSignal): Promise<string> {
+    try {
+      // Get the git index hash to detect changes
+      const indexHash = await this.executeGitCommand(['write-tree'], signal);
+      return indexHash || '';
+    } catch (error) {
+      console.debug('[GenerateCommitMessage] Failed to get git index hash:', error);
+      // Fallback to timestamp if git index operation fails
+      return Date.now().toString();
+    }
+  }
+
+  private parseAIResponse(generatedText: string): AICommitResponse {
+    try {
+      // Try to extract JSON from response
+      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        const jsonResponse = JSON.parse(jsonMatch[0]) as AICommitResponse;
+        
+        // Validate required fields
+        if (!jsonResponse.analysis || !jsonResponse.commitMessage) {
+          throw new Error('Invalid JSON structure');
+        }
+        
+        return jsonResponse;
+      }
+      
+      throw new Error('No JSON found in response');
+    } catch (jsonError) {
+      console.debug('[GenerateCommitMessage] JSON parsing failed, falling back to text parsing:', jsonError);
+      
+      // Fallback to legacy text parsing
+      const analysisEndIndex = generatedText.indexOf('</commit_analysis>');
+      let commitMessage = '';
+      
+      if (analysisEndIndex !== -1) {
+        commitMessage = generatedText
+          .substring(analysisEndIndex + '</commit_analysis>'.length)
+          .trim()
+          .replace(/^```[a-z]*\n?/, '')
+          .replace(/```$/, '')
+          .trim();
+      } else {
+        commitMessage = generatedText.trim();
+      }
+      
+      // Create fallback response structure
+      return {
+        analysis: {
+          changedFiles: [],
+          changeType: 'chore',
+          purpose: 'Generated from legacy text parsing',
+          impact: 'Unknown impact',
+          hasSensitiveInfo: false
+        },
+        commitMessage: {
+          header: commitMessage.split('\n')[0] || 'chore: update files',
+          body: commitMessage.split('\n').slice(1).join('\n').trim() || undefined
+        }
+      };
+    }
+  }
+
+  private buildCommitMessage(commitParts: CommitMessageParts): string {
+    let message = commitParts.header;
+    
+    if (commitParts.body && commitParts.body.trim()) {
+      message += '\n\n' + commitParts.body.trim();
+    }
+    
+    if (commitParts.footer && commitParts.footer.trim()) {
+      message += '\n\n' + commitParts.footer.trim();
+    }
+    
+    return message;
+  }
+
+  private analyzeGitState(statusOutput: string, stagedDiff: string, unstagedDiff: string) {
+    const lines = statusOutput.split('\n').filter(line => line.trim());
+    const state = {
+      hasStagedChanges: stagedDiff.trim() !== '',
+      hasUnstagedChanges: unstagedDiff.trim() !== '',
+      hasUntrackedFiles: statusOutput.includes('??'),
+      hasDeletedFiles: lines.some(line => line.includes(' D ')),
+      hasRenamedFiles: lines.some(line => line.includes(' R ')),
+      hasConflicts: lines.some(line => line.includes('UU') || line.includes('AA')),
+      modifiedFileCount: lines.filter(line => line.includes(' M ')).length,
+      addedFileCount: lines.filter(line => line.includes('A ')).length,
+      deletedFileCount: lines.filter(line => line.includes(' D ')).length,
+      untrackedFileCount: lines.filter(line => line.includes('??')).length
+    };
+    
+    return state;
+  }
+
+  private determineCommitStrategy(gitState: ReturnType<typeof this.analyzeGitState>): 'staged-only' | 'all-changes' {
+    // If there are conflicts, we should not proceed with automatic staging
+    if (gitState.hasConflicts) {
+      throw new Error('Git conflicts detected. Please resolve conflicts before committing.');
+    }
+    
+    // If only staged changes exist and no unstaged/untracked files, commit staged only
+    if (gitState.hasStagedChanges && !gitState.hasUnstagedChanges && !gitState.hasUntrackedFiles) {
+      return 'staged-only';
+    }
+    
+    // If we have a mix of staged and unstaged changes, stage all to ensure consistency
+    if (gitState.hasStagedChanges && (gitState.hasUnstagedChanges || gitState.hasUntrackedFiles)) {
+      return 'all-changes';
+    }
+    
+    // If only unstaged or untracked changes exist, stage all
+    if (!gitState.hasStagedChanges && (gitState.hasUnstagedChanges || gitState.hasUntrackedFiles)) {
+      return 'all-changes';
+    }
+    
+    // Default to staged-only if no changes detected
+    return 'staged-only';
+  }
+
+  private async executeCommitStrategy(commitMode: 'staged-only' | 'all-changes', signal: AbortSignal): Promise<void> {
+    if (commitMode === 'all-changes') {
+      console.debug('[GenerateCommitMessage] Executing all-changes strategy: staging all files');
+      await this.executeGitCommand(['add', '.'], signal);
+    } else {
+      console.debug('[GenerateCommitMessage] Executing staged-only strategy: committing staged files only');
+      // No additional staging needed for staged-only
+    }
+  }
+
+  private async isCacheValid(signal: AbortSignal): Promise<boolean> {
+    if (!this.cachedCommitData) {
+      return false;
+    }
+
+    try {
+      // Check cache age (30 seconds max)
+      const cacheAge = Date.now() - this.cachedCommitData.timestamp;
+      if (cacheAge > 30000) {
+        console.debug('[GenerateCommitMessage] Cache expired (age: %dms)', cacheAge);
+        this.cachedCommitData = null;
+        return false;
+      }
+
+      // Verify git index hasn't changed since confirmation to prevent race conditions
+      const currentIndexHash = await this.getGitIndexHash(signal);
+      if (currentIndexHash !== this.cachedCommitData.indexHash) {
+        console.debug('[GenerateCommitMessage] Cache invalidated due to index change');
+        this.cachedCommitData = null;
+        throw new Error('Git index has changed since confirmation. Please run the command again to generate an accurate commit message.');
+      }
+
+      // Additional validation: verify working directory state hasn't changed significantly
+      const currentStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
+      const currentStatusLines = (currentStatus || '').split('\n').filter(line => line.trim()).length;
+      const cachedStatusLines = this.cachedCommitData.statusOutput.split('\n').filter(line => line.trim()).length;
+      
+      if (Math.abs(currentStatusLines - cachedStatusLines) > 0) {
+        console.debug('[GenerateCommitMessage] Cache invalidated due to status change (lines: %d vs %d)', 
+          currentStatusLines, cachedStatusLines);
+        this.cachedCommitData = null;
+        throw new Error('Working directory status has changed since confirmation. Please run the command again.');
+      }
+
+      return true;
+    } catch (error) {
+      console.debug('[GenerateCommitMessage] Cache validation failed:', error);
+      this.cachedCommitData = null;
+      throw error;
+    }
+  }
+
+  private formatExecutionError(error: unknown): { message: string; originalError: Error | null } {
+    if (error instanceof Error) {
+      // Preserve original error for debugging
+      const originalError = error;
+      
+      // Provide specific guidance based on error type
+      if (error.message.includes('Git is not installed')) {
+        return {
+          message: 'Git is not installed or not found in your system PATH. Please install Git and ensure it\'s accessible from the command line.',
+          originalError
+        };
+      } else if (error.message.includes('not a git repository')) {
+        return {
+          message: 'This directory is not a Git repository. Please navigate to a Git repository or run "git init" to initialize one.',
+          originalError
+        };
+      } else if (error.message.includes('no changes added to commit')) {
+        return {
+          message: 'No changes have been staged for commit. Make some changes to your files first, or use "git add" to stage existing changes.',
+          originalError
+        };
+      } else if (error.message.includes('nothing to commit')) {
+        return {
+          message: 'No changes detected in your working directory. Make some changes to your files before creating a commit.',
+          originalError
+        };
+      } else if (error.message.includes('index.lock')) {
+        return {
+          message: 'Git index is locked by another process. Please wait for the other Git operation to complete and try again.',
+          originalError
+        };
+      } else if (error.message.includes('Git index has changed')) {
+        return {
+          message: 'Changes were detected in your Git repository after confirmation. This prevents committing unexpected changes. Please run the command again.',
+          originalError
+        };
+      } else if (error.message.includes('Failed to generate commit message')) {
+        return {
+          message: 'Unable to generate commit message using AI. Please check your internet connection and API configuration.',
+          originalError
+        };
+      } else {
+        return {
+          message: `${error.message}`,
+          originalError
+        };
+      }
+    } else {
+      return {
+        message: `Unexpected error occurred: ${String(error)}`,
+        originalError: null
+      };
+    }
   }
 }
