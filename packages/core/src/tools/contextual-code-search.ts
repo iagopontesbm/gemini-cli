@@ -71,7 +71,7 @@ export class ContextualCodeSearchTool extends BaseTool<
     super(
       ContextualCodeSearchTool.Name,
       'ContextualCodeSearch',
-      'This tool uses semantic search to find code snippets from your natural language query. It excels at understanding everything from high-level descriptions to specific function names, making it a powerful and versatile code discovery tool',
+      'The gemini code customization tool that fetches remote context using vector embeddings to aid programming tasks. Use it for generating, explaining, debugging, and testing code with enhanced context. It excels at understanding everything from high-level descriptions to specific function names.',
       {
         type: 'object',
         properties: {
