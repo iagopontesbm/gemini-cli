@@ -36,9 +36,6 @@ jobs:
           ISSUES=$(echo "$NO_LABEL_ISSUES" "$NEEDS_TRIAGE_ISSUES" | jq -c -s 'add | unique_by(.number)')
           echo "issues_to_triage=$ISSUES" >> "$GITHUB_OUTPUT"
 
-      - name: Install dependencies
-        run: npm install
-
       - name: Run Gemini Issue Triage
         if: steps.find_issues.outputs.issues_to_triage != '[]'
         uses: google-gemini/gemini-cli-action@1efc0bac9e0b2da6c6cab95df513324d8dfc2a79
@@ -47,7 +44,7 @@ jobs:
           ISSUES_TO_TRIAGE: ${{ steps.find_issues.outputs.issues_to_triage }}
           REPOSITORY: ${{ github.repository }}
         with:
-          version: main
+          version: latest
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OTLP_GCP_WIF_PROVIDER: ${{ secrets.OTLP_GCP_WIF_PROVIDER }}
           OTLP_GCP_SERVICE_ACCOUNT: ${{ secrets.OTLP_GCP_SERVICE_ACCOUNT }}

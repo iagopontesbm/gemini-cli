@@ -28,9 +28,6 @@ jobs:
         with:
           token: ${{ steps.generate_token.outputs.token }}
 
-      - name: Install dependencies
-        run: npm install
-
       - name: Run Gemini Issue Triage
         uses: google-gemini/gemini-cli-action@1efc0bac9e0b2da6c6cab95df513324d8dfc2a79
         env:
@@ -40,7 +37,7 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           REPOSITORY: ${{ github.repository }}
         with:
-          version: main
+          version: latest
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OTLP_GCP_WIF_PROVIDER: ${{ secrets.OTLP_GCP_WIF_PROVIDER }}
           OTLP_GCP_SERVICE_ACCOUNT: ${{ secrets.OTLP_GCP_SERVICE_ACCOUNT }}
