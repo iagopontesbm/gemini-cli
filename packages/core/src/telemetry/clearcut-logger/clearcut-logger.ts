@@ -91,7 +91,6 @@ export class ClearcutLogger {
     if (eventsToSend.length === 0) {
       return {};
     }
-    this.events.length = 0;
 
     const flushFn = () =>
       new Promise<Buffer>((resolve, reject) => {
@@ -111,6 +110,17 @@ export class ClearcutLogger {
         };
         const bufs: Buffer[] = [];
         const req = https.request(options, (res) => {
+          if (
+            res.statusCode &&
+            (res.statusCode < 200 || res.statusCode >= 300)
+          ) {
+            const err = new Error(
+              `Request failed with status ${res.statusCode}`,
+            );
+            (err as any).status = res.statusCode;
+            res.resume();
+            return reject(err);
+          }
           res.on('data', (buf) => bufs.push(buf));
           res.on('end', () => resolve(Buffer.concat(bufs)));
         });
@@ -122,17 +132,22 @@ export class ClearcutLogger {
       const responseBuffer = await retryWithBackoff(flushFn, {
         maxAttempts: 3,
         initialDelayMs: 200,
-        shouldRetry: (err) => err instanceof Error,
+        shouldRetry: (err: unknown) => {
+          if (!(err instanceof Error)) return false;
+          const status = (err as any).status as number | undefined;
+          // If status is not available, it's likely a network error
+          if (status === undefined) return true;
+
+          // Retry on 429 (Too many Requests) and 5xx server errors.
+          return status === 429 || (status >= 500 && status < 600);
+        },
       });
 
+      this.events.splice(0, eventsToSend.length);
       this.last_flush_time = Date.now();
       return this.decodeLogResponse(responseBuffer) || {};
     } catch (error) {
-      console.error(
-        'Clearcut flush failed after multiple retries. Re-queuing events.',
-        error,
-      );
-      this.events.unshift(...eventsToSend);
+      console.error('Clearcut flush failed after multiple retries.', error);
       return {};
     }
   }
