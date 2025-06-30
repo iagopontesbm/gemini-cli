@@ -359,28 +359,29 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           }
         });
 
-        child.on('error', (err) => {
+        child.on('error', (err: Error & { code?: string }) => {
           const errorMessage = `Failed to execute git command '${commandString}': ${err.message}`;
           console.error(`[GenerateCommitMessage] Spawn error: ${errorMessage}`);
-          
+
           // Provide helpful error context
-          if (err.message.includes('ENOENT')) {
-            reject(new Error(`Git is not installed or not found in PATH. Please install Git and try again.`));
-          } else if (err.message.includes('EACCES')) {
-            reject(new Error(`Permission denied when executing git command. Please check file permissions.`));
+          if (err.code === 'ENOENT') {
+            reject(
+              new Error(
+                `Git is not installed or not found in PATH. Please install Git and try again.`,
+              ),
+            );
+          } else if (err.code === 'EACCES') {
+            reject(
+              new Error(
+                `Permission denied when executing git command. Please check file permissions.`,
+              ),
+            );
           } else {
             reject(new Error(errorMessage));
           }
         });
 
-        // Handle abort signal
-        signal.addEventListener('abort', () => {
-          child.kill('SIGTERM');
-          reject(new Error(`Git command '${commandString}' was aborted`));
-        });
-
         if (signal.aborted) {
-          child.kill('SIGTERM');
           reject(new Error(`Git command '${commandString}' was aborted before starting`));
           return;
         }
