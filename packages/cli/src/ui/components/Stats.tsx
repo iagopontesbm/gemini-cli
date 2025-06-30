@@ -47,8 +47,8 @@ export const StatsColumn: React.FC<{
 }> = ({ title, stats, isCumulative = false, width, children }) => {
   const cachedDisplay =
     isCumulative && stats.totalTokens > 0
-      ? `${stats.cachedTokens.toLocaleString()} (${((stats.cachedTokens / stats.totalTokens) * 100).toFixed(1)}%)`
-      : stats.cachedTokens.toLocaleString();
+      ? `${stats.cachedTokens.toLocaleString('en-US')} (${((stats.cachedTokens / stats.totalTokens) * 100).toFixed(1)}%)`
+      : stats.cachedTokens.toLocaleString('en-US');
 
   const cachedColor =
     isCumulative && stats.cachedTokens > 0 ? Colors.AccentGreen : undefined;
@@ -60,21 +60,21 @@ export const StatsColumn: React.FC<{
         {/* All StatRows below will now inherit the gap */}
         <StatRow
           label="Input Tokens"
-          value={stats.inputTokens.toLocaleString()}
+          value={stats.inputTokens.toLocaleString('en-US')}
         />
         <StatRow
           label="Output Tokens"
-          value={stats.outputTokens.toLocaleString()}
+          value={stats.outputTokens.toLocaleString('en-US')}
         />
         {stats.toolUseTokens > 0 && (
           <StatRow
             label="Tool Use Tokens"
-            value={stats.toolUseTokens.toLocaleString()}
+            value={stats.toolUseTokens.toLocaleString('en-US')}
           />
         )}
         <StatRow
           label="Thoughts Tokens"
-          value={stats.thoughtsTokens.toLocaleString()}
+          value={stats.thoughtsTokens.toLocaleString('en-US')}
         />
         {stats.cachedTokens > 0 && (
           <StatRow
@@ -93,7 +93,7 @@ export const StatsColumn: React.FC<{
         />
         <StatRow
           label="Total Tokens"
-          value={stats.totalTokens.toLocaleString()}
+          value={stats.totalTokens.toLocaleString('en-US')}
         />
         {children}
       </Box>
