@@ -30,7 +30,7 @@ export function AuthDialog({
   );
   const items = [
     {
-      label: 'Login with Google',
+      label: 'Login with Google - and get Gemini Code Assist in your IDEs (free with personal Gmail accounts)',
       value: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
     },
     { label: 'Gemini API Key (AI Studio)', value: AuthType.USE_GEMINI },
