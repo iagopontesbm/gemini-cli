@@ -59,3 +59,14 @@ export * from './tools/mcp-tool.js';
 // Export telemetry functions
 export * from './telemetry/index.js';
 export { sessionId } from './utils/session.js';
+
+// Newly integrated tools and types (from user snippets)
+// Note: Assuming build process handles .js extension if needed in final output.
+// These specific named exports ensure the versions from the recent snippets are available.
+export { readFileTool, ReadFileArgs } from './tools/readFile';
+export { writeFileTool, WriteFileArgs } from './tools/writeFile';
+// shell.ts was overwritten, its existing export './tools/shell.js' should now point to the new content.
+// To be explicit about the new shellTool constant if it's different:
+export { shellTool, ShellArgs } from './tools/shell'; // Assuming shell.ts is the source for shell.js
+export { termuxToastTool, TermuxToastArgs } from './tools/termux';
+export { Tool } from './types/toolTypes';
