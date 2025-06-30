@@ -228,6 +228,7 @@ export class GeminiClient {
       yield { type: GeminiEventType.ChatCompressed, value: compressed };
     }
     const turn = new Turn(this.getChat());
+    // Pass the signal to the turn's run method, which passes it to chat.sendMessageStream
     const resultStream = turn.run(request, signal);
     for await (const event of resultStream) {
       yield event;

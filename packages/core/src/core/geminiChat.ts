@@ -248,6 +248,7 @@ export class GeminiChat {
    */
   async sendMessage(
     params: SendMessageParameters,
+    signal?: AbortSignal,
   ): Promise<GenerateContentResponse> {
     await this.sendPromise;
     const userContent = createUserContent(params.message);
@@ -263,7 +264,7 @@ export class GeminiChat {
         this.contentGenerator.generateContent({
           model: this.config.getModel() || DEFAULT_GEMINI_FLASH_MODEL,
           contents: requestContents,
-          config: { ...this.generationConfig, ...params.config },
+          config: { ...this.generationConfig, ...params.config, signal },
         });
 
       response = await retryWithBackoff(apiCall, {
@@ -342,6 +343,7 @@ export class GeminiChat {
    */
   async sendMessageStream(
     params: SendMessageParameters,
+    signal?: AbortSignal,
   ): Promise<AsyncGenerator<GenerateContentResponse>> {
     await this.sendPromise;
     const userContent = createUserContent(params.message);
@@ -355,7 +357,7 @@ export class GeminiChat {
         this.contentGenerator.generateContentStream({
           model: this.config.getModel(),
           contents: requestContents,
-          config: { ...this.generationConfig, ...params.config },
+          config: { ...this.generationConfig, ...params.config, signal },
         });
 
       // Note: Retrying streams can be complex. If generateContentStream itself doesn't handle retries

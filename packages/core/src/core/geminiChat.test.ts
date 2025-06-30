@@ -80,7 +80,55 @@ describe('GeminiChat', () => {
       expect(mockModelsModule.generateContent).toHaveBeenCalledWith({
         model: 'gemini-pro',
         contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
-        config: {},
+        config: { signal: undefined },
+      });
+    });
+
+    it('should call generateContent with the abortSignal if provided', async () => {
+      const response = {
+        candidates: [
+          {
+            content: {
+              parts: [{ text: 'response' }],
+              role: 'model',
+            },
+            finishReason: 'STOP',
+            index: 0,
+            safetyRatings: [],
+          },
+        ],
+        text: () => 'response',
+      } as unknown as GenerateContentResponse;
+      vi.mocked(mockModelsModule.generateContent).mockResolvedValue(response);
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+
+      await chat.sendMessage({ message: 'hello' }, signal);
+
+      expect(mockModelsModule.generateContent).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: { signal },
+      });
+    });
+
+    it('should throw an error if generateContent is aborted', async () => {
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+      const error = new Error('Aborted');
+      error.name = 'AbortError';
+      vi.mocked(mockModelsModule.generateContent).mockRejectedValue(error);
+
+      abortController.abort(); // Abort the signal
+
+      await expect(
+        chat.sendMessage({ message: 'hello' }, signal),
+      ).rejects.toThrow('Aborted');
+
+      expect(mockModelsModule.generateContent).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: { signal },
       });
     });
   });
@@ -112,7 +160,79 @@ describe('GeminiChat', () => {
       expect(mockModelsModule.generateContentStream).toHaveBeenCalledWith({
         model: 'gemini-pro',
         contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
-        config: {},
+        config: { signal: undefined },
+      });
+    });
+
+    it('should call generateContentStream with the abortSignal if provided', async () => {
+      const response = (async function* () {
+        yield {
+          candidates: [
+            {
+              content: {
+                parts: [{ text: 'response' }],
+                role: 'model',
+              },
+              finishReason: 'STOP',
+              index: 0,
+              safetyRatings: [],
+            },
+          ],
+          text: () => 'response',
+        } as unknown as GenerateContentResponse;
+      })();
+      vi.mocked(mockModelsModule.generateContentStream).mockResolvedValue(
+        response,
+      );
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+
+      await chat.sendMessageStream({ message: 'hello' }, signal);
+
+      expect(mockModelsModule.generateContentStream).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: { signal },
+      });
+    });
+
+    it('should throw an error if generateContentStream is aborted', async () => {
+      const abortController = new AbortController();
+      const signal = abortController.signal;
+      const error = new Error('Aborted');
+      error.name = 'AbortError';
+
+      vi.mocked(mockModelsModule.generateContentStream).mockImplementation(
+        async function* () {
+          await new Promise((resolve) => setTimeout(resolve, 0)); // Ensure microtask queue is processed
+          if (signal.aborted) {
+            throw error;
+          }
+          // Should not reach here if aborted before call
+          yield { text: () => 'should not yield' } as GenerateContentResponse;
+        },
+      );
+
+      abortController.abort(); // Abort the signal
+
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        for await (const _ of await chat.sendMessageStream(
+          { message: 'hello' },
+          signal,
+        )) {
+          // This loop should not run if an error is thrown.
+        }
+        // If the loop completes without throwing, the test fails.
+        expect.fail('Stream did not throw an error as expected.');
+      } catch (e: any) {
+        expect(e.message).toBe('Aborted');
+      }
+
+      expect(mockModelsModule.generateContentStream).toHaveBeenCalledWith({
+        model: 'gemini-pro',
+        contents: [{ role: 'user', parts: [{ text: 'hello' }] }],
+        config: { signal },
       });
     });
   });
