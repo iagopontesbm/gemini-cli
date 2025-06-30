@@ -132,6 +132,17 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   const ctrlDTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [constrainHeight, setConstrainHeight] = useState<boolean>(true);
   const [showPrivacyNotice, setShowPrivacyNotice] = useState<boolean>(false);
+  const [showFooter, setShowFooter] = useState<boolean>(
+    !config.getHideFooter(),
+  );
+
+  const toggleFooter = useCallback(() => {
+    setShowFooter((prev) => !prev);
+  }, []);
+
+  useEffect(() => {
+    setShowFooter(!config.getHideFooter());
+  }, [config]);
 
   const openPrivacyNotice = useCallback(() => {
     setShowPrivacyNotice(true);
@@ -284,6 +295,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     showToolDescriptions,
     setQuittingMessages,
     openPrivacyNotice,
+    toggleFooter,
   );
   const pendingHistoryItems = [...pendingSlashCommandHistoryItems];
 
@@ -811,24 +823,26 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               )}
             </Box>
           )}
-          <Footer
-            model={currentModel}
-            targetDir={config.getTargetDir()}
-            debugMode={config.getDebugMode()}
-            branchName={branchName}
-            debugMessage={debugMessage}
-            corgiMode={corgiMode}
-            errorCount={errorCount}
-            showErrorDetails={showErrorDetails}
-            showMemoryUsage={
-              config.getDebugMode() || config.getShowMemoryUsage()
-            }
-            promptTokenCount={sessionStats.currentResponse.promptTokenCount}
-            candidatesTokenCount={
-              sessionStats.currentResponse.candidatesTokenCount
-            }
-            totalTokenCount={sessionStats.currentResponse.totalTokenCount}
-          />
+          {showFooter && (
+            <Footer
+              model={currentModel}
+              targetDir={config.getTargetDir()}
+              debugMode={config.getDebugMode()}
+              branchName={branchName}
+              debugMessage={debugMessage}
+              corgiMode={corgiMode}
+              errorCount={errorCount}
+              showErrorDetails={showErrorDetails}
+              showMemoryUsage={
+                config.getDebugMode() || config.getShowMemoryUsage()
+              }
+              promptTokenCount={sessionStats.currentResponse.promptTokenCount}
+              candidatesTokenCount={
+                sessionStats.currentResponse.candidatesTokenCount
+              }
+              totalTokenCount={sessionStats.currentResponse.totalTokenCount}
+            />
+          )}
         </Box>
       </Box>
     </StreamingContext.Provider>
