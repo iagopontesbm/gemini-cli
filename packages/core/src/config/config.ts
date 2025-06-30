@@ -77,6 +77,7 @@ export class MCPServerConfig {
     readonly url?: string,
     // For streamable http transport
     readonly httpUrl?: string,
+    readonly headers?: Record<string, string>,
     // For websocket transport
     readonly tcp?: string,
     // Common
