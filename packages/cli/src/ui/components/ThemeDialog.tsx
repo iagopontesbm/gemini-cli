@@ -137,8 +137,8 @@ export function ThemeDialog({
   const colorizeCodeWidth = Math.max(
     Math.floor(
       (terminalWidth - TOTAL_HORIZONTAL_PADDING) *
-        PREVIEW_PANE_WIDTH_PERCENTAGE *
-        PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
+      PREVIEW_PANE_WIDTH_PERCENTAGE *
+      PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
     ),
     1,
   );
@@ -195,19 +195,12 @@ export function ThemeDialog({
 
   // useEffect for previewing theme
   useEffect(() => {
-    const previousTheme = themeManager.getActiveTheme();
     const previewThemeObj = themeManager.findThemeByName(
       themeItems[selectedThemeIndex]?.value,
     );
     if (previewThemeObj) {
       themeManager.setActiveTheme(previewThemeObj.name);
     }
-    return () => {
-      // Restore the previous theme if it was changed
-      if (previousTheme && previousTheme.name !== previewThemeObj?.name) {
-        themeManager.setActiveTheme(previousTheme.name);
-      }
-    };
   }, [selectedThemeIndex, themeItems]);
 
   let themeInstructions = '';
