@@ -448,6 +448,10 @@ export class GeminiChat {
     this.history = history;
   }
 
+  getGenerationConfig(): GenerateContentConfig {
+    return this.generationConfig;
+  }
+
   getFinalUsageMetadata(
     chunks: GenerateContentResponse[],
   ): GenerateContentResponseUsageMetadata | undefined {
@@ -542,7 +546,7 @@ export class GeminiChat {
       automaticFunctionCallingHistory.length > 0
     ) {
       this.history.push(
-        ...extractCuratedHistory(automaticFunctionCallingHistory),
+        ...extractCuratedHistory(automaticFunctionCallingHistory!),
       );
     } else {
       this.history.push(userInput);
