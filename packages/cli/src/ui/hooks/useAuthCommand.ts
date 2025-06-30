@@ -36,6 +36,10 @@ async function performManualAuthFlow(
 
     // Wait for the manual auth to complete
     await manualInfo.loginCompletePromise;
+    
+    // Initialize the config with the auth method
+    await config.refreshAuth(authMethod);
+    
     return `Authenticated via "${authMethod}".`;
   } catch (error) {
     if (error instanceof Error && error.message === 'Already authenticated') {
