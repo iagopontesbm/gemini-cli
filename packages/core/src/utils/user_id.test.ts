@@ -41,7 +41,7 @@ describe('user_id', () => {
       const installationIdResult = getInstallationId();
 
       // They should be the same when no Google Account ID is cached
-      expect(googleAccountIdResult).toBe("");
+      expect(googleAccountIdResult).toBe('');
     });
   });
 });

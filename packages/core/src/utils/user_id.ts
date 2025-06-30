@@ -76,5 +76,5 @@ export function getObfuscatedGoogleAccountId(): string {
     // If there's any error accessing Google Account ID, just return empty string
   }
 
-  return "";
+  return '';
 }
