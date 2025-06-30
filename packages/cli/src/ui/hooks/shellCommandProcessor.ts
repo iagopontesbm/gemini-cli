@@ -96,7 +96,12 @@ function windowsCodePageToEncoding(cp: number) {
     65001: 'utf-8'
   };
 
-  return map[cp] || `cp${cp}`;
+  if (map[cp]) {
+    return map[cp];
+  }
+
+  console.warn(`Unknown Windows code page: ${cp}. Falling back to utf-8.`);
+  return 'utf-8';
 }
 
 /**
