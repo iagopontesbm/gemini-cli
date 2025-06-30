@@ -30,7 +30,7 @@ export async function loadCustomSlashCommands(): Promise<CustomSlashCommand[]> {
             body = match[2];
           }
           commands.push({
-            name: file.replace(/\.md$/, ''),
+            name: `project:${file.replace(/\.md$/, '')}`,
             description: meta['description'] || '',
             allowedTools: meta['allowed-tools'],
             template: body,

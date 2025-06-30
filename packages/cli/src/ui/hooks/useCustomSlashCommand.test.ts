@@ -37,7 +37,7 @@ Translate $ARGUMENTS to English`
 
     expect(commands).toHaveLength(1);
     expect(commands[0]).toMatchObject({
-      name: 'hello',
+      name: 'project:hello',
       description: 'Test hello command',
       allowedTools: 'none',
       template: 'Translate $ARGUMENTS to English',
@@ -65,7 +65,7 @@ Translate $ARGUMENTS to English`
     mockReaddir.mockResolvedValueOnce([]);
     const commands = await loadCustomSlashCommands();
     expect(commands[0]).toMatchObject({
-      name: 'plain',
+      name: 'project:plain',
       description: '',
       template: 'just a template',
     });
