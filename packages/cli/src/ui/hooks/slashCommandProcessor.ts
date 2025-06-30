@@ -3,8 +3,6 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-selectedAuthType 
-
 
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
