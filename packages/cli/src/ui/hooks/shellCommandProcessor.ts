@@ -41,11 +41,30 @@ function getSystemEncoding() {
   }
 
   // Unix-like
+  // Use environment variables LC_ALL, LC_CTYPE, and LANG to determine the
+  // system encoding. However, these environment variables might not always 
+  // be set or accurate. Handle cases where none of these variables are set.
   const env = process.env;
-  const locale = env.LC_ALL || env.LC_CTYPE || env.LANG || '';
+  let locale = env.LC_ALL || env.LC_CTYPE || env.LANG || '';
+
+  // Fallback to querying the system directly when environment variables are missing
+  if (!locale) {
+    try {
+      locale = execSync('locale charmap', { encoding: 'utf8' }).toString().trim();
+    } catch (_e) {
+      console.warn('Failed to get locale charmap. Falling back to utf-8.');
+      return 'utf-8';
+    }
+  }
+
   const match = locale.match(/\.(.+)/); // e.g., "en_US.UTF-8"
   if (match && match[1]) {
     return match[1].toLowerCase();
+  }
+
+  // Handle cases where locale charmap returns just the encoding name
+  if (locale && !locale.includes('.')) {
+    return locale.toLowerCase();
   }
 
   return 'utf-8'; // fallback
