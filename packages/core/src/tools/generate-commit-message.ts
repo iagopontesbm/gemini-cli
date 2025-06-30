@@ -151,9 +151,14 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         this.executeGitCommand(['log', '--oneline', '-10'], signal)
       ]);
       
-      const diffOutput = [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\n');
+      const gitState = this.analyzeGitState(statusOutput || '', stagedDiff || '', unstagedDiff || '');
+      const commitMode = this.determineCommitStrategy(gitState);
 
-      if (!diffOutput?.trim()) {
+      const diffForAI = commitMode === 'staged-only' ? 
+        (stagedDiff || '') : 
+        [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\\n');
+
+      if (!diffForAI?.trim()) {
         // No changes to confirm
         return false;
       }
@@ -161,7 +166,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       // Generate commit message first and cache it
       const commitMessage = await this.generateCommitMessage(
         statusOutput || '',
-        diffOutput,
+        diffForAI,
         logOutput || '',
         signal
       );
@@ -170,17 +175,13 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
       const finalCommitMessage = this.addGeminiSignature(commitMessage);
       
-      // Determine commit strategy based on current git state with more precision
-      const gitState = this.analyzeGitState(statusOutput || '', stagedDiff || '', unstagedDiff || '');
-      const commitMode = this.determineCommitStrategy(gitState);
-      
       // Get current git index hash for race condition protection
       const indexHash = await this.getGitIndexHash(signal);
       
       // Cache the data for execute method
       this.cachedCommitData = {
         statusOutput: statusOutput || '',
-        diffOutput,
+        diffOutput: diffForAI,
         logOutput: logOutput || '',
         commitMessage,
         finalCommitMessage,
@@ -241,11 +242,16 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           this.executeGitCommand(['log', '--oneline', '-10'], signal)
         ]);
         
-        const diffOutput = [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\n');
+        const gitState = this.analyzeGitState(statusOut || '', stagedDiff || '', unstagedDiff || '');
+        const commitMode = this.determineCommitStrategy(gitState);
+        
+        const diffForAI = commitMode === 'staged-only' ? 
+          (stagedDiff || '') : 
+          [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\\n');
 
         statusOutput = statusOut || '';
 
-        if (!diffOutput?.trim()) {
+        if (!diffForAI?.trim()) {
           return {
             llmContent: 'No changes detected in the current workspace.',
             returnDisplay: 'No changes detected in the current workspace.',
@@ -255,7 +261,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         // Step 2: Generate commit message using AI analysis
         const commitMessage = await this.generateCommitMessage(
           statusOutput,
-          diffOutput,
+          diffForAI,
           logOutput || '',
           signal
         );
@@ -536,10 +542,44 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
   private parseAIResponse(generatedText: string): AICommitResponse {
     try {
-      // Try to extract JSON from response
-      const jsonMatch = generatedText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        const jsonResponse = JSON.parse(jsonMatch[0]) as AICommitResponse;
+      // First, try to extract JSON from markdown code blocks
+      const codeBlockMatch = generatedText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
+      if (codeBlockMatch) {
+        const jsonResponse = JSON.parse(codeBlockMatch[1]) as AICommitResponse;
+        
+        // Validate required fields
+        if (!jsonResponse.analysis || !jsonResponse.commitMessage) {
+          throw new Error('Invalid JSON structure');
+        }
+        
+        return jsonResponse;
+      }
+
+      // If no code block, try to find the first complete JSON object
+      let braceCount = 0;
+      let startIndex = -1;
+      let endIndex = -1;
+
+      for (let i = 0; i < generatedText.length; i++) {
+        const char = generatedText[i];
+        
+        if (char === '{') {
+          if (braceCount === 0) {
+            startIndex = i;
+          }
+          braceCount++;
+        } else if (char === '}') {
+          braceCount--;
+          if (braceCount === 0 && startIndex !== -1) {
+            endIndex = i;
+            break;
+          }
+        }
+      }
+
+      if (startIndex !== -1 && endIndex !== -1) {
+        const jsonString = generatedText.substring(startIndex, endIndex + 1);
+        const jsonResponse = JSON.parse(jsonString) as AICommitResponse;
         
         // Validate required fields
         if (!jsonResponse.analysis || !jsonResponse.commitMessage) {
@@ -549,7 +589,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         return jsonResponse;
       }
       
-      throw new Error('No JSON found in response');
+      throw new Error('No valid JSON found in response');
     } catch (jsonError) {
       console.debug('[GenerateCommitMessage] JSON parsing failed:', jsonError);
       const errorMessage = jsonError instanceof Error ? jsonError.message : String(jsonError);
@@ -594,23 +634,18 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
     if (gitState.hasConflicts) {
       throw new Error('Git conflicts detected. Please resolve conflicts before committing.');
     }
-    
-    // If only staged changes exist and no unstaged/untracked files, commit staged only
-    if (gitState.hasStagedChanges && !gitState.hasUnstagedChanges && !gitState.hasUntrackedFiles) {
+
+    // If there are staged changes, only commit what the user has staged.
+    if (gitState.hasStagedChanges) {
       return 'staged-only';
     }
-    
-    // If we have a mix of staged and unstaged changes, stage all to ensure consistency
-    if (gitState.hasStagedChanges && (gitState.hasUnstagedChanges || gitState.hasUntrackedFiles)) {
+
+    // If only unstaged or untracked changes exist, stage all of them.
+    if (gitState.hasUnstagedChanges || gitState.hasUntrackedFiles) {
       return 'all-changes';
     }
-    
-    // If only unstaged or untracked changes exist, stage all
-    if (!gitState.hasStagedChanges && (gitState.hasUnstagedChanges || gitState.hasUntrackedFiles)) {
-      return 'all-changes';
-    }
-    
-    // Default to staged-only if no changes detected
+
+    // Default to staged-only if no changes are detected (will result in a "no changes" message later).
     return 'staged-only';
   }
 
