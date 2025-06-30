@@ -129,7 +129,9 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         logOutput || '',
         signal
       );
-
+      if (!commitMessage?.trim()) {
+        throw new Error('The AI failed to generate a valid commit message.');
+      }
       const finalCommitMessage = this.addGeminiSignature(commitMessage);
       
       // Determine commit strategy based on current git state
