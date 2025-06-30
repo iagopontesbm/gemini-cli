@@ -209,7 +209,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           this.executeGitCommand(['log', '--oneline', '-10'], signal)
         ]);
         
-        const diffOutput = stagedDiff?.trim() ? stagedDiff : unstagedDiff;
+        const diffOutput = [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\n');
 
         statusOutput = statusOut || '';
 
