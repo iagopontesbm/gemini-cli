@@ -32,6 +32,7 @@ export const useAuthCommand = (
   }, []);
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [wasCancelled, setWasCancelled] = useState(false);
 
   useEffect(() => {
     const authFlow = async () => {
@@ -64,6 +65,7 @@ export const useAuthCommand = (
       }
       setIsAuthDialogOpen(false);
       setAuthError(null);
+      setWasCancelled(false);
     },
     [settings, setAuthError],
   );
@@ -74,6 +76,7 @@ export const useAuthCommand = (
 
   const cancelAuthentication = useCallback(() => {
     setIsAuthenticating(false);
+    setWasCancelled(true);
   }, []);
 
   return {
@@ -83,5 +86,6 @@ export const useAuthCommand = (
     handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
+    wasCancelled,
   };
 };

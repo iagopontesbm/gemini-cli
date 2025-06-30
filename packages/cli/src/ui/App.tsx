@@ -156,6 +156,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
+    wasCancelled,
   } = useAuthCommand(settings, setAuthError, config);
 
   useEffect(() => {
@@ -675,6 +676,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 onHighlight={handleAuthHighlight}
                 settings={settings}
                 initialErrorMessage={authError}
+                wasCancelled={wasCancelled}
               />
             </Box>
           ) : isEditorDialogOpen ? (
