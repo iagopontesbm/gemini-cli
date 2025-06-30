@@ -723,12 +723,20 @@ export const useSlashCommandProcessor = (
           }
           switch (subCommand) {
             case 'save': {
+              if (!tag) {
+                addMessage({
+                  type: MessageType.ERROR,
+                  content: 'Missing tag\nUsage: /chat save <tag>',
+                  timestamp: new Date(),
+                });
+                return;
+              }
               const history = chat.getHistory();
               if (history.length > 0) {
                 await logger.saveCheckpoint(chat?.getHistory() || [], tag);
                 addMessage({
                   type: MessageType.INFO,
-                  content: `Conversation checkpoint saved${tag ? ' with tag: ' + tag : ''}.`,
+                  content: `Conversation checkpoint saved with tag: ${tag}.`,
                   timestamp: new Date(),
                 });
               } else {
