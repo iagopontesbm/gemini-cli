@@ -252,22 +252,6 @@ export async function getManualOauthClient(
   }
 
   const manualLogin = await authWithManual(client, configuredPort);
-
-  // Try to shorten the URL for console display
-  const displayUrl = await shortenUrl(manualLogin.authUrl);
-
-  console.log('\n\nCode Assist login required.');
-  console.log('Please complete the following steps:\n');
-  console.log('1. Copy and paste this URL into your browser:');
-  console.log(`   ${displayUrl}\n`);
-  console.log('2. Set up port forwarding (if using SSH):');
-  const port = new URL(manualLogin.callbackUrl).port;
-  console.log(`   ssh -L ${port}:localhost:${port} <your-ssh-connection>`);
-  console.log(`   Or access: ${manualLogin.callbackUrl}\n`);
-  console.log('3. Complete the authentication in your browser');
-  console.log('4. The browser will redirect to the callback URL');
-  console.log('\nWaiting for authentication...');
-
   await manualLogin.loginCompletePromise;
 
   return client;

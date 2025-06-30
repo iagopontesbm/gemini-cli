@@ -36,6 +36,7 @@ import { ThemeDialog } from './components/ThemeDialog.js';
 import { AuthDialog } from './components/AuthDialog.js';
 import { AuthInProgress } from './components/AuthInProgress.js';
 import { ManualAuthInProgress } from './components/ManualAuthInProgress.js';
+import { AuthStatusMessage } from './components/AuthStatusMessage.js';
 import { EditorSettingsDialog } from './components/EditorSettingsDialog.js';
 import { Colors } from './colors.js';
 import { Help } from './components/Help.js';
@@ -157,7 +158,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthHighlight,
     isAuthenticating,
     manualAuthInfo,
+    authSuccessMessage,
     cancelAuthentication,
+    clearAuthSuccessMessage,
   } = useAuthCommand(settings, setAuthError, config);
 
   useEffect(() => {
@@ -345,6 +348,12 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
   );
 
   useInput((input: string, key: InkKeyType) => {
+    // Clear auth success message on any key press
+    if (authSuccessMessage) {
+      clearAuthSuccessMessage();
+      return;
+    }
+
     let enteringConstrainHeightMode = false;
     if (!constrainHeight) {
       // Automatically re-enter constrain height mode if the user types
@@ -680,6 +689,18 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
                 openAuthDialog();
               }}
             />
+          ) : authSuccessMessage ? (
+            <Box flexDirection="column">
+              <AuthStatusMessage
+                message={authSuccessMessage}
+                isSuccess={true}
+              />
+              <Box marginTop={1}>
+                <Text color={Colors.Gray}>
+                  Press any key to continue...
+                </Text>
+              </Box>
+            </Box>
           ) : isAuthDialogOpen ? (
             <Box flexDirection="column">
               <AuthDialog

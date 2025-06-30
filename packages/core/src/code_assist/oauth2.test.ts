@@ -245,24 +245,8 @@ describe('oauth2', () => {
     // Verify that browser was NOT opened for manual login
     expect(open).not.toHaveBeenCalled();
 
-    // Verify manual instructions were logged
-    expect(consoleSpy).toHaveBeenCalledWith('\n\nCode Assist login required.');
-    expect(consoleSpy).toHaveBeenCalledWith(
-      'Please complete the following steps:\n',
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '1. Copy and paste this URL into your browser:',
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(`   ${mockAuthUrl}\n`);
-    expect(consoleSpy).toHaveBeenCalledWith(
-      '2. Set up port forwarding (if using SSH):',
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `   ssh -L ${capturedPort}:localhost:${capturedPort} <your-ssh-connection>`,
-    );
-    expect(consoleSpy).toHaveBeenCalledWith(
-      `   Or access: http://localhost:${capturedPort}/oauth2callback\n`,
-    );
+    // Verify that console.log was not called (UI messages now handled by React components)
+    expect(consoleSpy).not.toHaveBeenCalled();
 
     expect(mockGetToken).toHaveBeenCalledWith({
       code: mockCode,

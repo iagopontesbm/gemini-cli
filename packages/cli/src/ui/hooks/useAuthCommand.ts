@@ -15,7 +15,7 @@ import {
 
 async function performAuthFlow(authMethod: AuthType, config: Config) {
   await config.refreshAuth(authMethod);
-  console.log(`Authenticated via "${authMethod}".`);
+  return `Authenticated via "${authMethod}".`;
 }
 
 async function performManualAuthFlow(
@@ -36,12 +36,11 @@ async function performManualAuthFlow(
 
     // Wait for the manual auth to complete
     await manualInfo.loginCompletePromise;
-    console.log(`Authenticated via "${authMethod}".`);
+    return `Authenticated via "${authMethod}".`;
   } catch (error) {
     if (error instanceof Error && error.message === 'Already authenticated') {
       // User already has cached credentials, proceed with normal flow
-      await performAuthFlow(authMethod, config);
-      return;
+      return await performAuthFlow(authMethod, config);
     }
     throw error;
   }
@@ -65,6 +64,7 @@ export const useAuthCommand = (
     authUrl: string;
     callbackUrl: string;
   } | null>(null);
+  const [authSuccessMessage, setAuthSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const authFlow = async () => {
@@ -74,13 +74,16 @@ export const useAuthCommand = (
 
       try {
         setIsAuthenticating(true);
+        setAuthSuccessMessage(null);
         const authType = settings.merged.selectedAuthType as AuthType;
 
+        let successMessage: string;
         if (authType === AuthType.MANUAL_LOGIN_WITH_GOOGLE) {
-          await performManualAuthFlow(authType, config, setManualAuthInfo);
+          successMessage = await performManualAuthFlow(authType, config, setManualAuthInfo);
         } else {
-          await performAuthFlow(authType, config);
+          successMessage = await performAuthFlow(authType, config);
         }
+        setAuthSuccessMessage(successMessage);
       } catch (e) {
         setAuthError(`Failed to login. Message: ${getErrorMessage(e)}`);
         openAuthDialog();
@@ -114,6 +117,10 @@ export const useAuthCommand = (
     setManualAuthInfo(null);
   }, []);
 
+  const clearAuthSuccessMessage = useCallback(() => {
+    setAuthSuccessMessage(null);
+  }, []);
+
   return {
     isAuthDialogOpen,
     openAuthDialog,
@@ -121,6 +128,8 @@ export const useAuthCommand = (
     handleAuthHighlight,
     isAuthenticating,
     manualAuthInfo,
+    authSuccessMessage,
     cancelAuthentication,
+    clearAuthSuccessMessage,
   };
 };
