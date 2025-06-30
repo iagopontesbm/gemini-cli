@@ -17,8 +17,8 @@ import {
 } from '../types.js';
 import { EventMetadataKey } from './event-metadata-key.js';
 import { Config } from '../../config/config.js';
-import { getPersistentUserId } from '../../utils/user_id.js';
 import { HttpError, retryWithBackoff } from '../../utils/retry.js';
+import { getInstallationId, getObfuscatedGoogleAccountId } from '../../utils/user_id.js';
 
 const start_session_event_name = 'start_session';
 const new_prompt_event_name = 'new_prompt';
@@ -70,7 +70,8 @@ export class ClearcutLogger {
       console_type: 'GEMINI_CLI',
       application: 102,
       event_name: name,
-      client_install_id: getPersistentUserId(),
+      obfuscated_google_account_id: getObfuscatedGoogleAccountId(),
+      client_install_id: getInstallationId(),
       event_metadata: [data] as object[],
     };
   }
@@ -188,9 +189,6 @@ export class ClearcutLogger {
     const returnVal = {
       nextRequestWaitMs: Number(ms),
     };
-    if (this.config?.getDebugMode()) {
-      console.log('Clearcut response: ', returnVal);
-    }
     return returnVal;
   }
 
@@ -358,7 +356,7 @@ export class ClearcutLogger {
       },
       {
         gemini_cli_key:
-          EventMetadataKey.GEMINI_CLI_API_RESPONSE_THINKING_TOKEN_COUNT,
+          EventMetadataKey.GEMINI_CLI_API_RESPONSE_TOOL_TOKEN_COUNT,
         value: JSON.stringify(event.tool_token_count),
       },
     ];
