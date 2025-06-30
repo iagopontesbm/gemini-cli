@@ -68,10 +68,6 @@ export const useAuthCommand = (
     [settings, setAuthError],
   );
 
-  const handleAuthHighlight = useCallback((_authMethod: string | undefined) => {
-    // For now, we don't do anything on highlight.
-  }, []);
-
   const cancelAuthentication = useCallback(() => {
     setIsAuthenticating(false);
   }, []);
@@ -80,7 +76,6 @@ export const useAuthCommand = (
     isAuthDialogOpen,
     openAuthDialog,
     handleAuthSelect,
-    handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
   };
