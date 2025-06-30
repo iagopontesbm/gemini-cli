@@ -30,9 +30,11 @@ function getSystemEncoding() {
       const match = output.match(/:\s*(\d+)/);
       if (match) {
         const codePage = parseInt(match[1], 10);
-        return windowsCodePageToEncoding(codePage);
+        if (!isNaN(codePage)) {
+          return windowsCodePageToEncoding(codePage);
+        }
       }
-    } catch (e) {
+    } catch (_e) {
       console.warn('Failed to get Windows code page. Falling back to utf-8.');
     }
     return 'utf-8';
