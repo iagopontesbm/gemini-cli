@@ -37,26 +37,30 @@ export function ThemeDialog({
   );
 
   // Generate theme items
+  // Ensure custom themes are loaded before rendering
+  useEffect(() => {
+    themeManager.loadCustomThemes(settings.merged.customThemes);
+  }, [settings.merged.customThemes]);
+
   const availableThemes = themeManager.getAvailableThemes();
-  const themeItems = availableThemes.map((theme, idx) => {
+  const themeItems = availableThemes.map((theme) => {
     const typeString = theme.type.charAt(0).toUpperCase() + theme.type.slice(1);
     const label = theme.isCustom ? `[Custom] ${theme.name}` : theme.name;
     return {
       label,
-      value: idx,
+      value: theme.name, // Use theme name as value
       themeNameDisplay: theme.name,
       themeTypeDisplay: typeString,
       isCustom: theme.isCustom,
     };
   });
 
-
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
   // Determine which radio button should be initially selected in the themes list
   // This should reflect the theme *saved* for the selected scope, or the default
   const initialThemeIndex = themeItems.findIndex(
-    (item: any) => item.value === (settings.merged.theme || DEFAULT_THEME.name),
+    (item) => item.value === (settings.merged.theme || DEFAULT_THEME.name),
   );
 
   const scopeItems = [
@@ -64,8 +68,7 @@ export function ThemeDialog({
     { label: 'Workspace Settings', value: SettingScope.Workspace },
   ];
 
-  const handleThemeSelect = (idx: number) => {
-    const themeName = availableThemes[idx].name;
+  const handleThemeSelect = (themeName: string) => {
     onSelect(themeName, selectedScope);
   };
 
@@ -78,7 +81,6 @@ export function ThemeDialog({
     handleScopeHighlight(scope);
     setFocusedSection('theme'); // Reset focus to theme section
   };
-
 
   // Remove state and logic for 'create' focus section
   // const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
@@ -123,7 +125,7 @@ export function ThemeDialog({
     }
     if (key.return) {
       if (focusedSection === 'theme') {
-        handleThemeSelect(selectedThemeIndex);
+        handleThemeSelect(themeItems[selectedThemeIndex].value);
       } else if (focusedSection === 'scope') {
         // No-op for now
       }
@@ -218,20 +220,20 @@ export function ThemeDialog({
       ? availableThemes[selectedThemeIndex].name
       : settings.merged.theme || DEFAULT_THEME.name;
 
-  // useEffect to handle preview theme switching and restoration
+  // useEffect for previewing theme
   useEffect(() => {
     const previousTheme = themeManager.getActiveTheme();
-    const previewThemeObj = themeManager.findThemeByName(previewThemeName);
+    const previewThemeObj = themeManager.findThemeByName(themeItems[selectedThemeIndex]?.value);
     if (previewThemeObj) {
-      themeManager.setActiveTheme(previewThemeName);
+      themeManager.setActiveTheme(previewThemeObj.name);
     }
     return () => {
       // Restore the previous theme if it was changed
-      if (previousTheme && previousTheme.name !== previewThemeName) {
+      if (previousTheme && previousTheme.name !== previewThemeObj?.name) {
         themeManager.setActiveTheme(previousTheme.name);
       }
     };
-  }, [previewThemeName]);
+  }, [selectedThemeIndex, themeItems]);
 
   let themeInstructions = '';
   if (focusedSection === 'theme') {
@@ -257,11 +259,17 @@ export function ThemeDialog({
             <Text color={Colors.Gray}>{otherScopeModifiedMessage}</Text>
           </Text>
           <RadioButtonSelect
+            key={selectInputKey}
             items={themeItems}
             initialIndex={selectedThemeIndex}
             onSelect={handleThemeSelect}
-            onHighlight={(i: number) => setSelectedThemeIndex(i)}
-            isFocused={focusedSection === 'theme'}
+            onHighlight={(themeName) => {
+              const idx = themeItems.findIndex((item) => item.value === themeName);
+              if (idx !== -1) setSelectedThemeIndex(idx);
+              // Optionally preview theme here if needed
+              if (themeName) themeManager.setActiveTheme(themeName);
+            }}
+            isFocused={currenFocusedSection === 'theme'}
           />
           <Box marginTop={1}>
             <Text color={Colors.Gray}>{themeInstructions}</Text>

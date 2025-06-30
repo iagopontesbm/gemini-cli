@@ -103,9 +103,20 @@ export class LoadedSettings {
   }
 
   private computeMergedSettings(): Settings {
+    const user = this.user.settings;
+    const workspace = this.workspace.settings;
+
     return {
-      ...this.user.settings,
-      ...this.workspace.settings,
+      ...user,
+      ...workspace,
+      customThemes: {
+        ...(user.customThemes || {}),
+        ...(workspace.customThemes || {}),
+      },
+      mcpServers: {
+        ...(user.mcpServers || {}),
+        ...(workspace.mcpServers || {}),
+      },
     };
   }
 

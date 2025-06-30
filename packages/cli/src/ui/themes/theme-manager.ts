@@ -77,6 +77,10 @@ class ThemeManager {
         console.warn(`Invalid custom theme "${name}": ${validation.error}`);
       }
     }
+    // If the current active theme is a custom theme, keep it if still valid
+    if (this.activeTheme && this.activeTheme.type === 'custom' && this.customThemes.has(this.activeTheme.name)) {
+      this.activeTheme = this.customThemes.get(this.activeTheme.name)!;
+    }
   }
 
   /**
@@ -89,7 +93,6 @@ class ThemeManager {
     if (!theme) {
       return false;
     }
-
     this.activeTheme = theme;
     return true;
   }
@@ -99,6 +102,13 @@ class ThemeManager {
    * @returns The active theme.
    */
   getActiveTheme(): Theme {
+    if (process.env.NO_COLOR) {
+      return NoColorTheme;
+    }
+    // Ensure the active theme is always valid (fallback to default if not)
+    if (!this.activeTheme || !this.findThemeByName(this.activeTheme.name)) {
+      this.activeTheme = DEFAULT_THEME;
+    }
     return this.activeTheme;
   }
 
