@@ -5,7 +5,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { isValidColor, resolveColor, CSS_NAME_TO_HEX_MAP, INK_SUPPORTED_NAMES } from './color-utils.js';
+import {
+  isValidColor,
+  resolveColor,
+  CSS_NAME_TO_HEX_MAP,
+  INK_SUPPORTED_NAMES,
+} from './color-utils.js';
 
 describe('Color Utils', () => {
   describe('isValidColor', () => {
@@ -17,7 +22,6 @@ describe('Color Utils', () => {
       expect(isValidColor('#000')).toBe(true);
       expect(isValidColor('#FF0000')).toBe(true); // Case insensitive
     });
-
 
     it('should validate Ink-supported color names', () => {
       expect(isValidColor('black')).toBe(true);
@@ -214,4 +218,4 @@ describe('Color Utils', () => {
       }
     });
   });
-}); 
+});

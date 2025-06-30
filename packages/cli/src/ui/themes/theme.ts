@@ -393,9 +393,12 @@ function isValidThemeName(name: string): boolean {
  * @param type The base theme type to derive from.
  * @returns A new custom theme configuration.
  */
-export function createDefaultCustomTheme(name: string, type: 'light' | 'dark'): CustomTheme {
+export function createDefaultCustomTheme(
+  name: string,
+  type: 'light' | 'dark',
+): CustomTheme {
   const baseTheme = type === 'light' ? lightTheme : darkTheme;
-  
+
   return {
     type: 'custom',
     name,

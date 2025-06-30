@@ -224,4 +224,4 @@ export function resolveColor(colorValue: string): string | undefined {
     `[ColorUtils] Could not resolve color "${colorValue}" to an Ink-compatible format.`,
   );
   return undefined;
-} 
+}

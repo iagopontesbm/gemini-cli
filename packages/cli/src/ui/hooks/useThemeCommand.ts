@@ -19,7 +19,10 @@ interface UseThemeCommandReturn {
     scope: SettingScope,
   ) => void; // Added scope
   handleThemeHighlight: (themeName: string | undefined) => void;
-  handleCustomThemeSave: (customTheme: CustomTheme, scope: SettingScope) => void;
+  handleCustomThemeSave: (
+    customTheme: CustomTheme,
+    scope: SettingScope,
+  ) => void;
   handleCustomThemeDelete: (themeName: string, scope: SettingScope) => void;
 }
 
@@ -115,7 +118,9 @@ export const useThemeCommand = (
       try {
         // Register the custom theme in the theme manager
         if (!themeManager.registerCustomTheme(customTheme)) {
-          setThemeError(`Failed to register custom theme "${customTheme.name}"`);
+          setThemeError(
+            `Failed to register custom theme "${customTheme.name}"`,
+          );
           return;
         }
 
@@ -127,13 +132,13 @@ export const useThemeCommand = (
           ...currentCustomThemes,
           [customTheme.name]: customTheme,
         };
-        
+
         loadedSettings.setValue(scope, 'customThemes', updatedCustomThemes);
-        
+
         // Set this as the active theme
         loadedSettings.setValue(scope, 'theme', customTheme.name);
         applyTheme(customTheme.name);
-        
+
         addItem(
           {
             type: MessageType.INFO,
@@ -141,7 +146,7 @@ export const useThemeCommand = (
           },
           Date.now(),
         );
-        
+
         setThemeError(null);
       } catch (error) {
         setThemeError(`Failed to save custom theme: ${error}`);
@@ -165,15 +170,15 @@ export const useThemeCommand = (
         const currentCustomThemes = scopeSettings.settings.customThemes || {};
         const updatedCustomThemes = { ...currentCustomThemes };
         delete updatedCustomThemes[themeName];
-        
+
         loadedSettings.setValue(scope, 'customThemes', updatedCustomThemes);
-        
+
         // If this was the active theme, switch to default
         if (loadedSettings.merged.theme === themeName) {
           loadedSettings.setValue(scope, 'theme', undefined);
           applyTheme(undefined);
         }
-        
+
         addItem(
           {
             type: MessageType.INFO,
@@ -181,7 +186,7 @@ export const useThemeCommand = (
           },
           Date.now(),
         );
-        
+
         setThemeError(null);
       } catch (error) {
         setThemeError(`Failed to delete custom theme: ${error}`);
