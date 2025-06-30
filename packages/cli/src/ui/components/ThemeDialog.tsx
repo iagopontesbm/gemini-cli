@@ -189,11 +189,6 @@ export function ThemeDialog({
   const diffHeight = Math.floor(availableTerminalHeightCodeBlock / 2) - 1;
   const codeBlockHeight = Math.ceil(availableTerminalHeightCodeBlock / 2) + 1;
 
-  const previewThemeName =
-    focusedSection === 'theme' && availableThemes[selectedThemeIndex]
-      ? availableThemes[selectedThemeIndex].name
-      : settings.merged.theme || DEFAULT_THEME.name;
-
   // useEffect for previewing theme
   useEffect(() => {
     const previousTheme = themeManager.getActiveTheme();
