@@ -364,4 +364,27 @@ describe('markdownUtilities', () => {
       expect(findLastSafeSplitPoint(content)).toBe(content.length);
     });
   });
+  describe('findLastSafeSplitPoint with non-spec-compliant fences', () => {
+    it('should treat a fence not at the start of a line as a code block start and split before it', () => {
+      const content =
+        'Here is a paragraph.\n\nAnd now some code: ```js\nconsole.log("hello");\n```';
+      const expectedSplitPoint = content.indexOf('```js');
+      expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
+    });
+
+    it('should protect an unclosed code block that starts mid-line by splitting before it', () => {
+      const content =
+        'Some introductory text that is perfectly fine.\nThen you get to ```python\nprint("This is not finished yet")';
+      const expectedSplitPoint = content.indexOf('```python');
+      expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
+    });
+
+    it('should correctly split before a final paragraph, even with closed mid-line backticks earlier', () => {
+      const content =
+        'This content has some `inline code` and even some ```fake fences``` that are properly closed.\n\nThis is the final paragraph that should be split off.';
+      const dnlIndex = content.lastIndexOf('\n\n');
+      const expectedSplitPoint = dnlIndex + 2;
+      expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
+    });
+  });
 });
