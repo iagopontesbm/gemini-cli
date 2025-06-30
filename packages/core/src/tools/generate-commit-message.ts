@@ -212,7 +212,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return confirmationDetails;
     } catch (error) {
       const errorDetails = this.formatExecutionError(error);
-      throw new Error(errorDetails.message, { cause: errorDetails.originalError ?? error });
+      throw new Error(errorDetails.message);
     }
   }
 
@@ -363,10 +363,20 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
         // Write stdin if provided
         if (stdin && child.stdin) {
-          child.stdin.on('error', (err) => {
+          child.stdin.on('error', (err: Error & { code?: string }) => {
             // This can happen if the process exits before we finish writing.
             // Reject here to prevent the promise from hanging or resolving incorrectly.
-            const errorMessage = `Failed to write to git process stdin: ${err.message}`;
+            let errorMessage = `Failed to write to git process stdin: ${err.message}`;
+            
+            // Provide specific guidance based on error type
+            if (err.code === 'EPIPE') {
+              errorMessage = 'Git process closed before commit message could be written. This may indicate a git configuration issue or the process was interrupted.';
+            } else if (err.code === 'ECONNRESET') {
+              errorMessage = 'Connection to git process was reset while writing commit message. Please try again.';
+            } else if (err.code === 'EAGAIN' || err.code === 'EWOULDBLOCK') {
+              errorMessage = 'Git process is temporarily busy. Please wait a moment and try again.';
+            }
+            
             console.error(`[GenerateCommitMessage] stdin write error: ${errorMessage}`);
             reject(new Error(errorMessage));
           });
@@ -375,7 +385,18 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
             child.stdin.write(stdin);
             child.stdin.end();
           } catch (stdinError) {
-            const errorMessage = `Failed to write to git process stdin: ${stdinError instanceof Error ? stdinError.message : String(stdinError)}`;
+            const error = stdinError as Error & { code?: string };
+            let errorMessage = `Failed to write to git process stdin: ${error.message}`;
+            
+            // Provide specific guidance based on error type
+            if (error.code === 'EPIPE') {
+              errorMessage = 'Git process terminated unexpectedly while writing commit message. Please check your git configuration and try again.';
+            } else if (error.code === 'EBADF') {
+              errorMessage = 'Git process stdin is not available for writing. This may be a git configuration issue.';
+            } else if (error.code === 'EINVAL') {
+              errorMessage = 'Invalid commit message format provided to git process.';
+            }
+            
             console.error(`[GenerateCommitMessage] Stdin write error: ${errorMessage}`);
             reject(new Error(errorMessage));
             return;
@@ -531,14 +552,22 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       
       // Provide more specific error handling based on error type
       if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
         if (error.message.includes('JSON')) {
           throw new Error(`AI response parsing failed: ${error.message}. The AI may have returned an unexpected format.`);
         } else if (error.message.includes('sensitive information')) {
           throw error; // Re-throw sensitive info errors as-is
-        } else if (error.message.includes('network') || error.message.includes('timeout')) {
-          throw new Error(`Network error during commit message generation: ${error.message}. Please check your connection and try again.`);
-        } else if (error.message.includes('API') || error.message.includes('quota')) {
-          throw new Error(`API error during commit message generation: ${error.message}. Please check your API configuration.`);
+        } else if (errorMsg.includes('network') || errorMsg.includes('timeout') || errorMsg.includes('enotfound') || errorMsg.includes('econnrefused')) {
+          throw new Error(`Network error during commit message generation: ${error.message}. Please check your internet connection and try again.`);
+        } else if (errorMsg.includes('api') || errorMsg.includes('quota') || errorMsg.includes('rate limit') || errorMsg.includes('billing')) {
+          throw new Error(`API error during commit message generation: ${error.message}. Please check your API key, quota, and billing status.`);
+        } else if (errorMsg.includes('unauthorized') || errorMsg.includes('forbidden') || errorMsg.includes('401') || errorMsg.includes('403')) {
+          throw new Error(`Authentication error during commit message generation: ${error.message}. Please verify your API key is valid and has the necessary permissions.`);
+        } else if (errorMsg.includes('model') || errorMsg.includes('unavailable') || errorMsg.includes('503')) {
+          throw new Error(`AI model error during commit message generation: ${error.message}. The model may be temporarily unavailable. Please try again later.`);
+        } else if (errorMsg.includes('content') || errorMsg.includes('safety') || errorMsg.includes('policy')) {
+          throw new Error(`Content policy error during commit message generation: ${error.message}. The changes may have triggered safety filters.`);
         }
       }
       
@@ -592,35 +621,84 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       // For all-changes commits, temporarily stage files to get reliable hash
       console.debug('[GenerateCommitMessage] Temporarily staging files to calculate reliable index hash...');
       
-      // Save current index state
+      // Save current index state by capturing current status
+      const originalStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
       const originalIndexHash = await this.getGitIndexHash(signal);
+      
+      let hasTemporaryChanges = false;
       
       try {
         // Temporarily stage all changes
         await this.executeGitCommand(['add', '.'], signal);
+        hasTemporaryChanges = true;
+        
+        // Verify staging was successful by checking if index changed
+        const newIndexHash = await this.getGitIndexHash(signal);
         
         // Get hash of staged state that will be committed
-        const stagedHash = await this.getGitIndexHash(signal);
+        const stagedHash = newIndexHash;
         
-        // Reset index to original state
+        // Reset index to original state immediately
         await this.executeGitCommand(['reset', 'HEAD'], signal);
+        hasTemporaryChanges = false;
+        
+        // Verify reset was successful by comparing status
+        const restoredStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
+        if (originalStatus !== restoredStatus) {
+          console.warn('[GenerateCommitMessage] Index state may not be fully restored after temporary staging');
+          // Continue anyway as this is not critical enough to fail the entire operation
+        }
         
         return stagedHash;
       } catch (tempError) {
         // If temporary staging fails, try to restore original state and fall back
-        try {
-          await this.executeGitCommand(['reset', 'HEAD'], signal);
-        } catch (resetError) {
-          console.warn('[GenerateCommitMessage] Failed to restore index after temporary staging:', resetError);
-          // If we can't restore the index, we must abort to avoid leaving the user's repo in a bad state.
-          throw new Error(`Critical: Failed to restore git index after temporary staging. Please check 'git status'. Error: ${resetError instanceof Error ? resetError.message : String(resetError)}`);
+        if (hasTemporaryChanges) {
+          try {
+            await this.executeGitCommand(['reset', 'HEAD'], signal);
+            
+            // Double-check that we've restored the original state
+            const restoredStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
+            if (originalStatus !== restoredStatus) {
+              console.warn('[GenerateCommitMessage] Warning: Index state after reset does not match original state');
+              console.debug('[GenerateCommitMessage] Original status:', originalStatus);
+              console.debug('[GenerateCommitMessage] Restored status:', restoredStatus);
+            }
+          } catch (resetError) {
+            console.error('[GenerateCommitMessage] Critical: Failed to restore index after temporary staging:', resetError);
+            // If we can't restore the index, we must abort to avoid leaving the user's repo in a bad state.
+            throw new Error(`Critical: Failed to restore git index after temporary staging. Please check 'git status' and manually restore if needed. Temporary staging error: ${tempError instanceof Error ? tempError.message : String(tempError)}. Reset error: ${resetError instanceof Error ? resetError.message : String(resetError)}`);
+          }
         }
         
         console.debug('[GenerateCommitMessage] Temporary staging failed, falling back to original hash:', tempError);
+        
+        // Provide more specific error context for common staging issues
+        if (tempError instanceof Error) {
+          const errorMsg = tempError.message.toLowerCase();
+          if (errorMsg.includes('index.lock')) {
+            throw new Error('Git index is locked during hash calculation. Please wait for other git operations to complete and try again.');
+          } else if (errorMsg.includes('permission denied')) {
+            throw new Error('Permission denied during temporary staging for hash calculation. Please check file permissions.');
+          }
+        }
+        
         return originalIndexHash;
       }
     } catch (error) {
       console.debug('[GenerateCommitMessage] Failed to get reliable git index hash:', error);
+      
+      // Provide more specific error messages for common git index issues
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        if (errorMsg.includes('critical')) {
+          throw error; // Re-throw critical errors as-is
+        } else if (errorMsg.includes('not a git repository')) {
+          throw new Error('Cannot calculate git index hash: not in a git repository.');
+        } else if (errorMsg.includes('index.lock')) {
+          throw new Error('Git index is locked. Please wait for other git operations to complete and try again.');
+        }
+      }
+      
       throw new Error(`Failed to calculate reliable git index state: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -651,20 +729,39 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       let braceCount = 0;
       let startIndex = -1;
       let endIndex = -1;
+      let inString = false;
+      let escapeNext = false;
 
       for (let i = 0; i < generatedText.length; i++) {
         const char = generatedText[i];
         
-        if (char === '{') {
-          if (braceCount === 0) {
-            startIndex = i;
-          }
-          braceCount++;
-        } else if (char === '}') {
-          braceCount--;
-          if (braceCount === 0 && startIndex !== -1) {
-            endIndex = i;
-            break;
+        if (escapeNext) {
+          escapeNext = false;
+          continue;
+        }
+        
+        if (char === '\\') {
+          escapeNext = true;
+          continue;
+        }
+        
+        if (char === '"') {
+          inString = !inString;
+          continue;
+        }
+        
+        if (!inString) {
+          if (char === '{') {
+            if (braceCount === 0) {
+              startIndex = i;
+            }
+            braceCount++;
+          } else if (char === '}') {
+            braceCount--;
+            if (braceCount === 0 && startIndex !== -1) {
+              endIndex = i;
+              break;
+            }
           }
         }
       }
@@ -727,26 +824,56 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return 'analysis.changedFiles must be an array';
     }
 
+    if (analysis.changedFiles.length === 0) {
+      return 'analysis.changedFiles must contain at least one file';
+    }
+
     if (typeof analysis.changeType !== 'string') {
       return 'analysis.changeType must be a string';
     }
 
-    if (typeof analysis.purpose !== 'string') {
-      return 'analysis.purpose must be a string';
+    // Validate changeType against allowed values
+    const validChangeTypes = ['feat', 'fix', 'docs', 'style', 'refactor', 'perf', 'test', 'build', 'ci', 'chore', 'revert'];
+    if (!validChangeTypes.includes(analysis.changeType)) {
+      return `analysis.changeType must be one of: ${validChangeTypes.join(', ')}`;
     }
 
-    if (typeof analysis.impact !== 'string') {
-      return 'analysis.impact must be a string';
+    if (typeof analysis.purpose !== 'string' || !analysis.purpose.trim()) {
+      return 'analysis.purpose must be a non-empty string';
+    }
+
+    if (typeof analysis.impact !== 'string' || !analysis.impact.trim()) {
+      return 'analysis.impact must be a non-empty string';
     }
 
     if (typeof analysis.hasSensitiveInfo !== 'boolean') {
       return 'analysis.hasSensitiveInfo must be a boolean';
     }
 
+    // Validate optional scope field
+    if (analysis.scope !== undefined && typeof analysis.scope !== 'string') {
+      return 'analysis.scope must be a string when provided';
+    }
+
     // Validate commit message structure
     const commitMessage = obj.commitMessage as Record<string, unknown>;
     if (typeof commitMessage.header !== 'string' || !commitMessage.header.trim()) {
       return 'commitMessage.header must be a non-empty string';
+    }
+
+    // Validate commit message header format (basic conventional commits format)
+    const headerPattern = /^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+/;
+    if (!headerPattern.test(commitMessage.header)) {
+      return 'commitMessage.header must follow conventional commits format: type(scope): description';
+    }
+
+    // Validate optional body and footer
+    if (commitMessage.body !== undefined && typeof commitMessage.body !== 'string') {
+      return 'commitMessage.body must be a string when provided';
+    }
+
+    if (commitMessage.footer !== undefined && typeof commitMessage.footer !== 'string') {
+      return 'commitMessage.footer must be a string when provided';
     }
 
     return null; // Validation passed
@@ -772,13 +899,16 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       hasStagedChanges: stagedDiff.trim() !== '',
       hasUnstagedChanges: unstagedDiff.trim() !== '',
       hasUntrackedFiles: statusOutput.includes('??'),
-      hasDeletedFiles: lines.some(line => line.includes(' D ')),
-      hasRenamedFiles: lines.some(line => line.includes(' R ')),
-      hasConflicts: lines.some(line => line.includes('UU') || line.includes('AA')),
-      modifiedFileCount: lines.filter(line => line.includes(' M ')).length,
-      addedFileCount: lines.filter(line => line.includes('A ')).length,
-      deletedFileCount: lines.filter(line => line.includes(' D ')).length,
-      untrackedFileCount: lines.filter(line => line.includes('??')).length
+      hasDeletedFiles: lines.some(line => line.includes(' D ') || line.includes('D ')),
+      hasRenamedFiles: lines.some(line => line.includes(' R ') || line.includes('R ')),
+      hasConflicts: lines.some(line => line.includes('UU') || line.includes('AA') || line.includes('DD') || line.includes('AU') || line.includes('UA')),
+      modifiedFileCount: lines.filter(line => line.includes(' M ') || line.includes('M ')).length,
+      addedFileCount: lines.filter(line => line.includes('A ') || line.includes(' A')).length,
+      deletedFileCount: lines.filter(line => line.includes(' D ') || line.includes('D ')).length,
+      untrackedFileCount: lines.filter(line => line.includes('??')).length,
+      stagedFileCount: lines.filter(line => line.length >= 2 && line[0] !== ' ' && line[0] !== '?').length,
+      unstagedFileCount: lines.filter(line => line.length >= 2 && line[1] !== ' ' && line[1] !== '?').length,
+      totalChangedFiles: lines.length
     };
     
     return state;
@@ -829,7 +959,16 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
 
       // Verify git index hasn't changed since confirmation to prevent race conditions
-      const currentIndexHash = await this.getReliableIndexHash(this.cachedCommitData.commitMode, signal);
+      let currentIndexHash: string;
+      try {
+        currentIndexHash = await this.getReliableIndexHash(this.cachedCommitData.commitMode, signal);
+      } catch (indexError) {
+        console.debug('[GenerateCommitMessage] Failed to get current index hash for cache validation:', indexError);
+        this.cachedCommitData = null;
+        // Don't throw here, just invalidate cache and let the operation continue
+        return false;
+      }
+      
       if (currentIndexHash !== this.cachedCommitData.indexHash) {
         console.debug('[GenerateCommitMessage] Cache invalidated due to index change');
         this.cachedCommitData = null;
@@ -837,22 +976,54 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
 
       // Additional validation: verify working directory state hasn't changed significantly
-      const currentStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
+      let currentStatus: string | null;
+      try {
+        currentStatus = await this.executeGitCommand(['status', '--porcelain'], signal);
+      } catch (statusError) {
+        console.debug('[GenerateCommitMessage] Failed to get current status for cache validation:', statusError);
+        this.cachedCommitData = null;
+        return false;
+      }
+      
       const currentStatusLines = (currentStatus || '').split('\n').filter(line => line.trim()).length;
       const cachedStatusLines = this.cachedCommitData.statusOutput.split('\n').filter(line => line.trim()).length;
       
-      if (Math.abs(currentStatusLines - cachedStatusLines) > 0) {
+      // Allow for small differences in status output that don't affect the commit
+      const statusDifference = Math.abs(currentStatusLines - cachedStatusLines);
+      if (statusDifference > 0) {
         console.debug('[GenerateCommitMessage] Cache invalidated due to status change (lines: %d vs %d)', 
           currentStatusLines, cachedStatusLines);
-        this.cachedCommitData = null;
-        throw new Error('Working directory status has changed since confirmation. Please run the command again.');
+        
+        // For more detailed analysis, compare actual content
+        const currentStatusContent = (currentStatus || '').split('\n').filter(line => line.trim()).sort();
+        const cachedStatusContent = this.cachedCommitData.statusOutput.split('\n').filter(line => line.trim()).sort();
+        
+        // Check if the differences are only in file ordering or trivial changes
+        const significantDifferences = currentStatusContent.filter(line => !cachedStatusContent.includes(line));
+        if (significantDifferences.length > 0) {
+          console.debug('[GenerateCommitMessage] Significant status differences detected:', significantDifferences);
+          this.cachedCommitData = null;
+          throw new Error('Working directory status has changed since confirmation. Please run the command again.');
+        } else {
+          console.debug('[GenerateCommitMessage] Status differences are trivial, cache remains valid');
+        }
       }
 
       return true;
     } catch (error) {
       console.debug('[GenerateCommitMessage] Cache validation failed:', error);
       this.cachedCommitData = null;
-      throw error;
+      
+      // Re-throw specific validation errors, but catch and handle other errors gracefully
+      if (error instanceof Error && 
+          (error.message.includes('Git index has changed') || 
+           error.message.includes('Working directory status has changed'))) {
+        throw error;
+      }
+      
+      // For other errors, just invalidate cache and continue
+      console.debug('[GenerateCommitMessage] Cache validation error handled gracefully, continuing without cache');
+      return false;
     }
   }
 
