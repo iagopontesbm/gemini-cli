@@ -17,8 +17,12 @@ interface StatusDisplayProps {
 
 const LABEL_WIDTH = 22;
 
-const SectionHeader = ({ children }: { children: React.ReactNode }) => (
-  <Text bold>--- {children} ---</Text>
+const SectionTitle = ({ children }: { children: React.ReactNode }) => (
+  <Box marginTop={1}>
+    <Text bold color={Colors.LightBlue}>
+      {children}
+    </Text>
+  </Box>
 );
 
 const StatusRow = ({
@@ -62,8 +66,20 @@ export const StatusDisplay = ({ statusInfo }: StatusDisplayProps) => {
   } = statusInfo;
 
   return (
-    <Box flexDirection="column" borderStyle="round" paddingX={2} marginY={1}>
-      <SectionHeader>Connectivity</SectionHeader>
+    <Box
+      flexDirection="column"
+      borderStyle="round"
+      paddingX={2}
+      paddingY={1}
+      marginY={1}
+    >
+      <Box>
+        <Text bold color={Colors.AccentPurple}>
+          Gemini CLI Status
+        </Text>
+      </Box>
+
+      <SectionTitle>Connectivity</SectionTitle>
       <StatusRow label="API Status">
         {connectivity === 'pending' && (
           <Text>
@@ -83,13 +99,13 @@ export const StatusDisplay = ({ statusInfo }: StatusDisplayProps) => {
         </StatusRow>
       )}
 
-      <SectionHeader>Active Configuration</SectionHeader>
+      <SectionTitle>Active Configuration</SectionTitle>
       <StatusRow label="Authentication">{authType}</StatusRow>
       <StatusRow label="Model">{model}</StatusRow>
       <StatusRow label="Project Root">{projectRoot}</StatusRow>
       <StatusRow label="Target Directory">{targetDirectory}</StatusRow>
 
-      <SectionHeader>Context & Memory</SectionHeader>
+      <SectionTitle>Context & Memory</SectionTitle>
       <StatusRow label="Context Files">
         {contextFiles.length > 0 ? contextFiles.join(', ') : 'None'}
       </StatusRow>
@@ -98,7 +114,7 @@ export const StatusDisplay = ({ statusInfo }: StatusDisplayProps) => {
       </StatusRow>
       <StatusRow label="MCP Servers">{mcpServerCount}</StatusRow>
 
-      <SectionHeader>Key Settings</SectionHeader>
+      <SectionTitle>Key Settings</SectionTitle>
       <StatusRow label="Debug Mode">
         {debugMode ? (
           <Text color={Colors.AccentYellow}>Enabled</Text>
@@ -123,7 +139,7 @@ export const StatusDisplay = ({ statusInfo }: StatusDisplayProps) => {
         )}
       </StatusRow>
 
-      <SectionHeader>General Info</SectionHeader>
+      <SectionTitle>General Info</SectionTitle>
       <StatusRow label="CLI Version">{cliVersion}</StatusRow>
       <StatusRow label="Operating System">{osPlatform}</StatusRow>
       <StatusRow label="Settings Files">
