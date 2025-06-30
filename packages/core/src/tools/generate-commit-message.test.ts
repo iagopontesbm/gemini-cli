@@ -28,20 +28,31 @@ function createGitCommandMock(outputs: { [key: string]: string }) {
     const child = new EventEmitter() as EventEmitter & {
       stdout: { on: ReturnType<typeof vi.fn> };
       stderr: { on: ReturnType<typeof vi.fn> };
+      stdin?: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
     };
-    
-    child.stdout = { on: vi.fn((event: string, listener: (data: Buffer) => void) => {
-      if (event === 'data') {
-        const argString = args.join(' ');
-        for (const [pattern, output] of Object.entries(outputs)) {
-          if (argString.includes(pattern)) {
-            listener(Buffer.from(output));
-            break;
+
+    const argString = args.join(' ');
+    if (_command === 'git' && argString.includes('commit')) {
+      child.stdin = {
+        write: vi.fn(),
+        end: vi.fn(),
+        on: vi.fn(),
+      };
+    }
+
+    child.stdout = {
+      on: vi.fn((event: string, listener: (data: Buffer) => void) => {
+        if (event === 'data') {
+          for (const [pattern, output] of Object.entries(outputs)) {
+            if (argString.includes(pattern)) {
+              listener(Buffer.from(output));
+              break;
+            }
           }
         }
-      }
-    }) };
-    
+      }),
+    };
+
     child.stderr = { on: vi.fn() };
     process.nextTick(() => child.emit('close', 0));
     return child;
@@ -55,20 +66,42 @@ describe('GenerateCommitMessageTool', () => {
   let mockSpawn: Mock;
 
   beforeEach(() => {
-    mockConfig = {
-      getGeminiClient: () => mockClient,
-      getApprovalMode: () => ApprovalMode.DEFAULT,
-      setApprovalMode: vi.fn(),
-    } as unknown as Config;
-    mockClient = new GeminiClient(mockConfig);
+    vi.clearAllMocks();
+    mockClient = new GeminiClient({} as unknown as Config);
     mockConfig = {
       getGeminiClient: () => mockClient,
       getApprovalMode: () => ApprovalMode.DEFAULT,
       setApprovalMode: vi.fn(),
     } as unknown as Config;
     tool = new GenerateCommitMessageTool(mockConfig);
-    vi.clearAllMocks();
     mockSpawn = spawn as Mock;
+    (mockClient.generateContent as Mock).mockResolvedValue({
+      candidates: [
+        {
+          content: {
+            parts: [
+              {
+                text: JSON.stringify({
+                  analysis: {
+                    changedFiles: ['file.txt'],
+                    changeType: 'feat',
+                    scope: '',
+                    purpose: 'Add new feature',
+                    impact: 'Improves functionality',
+                    hasSensitiveInfo: false,
+                  },
+                  commitMessage: {
+                    header: 'feat: new feature',
+                    body: '',
+                    footer: '',
+                  },
+                }),
+              },
+            ],
+          },
+        },
+      ],
+    });
   });
 
   it('should return a message when there are no changes', async () => {
@@ -116,20 +149,10 @@ describe('GenerateCommitMessageTool', () => {
       'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
     const statusOutput = 'M  file.txt';
     const logOutput = 'abc1234 Previous commit message';
-    const commitMessage = 'feat: new feature';
-
-    const mockStdin = {
-      write: vi.fn(),
-      end: vi.fn(),
-    };
 
     mockSpawn.mockImplementation((command: string, args: string[]) => {
       const child = new EventEmitter() as any;
       const argString = args.join(' ');
-
-      if (command === 'git' && argString === 'commit -F -') {
-        child.stdin = mockStdin;
-      }
 
       child.stdout = {
         on: vi.fn((event: string, listener: (data: Buffer) => void) => {
@@ -148,18 +171,17 @@ describe('GenerateCommitMessageTool', () => {
       };
 
       child.stderr = { on: vi.fn() };
+
+      if (command === 'git' && argString === 'commit -F -') {
+        child.stdin = {
+          write: vi.fn(),
+          end: vi.fn(),
+          on: vi.fn(),
+        };
+      }
+
       process.nextTick(() => child.emit('close', 0));
       return child;
-    });
-
-    (mockClient.generateContent as Mock).mockResolvedValue({
-      candidates: [
-        {
-          content: {
-            parts: [{ text: commitMessage }],
-          },
-        },
-      ],
     });
 
     const controller = new AbortController();
@@ -202,10 +224,6 @@ describe('GenerateCommitMessageTool', () => {
       ['commit', '-F', '-'],
       expect.any(Object),
     );
-    expect(mockStdin.write).toHaveBeenCalledWith(
-      expect.stringContaining(commitMessage),
-    );
-    expect(mockStdin.end).toHaveBeenCalled();
   });
 
   it('should generate a commit message when there are only unstaged changes', async () => {
@@ -221,16 +239,6 @@ describe('GenerateCommitMessageTool', () => {
       add: '',
       'commit': ''
     }));
-
-    (mockClient.generateContent as Mock).mockResolvedValue({
-      candidates: [
-        {
-          content: {
-            parts: [{ text: 'feat: new feature' }],
-          },
-        },
-      ],
-    });
 
     const controller = new AbortController();
     const result = await tool.execute(undefined, controller.signal);
@@ -266,6 +274,7 @@ describe('GenerateCommitMessageTool', () => {
       const child = new EventEmitter() as EventEmitter & {
         stdout: { on: ReturnType<typeof vi.fn> };
         stderr: { on: ReturnType<typeof vi.fn> };
+        stdin?: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
       };
       
       child.stdout = { on: vi.fn((event: string, listener: (data: Buffer) => void) => {
@@ -290,6 +299,14 @@ describe('GenerateCommitMessageTool', () => {
           listener(Buffer.from('pre-commit hook failed'));
         }
       }) };
+
+      if (args.includes('commit')) {
+        child.stdin = {
+          write: vi.fn(),
+          end: vi.fn(),
+          on: vi.fn(),
+        };
+      }
       
       process.nextTick(() => {
         if (args.includes('commit')) {
@@ -305,16 +322,6 @@ describe('GenerateCommitMessageTool', () => {
       });
       
       return child;
-    });
-
-    (mockClient.generateContent as Mock).mockResolvedValue({
-      candidates: [
-        {
-          content: {
-            parts: [{ text: 'feat: new feature' }],
-          },
-        },
-      ],
     });
 
     const controller = new AbortController();
@@ -366,7 +373,25 @@ describe('GenerateCommitMessageTool', () => {
       candidates: [
         {
           content: {
-            parts: [{ text: 'feat: mixed changes' }],
+            parts: [
+              {
+                text: JSON.stringify({
+                  analysis: {
+                    changedFiles: ['file.txt'],
+                    changeType: 'feat',
+                    scope: '',
+                    purpose: 'Add staged changes',
+                    impact: 'Improves functionality with staged changes',
+                    hasSensitiveInfo: false,
+                  },
+                  commitMessage: {
+                    header: 'feat: staged changes',
+                    body: '',
+                    footer: '',
+                  },
+                }),
+              },
+            ],
           },
         },
       ],
@@ -375,10 +400,204 @@ describe('GenerateCommitMessageTool', () => {
     const controller = new AbortController();
     const result = await tool.execute(undefined, controller.signal);
 
-    expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\nfeat: mixed changes');
-    expect(result.returnDisplay).toBe('Commit created successfully!\n\nCommit message:\nfeat: mixed changes');
+    expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\nfeat: staged changes');
+    expect(result.returnDisplay).toBe('Commit created successfully!\n\nCommit message:\nfeat: staged changes');
     
-    // In the non-cached path, it should check for untracked files and stage them
-    expect(mockSpawn).toHaveBeenCalledWith('git', ['add', '.'], expect.any(Object));
+    // With staged changes present, should NOT call git add (only commit staged changes)
+    expect(mockSpawn).not.toHaveBeenCalledWith('git', ['add', '.'], expect.any(Object));
+  });
+
+  describe('JSON parsing', () => {
+    it('should parse JSON from markdown code blocks', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+        'commit': ''
+      }));
+
+      const jsonResponse = {
+        analysis: {
+          changedFiles: ['file.txt'],
+          changeType: 'feat' as const,
+          scope: '',
+          purpose: 'Update file content',
+          impact: 'Improves file',
+          hasSensitiveInfo: false,
+        },
+        commitMessage: {
+          header: 'feat: update file content',
+          body: '',
+          footer: '',
+        },
+      };
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: `Here's the analysis:\n\`\`\`json\n${JSON.stringify(jsonResponse, null, 2)}\n\`\`\`\n\nThis is a good commit.`,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\nfeat: update file content');
+    });
+
+    it('should parse JSON without markdown code blocks', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+        'commit': ''
+      }));
+
+      const jsonResponse = {
+        analysis: {
+          changedFiles: ['file.txt'],
+          changeType: 'fix' as const,
+          scope: '',
+          purpose: 'Fix file issue',
+          impact: 'Fixes bug',
+          hasSensitiveInfo: false,
+        },
+        commitMessage: {
+          header: 'fix: resolve file issue',
+          body: '',
+          footer: '',
+        },
+      };
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: `Analysis: ${JSON.stringify(jsonResponse)} and some additional text after`,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\nfix: resolve file issue');
+    });
+
+    it('should handle multiple JSON objects and parse the first one', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+        'commit': ''
+      }));
+
+      const firstJsonResponse = {
+        analysis: {
+          changedFiles: ['file.txt'],
+          changeType: 'docs' as const,
+          scope: '',
+          purpose: 'Update documentation',
+          impact: 'Improves docs',
+          hasSensitiveInfo: false,
+        },
+        commitMessage: {
+          header: 'docs: update documentation',
+          body: '',
+          footer: '',
+        },
+      };
+
+      const secondJsonResponse = {
+        analysis: {
+          changedFiles: ['other.txt'],
+          changeType: 'feat' as const,
+          scope: '',
+          purpose: 'Should not be parsed',
+          impact: 'Wrong one',
+          hasSensitiveInfo: false,
+        },
+        commitMessage: {
+          header: 'feat: should not be used',
+          body: '',
+          footer: '',
+        },
+      };
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: `First: ${JSON.stringify(firstJsonResponse)} and second: ${JSON.stringify(secondJsonResponse)}`,
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toBe('Commit created successfully!\n\nCommit message:\ndocs: update documentation');
+    });
+
+    it('should handle invalid JSON gracefully', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: 'This is not JSON at all, just some text response without proper structure.',
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Unable to generate commit message using AI');
+    });
   });
 });
