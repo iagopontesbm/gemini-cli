@@ -379,6 +379,131 @@ describe('discoverMcpTools', () => {
     );
   });
 
+  it('should discover tools via mcpServers config (streamable http)', async () => {
+    const serverConfig: MCPServerConfig = {
+      httpUrl: 'http://localhost:3000/mcp',
+    };
+    mockConfig.getMcpServers.mockReturnValue({ 'http-server': serverConfig });
+
+    const mockTool = {
+      name: 'tool-http',
+      description: 'desc-http',
+      inputSchema: { type: 'object' as const, properties: {} },
+    };
+    vi.mocked(Client.prototype.listTools).mockResolvedValue({
+      tools: [mockTool],
+    });
+
+    mockToolRegistry.getToolsByServer.mockReturnValueOnce([
+      expect.any(DiscoveredMCPTool),
+    ]);
+
+    await discoverMcpTools(
+      mockConfig.getMcpServers() ?? {},
+      mockConfig.getMcpServerCommand(),
+      mockToolRegistry as any,
+    );
+
+    expect(StreamableHTTPClientTransport).toHaveBeenCalledWith(
+      new URL(serverConfig.httpUrl!),
+      {},
+    );
+    expect(mockToolRegistry.registerTool).toHaveBeenCalledWith(
+      expect.any(DiscoveredMCPTool),
+    );
+    const registeredTool = mockToolRegistry.registerTool.mock
+      .calls[0][0] as DiscoveredMCPTool;
+    expect(registeredTool.name).toBe('tool-http');
+  });
+
+  describe('StreamableHTTPClientTransport headers', () => {
+    const setupHttpTest = async (
+      headers?: Record<string, string>,
+      oauth = false,
+    ) => {
+      const serverConfig: MCPServerConfig = {
+        httpUrl: 'http://localhost:3000/mcp',
+        oauth,
+        ...(headers && { headers }),
+      };
+      const serverName = 'http-server';
+      const toolName = 'tool-http';
+
+      mockConfig.getMcpServers.mockReturnValue({ [serverName]: serverConfig });
+
+      if (oauth) {
+        const mockGetClient = vi.fn().mockResolvedValue({
+          getRequestHeaders: vi
+            .fn()
+            .mockResolvedValue({ Authorization: 'Bearer test-token' }),
+        });
+        vi.mocked(GoogleAuth).mockReturnValue({
+          getClient: mockGetClient,
+        } as any);
+      }
+
+      const mockTool = {
+        name: toolName,
+        description: `desc-${toolName}`,
+        inputSchema: { type: 'object' as const, properties: {} },
+      };
+      vi.mocked(Client.prototype.listTools).mockResolvedValue({
+        tools: [mockTool],
+      });
+      mockToolRegistry.getToolsByServer.mockReturnValueOnce([
+        expect.any(DiscoveredMCPTool),
+      ]);
+
+      await discoverMcpTools(
+        mockConfig.getMcpServers() ?? {},
+        mockConfig.getMcpServerCommand(),
+        mockToolRegistry as any,
+      );
+
+      return { serverConfig };
+    };
+
+    it('should pass headers when provided', async () => {
+      const headers = {
+        'X-Custom-Header': 'custom-value',
+      };
+      const { serverConfig } = await setupHttpTest(headers);
+
+      expect(StreamableHTTPClientTransport).toHaveBeenCalledWith(
+        new URL(serverConfig.httpUrl!),
+        { requestInit: { headers } },
+      );
+    });
+
+    it('should work without headers (backwards compatibility)', async () => {
+      const { serverConfig } = await setupHttpTest();
+
+      expect(StreamableHTTPClientTransport).toHaveBeenCalledWith(
+        new URL(serverConfig.httpUrl!),
+        {},
+      );
+    });
+
+    it('should combine oauth and custom headers', async () => {
+      const headers = {
+        'X-Custom-Header': 'custom-value',
+      };
+      const { serverConfig } = await setupHttpTest(headers, true);
+
+      expect(StreamableHTTPClientTransport).toHaveBeenCalledWith(
+        new URL(serverConfig.httpUrl!),
+        {
+          requestInit: {
+            headers: {
+              ...headers,
+              Authorization: 'Bearer test-token',
+            },
+          },
+        },
+      );
+    });
+  });
+
   it('should prefix tool names if multiple MCP servers are configured', async () => {
     const serverConfig1: MCPServerConfig = { command: './mcp1' };
     const serverConfig2: MCPServerConfig = { url: 'http://mcp2/sse' };
