@@ -505,6 +505,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       
       if (parsedResponse.analysis.hasSensitiveInfo) {
         console.warn('[GenerateCommitMessage] AI detected potentially sensitive information in changes');
+        throw new Error('Commit contains potentially sensitive information. Review the changes and try again.');
       }
       
       // Build commit message from structured response
@@ -549,37 +550,9 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       
       throw new Error('No JSON found in response');
     } catch (jsonError) {
-      console.debug('[GenerateCommitMessage] JSON parsing failed, falling back to text parsing:', jsonError);
-      
-      // Fallback to legacy text parsing
-      const analysisEndIndex = generatedText.indexOf('</commit_analysis>');
-      let commitMessage = '';
-      
-      if (analysisEndIndex !== -1) {
-        commitMessage = generatedText
-          .substring(analysisEndIndex + '</commit_analysis>'.length)
-          .trim()
-          .replace(/^```[a-z]*\n?/, '')
-          .replace(/```$/, '')
-          .trim();
-      } else {
-        commitMessage = generatedText.trim();
-      }
-      
-      // Create fallback response structure
-      return {
-        analysis: {
-          changedFiles: [],
-          changeType: 'chore',
-          purpose: 'Generated from legacy text parsing',
-          impact: 'Unknown impact',
-          hasSensitiveInfo: false
-        },
-        commitMessage: {
-          header: commitMessage.split('\n')[0] || 'chore: update files',
-          body: commitMessage.split('\n').slice(1).join('\n').trim() || undefined
-        }
-      };
+      console.debug('[GenerateCommitMessage] JSON parsing failed:', jsonError);
+      const errorMessage = jsonError instanceof Error ? jsonError.message : String(jsonError);
+      throw new Error(`Failed to parse AI response as JSON: ${errorMessage}`);
     }
   }
 
