@@ -85,12 +85,10 @@ Gemini CLI automatically loads environment variables from the **first** `.env` f
    1. `.gemini/.env`
    2. `.env`
 2. If no file is found, it falls back to your **home directory**:
-   * `~/.gemini/.env`
-   * `~/.env`
+   - `~/.gemini/.env`
+   - `~/.env`
 
 > **Important:** The search stops at the **first** file encountered—variables are **not merged** across multiple files.
->
-
 
 #### Examples
 
