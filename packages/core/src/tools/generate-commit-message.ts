@@ -612,6 +612,8 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           await this.executeGitCommand(['reset', 'HEAD'], signal);
         } catch (resetError) {
           console.warn('[GenerateCommitMessage] Failed to restore index after temporary staging:', resetError);
+          // If we can't restore the index, we must abort to avoid leaving the user's repo in a bad state.
+          throw new Error(`Critical: Failed to restore git index after temporary staging. Please check 'git status'. Error: ${resetError instanceof Error ? resetError.message : String(resetError)}`);
         }
         
         console.debug('[GenerateCommitMessage] Temporary staging failed, falling back to original hash:', tempError);
