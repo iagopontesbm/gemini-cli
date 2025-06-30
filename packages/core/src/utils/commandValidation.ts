@@ -8,6 +8,69 @@ import * as path from 'path';
 import * as fs from 'fs';
 
 /**
+ * Safely splits a command string into an array of arguments, handling quoted arguments correctly.
+ * Returns null if the command has syntax errors like unclosed quotes.
+ */
+export function splitCommandSafely(command: string): string[] | null {
+  const args: string[] = [];
+  let current = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let escaped = false;
+  
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i];
+    const nextChar = command[i + 1];
+    
+    if (escaped) {
+      current += char;
+      escaped = false;
+      continue;
+    }
+    
+    if (char === '\\' && !inSingleQuote) {
+      if (nextChar === '"' || nextChar === '\\' || nextChar === ' ') {
+        escaped = true;
+        continue;
+      }
+      current += char;
+      continue;
+    }
+    
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    
+    if (char === ' ' && !inSingleQuote && !inDoubleQuote) {
+      if (current) {
+        args.push(current);
+        current = '';
+      }
+      continue;
+    }
+    
+    current += char;
+  }
+  
+  // Check for unclosed quotes
+  if (inSingleQuote || inDoubleQuote) {
+    return null; // Unclosed quotes
+  }
+  
+  if (current) {
+    args.push(current);
+  }
+  
+  return args;
+}
+
+/**
  * Validates that a command is safe to execute by checking against an allowlist
  * of permitted executables and validating the command structure.
  */
@@ -21,8 +84,11 @@ export function validateToolCommand(command: string): string | null {
     return 'Command cannot be empty or whitespace only';
   }
 
-  // Split the command to get the executable and arguments
-  const parts = trimmed.split(/\s+/);
+  // Parse the command safely to get the executable and arguments
+  const parts = splitCommandSafely(trimmed);
+  if (!parts) {
+    return 'Command contains unclosed quotes or malformed syntax';
+  }
   const executable = parts[0];
 
   // Check for obviously dangerous patterns
@@ -52,7 +118,6 @@ function containsDangerousPatterns(command: string): boolean {
     /[;&|`$(){}]/,           // Shell metacharacters
     /\|\||\&\&/,             // Logical operators
     /[<>]/,                  // Redirection
-    /\\\\/,                  // Escaped characters (potential obfuscation)
     /\$\{/,                  // Parameter expansion
     /\n|\r/,                 // Newlines
     /^\s*sudo\s/i,           // Privilege escalation
@@ -65,7 +130,7 @@ function containsDangerousPatterns(command: string): boolean {
 }
 
 /**
- * Checks if the command attempts to access sensitive system files or directories
+ * Checks if the command arguments attempt to access sensitive system files or directories
  */
 function containsSensitiveFileAccess(command: string): boolean {
   const sensitivePaths = [
@@ -79,16 +144,25 @@ function containsSensitiveFileAccess(command: string): boolean {
     '/root/',
     '/proc/',
     '/sys/',
-    '/dev/',
-    'C:\\Windows\\System32',
-    'C:\\Users\\',
-    '%USERPROFILE%',
-    '%APPDATA%',
-    '%TEMP%'
+    '/dev/'
   ];
 
-  const lowerCommand = command.toLowerCase();
-  return sensitivePaths.some(path => lowerCommand.includes(path.toLowerCase()));
+  // Parse command to check arguments, not the entire command string
+  const parts = splitCommandSafely(command);
+  if (!parts || parts.length === 0) {
+    return false;
+  }
+  
+  // Check each argument (skip the executable itself)
+  const args = parts.slice(1);
+  for (const arg of args) {
+    const lowerArg = arg.toLowerCase();
+    if (sensitivePaths.some(path => lowerArg.includes(path.toLowerCase()))) {
+      return true;
+    }
+  }
+  
+  return false;
 }
 
 /**
