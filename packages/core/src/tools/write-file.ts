@@ -18,6 +18,7 @@ import {
 } from './tools.js';
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { makeRelative, shortenPath } from '../utils/paths.js';
+import { isPathWithinRoot } from '../utils/pathSecurity.js';
 import { getErrorMessage, isNodeError } from '../utils/errors.js';
 import {
   ensureCorrectEdit,
@@ -97,15 +98,7 @@ export class WriteFileTool
   }
 
   private isWithinRoot(pathToCheck: string): boolean {
-    const normalizedPath = path.normalize(pathToCheck);
-    const normalizedRoot = path.normalize(this.config.getTargetDir());
-    const rootWithSep = normalizedRoot.endsWith(path.sep)
-      ? normalizedRoot
-      : normalizedRoot + path.sep;
-    return (
-      normalizedPath === normalizedRoot ||
-      normalizedPath.startsWith(rootWithSep)
-    );
+    return isPathWithinRoot(pathToCheck, this.config.getTargetDir());
   }
 
   validateToolParams(params: WriteFileToolParams): string | null {
