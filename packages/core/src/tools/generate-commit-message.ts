@@ -175,8 +175,8 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
       const finalCommitMessage = this.addGeminiSignature(commitMessage);
       
-      // Get current git index hash for race condition protection
-      const indexHash = await this.getGitIndexHash(signal);
+      // Get reliable git index hash for race condition protection
+      const indexHash = await this.getReliableIndexHash(commitMode, signal);
       
       // Cache the data for execute method
       this.cachedCommitData = {
@@ -367,9 +367,18 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
             // This can happen if the process exits before we finish writing.
             // The 'close' or 'error' event on the child process will reject the promise.
             console.debug(`[GenerateCommitMessage] stdin write error: ${err.message}`);
+            // Don't reject here as the child process close/error event will handle it
           });
-          child.stdin.write(stdin);
-          child.stdin.end();
+          
+          try {
+            child.stdin.write(stdin);
+            child.stdin.end();
+          } catch (stdinError) {
+            const errorMessage = `Failed to write to git process stdin: ${stdinError instanceof Error ? stdinError.message : String(stdinError)}`;
+            console.error(`[GenerateCommitMessage] Stdin write error: ${errorMessage}`);
+            reject(new Error(errorMessage));
+            return;
+          }
         }
 
         child.on('close', (exitCode) => {
@@ -518,6 +527,20 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return this.buildCommitMessage(parsedResponse.commitMessage);
     } catch (error) {
       console.error('[GenerateCommitMessage] Error during Gemini API call:', error);
+      
+      // Provide more specific error handling based on error type
+      if (error instanceof Error) {
+        if (error.message.includes('JSON')) {
+          throw new Error(`AI response parsing failed: ${error.message}. The AI may have returned an unexpected format.`);
+        } else if (error.message.includes('sensitive information')) {
+          throw error; // Re-throw sensitive info errors as-is
+        } else if (error.message.includes('network') || error.message.includes('timeout')) {
+          throw new Error(`Network error during commit message generation: ${error.message}. Please check your connection and try again.`);
+        } else if (error.message.includes('API') || error.message.includes('quota')) {
+          throw new Error(`API error during commit message generation: ${error.message}. Please check your API configuration.`);
+        }
+      }
+      
       throw new Error(`Failed to generate commit message: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
@@ -534,28 +557,94 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return indexHash || '';
     } catch (error) {
       console.debug('[GenerateCommitMessage] Failed to get git index hash:', error);
+      
+      // Provide more specific error messages based on common git index issues
+      if (error instanceof Error) {
+        const errorMsg = error.message.toLowerCase();
+        
+        if (errorMsg.includes('index.lock')) {
+          throw new Error('Git index is locked by another process. Please wait for other Git operations to complete and try again.');
+        } else if (errorMsg.includes('not a git repository')) {
+          throw new Error('This directory is not a Git repository. Please run this command from within a Git repository.');
+        } else if (errorMsg.includes('permission denied') || errorMsg.includes('eacces')) {
+          throw new Error('Permission denied when accessing Git index. Please check file permissions and try again.');
+        } else if (errorMsg.includes('corrupt')) {
+          throw new Error('Git index appears to be corrupted. Try running "git reset" or "git fsck" to repair the repository.');
+        } else if (errorMsg.includes('no such file')) {
+          throw new Error('Git index file is missing. The repository may need to be reinitialized.');
+        }
+      }
+      
       // Re-throw a more specific error. Masking this can lead to incorrect cache validation
       // and misleading error messages for the user (e.g., "index has changed").
-      throw new Error(`Failed to read git index state: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Failed to read git index state: ${error instanceof Error ? error.message : String(error)}. This is required for safe commit operations.`);
+    }
+  }
+
+  private async getReliableIndexHash(commitMode: 'staged-only' | 'all-changes', signal: AbortSignal): Promise<string> {
+    try {
+      if (commitMode === 'staged-only') {
+        // For staged-only commits, use current index hash
+        return await this.getGitIndexHash(signal);
+      }
+
+      // For all-changes commits, temporarily stage files to get reliable hash
+      console.debug('[GenerateCommitMessage] Temporarily staging files to calculate reliable index hash...');
+      
+      // Save current index state
+      const originalIndexHash = await this.getGitIndexHash(signal);
+      
+      try {
+        // Temporarily stage all changes
+        await this.executeGitCommand(['add', '.'], signal);
+        
+        // Get hash of staged state that will be committed
+        const stagedHash = await this.getGitIndexHash(signal);
+        
+        // Reset index to original state
+        await this.executeGitCommand(['reset', 'HEAD'], signal);
+        
+        return stagedHash;
+      } catch (tempError) {
+        // If temporary staging fails, try to restore original state and fall back
+        try {
+          await this.executeGitCommand(['reset', 'HEAD'], signal);
+        } catch (resetError) {
+          console.warn('[GenerateCommitMessage] Failed to restore index after temporary staging:', resetError);
+        }
+        
+        console.debug('[GenerateCommitMessage] Temporary staging failed, falling back to original hash:', tempError);
+        return originalIndexHash;
+      }
+    } catch (error) {
+      console.debug('[GenerateCommitMessage] Failed to get reliable git index hash:', error);
+      throw new Error(`Failed to calculate reliable git index state: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
   private parseAIResponse(generatedText: string): AICommitResponse {
+    const errors: string[] = [];
+    
     try {
       // First, try to extract JSON from markdown code blocks
       const codeBlockMatch = generatedText.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/);
       if (codeBlockMatch) {
-        const jsonResponse = JSON.parse(codeBlockMatch[1]) as AICommitResponse;
-        
-        // Validate required fields
-        if (!jsonResponse.analysis || !jsonResponse.commitMessage) {
-          throw new Error('Invalid JSON structure');
+        try {
+          const jsonResponse = JSON.parse(codeBlockMatch[1]) as AICommitResponse;
+          
+          // Validate required fields with detailed error messages
+          const validationError = this.validateAIResponse(jsonResponse);
+          if (validationError) {
+            errors.push(`Code block JSON validation failed: ${validationError}`);
+          } else {
+            return jsonResponse;
+          }
+        } catch (parseError) {
+          errors.push(`Code block JSON parsing failed: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
         }
-        
-        return jsonResponse;
       }
 
-      // If no code block, try to find the first complete JSON object
+      // If no code block or code block parsing failed, try to find the first complete JSON object
       let braceCount = 0;
       let startIndex = -1;
       let endIndex = -1;
@@ -578,23 +667,86 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
 
       if (startIndex !== -1 && endIndex !== -1) {
-        const jsonString = generatedText.substring(startIndex, endIndex + 1);
-        const jsonResponse = JSON.parse(jsonString) as AICommitResponse;
-        
-        // Validate required fields
-        if (!jsonResponse.analysis || !jsonResponse.commitMessage) {
-          throw new Error('Invalid JSON structure');
+        try {
+          const jsonString = generatedText.substring(startIndex, endIndex + 1);
+          const jsonResponse = JSON.parse(jsonString) as AICommitResponse;
+          
+          // Validate required fields with detailed error messages
+          const validationError = this.validateAIResponse(jsonResponse);
+          if (validationError) {
+            errors.push(`Inline JSON validation failed: ${validationError}`);
+          } else {
+            return jsonResponse;
+          }
+        } catch (parseError) {
+          errors.push(`Inline JSON parsing failed: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
         }
-        
-        return jsonResponse;
+      } else {
+        errors.push('No JSON object structure found in response');
       }
       
-      throw new Error('No valid JSON found in response');
+      // Provide comprehensive error information
+      const errorSummary = errors.length > 0 ? errors.join('; ') : 'Unknown parsing error';
+      console.debug('[GenerateCommitMessage] All JSON parsing attempts failed:', errors);
+      console.debug('[GenerateCommitMessage] AI Response text (first 500 chars):', generatedText.substring(0, 500));
+      
+      throw new Error(`Failed to parse AI response as valid JSON. Attempted methods: ${errorSummary}. Please check AI model configuration and try again.`);
     } catch (jsonError) {
-      console.debug('[GenerateCommitMessage] JSON parsing failed:', jsonError);
+      // If this is already our custom error, re-throw it
+      if (jsonError instanceof Error && jsonError.message.includes('Failed to parse AI response')) {
+        throw jsonError;
+      }
+      
+      console.debug('[GenerateCommitMessage] Unexpected JSON parsing error:', jsonError);
       const errorMessage = jsonError instanceof Error ? jsonError.message : String(jsonError);
-      throw new Error(`Failed to parse AI response as JSON: ${errorMessage}`);
+      throw new Error(`Unexpected error during AI response parsing: ${errorMessage}`);
     }
+  }
+
+  private validateAIResponse(response: unknown): string | null {
+    if (!response || typeof response !== 'object') {
+      return 'Response is not a valid object';
+    }
+
+    const obj = response as Record<string, unknown>;
+
+    if (!obj.analysis) {
+      return 'Missing required "analysis" field';
+    }
+
+    if (!obj.commitMessage) {
+      return 'Missing required "commitMessage" field';
+    }
+
+    // Validate analysis structure
+    const analysis = obj.analysis as Record<string, unknown>;
+    if (!Array.isArray(analysis.changedFiles)) {
+      return 'analysis.changedFiles must be an array';
+    }
+
+    if (typeof analysis.changeType !== 'string') {
+      return 'analysis.changeType must be a string';
+    }
+
+    if (typeof analysis.purpose !== 'string') {
+      return 'analysis.purpose must be a string';
+    }
+
+    if (typeof analysis.impact !== 'string') {
+      return 'analysis.impact must be a string';
+    }
+
+    if (typeof analysis.hasSensitiveInfo !== 'boolean') {
+      return 'analysis.hasSensitiveInfo must be a boolean';
+    }
+
+    // Validate commit message structure
+    const commitMessage = obj.commitMessage as Record<string, unknown>;
+    if (typeof commitMessage.header !== 'string' || !commitMessage.header.trim()) {
+      return 'commitMessage.header must be a non-empty string';
+    }
+
+    return null; // Validation passed
   }
 
   private buildCommitMessage(commitParts: CommitMessageParts): string {
@@ -674,7 +826,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       }
 
       // Verify git index hasn't changed since confirmation to prevent race conditions
-      const currentIndexHash = await this.getGitIndexHash(signal);
+      const currentIndexHash = await this.getReliableIndexHash(this.cachedCommitData.commitMode, signal);
       if (currentIndexHash !== this.cachedCommitData.indexHash) {
         console.debug('[GenerateCommitMessage] Cache invalidated due to index change');
         this.cachedCommitData = null;
