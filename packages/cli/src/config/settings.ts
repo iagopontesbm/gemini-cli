@@ -37,7 +37,7 @@ export interface AccessibilitySettings {
 
 export interface Settings {
   theme?: string;
-  selectedAuthType: AuthType; // Required now
+  selectedAuthType?: AuthType;
   sandbox?: boolean | string;
   coreTools?: string[];
   excludeTools?: string[];
