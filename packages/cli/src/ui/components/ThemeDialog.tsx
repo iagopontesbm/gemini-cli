@@ -79,17 +79,6 @@ export function ThemeDialog({
     setFocusedSection('theme'); // Reset focus to theme section
   };
 
-  const handleCustomThemeSave = (customTheme: CustomTheme, scope: SettingScope) => {
-    if (onCustomThemeSave) {
-      onCustomThemeSave(customTheme, scope);
-    }
-    setShowCustomThemeEditor(false);
-    setSelectInputKey(Date.now()); // Refresh the theme list
-  };
-
-  const handleCustomThemeCancel = () => {
-    setShowCustomThemeEditor(false);
-  };
 
   // Remove state and logic for 'create' focus section
   // const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
@@ -244,7 +233,6 @@ export function ThemeDialog({
     };
   }, [previewThemeName]);
 
-  const selectedTheme = availableThemes[selectedThemeIndex];
   let themeInstructions = '';
   if (focusedSection === 'theme') {
     themeInstructions = 'Press Enter to select.';
