@@ -77,7 +77,7 @@ const findAllFences = (content: string): Fence[] => {
 /**
  * Pairs up opening and closing fences to identify complete code blocks.
  * @param fences A sorted array of fences found in the content.
- * @param content content string to getCodeBlocks to get its length
+ * @param content The full content string, used to determine the end boundary for unclosed blocks.
  * @returns An array of CodeBlock objects.
  */
 const getCodeBlocks = (fences: Fence[], content: string): CodeBlock[] => {
@@ -85,11 +85,16 @@ const getCodeBlocks = (fences: Fence[], content: string): CodeBlock[] => {
   const openFences: Fence[] = [];
 
   for (const currentFence of fences) {
+    const lastOpenFence = openFences.length > 0
+      ? openFences[openFences.length - 1]
+      : null;
+
     if (
-      openFences.length > 0 &&
-      currentFence.fence.startsWith(openFences[openFences.length - 1].fence)
+      lastOpenFence &&
+      currentFence.fence.length === lastOpenFence.fence.length &&
+      currentFence.fence[0] === lastOpenFence.fence[0]
     ) {
-      // This is a closing fence for the last open block.
+      // This is a valid closing fence. Pop the stack and create the block.
       const openingFence = openFences.pop()!;
       blocks.push({
         blockStart: openingFence.startIndex,
@@ -101,13 +106,14 @@ const getCodeBlocks = (fences: Fence[], content: string): CodeBlock[] => {
     }
   }
 
-  // After processing all fences, any remaining fence in the stack indicates an unclosed block.
+  // After processing all fences, any remaining fences indicate an unclosed structure.
   if (openFences.length > 0) {
-    // The last fence on the stack is the start of the innermost unclosed block.
-    const lastOpenFence = openFences[openFences.length - 1];
+    // The true boundary is the start of the OUTERMOST
+    // unclosed fence, which is the FIRST element remaining in the stack.
+    const outermostUnclosedFence = openFences[0];
     blocks.push({
-      blockStart: lastOpenFence.startIndex,
-      // The block extends to the end of the content.
+      blockStart: outermostUnclosedFence.startIndex,
+      // The block extends to the very end of the content.
       blockEnd: content.length,
     });
   }
@@ -115,9 +121,7 @@ const getCodeBlocks = (fences: Fence[], content: string): CodeBlock[] => {
   return blocks;
 };
 
-// --- Memoization for Performance ---
-// Since we might call these functions multiple times on the same content,
-// we memoize the expensive parsing step.
+// This now correctly passes the `content` string into the fixed getCodeBlocks.
 const memoizedGetCodeBlocks = (function () {
   let lastContent: string;
   let lastResult: CodeBlock[];

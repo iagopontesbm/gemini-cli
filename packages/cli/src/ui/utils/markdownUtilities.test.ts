@@ -292,4 +292,76 @@ describe('markdownUtilities', () => {
       expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
     });
   });
+
+  describe('findLastSafeSplitPoint with corrected nested block parsing', () => {
+
+    /**
+     * Test 1: A shorter fence block containing a longer fence block
+     * With `fence.length ===`, the parser sees '`````' has a different length than '```'
+     * and correctly treats it as the opening of a new, nested block. It parses the entire
+     * structure correctly, identifies that the '\n\n' is inside the outer block, and finds
+     * no other safe splits, so it correctly returns the full content length.
+     */
+    it('should correctly parse nested blocks where the inner fence is longer', () => {
+      const content =
+        '```\n' +
+        'This is the outer block.\n\n' +
+        '`````\n' +
+        'This is the inner block.\n' +
+        '`````\n' +
+        'This is the outer block again.\n' +
+        '```';
+
+      expect(findLastSafeSplitPoint(content)).toBe(content.length);
+    });
+
+
+    /**
+     * Test 2: A closed block followed by a nested, unclosed block
+     * The `length ===` check ensures the parser sees '````' and '``````' as distinct.
+     * It correctly identifies the first block as unclosed and nested within the second.
+     * The unclosed-block logic then correctly marks the entire structure from the '````'
+     * fence to the end of the content as a single block. It sees the '\n\n' inside this
+     * block as unsafe. It then finds the only truly safe split point before this structure.
+     */
+    it('should find the safe split point before a complex nested, unclosed block', () => {
+      const initialText = 'Some safe text.\n\n';
+      const nestedUnclosedBlock =
+        '````\n' +
+        'Unclosed outer block.\n\n' +
+        '``````\n' +
+        'Unclosed inner block.\n';
+      const content = initialText + nestedUnclosedBlock;
+
+      const expectedSplitPoint = initialText.length;
+
+      expect(findLastSafeSplitPoint(content)).toBe(expectedSplitPoint);
+    });
+
+    it('should handle nesting where the outer fence is longest', () => {
+      const content =
+        '`````\n' +
+        'Outer block.\n\n' +
+        '```\n' +
+        'Inner block.\n' +
+        '```\n' +
+        'Outer block again.\n' +
+        '`````';
+
+      expect(findLastSafeSplitPoint(content)).toBe(content.length);
+    });
+
+    it('should handle nesting where the inner fence is longest', () => {
+      const content =
+        '```\n' +
+        'Outer block.\n\n' +
+        '`````\n' +
+        'Inner block.\n' +
+        '`````\n' +
+        'Outer block again.\n' +
+        '```';
+
+      expect(findLastSafeSplitPoint(content)).toBe(content.length);
+    });
+  });
 });
