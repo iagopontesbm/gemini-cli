@@ -180,9 +180,8 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         },
       };
       return confirmationDetails;
-    } catch (_error) {
-      // If we can't gather git info or generate message, skip confirmation
-      return false;
+    } catch (error) {
+      throw error;
     }
   }
 
