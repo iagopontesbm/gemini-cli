@@ -2,6 +2,15 @@
 
 Gemini CLI supports several built-in commands to help you manage your session, customize the interface, and control its behavior. These commands are prefixed with a forward slash (`/`), an at symbol (`@`), or an exclamation mark (`!`).
 
+## Keyboard Shortcuts
+
+Gemini CLI supports these keyboard shortcuts for improved interaction:
+
+- **`Ctrl+L`**: Clear the terminal screen (same as `/clear` command)
+- **`Ctrl+T`**: Toggle between showing and hiding tool descriptions
+- **`Shift+Enter`**: Insert a new line in your input for composing multi-line messages
+- **`Ctrl+Enter`**: Insert a new line in your input (alternative to Shift+Enter)
+
 ## Slash commands (`/`)
 
 Slash commands provide meta-level control over the CLI itself.

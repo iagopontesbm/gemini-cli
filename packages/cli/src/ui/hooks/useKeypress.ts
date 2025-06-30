@@ -74,6 +74,22 @@ export function useKeypress(
           if (key.name === 'return' && key.sequence === '\x1B\r') {
             key.meta = true;
           }
+          
+          // Fix for Shift+Enter generating character 'c'
+          // This checks if the sequence matches what Windows terminals often send for Shift+Enter
+          if (key.name === 'c' && key.sequence === 'c' && !key.ctrl && !key.meta) {
+            // Transform this into a Shift+Enter event
+            onKeypressRef.current({
+              name: 'return',
+              ctrl: false,
+              meta: false,
+              shift: true,
+              paste: isPaste,
+              sequence: '\r'
+            });
+            return;
+          }
+          
           onKeypressRef.current({ ...key, paste: isPaste });
         }
       }

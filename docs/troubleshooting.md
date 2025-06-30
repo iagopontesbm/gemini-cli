@@ -54,6 +54,13 @@ This guide provides solutions to common issues and debugging tips.
   - **Cause:** The `is-in-ci` package checks for the presence of `CI`, `CONTINUOUS_INTEGRATION`, or any environment variable with a `CI_` prefix. When any of these are found, it signals that the environment is non-interactive, which prevents the CLI from starting in its interactive mode.
   - **Solution:**: If the `CI_` prefixed variable is not needed for the CLI to function, you can temporarily unset it for the command. e.g., `env -u CI_TOKEN gemini`
 
+- **Issue: Shift+Enter not working for multiline input or inserting unwanted characters.**
+  - **Cause:** Some terminals or terminal configurations may handle special key combinations differently.
+  - **Solution:**
+    1.  Try using Ctrl+Enter as an alternative for creating new lines.
+    2.  Ensure your terminal emulator supports proper key event handling.
+    3.  If using Gemini CLI in a non-standard environment or within another application, check if keyboard events are being intercepted.
+
 ## Debugging Tips
 
 - **CLI debugging:**
