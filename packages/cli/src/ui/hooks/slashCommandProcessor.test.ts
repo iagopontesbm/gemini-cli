@@ -376,7 +376,6 @@ describe('useSlashCommandProcessor', () => {
         merged: {
           selectedAuthType: 'test-auth-type',
           contextFileName: 'GEMINI.md',
-          selectedAuthType: 'oauth',
         },
       } as LoadedSettings;
 
