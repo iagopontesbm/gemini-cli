@@ -365,9 +365,10 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         if (stdin && child.stdin) {
           child.stdin.on('error', (err) => {
             // This can happen if the process exits before we finish writing.
-            // The 'close' or 'error' event on the child process will reject the promise.
-            console.debug(`[GenerateCommitMessage] stdin write error: ${err.message}`);
-            // Don't reject here as the child process close/error event will handle it
+            // Reject here to prevent the promise from hanging or resolving incorrectly.
+            const errorMessage = `Failed to write to git process stdin: ${err.message}`;
+            console.error(`[GenerateCommitMessage] stdin write error: ${errorMessage}`);
+            reject(new Error(errorMessage));
           });
           
           try {
