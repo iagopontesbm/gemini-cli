@@ -1030,7 +1030,6 @@ export const useSlashCommandProcessor = (
         action: async (_mainCommand, _subCommand, args) => {
           let prompt = cmd.template.replace(/\$ARGUMENTS/g, args || '');
 
-          // !コマンドや@ファイルパスの展開
           const lines = prompt.split('\n');
           for (let i = 0; i < lines.length; i++) {
             if (lines[i].startsWith('!')) {
