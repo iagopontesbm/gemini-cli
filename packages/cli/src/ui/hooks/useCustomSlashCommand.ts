@@ -38,7 +38,12 @@ export async function loadCustomSlashCommands(): Promise<CustomSlashCommand[]> {
           });
         }
       }
-    } catch { /* ignore missing dirs */ }
+    } catch (e) {
+      if (e instanceof Error && 'code' in e && (e as any).code === 'ENOENT') {
+        continue;
+      }
+      console.error(`Could not load custom commands from ${dir}:`, e);
+    }
   }
   return commands;
 }
