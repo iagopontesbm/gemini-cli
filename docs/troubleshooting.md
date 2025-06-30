@@ -11,7 +11,7 @@ This guide provides solutions to common issues and debugging tips.
   - For Google Cloud accounts, you can work around this by setting
     `GOOGLE_CLOUD_PROJECT` to your project ID.
   - You can also grab an API key from [AI
-    Studio](http://aistudio.google.com/app/apikey), which also includes a
+    Studio](https://aistudio.google.com/app/apikey), which also includes a
     separate free tier.
 
 ## Frequently asked questions (FAQs)
