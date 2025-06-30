@@ -386,33 +386,3 @@ function isValidThemeName(name: string): boolean {
   // Theme name should be non-empty and not contain invalid characters
   return name.trim().length > 0 && name.trim().length <= 50;
 }
-
-/**
- * Creates a default custom theme based on the specified type.
- * @param name The name for the custom theme.
- * @param type The base theme type to derive from.
- * @returns A new custom theme configuration.
- */
-export function createDefaultCustomTheme(
-  name: string,
-  type: 'light' | 'dark',
-): CustomTheme {
-  const baseTheme = type === 'light' ? lightTheme : darkTheme;
-
-  return {
-    type: 'custom',
-    name,
-    Background: baseTheme.Background,
-    Foreground: baseTheme.Foreground,
-    LightBlue: baseTheme.LightBlue,
-    AccentBlue: baseTheme.AccentBlue,
-    AccentPurple: baseTheme.AccentPurple,
-    AccentCyan: baseTheme.AccentCyan,
-    AccentGreen: baseTheme.AccentGreen,
-    AccentYellow: baseTheme.AccentYellow,
-    AccentRed: baseTheme.AccentRed,
-    Comment: baseTheme.Comment,
-    Gray: baseTheme.Gray,
-    GradientColors: baseTheme.GradientColors,
-  };
-}

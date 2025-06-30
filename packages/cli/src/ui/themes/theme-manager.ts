@@ -88,82 +88,30 @@ class ThemeManager {
   }
 
   /**
-   * Registers a custom theme.
-   * @param customTheme The custom theme configuration.
-   * @returns True if the theme was successfully registered, false otherwise.
+   * Sets the active theme.
+   * @param themeName The name of the theme to set as active.
+   * @returns True if the theme was successfully set, false otherwise.
    */
-  registerCustomTheme(customTheme: CustomTheme): boolean {
-    const validation = validateCustomTheme(customTheme);
-    if (!validation.isValid) {
-      console.error(`Invalid custom theme: ${validation.error}`);
+  setActiveTheme(themeName: string | undefined): boolean {
+    const theme = this.findThemeByName(themeName);
+    if (!theme) {
       return false;
     }
 
-    try {
-      const theme = createCustomTheme(customTheme);
-      this.customThemes.set(customTheme.name, theme);
-      return true;
-    } catch (error) {
-      console.error(
-        `Failed to register custom theme "${customTheme.name}":`,
-        error,
-      );
-      return false;
-    }
+    this.activeTheme = theme;
+    return true;
   }
 
   /**
-   * Unregisters a custom theme.
-   * @param themeName The name of the custom theme to unregister.
-   * @returns True if the theme was successfully unregistered, false otherwise.
+   * Gets the currently active theme.
+   * @returns The active theme.
    */
-  unregisterCustomTheme(themeName: string): boolean {
-    const wasRemoved = this.customThemes.delete(themeName);
-
-    // If the active theme was removed, switch to default
-    if (wasRemoved && this.activeTheme.name === themeName) {
-      this.activeTheme = DEFAULT_THEME;
-    }
-
-    return wasRemoved;
+  getActiveTheme(): Theme {
+    return this.activeTheme;
   }
 
   /**
-   * Updates a custom theme.
-   * @param themeName The name of the custom theme to update.
-   * @param customTheme The updated custom theme configuration.
-   * @returns True if the theme was successfully updated, false otherwise.
-   */
-  updateCustomTheme(themeName: string, customTheme: CustomTheme): boolean {
-    if (customTheme.name !== themeName) {
-      console.error('Theme name mismatch in updateCustomTheme');
-      return false;
-    }
-
-    const validation = validateCustomTheme(customTheme);
-    if (!validation.isValid) {
-      console.error(`Invalid custom theme: ${validation.error}`);
-      return false;
-    }
-
-    try {
-      const theme = createCustomTheme(customTheme);
-      this.customThemes.set(themeName, theme);
-
-      // If this is the active theme, update it
-      if (this.activeTheme.name === themeName) {
-        this.activeTheme = theme;
-      }
-
-      return true;
-    } catch (error) {
-      console.error(`Failed to update custom theme "${themeName}":`, error);
-      return false;
-    }
-  }
-
-  /**
-   * Gets all custom theme names.
+   * Gets a list of custom theme names.
    * @returns Array of custom theme names.
    */
   getCustomThemeNames(): string[] {
@@ -226,26 +174,12 @@ class ThemeManager {
   }
 
   /**
-   * Sets the active theme.
-   * @param themeName The name of the theme to activate.
-   * @returns True if the theme was successfully set, false otherwise.
+   * Gets a theme by name.
+   * @param themeName The name of the theme to get.
+   * @returns The theme if found, undefined otherwise.
    */
-  setActiveTheme(themeName: string | undefined): boolean {
-    const foundTheme = this.findThemeByName(themeName);
-
-    if (foundTheme) {
-      this.activeTheme = foundTheme;
-      return true;
-    } else {
-      // If themeName is undefined, it means we want to set the default theme.
-      // If findThemeByName returns undefined (e.g. default theme is also not found for some reason)
-      // then this will return false.
-      if (themeName === undefined) {
-        this.activeTheme = DEFAULT_THEME;
-        return true;
-      }
-      return false;
-    }
+  getTheme(themeName: string): Theme | undefined {
+    return this.findThemeByName(themeName);
   }
 
   findThemeByName(themeName: string | undefined): Theme | undefined {
@@ -263,16 +197,6 @@ class ThemeManager {
 
     // Then check custom themes
     return this.customThemes.get(themeName);
-  }
-
-  /**
-   * Returns the currently active theme object.
-   */
-  getActiveTheme(): Theme {
-    if (process.env.NO_COLOR) {
-      return NoColorTheme;
-    }
-    return this.activeTheme;
   }
 }
 

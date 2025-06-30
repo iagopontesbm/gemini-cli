@@ -12,7 +12,6 @@ import { RadioButtonSelect } from './shared/RadioButtonSelect.js';
 import { DiffRenderer } from './messages/DiffRenderer.js';
 import { colorizeCode } from '../utils/CodeColorizer.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
-import { CustomTheme, createDefaultCustomTheme } from '../themes/theme.js';
 
 interface ThemeDialogProps {
   /** Callback function when a theme is selected */
@@ -20,12 +19,6 @@ interface ThemeDialogProps {
 
   /** Callback function when a theme is highlighted */
   onHighlight: (themeName: string | undefined) => void;
-
-  /** Callback function when a custom theme is saved */
-  onCustomThemeSave?: (customTheme: CustomTheme, scope: SettingScope) => void;
-
-  /** Callback function when a custom theme is deleted */
-  onCustomThemeDelete?: (themeName: string, scope: SettingScope) => void;
 
   /** The settings object */
   settings: LoadedSettings;
@@ -35,8 +28,6 @@ interface ThemeDialogProps {
 
 export function ThemeDialog({
   onSelect,
-  onCustomThemeSave,
-  onCustomThemeDelete,
   settings,
   availableTerminalHeight,
   terminalWidth,
@@ -44,7 +35,6 @@ export function ThemeDialog({
   const [selectedScope, setSelectedScope] = useState<SettingScope>(
     SettingScope.User,
   );
-  const [showCustomThemeEditor, setShowCustomThemeEditor] = useState(false);
 
   // Generate theme items
   const availableThemes = themeManager.getAvailableThemes();
@@ -88,23 +78,6 @@ export function ThemeDialog({
     setFocusedSection('theme'); // Reset focus to theme section
   };
 
-  const handleCustomThemeSave = (
-    customTheme: CustomTheme,
-    scope: SettingScope,
-  ) => {
-    if (onCustomThemeSave) {
-      onCustomThemeSave(customTheme, scope);
-    }
-    setShowCustomThemeEditor(false);
-    setSelectInputKey(Date.now()); // Refresh the theme list
-  };
-
-  const handleCustomThemeCancel = () => {
-    setShowCustomThemeEditor(false);
-  };
-
-  // Remove state and logic for 'create' focus section
-  // const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
   const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>(
     'theme',
   );
@@ -114,7 +87,6 @@ export function ThemeDialog({
 
   // Add a handler for navigation
   useInput((input, key) => {
-    if (showCustomThemeEditor) return;
     // j/k navigation
     if (input === 'j' || key.downArrow) {
       if (focusedSection === 'theme') {
@@ -162,8 +134,6 @@ export function ThemeDialog({
     }
   });
 
-  // Move the conditional return to after all hooks
-
   let otherScopeModifiedMessage = '';
   const otherScope =
     selectedScope === SettingScope.User
@@ -187,8 +157,8 @@ export function ThemeDialog({
   const colorizeCodeWidth = Math.max(
     Math.floor(
       (terminalWidth - TOTAL_HORIZONTAL_PADDING) *
-        PREVIEW_PANE_WIDTH_PERCENTAGE *
-        PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
+      PREVIEW_PANE_WIDTH_PERCENTAGE *
+      PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
     ),
     1,
   );
@@ -269,11 +239,6 @@ export function ThemeDialog({
     themeInstructions = 'Press Enter to select.';
   }
 
-  // All hooks are now called above
-  if (showCustomThemeEditor) {
-    return <Box />; // TODO: Restore CustomThemeEditor when implemented
-  }
-
   return (
     <Box
       borderStyle="round"
@@ -299,12 +264,6 @@ export function ThemeDialog({
             onHighlight={(i: number) => setSelectedThemeIndex(i)}
             isFocused={focusedSection === 'theme'}
           />
-          {/* Remove Create Custom Theme Button */}
-          {/* <Box marginTop={1}>
-            <Text bold={focusedSection === 'create'} color={focusedSection === 'create' ? Colors.AccentBlue : undefined}>
-              {focusedSection === 'create' ? '> ' : '  '}[Create Custom Theme]
-            </Text>
-          </Box> */}
           <Box marginTop={1}>
             <Text color={Colors.Gray}>{themeInstructions}</Text>
           </Box>
