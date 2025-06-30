@@ -89,11 +89,21 @@ export const useStatusCheck = (
     }
 
     let isMounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const checkConnectivity = async () => {
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutId = setTimeout(
+          () =>
+            reject(new Error('Connectivity check timed out after 10 seconds.')),
+          10000,
+        );
+      });
+
       try {
         const client = config.getGeminiClient();
         if (client) {
-          await client.checkConnectivity();
+          await Promise.race([client.checkConnectivity(), timeoutPromise]);
           if (isMounted) {
             setConnectivity('success');
           }
@@ -110,6 +120,7 @@ export const useStatusCheck = (
           }
         }
       } finally {
+        clearTimeout(timeoutId);
         if (isMounted) {
           setIsComplete(true);
         }
@@ -120,6 +131,7 @@ export const useStatusCheck = (
 
     return () => {
       isMounted = false;
+      clearTimeout(timeoutId);
     };
   }, [config, settings, enabled]);
 
