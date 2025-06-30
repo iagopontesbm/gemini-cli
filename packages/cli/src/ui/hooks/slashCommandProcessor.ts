@@ -81,7 +81,13 @@ export const useSlashCommandProcessor = (
 ) => {
   const [customCommands, setCustomCommands] = useState<CustomSlashCommand[]>([]);
   useEffect(() => {
-    loadCustomSlashCommands().then(setCustomCommands);
+    loadCustomSlashCommands()
+      .then(setCustomCommands)
+      .catch(err => {
+        onDebugMessage(
+          `Failed to load custom commands: ${err instanceof Error ? err.message : String(err)}`
+        );
+      });
   }, []);
 
   const session = useSessionStats();
