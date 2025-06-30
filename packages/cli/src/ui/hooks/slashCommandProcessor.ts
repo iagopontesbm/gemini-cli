@@ -1055,11 +1055,10 @@ export const useSlashCommandProcessor = (
             const chat = geminiClient.getChat();
             const response = await chat.sendMessage({ message: { text: prompt } });
             const aiResponse =
-              typeof response.text === 'string' && response.text
-                ? response.text
-                : typeof response.candidates?.[0]?.content === 'string' && response.candidates[0].content
-                  ? response.candidates[0].content
-                  : JSON.stringify(response);
+              (typeof response.text === 'string' && response.text) ||
+              (typeof response.candidates?.[0]?.content === 'string' &&
+                response.candidates[0].content) ||
+              '[Could not extract a valid text response from Gemini]';
             addMessage({
               type: MessageType.USER,
               content: prompt,
