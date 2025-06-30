@@ -103,7 +103,11 @@ export const useStatusCheck = (
       } catch (e) {
         if (isMounted) {
           setConnectivity('error');
-          setError(getErrorMessage(e));
+          try {
+            setError(getErrorMessage(e));
+          } catch (_) {
+            setError('A complex error occurred that could not be displayed.');
+          }
         }
       } finally {
         if (isMounted) {
