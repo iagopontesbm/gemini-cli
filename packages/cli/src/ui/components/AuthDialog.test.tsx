@@ -34,6 +34,7 @@ describe('AuthDialog', () => {
         onHighlight={() => {}}
         settings={settings}
         initialErrorMessage="GEMINI_API_KEY  environment variable not found"
+        wasCancelled={false}
       />,
     );
 
@@ -63,6 +64,7 @@ describe('AuthDialog', () => {
         onSelect={onSelect}
         onHighlight={() => {}}
         settings={settings}
+        wasCancelled={false}
       />,
     );
     await wait();
@@ -100,6 +102,7 @@ describe('AuthDialog', () => {
         onSelect={onSelect}
         onHighlight={() => {}}
         settings={settings}
+        wasCancelled={false}
       />,
     );
     await wait();
@@ -110,6 +113,83 @@ describe('AuthDialog', () => {
 
     // Should call onSelect with undefined to exit
     expect(onSelect).toHaveBeenCalledWith(undefined, SettingScope.User);
+    unmount();
+  });
+
+  it('should prevent exiting when auth was cancelled even if selectedAuthType exists', async () => {
+    const onSelect = vi.fn();
+    const settings: LoadedSettings = new LoadedSettings(
+      {
+        settings: {
+          selectedAuthType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
+        },
+        path: '',
+      },
+      {
+        settings: {},
+        path: '',
+      },
+      [],
+    );
+
+    const { lastFrame, stdin, unmount } = render(
+      <AuthDialog
+        onSelect={onSelect}
+        onHighlight={() => {}}
+        settings={settings}
+        wasCancelled={true}
+      />,
+    );
+    await wait();
+
+    // Simulate pressing escape key
+    stdin.write('\u001b'); // ESC key
+    await wait();
+
+    // Should show error message instead of calling onSelect, even though selectedAuthType exists
+    expect(lastFrame()).toContain(
+      'You must select an auth method to proceed. Press Ctrl+C twice to exit.',
+    );
+    expect(onSelect).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it('should prevent exiting when there is an error message even if selectedAuthType exists', async () => {
+    const onSelect = vi.fn();
+    const settings: LoadedSettings = new LoadedSettings(
+      {
+        settings: {
+          selectedAuthType: AuthType.LOGIN_WITH_GOOGLE_PERSONAL,
+        },
+        path: '',
+      },
+      {
+        settings: {},
+        path: '',
+      },
+      [],
+    );
+
+    const { lastFrame, stdin, unmount } = render(
+      <AuthDialog
+        onSelect={onSelect}
+        onHighlight={() => {}}
+        settings={settings}
+        initialErrorMessage="This account requires setting the GOOGLE_CLOUD_PROJECT env var"
+        wasCancelled={false}
+      />,
+    );
+    await wait();
+
+    // Simulate pressing escape key
+    stdin.write('\u001b'); // ESC key
+    await wait();
+
+    // Should show error message instead of calling onSelect, even though selectedAuthType exists
+    expect(lastFrame()).toContain(
+      'You must select an auth method to proceed. Press Ctrl+C twice to exit.',
+    );
+    expect(onSelect).not.toHaveBeenCalled();
     unmount();
   });
 });

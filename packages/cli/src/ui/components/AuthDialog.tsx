@@ -17,6 +17,7 @@ interface AuthDialogProps {
   onHighlight: (authMethod: string | undefined) => void;
   settings: LoadedSettings;
   initialErrorMessage?: string | null;
+  wasCancelled?: boolean;
 }
 
 export function AuthDialog({
@@ -24,6 +25,7 @@ export function AuthDialog({
   onHighlight,
   settings,
   initialErrorMessage,
+  wasCancelled = false,
 }: AuthDialogProps): React.JSX.Element {
   const [errorMessage, setErrorMessage] = useState<string | null>(
     initialErrorMessage || null,
@@ -57,8 +59,12 @@ export function AuthDialog({
 
   useInput((_input, key) => {
     if (key.escape) {
-      if (settings.merged.selectedAuthType === undefined) {
-        // Prevent exiting if no auth method is set
+      if (
+        settings.merged.selectedAuthType === undefined ||
+        wasCancelled ||
+        errorMessage
+      ) {
+        // Prevent exiting if no auth method is set, auth was cancelled, or there's an error message
         setErrorMessage(
           'You must select an auth method to proceed. Press Ctrl+C twice to exit.',
         );
