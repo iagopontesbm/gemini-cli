@@ -27,7 +27,7 @@ export const CloudFreePrivacyNotice = ({
     if (key.escape) {
       onExit();
     }
-  });
+  }, { isActive: privacyState.isLoading || !!privacyState.error });
 
   if (privacyState.isLoading) {
     return <Text color={Colors.Gray}>Loading...</Text>;
