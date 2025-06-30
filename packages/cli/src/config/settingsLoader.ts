@@ -5,10 +5,8 @@
  */
 
 import { AuthType } from '@google/gemini-cli-core';
+import { Settings } from './settings.js';
 
-interface Settings {
-  selectedAuthType: AuthType;
-}
 
 export function getDefaultSettings(): Settings {
   return {
