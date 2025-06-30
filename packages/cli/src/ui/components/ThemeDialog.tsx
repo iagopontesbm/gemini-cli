@@ -60,8 +60,6 @@ export function ThemeDialog({
     };
   });
 
-  // Remove "Create Custom Theme" option
-  // const themeItemsWithCreate = [...themeItems];
 
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
