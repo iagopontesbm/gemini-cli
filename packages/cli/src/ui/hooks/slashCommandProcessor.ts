@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+//const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || '';
+
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
 import open from 'open';
@@ -621,7 +623,7 @@ export const useSlashCommandProcessor = (
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = await getCliVersion();
           const selectedAuthType = settings.merged.selectedAuthType || '';
-          const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || '';
+          const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT_ID || '';
           addMessage({
             type: MessageType.ABOUT,
             timestamp: new Date(),
