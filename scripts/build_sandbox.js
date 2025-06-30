@@ -120,7 +120,7 @@ const shellToUse = isWindows ? 'powershell.exe' : '/bin/bash';
 function buildImage(imageName, dockerfile) {
   console.log(`building ${imageName} ... (can be slow first time)`);
   const buildCommand =
-    sandboxCommand === 'podman'
+    (sandboxCommand === 'podman' && !isWindows)
       ? `${sandboxCommand} build --authfile=<(echo '{}')`
       : `${sandboxCommand} build`;
 
