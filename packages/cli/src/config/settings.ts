@@ -66,6 +66,7 @@ export interface Settings {
   hideTips?: boolean;
 
   // Add other settings here.
+  labels?: Record<string, string>;
 }
 
 export interface SettingsError {

@@ -185,6 +185,16 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     "hideTips": true
     ```
 
+- **`labels`** (object)
+  - **Description:** The user-defined labels for the Vertex AI API requests. See [the Vertex AI document](https://cloud.google.com/vertex-ai/docs/reference/rest/v1/projects.locations.endpoints/generateContent) for more information.
+  - **Default:** Empty
+  - **Example:**
+    ```json
+    "labels": {
+      "example": "value"
+    }
+    ```
+
 ### Example `settings.json`:
 
 ```json
