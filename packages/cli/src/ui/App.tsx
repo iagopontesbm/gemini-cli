@@ -114,8 +114,9 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
 
   const [geminiMdFileCount, setGeminiMdFileCount] = useState<number>(0);
   const [debugMessage, setDebugMessage] = useState<string>('');
-  const [showHelp, setShowHelp] = useState<boolean>(false);
-  const [showStatus, setShowStatus] = useState<boolean>(false);
+  const [activeScreen, setActiveScreen] = useState<'chat' | 'help' | 'status'>(
+    'chat',
+  );
   const [themeError, setThemeError] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [editorError, setEditorError] = useState<string | null>(null);
@@ -140,16 +141,11 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     setShowPrivacyNotice(true);
   }, []);
 
-  const statusInfo = useStatusCheck(config, settings, showStatus);
-
-  useEffect(() => {
-    if (statusInfo.isComplete) {
-      const timer = setTimeout(() => {
-        setShowStatus(false);
-      }, 3000); // Hide status after 3 seconds
-      return () => clearTimeout(timer);
-    }
-  }, [statusInfo.isComplete]);
+  const statusInfo = useStatusCheck(
+    config,
+    settings,
+    activeScreen === 'status',
+  );
 
   const errorCount = useMemo(
     () => consoleMessages.filter((msg) => msg.type === 'error').length,
@@ -288,8 +284,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     clearItems,
     loadHistory,
     refreshStatic,
-    setShowHelp,
-    setShowStatus,
+    setActiveScreen,
     setDebugMessage,
     openThemeDialog,
     openAuthDialog,
@@ -427,7 +422,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     config.getGeminiClient(),
     history,
     addItem,
-    setShowHelp,
+    setActiveScreen,
     config,
     setDebugMessage,
     handleSlashCommand,
@@ -637,8 +632,8 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
           </Box>
         </OverflowProvider>
 
-        {showHelp && <Help commands={slashCommands} />}
-        {showStatus && <StatusDisplay statusInfo={statusInfo} />}
+        {activeScreen === 'help' && <Help commands={slashCommands} />}
+        {activeScreen === 'status' && <StatusDisplay statusInfo={statusInfo} />}
 
         <Box flexDirection="column" ref={mainControlsRef}>
           {startupWarnings.length > 0 && (
