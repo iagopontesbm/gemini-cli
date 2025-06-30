@@ -38,7 +38,6 @@ describe('user_id', () => {
       // In a clean test environment, there should be no cached Google Account ID
       // so getObfuscatedGoogleAccountId should fall back to installation ID
       const googleAccountIdResult = getObfuscatedGoogleAccountId();
-      const installationIdResult = getInstallationId();
 
       // They should be the same when no Google Account ID is cached
       expect(googleAccountIdResult).toBe('');
