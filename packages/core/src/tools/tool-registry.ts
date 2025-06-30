@@ -12,7 +12,8 @@ import { discoverMcpTools } from './mcp-client.js';
 import { DiscoveredMCPTool } from './mcp-tool.js';
 import { 
   validateToolCommand, 
-  validateToolName, 
+  validateToolName,
+  splitCommandSafely, 
   createSecureExecutionEnvironment 
 } from '../utils/commandValidation.js';
 
@@ -207,7 +208,12 @@ export class ToolRegistry {
       const secureEnv = createSecureExecutionEnvironment();
       
       // Split command safely to get executable and args
-      const commandParts = discoveryCmd.trim().split(/\s+/);
+      const commandParts = splitCommandSafely(discoveryCmd.trim());
+      if (!commandParts || commandParts.length === 0) {
+        console.error('Tool discovery command could not be parsed (e.g., unmatched quotes)');
+        console.error(`Skipping tool discovery for security reasons. Command: ${discoveryCmd}`);
+        return;
+      }
       const executable = commandParts[0];
       const args = commandParts.slice(1);
       
