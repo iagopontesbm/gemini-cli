@@ -18,7 +18,7 @@ import {
 import { EventMetadataKey } from './event-metadata-key.js';
 import { Config } from '../../config/config.js';
 import { getPersistentUserId } from '../../utils/user_id.js';
-import { retryWithBackoff } from '../../utils/retry.js';
+import { HttpError, retryWithBackoff } from '../../utils/retry.js';
 
 const start_session_event_name = 'start_session';
 const new_prompt_event_name = 'new_prompt';
@@ -114,10 +114,10 @@ export class ClearcutLogger {
             res.statusCode &&
             (res.statusCode < 200 || res.statusCode >= 300)
           ) {
-            const err = new Error(
+            const err: HttpError = new Error(
               `Request failed with status ${res.statusCode}`,
             );
-            (err as any).status = res.statusCode;
+            err.status = res.statusCode;
             res.resume();
             return reject(err);
           }
@@ -134,7 +134,7 @@ export class ClearcutLogger {
         initialDelayMs: 200,
         shouldRetry: (err: unknown) => {
           if (!(err instanceof Error)) return false;
-          const status = (err as any).status as number | undefined;
+          const status = (err as HttpError).status as number | undefined;
           // If status is not available, it's likely a network error
           if (status === undefined) return true;
 
