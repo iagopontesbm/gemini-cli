@@ -18,6 +18,7 @@ import {
 import { LoadedSettings, SettingsFile, Settings } from '../config/settings.js';
 import process from 'node:process';
 import { Tips } from './components/Tips.js';
+import { Header } from './components/Header.js';
 
 // Define a more complete mock server config based on actual Config
 interface MockServerConfig {
@@ -176,6 +177,10 @@ vi.mock('../config/config.js', async (importOriginal) => {
 
 vi.mock('./components/Tips.js', () => ({
   Tips: vi.fn(() => null),
+}));
+
+vi.mock('./components/Header.js', () => ({
+  Header: vi.fn(() => null),
 }));
 
 describe('App UI', () => {
@@ -410,6 +415,22 @@ describe('App UI', () => {
     currentUnmount = unmount;
     await Promise.resolve();
     expect(vi.mocked(Tips)).not.toHaveBeenCalled();
+  });
+
+  it('should not display Header component when hideHeader is true', async () => {
+    mockSettings = createMockSettings({
+      hideHeader: true,
+    });
+
+    const { unmount } = render(
+      <App
+        config={mockConfig as unknown as ServerConfig}
+        settings={mockSettings}
+      />,
+    );
+    currentUnmount = unmount;
+    await Promise.resolve();
+    expect(vi.mocked(Header)).not.toHaveBeenCalled();
   });
 
   describe('when no theme is set', () => {

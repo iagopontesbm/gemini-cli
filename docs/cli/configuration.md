@@ -185,6 +185,15 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     "hideTips": true
     ```
 
+- **`hideHeader`** (boolean):
+  - **Description:** Enables or disables the Gemini ASCII art in the CLI interface.
+  - **Default:** `false`
+  - **Example:**
+
+    ```json
+    "hideHeader": true
+    ```
+
 ### Example `settings.json`:
 
 ```json
@@ -209,7 +218,8 @@ In addition to a project settings file, a project's `.gemini` directory can cont
     "logPrompts": true
   },
   "usageStatisticsEnabled": true,
-  "hideTips": false
+  "hideTips": false,
+  "hideHeader": false
 }
 ```
 
