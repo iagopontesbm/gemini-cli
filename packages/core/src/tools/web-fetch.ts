@@ -17,6 +17,7 @@ import { Config, ApprovalMode } from '../config/config.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { fetchWithTimeout, isPrivateIp } from '../utils/fetch.js';
 import { convert } from 'html-to-text';
+import { logger } from '../utils/logger.js';
 
 const URL_FETCH_TIMEOUT_MS = 10000;
 const MAX_CONTENT_LENGTH = 100000;
@@ -336,11 +337,12 @@ ${sourceListFormatted.join('\n')}`;
 
       const llmContent = responseText;
 
-      console.debug(
+      logger.debug(
         `[WebFetchTool] Formatted tool response for prompt "${userPrompt}:\n\n":`,
         llmContent,
       );
 
+      logger.info(`Content processed from prompt: ${userPrompt.substring(0, 50)}...`);
       return {
         llmContent,
         returnDisplay: `Content processed from prompt.`,

@@ -27,10 +27,10 @@ import { GeminiClient } from '../core/client.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
 import { ModifiableTool, ModifyContext } from './modifiable-tool.js';
 import { getSpecificMimeType } from '../utils/fileUtils.js';
-import {
-  recordFileOperationMetric,
+import { recordFileOperationMetric,
   FileOperation,
 } from '../telemetry/metrics.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Parameters for the WriteFile tool
@@ -129,6 +129,7 @@ export class WriteFileTool
   }
 
   override validateToolParams(params: WriteFileToolParams): string | null {
+    logger.debug(`Validating write_file parameters: ${JSON.stringify(params)}`);
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -136,17 +137,21 @@ export class WriteFileTool
         params,
       )
     ) {
+      logger.error('Parameters failed schema validation for write_file.');
       return 'Parameters failed schema validation.';
     }
     const filePath = params.file_path;
     if (!path.isAbsolute(filePath)) {
+      logger.error(`File path must be absolute, but was relative: ${filePath}`);
       return `File path must be absolute: ${filePath}`;
     }
     if (!this.isWithinRoot(filePath)) {
+      logger.error(`File path must be within the root directory (${this.config.getTargetDir()}): ${filePath}`);
       return `File path must be within the root directory (${this.config.getTargetDir()}): ${filePath}`;
     }
 
     if (params.append && params.prepend) {
+      logger.error('Cannot use both append and prepend modes simultaneously for write_file.');
       return 'Cannot use both append and prepend modes simultaneously.';
     }
 
@@ -154,17 +159,20 @@ export class WriteFileTool
       // This check should be performed only if the path exists.
       // If it doesn't exist, it's a new file, which is valid for writing.
       if (fs.existsSync(filePath)) {
+        logger.debug(`Checking if path is a directory: ${filePath}`);
         const stats = fs.lstatSync(filePath);
         if (stats.isDirectory()) {
+          logger.error(`Path is a directory, not a file: ${filePath}`);
           return `Path is a directory, not a file: ${filePath}`;
         }
       }
     } catch (statError: unknown) {
       // If fs.existsSync is true but lstatSync fails (e.g., permissions, race condition where file is deleted)
       // this indicates an issue with accessing the path that should be reported.
+      logger.error(`Error accessing path properties for validation: ${filePath}. Reason: ${statError instanceof Error ? statError.message : String(statError)}`);
       return `Error accessing path properties for validation: ${filePath}. Reason: ${statError instanceof Error ? statError.message : String(statError)}`;
     }
-
+    logger.debug('Write file parameters validated successfully.');
     return null;
   }
 
@@ -240,8 +248,12 @@ export class WriteFileTool
     params: WriteFileToolParams,
     abortSignal: AbortSignal,
   ): Promise<ToolResult> {
+    logger.info(`Executing write_file command for: ${params.file_path}`);
+    logger.debug(`Write file parameters: ${JSON.stringify(params)}`);
+
     const validationError = this.validateToolParams(params);
     if (validationError) {
+      logger.error(`Write file validation failed: ${validationError}`);
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: `Error: ${validationError}`,
@@ -257,6 +269,7 @@ export class WriteFileTool
     if (correctedContentResult.error) {
       const errDetails = correctedContentResult.error;
       const errorMsg = `Error checking existing file: ${errDetails.message}`;
+      logger.error(`Error checking existing file ${params.file_path}: ${errDetails.message}`, errDetails);
       return {
         llmContent: `Error checking existing file ${params.file_path}: ${errDetails.message}`,
         returnDisplay: errorMsg,
@@ -280,23 +293,30 @@ export class WriteFileTool
     try {
       const dirName = path.dirname(file_path);
       if (!fs.existsSync(dirName)) {
+        logger.debug(`Creating directory: ${dirName}`);
         fs.mkdirSync(dirName, { recursive: true });
+        logger.info(`Directory created: ${dirName}`);
       }
 
       if (append) {
+        logger.info(`Appending content to file: ${file_path}`);
         fs.appendFileSync(file_path, content, 'utf8');
       } else if (prepend) {
+        logger.info(`Prepending content to file: ${file_path}`);
         const existingContent = fs.existsSync(file_path)
           ? fs.readFileSync(file_path, 'utf8')
           : '';
         const tempFilePath = `${file_path}.tmp.${Date.now()}`;
         fs.writeFileSync(tempFilePath, content + existingContent, 'utf8');
         fs.renameSync(tempFilePath, file_path);
+        logger.debug(`Content prepended and temporary file renamed for: ${file_path}`);
       } else {
+        logger.info(`Overwriting file: ${file_path}`);
         // Atomic write for overwrite mode
         const tempFilePath = `${file_path}.tmp.${Date.now()}`;
         fs.writeFileSync(tempFilePath, content, 'utf8');
         fs.renameSync(tempFilePath, file_path);
+        logger.debug(`Content overwritten and temporary file renamed for: ${file_path}`);
       }
 
       // Generate diff for display result
@@ -341,6 +361,7 @@ export class WriteFileTool
           mimetype,
           extension,
         );
+        logger.info(`File created metric recorded for: ${file_path}`);
       } else {
         recordFileOperationMetric(
           this.config,
@@ -349,14 +370,16 @@ export class WriteFileTool
           mimetype,
           extension,
         );
+        logger.info(`File updated metric recorded for: ${file_path}`);
       }
-
+      logger.info(`Write file operation complete for: ${file_path}`);
       return {
         llmContent: llmSuccessMessageParts.join(' '),
         returnDisplay: displayResult,
       };
     } catch (error) {
       const errorMsg = `Error writing to file: ${error instanceof Error ? error.message : String(error)}`;
+      logger.error(`Error writing to file ${file_path}: ${errorMsg}`, error);
       return {
         llmContent: `Error writing to file ${file_path}: ${errorMsg}`,
         returnDisplay: `Error: ${errorMsg}`,

@@ -11,6 +11,7 @@ import { SchemaValidator } from '../utils/schemaValidator.js';
 import { BaseTool, ToolResult } from './tools.js';
 import { shortenPath, makeRelative } from '../utils/paths.js';
 import { Config } from '../config/config.js';
+import { logger } from '../utils/logger.js';
 
 // Subset of 'Path' interface provided by 'glob' that we can implement for testing
 export interface GlobPath {
@@ -141,6 +142,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
    * Validates the parameters for the tool.
    */
   override validateToolParams(params: GlobToolParams): string | null {
+    logger.debug(`Validating glob tool parameters: ${JSON.stringify(params)}`);
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -148,6 +150,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         params,
       )
     ) {
+      logger.error('Parameters failed schema validation for glob tool.');
       return "Parameters failed schema validation. Ensure 'pattern' is a string, 'path' (if provided) is a string, and 'case_sensitive' (if provided) is a boolean.";
     }
 
@@ -157,18 +160,22 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
     );
 
     if (!this.isWithinRoot(searchDirAbsolute)) {
+      logger.error(`Search path ("${searchDirAbsolute}") resolves outside the tool's root directory ("${this.rootDirectory}").`);
       return `Search path ("${searchDirAbsolute}") resolves outside the tool's root directory ("${this.rootDirectory}").`;
     }
 
     const targetDir = searchDirAbsolute || this.rootDirectory;
     try {
       if (!fs.existsSync(targetDir)) {
+        logger.error(`Search path does not exist: ${targetDir}`);
         return `Search path does not exist ${targetDir}`;
       }
       if (!fs.statSync(targetDir).isDirectory()) {
+        logger.error(`Search path is not a directory: ${targetDir}`);
         return `Search path is not a directory: ${targetDir}`;
       }
     } catch (e: unknown) {
+      logger.error(`Error accessing search path: ${e}`);
       return `Error accessing search path: ${e}`;
     }
 
@@ -177,9 +184,10 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
       typeof params.pattern !== 'string' ||
       params.pattern.trim() === ''
     ) {
+      logger.error("The 'pattern' parameter cannot be empty.");
       return "The 'pattern' parameter cannot be empty.";
     }
-
+    logger.debug('Glob tool parameters validated successfully.');
     return null;
   }
 
@@ -203,8 +211,12 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
     params: GlobToolParams,
     signal: AbortSignal,
   ): Promise<ToolResult> {
+    logger.info(`Executing glob command with pattern: ${params.pattern}`);
+    logger.debug(`Glob parameters: ${JSON.stringify(params)}`);
+
     const validationError = this.validateToolParams(params);
     if (validationError) {
+      logger.error(`Glob validation failed: ${validationError}`);
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: validationError,
@@ -216,6 +228,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         this.rootDirectory,
         params.path || '.',
       );
+      logger.debug(`Absolute search directory: ${searchDirAbsolute}`);
 
       // Get centralized file discovery service
       const respectGitIgnore =
@@ -223,6 +236,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         this.config.getFileFilteringRespectGitIgnore();
       const fileDiscovery = this.config.getFileService();
 
+      logger.debug(`Starting glob search for pattern: ${params.pattern} in ${searchDirAbsolute}`);
       const entries = (await glob(params.pattern, {
         cwd: searchDirAbsolute,
         withFileTypes: true,
@@ -234,12 +248,14 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         follow: false,
         signal,
       })) as GlobPath[];
+      logger.debug(`Found ${entries.length} raw entries.`);
 
       // Apply git-aware filtering if enabled and in git repository
       let filteredEntries = entries;
       let gitIgnoredCount = 0;
 
       if (respectGitIgnore) {
+        logger.debug('Applying gitignore filtering.');
         const relativePaths = entries.map((p) =>
           path.relative(this.rootDirectory, p.fullpath()),
         );
@@ -254,6 +270,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
           filteredAbsolutePaths.has(entry.fullpath()),
         );
         gitIgnoredCount = entries.length - filteredEntries.length;
+        logger.debug(`After gitignore filtering: ${filteredEntries.length} entries, ${gitIgnoredCount} ignored.`);
       }
 
       if (!filteredEntries || filteredEntries.length === 0) {
@@ -261,6 +278,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         if (gitIgnoredCount > 0) {
           message += ` (${gitIgnoredCount} files were git-ignored)`;
         }
+        logger.info(`No files found for glob pattern: ${params.pattern}.`);
         return {
           llmContent: message,
           returnDisplay: `No files found`,
@@ -277,6 +295,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
         nowTimestamp,
         oneDayInMs,
       );
+      logger.debug(`Sorted ${sortedEntries.length} entries.`);
 
       const sortedAbsolutePaths = sortedEntries.map((entry) =>
         entry.fullpath(),
@@ -290,6 +309,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
       }
       resultMessage += `, sorted by modification time (newest first):\n${fileListDescription}`;
 
+      logger.info(`Glob search complete. Found ${fileCount} files.`);
       return {
         llmContent: resultMessage,
         returnDisplay: `Found ${fileCount} matching file(s)`,
@@ -297,7 +317,7 @@ export class GlobTool extends BaseTool<GlobToolParams, ToolResult> {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      console.error(`GlobLogic execute Error: ${errorMessage}`, error);
+      logger.error(`Error during glob search operation: ${errorMessage}`, error);
       return {
         llmContent: `Error during glob search operation: ${errorMessage}`,
         returnDisplay: `Error: An unexpected error occurred.`,

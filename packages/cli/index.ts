@@ -8,13 +8,13 @@
 
 // Improvement 1: Weaving the threads of color for mystical outputs.
 const Colors = {
-  RED: '[31m',
-  GREEN: '[32m',
-  YELLOW: '[33m',
-  BLUE: '[34m',
-  MAGENTA: '[35m',
-  CYAN: '[36m',
-  RESET: '[0m',
+  RED: ' [31m',
+  GREEN: ' [32m',
+  YELLOW: ' [33m',
+  BLUE: ' [34m',
+  MAGENTA: ' [35m',
+  CYAN: ' [36m',
+  RESET: ' [0m',
 };
 
 // Improvement 2: A dedicated incantation for logging, to channel messages with clarity.

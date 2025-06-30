@@ -12,10 +12,10 @@ import { BaseTool, ToolResult } from './tools.js';
 import { isWithinRoot, processSingleFileContent } from '../utils/fileUtils.js';
 import { Config } from '../config/config.js';
 import { getSpecificMimeType } from '../utils/fileUtils.js';
-import {
-  recordFileOperationMetric,
+import { recordFileOperationMetric,
   FileOperation,
 } from '../telemetry/metrics.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Parameters for the ReadFile tool
@@ -222,8 +222,12 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     params: ReadFileToolParams,
     _signal: AbortSignal,
   ): Promise<ToolResult> {
+    logger.info(`Executing read_file command for: ${params.absolute_path}`);
+    logger.debug(`Read file parameters: ${JSON.stringify(params)}`);
+
     const validationError = this.validateToolParams(params);
     if (validationError) {
+      logger.error(`Read file validation failed: ${validationError}`);
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: validationError,
@@ -244,26 +248,31 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
 
     // Handle byte range reading first
     if (start_byte !== undefined && end_byte !== undefined) {
+      logger.debug(`Attempting to read file by byte range: ${start_byte}-${end_byte}`);
       try {
         const buffer = Buffer.alloc(end_byte - start_byte);
         const fd = await fs.open(absolute_path, 'r');
         try {
           await fd.read(buffer, 0, buffer.length, start_byte);
+          logger.info(`Successfully read ${buffer.length} bytes from ${shortenPath(absolute_path)}`);
           return {
             llmContent: buffer.toString(encoding as BufferEncoding),
             returnDisplay: `Read ${buffer.length} bytes from ${shortenPath(absolute_path)}`,
           };
         } finally {
           await fd.close();
+          logger.debug('File descriptor closed after byte range read.');
         }
       } catch (e: unknown) {
+        logger.error(`Error reading file by byte range: ${getErrorMessage(e)}`, e);
         return {
-          llmContent: `Error reading file by byte range: ${(e as Error).message}`,
-          returnDisplay: `Error reading file by byte range: ${(e as Error).message}`,
+          llmContent: `Error reading file by byte range: ${getErrorMessage(e)}`,
+          returnDisplay: `Error reading file by byte range: ${getErrorMessage(e)}`,
         };
       }
     }
 
+    logger.debug('Processing single file content...');
     const result = await processSingleFileContent(
       absolute_path,
       this.rootDirectory,
@@ -272,6 +281,7 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
     );
 
     if (result.error) {
+      logger.error(`Error processing single file content: ${result.error}`);
       return {
         llmContent: result.error, // The detailed error for LLM
         returnDisplay: result.returnDisplay, // User-friendly error
@@ -286,17 +296,27 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       start_line !== undefined &&
       end_line !== undefined
     ) {
+      logger.debug(`Applying line range filter: ${start_line}-${end_line}`);
       const lines = content.split('\n');
       content = lines.slice(start_line, end_line + 1).join('\n');
     }
 
     // Apply content pattern filtering
     if (typeof content === 'string' && pattern) {
-      const regex = new RegExp(pattern);
-      content = content
-        .split('\n')
-        .filter((line) => regex.test(line))
-        .join('\n');
+      logger.debug(`Applying pattern filter: ${pattern}`);
+      try {
+        const regex = new RegExp(pattern);
+        content = content
+          .split('\n')
+          .filter((line) => regex.test(line))
+          .join('\n');
+      } catch (e: unknown) {
+        logger.error(`Invalid regex pattern in read_file: ${getErrorMessage(e)}`, e);
+        return {
+          llmContent: `Error: Invalid regex pattern provided. Reason: ${getErrorMessage(e)}`,
+          returnDisplay: `Error: Invalid regex pattern provided.`,
+        };
+      }
     }
 
     const linesCount =
@@ -309,6 +329,8 @@ export class ReadFileTool extends BaseTool<ReadFileToolParams, ToolResult> {
       mimetype,
       path.extname(absolute_path),
     );
+    logger.info(`File read operation complete for ${shortenPath(absolute_path)}.`);
+    logger.debug(`Content length: ${content?.length || 0}, Lines: ${linesCount || 'N/A'}`);
 
     return {
       llmContent: content,

@@ -27,6 +27,7 @@ import { ReadManyFilesTool } from '../tools/read-many-files.js';
 import { getResponseText } from '../utils/generateContentResponseUtilities.js';
 import { checkNextSpeaker } from '../utils/nextSpeakerChecker.js';
 import { reportError } from '../utils/errorReporting.js';
+import { logger } from '../utils/logger.js';
 import { GeminiChat } from './geminiChat.js';
 import { retryWithBackoff } from '../utils/retry.js';
 import { getErrorMessage } from '../utils/errors.js';
@@ -66,10 +67,17 @@ export class GeminiClient {
   }
 
   async initialize(contentGeneratorConfig: ContentGeneratorConfig) {
-    this.contentGenerator = await createContentGenerator(
-      contentGeneratorConfig,
-    );
-    this.chat = await this.startChat();
+    try {
+      this.contentGenerator = await createContentGenerator(
+        contentGeneratorConfig,
+      );
+      logger.info('Content generator initialized.');
+      this.chat = await this.startChat();
+      logger.info('Chat session started.');
+    } catch (error) {
+      logger.error('Failed to initialize GeminiClient:', error);
+      throw error;
+    }
   }
 
   getContentGenerator(): ContentGenerator {
@@ -103,67 +111,76 @@ export class GeminiClient {
   }
 
   private async getEnvironment(): Promise<Part[]> {
-    const cwd = this.config.getWorkingDir();
-    const today = new Date().toLocaleDateString(undefined, {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-    const platform = process.platform;
-    const folderStructure = await getFolderStructure(cwd, {
-      fileService: this.config.getFileService(),
-    });
-    const context = `
+    logger.debug('Gathering environment information...');
+    try {
+      const cwd = this.config.getWorkingDir();
+      const today = new Date().toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+      const platform = process.platform;
+      const folderStructure = await getFolderStructure(cwd, {
+        fileService: this.config.getFileService(),
+      });
+      const context = `
   This is the Gemini CLI. We are setting up the context for our chat.
   Today's date is ${today}.
   My operating system is: ${platform}
   I'm currently working in the directory: ${cwd}
   ${folderStructure}
-          `.trim();
+            `.trim();
 
-    const initialParts: Part[] = [{ text: context }];
-    const toolRegistry = await this.config.getToolRegistry();
+      const initialParts: Part[] = [{ text: context }];
+      const toolRegistry = await this.config.getToolRegistry();
 
-    // Add full file context if the flag is set
-    if (this.config.getFullContext()) {
-      try {
-        const readManyFilesTool = toolRegistry.getTool(
-          'read_many_files',
-        ) as ReadManyFilesTool;
-        if (readManyFilesTool) {
-          // Read all files in the target directory
-          const result = await readManyFilesTool.execute(
-            {
-              paths: ['**/*'], // Read everything recursively
-              useDefaultExcludes: true, // Use default excludes
-            },
-            AbortSignal.timeout(30000),
-          );
-          if (result.llmContent) {
-            initialParts.push({
-              text: `\n--- Full File Context ---\n${result.llmContent}`,
-            });
+      // Add full file context if the flag is set
+      if (this.config.getFullContext()) {
+        logger.debug('Full context requested. Attempting to read many files...');
+        try {
+          const readManyFilesTool = toolRegistry.getTool(
+            'read_many_files',
+          ) as ReadManyFilesTool;
+          if (readManyFilesTool) {
+            // Read all files in the target directory
+            const result = await readManyFilesTool.execute(
+              {
+                paths: ['**/*'], // Read everything recursively
+                useDefaultExcludes: true, // Use default excludes
+              },
+              AbortSignal.timeout(30000),
+            );
+            if (result.llmContent) {
+              initialParts.push({
+                text: `
+--- Full File Context ---
+${result.llmContent}`,
+              });
+              logger.info('Full file context added.');
+            } else {
+              logger.warn(
+                'Full context requested, but read_many_files returned no content.',
+              );
+            }
           } else {
-            console.warn(
-              'Full context requested, but read_many_files returned no content.',
+            logger.warn(
+              'Full context requested, but read_many_files tool not found.',
             );
           }
-        } else {
-          console.warn(
-            'Full context requested, but read_many_files tool not found.',
-          );
+        } catch (error) {
+          logger.error('Error reading full file context:', error);
+          initialParts.push({
+            text: '\n--- Error reading full file context ---',
+          });
         }
-      } catch (error) {
-        // Not using reportError here as it's a startup/config phase, not a chat/generation phase error.
-        console.error('Error reading full file context:', error);
-        initialParts.push({
-          text: '\n--- Error reading full file context ---',
-        });
       }
+      logger.debug('Environment information gathered.');
+      return initialParts;
+    } catch (error) {
+      logger.error('Failed to get environment information:', error);
+      throw error;
     }
-
-    return initialParts;
   }
 
   private async startChat(extraHistory?: Content[]): Promise<GeminiChat> {
@@ -219,33 +236,44 @@ export class GeminiClient {
     signal: AbortSignal,
     turns: number = this.MAX_TURNS,
   ): AsyncGenerator<ServerGeminiStreamEvent, Turn> {
-    if (!turns) {
-      return new Turn(this.getChat());
-    }
-
-    const compressed = await this.tryCompressChat();
-    if (compressed) {
-      yield { type: GeminiEventType.ChatCompressed, value: compressed };
-    }
-    const turn = new Turn(this.getChat());
-    const resultStream = turn.run(request, signal);
-    for await (const event of resultStream) {
-      yield event;
-    }
-    if (!turn.pendingToolCalls.length && signal && !signal.aborted) {
-      const nextSpeakerCheck = await checkNextSpeaker(
-        this.getChat(),
-        this,
-        signal,
-      );
-      if (nextSpeakerCheck?.next_speaker === 'model') {
-        const nextRequest = [{ text: 'Please continue.' }];
-        // This recursive call's events will be yielded out, but the final
-        // turn object will be from the top-level call.
-        yield* this.sendMessageStream(nextRequest, signal, turns - 1);
+    logger.debug('Sending message stream...');
+    try {
+      if (!turns) {
+        logger.debug('Max turns reached. Returning current turn.');
+        return new Turn(this.getChat());
       }
+
+      const compressed = await this.tryCompressChat();
+      if (compressed) {
+        logger.info('Chat compressed.', compressed);
+        yield { type: GeminiEventType.ChatCompressed, value: compressed };
+      }
+      const turn = new Turn(this.getChat());
+      const resultStream = turn.run(request, signal);
+      for await (const event of resultStream) {
+        yield event;
+      }
+      if (!turn.pendingToolCalls.length && signal && !signal.aborted) {
+        logger.debug('Checking next speaker...');
+        const nextSpeakerCheck = await checkNextSpeaker(
+          this.getChat(),
+          this,
+          signal,
+        );
+        if (nextSpeakerCheck?.next_speaker === 'model') {
+          logger.info('Model is next speaker. Continuing conversation.');
+          const nextRequest = [{ text: 'Please continue.' }];
+          // This recursive call's events will be yielded out, but the final
+          // turn object will be from the top-level call.
+          yield* this.sendMessageStream(nextRequest, signal, turns - 1);
+        }
+      }
+      logger.debug('Message stream complete.');
+      return turn;
+    } catch (error) {
+      logger.error('Error in sendMessageStream:', error);
+      throw error;
     }
-    return turn;
   }
 
   async generateJson(
@@ -255,6 +283,7 @@ export class GeminiClient {
     model: string = DEFAULT_GEMINI_FLASH_MODEL,
     config: GenerateContentConfig = {},
   ): Promise<Record<string, unknown>> {
+    logger.debug('Generating JSON content...');
     try {
       const userMemory = this.config.getUserMemory();
       const systemInstruction = getCoreSystemPrompt(userMemory);
@@ -287,6 +316,7 @@ export class GeminiClient {
         const error = new Error(
           'API returned an empty response for generateJson.',
         );
+        logger.error('API returned an empty response for generateJson.', error);
         await reportError(
           error,
           'Error in generateJson: API returned an empty response.',
@@ -296,8 +326,11 @@ export class GeminiClient {
         throw error;
       }
       try {
-        return JSON.parse(text);
+        const jsonResult = JSON.parse(text);
+        logger.debug('Successfully generated JSON content.');
+        return jsonResult;
       } catch (parseError) {
+        logger.error('Failed to parse JSON response from generateJson.', parseError);
         await reportError(
           parseError,
           'Failed to parse JSON response from generateJson.',
@@ -313,6 +346,7 @@ export class GeminiClient {
       }
     } catch (error) {
       if (abortSignal.aborted) {
+        logger.warn('JSON generation aborted.');
         throw error;
       }
 
@@ -324,6 +358,7 @@ export class GeminiClient {
         throw error;
       }
 
+      logger.error('Error generating JSON content via API.', error);
       await reportError(
         error,
         'Error generating JSON content via API.',
@@ -341,6 +376,7 @@ export class GeminiClient {
     generationConfig: GenerateContentConfig,
     abortSignal: AbortSignal,
   ): Promise<GenerateContentResponse> {
+    logger.debug('Generating content...');
     const modelToUse = this.model;
     const configToUse: GenerateContentConfig = {
       ...this.generateContentConfig,
@@ -369,12 +405,18 @@ export class GeminiClient {
           await this.handleFlashFallback(authType),
         authType: this.config.getContentGeneratorConfig()?.authType,
       });
+      logger.debug('Content generated successfully.');
       return result;
     } catch (error: unknown) {
       if (abortSignal.aborted) {
+        logger.warn('Content generation aborted.');
         throw error;
       }
 
+      logger.error(
+        `Error generating content via API with model ${modelToUse}.`,
+        error,
+      );
       await reportError(
         error,
         `Error generating content via API with model ${modelToUse}.`,
@@ -391,38 +433,53 @@ export class GeminiClient {
   }
 
   async generateEmbedding(texts: string[]): Promise<number[][]> {
-    if (!texts || texts.length === 0) {
-      return [];
-    }
-    const embedModelParams: EmbedContentParameters = {
-      model: this.embeddingModel,
-      contents: texts,
-    };
-
-    const embedContentResponse =
-      await this.getContentGenerator().embedContent(embedModelParams);
-    if (
-      !embedContentResponse.embeddings ||
-      embedContentResponse.embeddings.length === 0
-    ) {
-      throw new Error('No embeddings found in API response.');
-    }
-
-    if (embedContentResponse.embeddings.length !== texts.length) {
-      throw new Error(
-        `API returned a mismatched number of embeddings. Expected ${texts.length}, got ${embedContentResponse.embeddings.length}.`,
-      );
-    }
-
-    return embedContentResponse.embeddings.map((embedding, index) => {
-      const values = embedding.values;
-      if (!values || values.length === 0) {
-        throw new Error(
-          `API returned an empty embedding for input text at index ${index}: "${texts[index]}"`,
-        );
+    logger.debug('Generating embeddings...');
+    try {
+      if (!texts || texts.length === 0) {
+        logger.warn('No texts provided for embedding. Returning empty array.');
+        return [];
       }
-      return values;
-    });
+      const embedModelParams: EmbedContentParameters = {
+        model: this.embeddingModel,
+        contents: texts,
+      };
+
+      const embedContentResponse =
+        await this.getContentGenerator().embedContent(embedModelParams);
+      if (
+        !embedContentResponse.embeddings ||
+        embedContentResponse.embeddings.length === 0
+      ) {
+        const error = new Error('No embeddings found in API response.');
+        logger.error('No embeddings found in API response.', error);
+        throw error;
+      }
+
+      if (embedContentResponse.embeddings.length !== texts.length) {
+        const error = new Error(
+          `API returned a mismatched number of embeddings. Expected ${texts.length}, got ${embedContentResponse.embeddings.length}.`,
+        );
+        logger.error('Mismatched number of embeddings.', error);
+        throw error;
+      }
+
+      const embeddings = embedContentResponse.embeddings.map((embedding, index) => {
+        const values = embedding.values;
+        if (!values || values.length === 0) {
+          const error = new Error(
+            `API returned an empty embedding for input text at index ${index}: "${texts[index]}"`,
+          );
+          logger.error('Empty embedding for input text.', error);
+          throw error;
+        }
+        return values;
+      });
+      logger.debug('Embeddings generated successfully.');
+      return embeddings;
+    } catch (error) {
+      logger.error('Error generating embeddings:', error);
+      throw error;
+    }
   }
 
   async tryCompressChat(
@@ -527,7 +584,7 @@ export class GeminiClient {
           return fallbackModel;
         }
       } catch (error) {
-        console.warn('Flash fallback handler failed:', error);
+        logger.warn('Flash fallback handler failed:', error);
       }
     }
 

@@ -24,6 +24,7 @@ import { ensureCorrectEdit } from '../utils/editCorrector.js';
 import { DEFAULT_DIFF_OPTIONS } from './diffOptions.js';
 import { ReadFileTool } from './read-file.js';
 import { ModifiableTool, ModifyContext } from './modifiable-tool.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Parameters for the Edit tool
@@ -181,6 +182,7 @@ Expectation for required parameters:
    * @returns Error message string or null if valid
    */
   override validateToolParams(params: EditToolParams): string | null {
+    logger.debug(`Validating edit tool parameters: ${JSON.stringify(params)}`);
     if (
       this.schema.parameters &&
       !SchemaValidator.validate(
@@ -188,21 +190,26 @@ Expectation for required parameters:
         params,
       )
     ) {
+      logger.error('Parameters failed schema validation for edit tool.');
       return 'Parameters failed schema validation.';
     }
 
     if (!path.isAbsolute(params.file_path)) {
+      logger.error(`File path must be absolute: ${params.file_path}`);
       return `File path must be absolute: ${params.file_path}`;
     }
 
     if (!this.isWithinRoot(params.file_path)) {
+      logger.error(`File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`);
       return `File path must be within the root directory (${this.rootDirectory}): ${params.file_path}`;
     }
 
     if (params.start_line !== undefined && params.start_line < 0) {
+      logger.error('Start line must be a non-negative number');
       return 'Start line must be a non-negative number';
     }
     if (params.end_line !== undefined && params.end_line < 0) {
+      logger.error('End line must be a non-negative number');
       return 'End line must be a non-negative number';
     }
     if (
@@ -210,19 +217,22 @@ Expectation for required parameters:
       params.end_line !== undefined &&
       params.start_line > params.end_line
     ) {
+      logger.error('Start line cannot be greater than end line');
       return 'Start line cannot be greater than end line';
     }
     if (params.use_regex && !params.old_string) {
+      logger.error('old_string cannot be empty when use_regex is true');
       return 'old_string cannot be empty when use_regex is true';
     }
     if (params.use_regex) {
       try {
         new RegExp(params.old_string);
-      } catch (e) {
-        return `Invalid regex pattern for old_string: ${e.message}`;
+      } catch (e: unknown) {
+        logger.error(`Invalid regex pattern for old_string: ${e instanceof Error ? e.message : String(e)}`);
+        return `Invalid regex pattern for old_string: ${e instanceof Error ? e.message : String(e)}`;
       }
     }
-
+    logger.debug('Edit tool parameters validated successfully.');
     return null;
   }
 
@@ -263,6 +273,7 @@ Expectation for required parameters:
     params: EditToolParams,
     abortSignal: AbortSignal,
   ): Promise<CalculatedEdit> {
+    logger.debug(`Calculating edit for file: ${params.file_path}`);
     const expectedReplacements = params.expected_replacements ?? 1;
     let currentContent: string | null = null;
     let fileExists = false;
@@ -277,27 +288,34 @@ Expectation for required parameters:
       // Normalize line endings to LF for consistent processing.
       currentContent = currentContent.replace(/\r\n/g, '\n');
       fileExists = true;
+      logger.debug(`File ${params.file_path} exists and content read.`);
     } catch (err: unknown) {
       if (!isNodeError(err) || err.code !== 'ENOENT') {
+        logger.error(`Error reading file ${params.file_path}: ${err instanceof Error ? err.message : String(err)}`, err);
         // Rethrow unexpected FS errors (permissions, etc.)
         throw err;
       }
       fileExists = false;
+      logger.debug(`File ${params.file_path} does not exist.`);
     }
 
     if (params.old_string === '' && !fileExists) {
       // Creating a new file
       isNewFile = true;
+      logger.info(`Creating new file: ${params.file_path}`);
     } else if (!fileExists) {
       // Trying to edit a non-existent file (and old_string is not empty)
       error = {
         display: `File not found. Cannot apply edit. Use an empty old_string to create a new file.`,
         raw: `File not found: ${params.file_path}`,
       };
+      logger.error(`File not found for edit: ${params.file_path}`);
     } else if (currentContent !== null) {
       // Editing an existing file
+      logger.debug(`Editing existing file: ${params.file_path}`);
       let contentToEdit = currentContent;
       if (params.start_line !== undefined && params.end_line !== undefined) {
+        logger.debug(`Applying line range filter: ${params.start_line}-${params.end_line}`);
         const lines = currentContent.split('\n');
         contentToEdit = lines
           .slice(params.start_line, params.end_line + 1)
@@ -313,6 +331,7 @@ Expectation for required parameters:
       finalOldString = correctedEdit.params.old_string;
       finalNewString = correctedEdit.params.new_string;
       occurrences = correctedEdit.occurrences;
+      logger.debug(`Edit correction result: occurrences=${occurrences}, old_string=${finalOldString.substring(0, 50)}..., new_string=${finalNewString.substring(0, 50)}...`);
 
       if (params.old_string === '') {
         // Error: Trying to create a file that already exists
@@ -320,16 +339,19 @@ Expectation for required parameters:
           display: `Failed to edit. Attempted to create a file that already exists.`,
           raw: `File already exists, cannot create: ${params.file_path}`,
         };
+        logger.error(`Attempted to create existing file: ${params.file_path}`);
       } else if (occurrences === 0) {
         error = {
           display: `Failed to edit, could not find the string to replace.`,
           raw: `Failed to edit, 0 occurrences found for old_string in ${params.file_path}. No edits made. The exact text in old_string was not found. Ensure you're not escaping content incorrectly and check whitespace, indentation, and context. Use ${ReadFileTool.Name} tool to verify.`,
         };
+        logger.error(`String to replace not found in ${params.file_path}.`);
       } else if (occurrences !== expectedReplacements) {
         error = {
           display: `Failed to edit, expected ${expectedReplacements} occurrence(s) but found ${occurrences}.`,
           raw: `Failed to edit, Expected ${expectedReplacements} occurrences but found ${occurrences} for old_string in file: ${params.file_path}`,
         };
+        logger.error(`Mismatched occurrences for edit in ${params.file_path}. Expected ${expectedReplacements}, found ${occurrences}.`);
       }
     } else {
       // Should not happen if fileExists and no exception was thrown, but defensively:
@@ -337,6 +359,7 @@ Expectation for required parameters:
         display: `Failed to read content of file.`,
         raw: `Failed to read content of existing file: ${params.file_path}`,
       };
+      logger.error(`Failed to read content of existing file: ${params.file_path}`);
     }
 
     let newContent = this._applyReplacement(
@@ -352,6 +375,7 @@ Expectation for required parameters:
       params.end_line !== undefined &&
       currentContent !== null
     ) {
+      logger.debug('Applying line range replacement to new content.');
       const lines = currentContent.split('\n');
       lines.splice(
         params.start_line,
@@ -360,7 +384,7 @@ Expectation for required parameters:
       );
       newContent = lines.join('\n');
     }
-
+    logger.debug('Edit calculation complete.');
     return {
       currentContent,
       newContent,
@@ -378,12 +402,14 @@ Expectation for required parameters:
     params: EditToolParams,
     abortSignal: AbortSignal,
   ): Promise<ToolCallConfirmationDetails | false> {
+    logger.debug(`Checking if edit should be confirmed for file: ${params.file_path}`);
     if (this.config.getApprovalMode() === ApprovalMode.AUTO_EDIT) {
+      logger.debug('Approval mode is AUTO_EDIT. Skipping confirmation.');
       return false;
     }
     const validationError = this.validateToolParams(params);
     if (validationError) {
-      console.error(
+      logger.error(
         `[EditTool Wrapper] Attempted confirmation with invalid parameters: ${validationError}`,
       );
       return false;
@@ -392,14 +418,15 @@ Expectation for required parameters:
     let editData: CalculatedEdit;
     try {
       editData = await this.calculateEdit(params, abortSignal);
+      logger.debug('Edit data calculated for confirmation.');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.log(`Error preparing edit: ${errorMsg}`);
+      logger.error(`Error preparing edit for confirmation: ${errorMsg}`, error);
       return false;
     }
 
     if (editData.error) {
-      console.log(`Error: ${editData.error.display}`);
+      logger.warn(`Edit confirmation skipped due to error: ${editData.error.display}`);
       return false;
     }
 
@@ -420,9 +447,11 @@ Expectation for required parameters:
       onConfirm: async (outcome: ToolConfirmationOutcome) => {
         if (outcome === ToolConfirmationOutcome.ProceedAlways) {
           this.config.setApprovalMode(ApprovalMode.AUTO_EDIT);
+          logger.info('Approval mode set to AUTO_EDIT.');
         }
       },
     };
+    logger.debug('Edit confirmation details generated.');
     return confirmationDetails;
   }
 
@@ -457,8 +486,12 @@ Expectation for required parameters:
     params: EditToolParams,
     signal: AbortSignal,
   ): Promise<ToolResult> {
+    logger.info(`Executing edit tool for file: ${params.file_path}`);
+    logger.debug(`Edit parameters: ${JSON.stringify(params)}`);
+
     const validationError = this.validateToolParams(params);
     if (validationError) {
+      logger.error(`Edit tool validation failed: ${validationError}`);
       return {
         llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
         returnDisplay: `Error: ${validationError}`,
@@ -468,8 +501,10 @@ Expectation for required parameters:
     let editData: CalculatedEdit;
     try {
       editData = await this.calculateEdit(params, signal);
+      logger.debug('Edit data calculated.');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Error preparing edit: ${errorMsg}`, error);
       return {
         llmContent: `Error preparing edit: ${errorMsg}`,
         returnDisplay: `Error preparing edit: ${errorMsg}`,
@@ -477,6 +512,7 @@ Expectation for required parameters:
     }
 
     if (editData.error) {
+      logger.error(`Edit execution failed: ${editData.error.display}`, editData.error);
       return {
         llmContent: editData.error.raw,
         returnDisplay: `Error: ${editData.error.display}`,
@@ -485,11 +521,14 @@ Expectation for required parameters:
 
     try {
       this.ensureParentDirectoriesExist(params.file_path);
+      logger.debug(`Ensured parent directories exist for: ${params.file_path}`);
       fs.writeFileSync(params.file_path, editData.newContent, 'utf8');
+      logger.info(`File written successfully: ${params.file_path}`);
 
       let displayResult: ToolResultDisplay;
       if (editData.isNewFile) {
         displayResult = `Created ${shortenPath(makeRelative(params.file_path, this.rootDirectory))}`;
+        logger.info(`New file created: ${params.file_path}`);
       } else {
         // Generate diff for display, even though core logic doesn't technically need it
         // The CLI wrapper will use this part of the ToolResult
@@ -503,6 +542,7 @@ Expectation for required parameters:
           DEFAULT_DIFF_OPTIONS,
         );
         displayResult = { fileDiff, fileName };
+        logger.info(`File modified: ${params.file_path} (${editData.occurrences} replacements).`);
       }
 
       const llmSuccessMessageParts = [
@@ -514,14 +554,16 @@ Expectation for required parameters:
         llmSuccessMessageParts.push(
           `User modified the \`new_string\` content to be: ${params.new_string}.`,
         );
+        logger.debug(`User modified content: ${params.new_string}`);
       }
-
+      logger.info(`Edit operation complete for: ${params.file_path}`);
       return {
         llmContent: llmSuccessMessageParts.join(' '),
         returnDisplay: displayResult,
       };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+      logger.error(`Error executing edit for ${params.file_path}: ${errorMsg}`, error);
       return {
         llmContent: `Error executing edit: ${errorMsg}`,
         returnDisplay: `Error writing file: ${errorMsg}`,
@@ -535,7 +577,9 @@ Expectation for required parameters:
   private ensureParentDirectoriesExist(filePath: string): void {
     const dirName = path.dirname(filePath);
     if (!fs.existsSync(dirName)) {
+      logger.debug(`Creating parent directory: ${dirName}`);
       fs.mkdirSync(dirName, { recursive: true });
+      logger.info(`Parent directory created: ${dirName}`);
     }
   }
 

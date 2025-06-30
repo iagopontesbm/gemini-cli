@@ -19,6 +19,7 @@ import {
 import { SchemaValidator } from '../utils/schemaValidator.js';
 import { getErrorMessage } from '../utils/errors.js';
 import stripAnsi from 'strip-ansi';
+import { logger } from '../utils/logger.js';
 
 export interface ShellToolParams {
   command: string;
@@ -158,6 +159,9 @@ Process Group PGID: Process group started or \`(none)\``,
     abortSignal: AbortSignal,
     updateOutput?: (chunk: string) => void,
   ): Promise<ToolResult> {
+    logger.info(`Executing shell command: ${params.command}`);
+    logger.debug(`Command parameters: ${JSON.stringify(params)}`);
+
     const validationError = this.validateToolParams(params);
     if (validationError) {
       return {
@@ -189,21 +193,26 @@ Process Group PGID: Process group started or \`(none)\``,
           // wrap command to append subprocess pids (via pgrep) to temporary file
           let command = params.command.trim();
           if (!command.endsWith('&')) command += ';';
+          logger.debug(`Wrapped command for pgrep: ${command}`);
           return `{ ${command} }; __code=$?; pgrep -g 0 >${tempFilePath} 2>&1; exit $__code;`;
         })();
 
     // spawn command in specified directory (or project root if not specified)
+    const cwd = path.resolve(this.config.getTargetDir(), params.directory || '');
+    logger.debug(`Spawning shell process in directory: ${cwd}`);
     const shell = isWindows
       ? spawn('cmd.exe', ['/c', command], {
           stdio: ['ignore', 'pipe', 'pipe'],
           // detached: true, // ensure subprocess starts its own process group (esp. in Linux)
-          cwd: path.resolve(this.config.getTargetDir(), params.directory || ''),
+          cwd,
         })
       : spawn('bash', ['-c', command], {
           stdio: ['ignore', 'pipe', 'pipe'],
           detached: true, // ensure subprocess starts its own process group (esp. in Linux)
-          cwd: path.resolve(this.config.getTargetDir(), params.directory || ''),
+          cwd,
         });
+
+    logger.info(`Shell process spawned with PID: ${shell.pid}`);
 
     let exited = false;
     let stdout = '';
@@ -246,6 +255,7 @@ Process Group PGID: Process group started or \`(none)\``,
       error = err;
       // remove wrapper from user's command in error message
       error.message = error.message.replace(command, params.command);
+      logger.error(`Shell process error: ${error.message}`);
     });
 
     let code: number | null = null;
@@ -299,26 +309,35 @@ Process Group PGID: Process group started or \`(none)\``,
     // parse pids (pgrep output) from temporary file and remove it
     const backgroundPIDs: number[] = [];
     if (os.platform() !== 'win32') {
-      if (fs.existsSync(tempFilePath)) {
-        const pgrepLines = fs
-          .readFileSync(tempFilePath, 'utf8')
-          .split('\n')
-          .filter(Boolean);
-        for (const line of pgrepLines) {
-          if (!/^\d+$/.test(line)) {
-            console.error(`pgrep: ${line}`);
+      logger.debug(`Checking for temporary file: ${tempFilePath}`);
+      try {
+        if (fs.existsSync(tempFilePath)) {
+          logger.debug('Temporary file found. Reading pgrep output...');
+          const pgrepLines = fs
+            .readFileSync(tempFilePath, 'utf8')
+            .split('\n')
+            .filter(Boolean);
+          for (const line of pgrepLines) {
+            if (!/^
+\d+$/.test(line)) {
+              console.error(`pgrep: ${line}`);
+            }
+            const pid = Number(line);
+            // exclude the shell subprocess pid
+            if (pid !== shell.pid) {
+              backgroundPIDs.push(pid);
+            }
           }
-          const pid = Number(line);
-          // exclude the shell subprocess pid
-          if (pid !== shell.pid) {
-            backgroundPIDs.push(pid);
+          logger.debug('Removing temporary file...');
+          fs.unlinkSync(tempFilePath);
+          logger.debug('Temporary file removed.');
+        } else {
+          if (!abortSignal.aborted) {
+            logger.error('missing pgrep output');
           }
         }
-        fs.unlinkSync(tempFilePath);
-      } else {
-        if (!abortSignal.aborted) {
-          console.error('missing pgrep output');
-        }
+      } catch (error) {
+        logger.error('Error processing pgrep output file:', error);
       }
     }
 

@@ -42,25 +42,7 @@ import { setMaxSizedBoxDebugging } from './ui/components/shared/MaxSizedBox.js';
 
 // --- Arcane Constants & Colors ---
 // Improvement 1: Centralized color constants for mystical terminal outputs.
-const Colors = {
-  RED: '\x1b[31m',
-  YELLOW: '\x1b[33m',
-  CYAN: '\x1b[36m',
-  RESET: '\x1b[0m',
-};
-
-// Improvement 2: A dedicated incantation for logging errors with vibrant hues.
-const logError = (message: string, ...details: unknown[]) => {
-  console.error(`${Colors.RED}${message}${Colors.RESET}`);
-  details.forEach((detail) =>
-    console.error(`${Colors.YELLOW}`, detail, `${Colors.RESET}`),
-  );
-};
-
-// Improvement 3: A spell for casting warnings to the console.
-const logWarning = (message: string) => {
-  console.warn(`${Colors.YELLOW}Warning: ${message}${Colors.RESET}`);
-};
+import { logger } from '../../core/src/utils/logger.js';
 
 // Improvement 4: A constant for the memory allocation target.
 const TARGET_MEMORY_MULTIPLIER = 0.5; // 50% of total memory.
@@ -83,7 +65,7 @@ function getNodeMemoryArgs(config: Config): string[] {
   );
 
   if (config.getDebugMode()) {
-    console.debug(
+    logger.debug(
       `Current heap size limit: ${currentMaxOldSpaceSizeMb.toFixed(2)} MB`,
     );
   }
@@ -95,7 +77,7 @@ function getNodeMemoryArgs(config: Config): string[] {
 
   if (targetMaxOldSpaceSizeInMB > currentMaxOldSpaceSizeMb) {
     if (config.getDebugMode()) {
-      console.debug(
+      logger.debug(
         `Relaunching to claim more memory: ${targetMaxOldSpaceSizeInMB.toFixed(2)} MB`,
       );
     }
@@ -150,11 +132,11 @@ async function handleSettingsInitialization(
 
   if (settings.errors.length > 0) {
     // Improvement 19: More descriptive error logging for settings issues.
-    logError(
+    logger.error(
       'Errors were found in your configuration scrolls. The ritual cannot proceed.',
     );
     for (const error of settings.errors) {
-      logError(
+      logger.error(
         `In ${error.path}: ${error.message}`,
         `Please mend the scroll and try again.`,
       );
@@ -193,7 +175,7 @@ async function initializeCoreServices(
       await config.getGitService();
     } catch {
       // Improvement 13: Log a warning instead of silently swallowing the Git service error.
-      logWarning(
+      logger.warn(
         'Could not initialize Git service. Checkpointing may be affected.',
       );
     }
@@ -202,7 +184,7 @@ async function initializeCoreServices(
   // Improvement 21: An enchantment to load the user's chosen theme.
   if (settings.merged.theme) {
     if (!themeManager.setActiveTheme(settings.merged.theme)) {
-      logWarning(
+      logger.warn(
         `Theme "${settings.merged.theme}" not found. The default theme will be used.`,
       );
     }
@@ -233,7 +215,7 @@ async function prepareExecutionEnvironment(
           if (err) throw new Error(err);
           await config.refreshAuth(settings.merged.selectedAuthType);
         } catch (err) {
-          logError('Authentication failed before entering the sandbox:', err);
+          logger.error('Authentication failed before entering the sandbox:', err);
           process.exit(1);
         }
       }
@@ -291,7 +273,7 @@ async function runNonInteractiveMode(
   }
 
   if (!input) {
-    logError('No input was provided via stdin for non-interactive mode.');
+    logger.error('No input was provided via stdin for non-interactive mode.');
     process.exit(1);
   }
 
@@ -402,18 +384,12 @@ async function validateNonInterActiveAuth(
 // --- The Final Ward: Global Unhandled Rejection Catcher ---
 // Improvement 17: A fortified global ward to catch any promise spirits that escape our grasp.
 process.on('unhandledRejection', (reason, _promise) => {
-  console.error(
-    `${Colors.RED}=========================================${Colors.RESET}`,
-  );
-  console.error(
-    `${Colors.RED}CRITICAL: A Promise Spirit Was Left Unhandled!${Colors.RESET}`,
-  );
-  console.error(
-    `${Colors.RED}=========================================${Colors.RESET}`,
-  );
-  logError('Reason:', reason);
+  logger.error('=========================================');
+  logger.error('CRITICAL: A Promise Spirit Was Left Unhandled!');
+  logger.error('=========================================');
+  logger.error('Reason:', reason);
   if (!(reason instanceof Error)) {
-    logError('The spirit was not of a known Error form:', reason);
+    logger.error('The spirit was not of a known Error form:', reason);
   }
   // Exit to prevent the realm from falling into an unknown state.
   process.exit(1);
