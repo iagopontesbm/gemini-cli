@@ -1136,20 +1136,6 @@ export const useSlashCommandProcessor = (
       let subCommand: string | undefined;
       let args: string | undefined;
 
-      const commandToMatch = (() => {
-        if (trimmed.startsWith('?')) {
-          return 'help';
-        }
-        const parts = trimmed.substring(1).trim().split(/\s+/);
-        if (parts.length > 1) {
-          subCommand = parts[1];
-        }
-        if (parts.length > 2) {
-          args = parts.slice(2).join(' ');
-        }
-        return parts[0];
-      })();
-
       const parts = trimmed.startsWith('/') || trimmed.startsWith('?')
         ? trimmed.slice(1).split(/\s+/)
         : [];
