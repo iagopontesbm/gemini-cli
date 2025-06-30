@@ -13,7 +13,6 @@ import { DiffRenderer } from './messages/DiffRenderer.js';
 import { colorizeCode } from '../utils/CodeColorizer.js';
 import { LoadedSettings, SettingScope } from '../../config/settings.js';
 import { CustomTheme, createDefaultCustomTheme } from '../themes/theme.js';
-import { CustomThemeEditor } from './CustomThemeEditor.js';
 
 interface ThemeDialogProps {
   /** Callback function when a theme is selected */
@@ -336,15 +335,7 @@ export function ThemeDialog({
 
   // All hooks are now called above
   if (showCustomThemeEditor) {
-    return (
-      <CustomThemeEditor
-        onSave={handleCustomThemeSave}
-        onCancel={handleCustomThemeCancel}
-        settings={settings}
-        existingTheme={editingTheme}
-        terminalWidth={terminalWidth}
-      />
-    );
+    return <Box />; // TODO: Restore CustomThemeEditor when implemented
   }
 
   return (

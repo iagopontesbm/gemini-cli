@@ -66,6 +66,9 @@ export interface Settings {
   // UI setting. Does not display the ANSI-controlled terminal title.
   hideWindowTitle?: boolean;
 
+  // New UI setting to hide tips
+  hideTips?: boolean;
+
   // Add other settings here.
 }
 
