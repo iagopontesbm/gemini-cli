@@ -152,7 +152,7 @@ Process Group PGID: Process group started or \`(none)\``,
       coreTools.includes(name),
     );
 
-    const commandsToValidate = command.split(/&&|\||;/).map(normalize);
+    const commandsToValidate = command.split(/&&|\|\||\||;/).map(normalize);
 
     for (const cmd of commandsToValidate) {
       // 2. Check if the command is on the blocklist.

@@ -325,4 +325,14 @@ describe('ShellTool', () => {
     const isAllowed = shellTool.isCommandAllowed('echo "hello" > file.txt');
     expect(isAllowed).toBe(true);
   });
+
+  it('should not allow a command that is chained with a double pipe', async () => {
+    const config = {
+      getCoreTools: () => ['run_shell_command(gh issue list)'],
+      getExcludeTools: () => [],
+    } as unknown as Config;
+    const shellTool = new ShellTool(config);
+    const isAllowed = shellTool.isCommandAllowed('gh issue list || rm -rf /');
+    expect(isAllowed).toBe(false);
+  });
 });
