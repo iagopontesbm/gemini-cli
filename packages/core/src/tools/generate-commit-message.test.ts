@@ -55,6 +55,11 @@ describe('GenerateCommitMessageTool', () => {
   let mockSpawn: Mock;
 
   beforeEach(() => {
+    mockConfig = {
+      getGeminiClient: () => mockClient,
+      getApprovalMode: () => ApprovalMode.DEFAULT,
+      setApprovalMode: vi.fn(),
+    } as unknown as Config;
     mockClient = new GeminiClient(mockConfig);
     mockConfig = {
       getGeminiClient: () => mockClient,
