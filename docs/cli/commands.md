@@ -8,8 +8,15 @@ Gemini CLI supports these keyboard shortcuts for improved interaction:
 
 - **`Ctrl+L`**: Clear the terminal screen (same as `/clear` command)
 - **`Ctrl+T`**: Toggle between showing and hiding tool descriptions
-- **`Shift+Enter`**: Insert a new line in your input for composing multi-line messages
-- **`Ctrl+Enter`**: Insert a new line in your input (alternative to Shift+Enter)
+- **`Enter`**: Submit your message
+- **`Shift+Enter`**: _(Not supported in most terminals)_ Due to terminal limitations, Shift+Enter cannot be reliably used to insert a new line. See below for alternatives.
+
+### Multiline Input
+
+- **Paste Multiline**: Compose your message in a text editor, copy, and paste it into the CLI. Newlines will be preserved.
+- **Advanced (Power Users)**: Some terminals allow you to remap Shift+Enter to send a unique escape sequence. If you do this, you can configure Gemini CLI to treat that sequence as a new line. See the troubleshooting guide for details.
+
+_Note: Ctrl+Enter is also not reliably supported in most terminals._
 
 ## Slash commands (`/`)
 

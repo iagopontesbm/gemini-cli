@@ -77,19 +77,11 @@ export function useKeypress(
           
           // Fix for Shift+Enter generating character 'c'
           // This checks if the sequence matches what Windows terminals often send for Shift+Enter
-          if (key.name === 'c' && key.sequence === 'c' && !key.ctrl && !key.meta) {
-            // Transform this into a Shift+Enter event
-            onKeypressRef.current({
-              name: 'return',
-              ctrl: false,
-              meta: false,
-              shift: true,
-              paste: isPaste,
-              sequence: '\r'
-            });
-            return;
-          }
+          // If Shift+Enter is not working in your terminal, you can debug by logging the key event:
+          // Example: console.log(key) inside the onKeypress handler to see what is sent for Shift+Enter.
+          // Proper Shift+Enter handling should rely on key.shift in InputPrompt.tsx.
           
+          console.log('KEY EVENT:', key);
           onKeypressRef.current({ ...key, paste: isPaste });
         }
       }
