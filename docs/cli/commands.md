@@ -105,7 +105,7 @@ Please translate the above to English.
 If you run:
 
 ```
-/hello こんにちは世界
+/project:hello こんにちは世界
 ```
 
 The prompt sent to Gemini will be:
