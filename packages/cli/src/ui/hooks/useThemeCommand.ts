@@ -22,56 +22,14 @@ interface UseThemeCommandReturn {
 
 export const useThemeCommand = (
   loadedSettings: LoadedSettings,
+  addItem: (item: HistoryItem, timestamp: number) => void,
   setThemeError: (error: string | null) => void,
-  addItem: (item: Omit<HistoryItem, 'id'>, timestamp: number) => void,
 ): UseThemeCommandReturn => {
-  // Determine the effective theme
-  const effectiveTheme = loadedSettings.merged.theme;
-
-  // Initial state: Open dialog if no theme is set in either user or workspace settings
-  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(
-    effectiveTheme === undefined && !process.env.NO_COLOR,
-  );
-  // TODO: refactor how theme's are accessed to avoid requiring a forced render.
-  const [, setForceRender] = useState(0);
-
-  // Apply initial theme on component mount
-  useEffect(() => {
-    if (effectiveTheme === undefined) {
-      if (process.env.NO_COLOR) {
-        addItem(
-          {
-            type: MessageType.INFO,
-            text: 'Theme configuration unavailable due to NO_COLOR env variable.',
-          },
-          Date.now(),
-        );
-      }
-      // If no theme is set and NO_COLOR is not set, the dialog is already open.
-      return;
-    }
-
-    if (!themeManager.setActiveTheme(effectiveTheme)) {
-      setIsThemeDialogOpen(true);
-      setThemeError(`Theme "${effectiveTheme}" not found.`);
-    } else {
-      setThemeError(null);
-    }
-  }, [effectiveTheme, setThemeError, addItem]); // Re-run if effectiveTheme or setThemeError changes
+  const [isThemeDialogOpen, setIsThemeDialogOpen] = useState(false);
 
   const openThemeDialog = useCallback(() => {
-    if (process.env.NO_COLOR) {
-      addItem(
-        {
-          type: MessageType.INFO,
-          text: 'Theme configuration unavailable due to NO_COLOR env variable.',
-        },
-        Date.now(),
-      );
-      return;
-    }
     setIsThemeDialogOpen(true);
-  }, [addItem]);
+  }, []);
 
   const applyTheme = useCallback(
     (themeName: string | undefined) => {
@@ -80,11 +38,10 @@ export const useThemeCommand = (
         setIsThemeDialogOpen(true);
         setThemeError(`Theme "${themeName}" not found.`);
       } else {
-        setForceRender((v) => v + 1); // Trigger potential re-render
         setThemeError(null); // Clear any previous theme error on success
       }
     },
-    [setForceRender, setThemeError],
+    [setThemeError],
   );
 
   const handleThemeHighlight = useCallback(
@@ -96,9 +53,50 @@ export const useThemeCommand = (
 
   const handleThemeSelect = useCallback(
     (themeName: string | undefined, scope: SettingScope) => {
-      // Added scope parameter
       try {
+        // If applying to user settings and the theme is a custom theme from workspace, copy its definition
+        if (
+          scope === SettingScope.User &&
+          themeName &&
+          loadedSettings.workspace.settings.customThemes?.[themeName] &&
+          !loadedSettings.user.settings.customThemes?.[themeName]
+        ) {
+          const userCustomThemes = {
+            ...(loadedSettings.user.settings.customThemes || {}),
+          };
+          userCustomThemes[themeName] =
+            loadedSettings.workspace.settings.customThemes[themeName];
+          loadedSettings.setValue(
+            SettingScope.User,
+            'customThemes',
+            userCustomThemes,
+          );
+        }
+
+        // If applying to workspace settings and the theme is a custom theme from user, copy its definition
+        if (
+          scope === SettingScope.Workspace &&
+          themeName &&
+          loadedSettings.user.settings.customThemes?.[themeName] &&
+          !loadedSettings.workspace.settings.customThemes?.[themeName]
+        ) {
+          const workspaceCustomThemes = {
+            ...(loadedSettings.workspace.settings.customThemes || {}),
+          };
+          workspaceCustomThemes[themeName] =
+            loadedSettings.user.settings.customThemes[themeName];
+          loadedSettings.setValue(
+            SettingScope.Workspace,
+            'customThemes',
+            workspaceCustomThemes,
+          );
+        }
+
         loadedSettings.setValue(scope, 'theme', themeName); // Update the merged settings
+        // If customThemes were updated, reload them
+        if (loadedSettings.merged.customThemes) {
+          themeManager.loadCustomThemes(loadedSettings.merged.customThemes);
+        }
         applyTheme(loadedSettings.merged.theme); // Apply the current theme
       } finally {
         setIsThemeDialogOpen(false); // Close the dialog
