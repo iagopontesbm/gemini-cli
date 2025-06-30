@@ -151,7 +151,11 @@ describe('GenerateCommitMessageTool', () => {
     const logOutput = 'abc1234 Previous commit message';
 
     mockSpawn.mockImplementation((command: string, args: string[]) => {
-      const child = new EventEmitter() as any;
+      const child = new EventEmitter() as EventEmitter & {
+        stdout: { on: ReturnType<typeof vi.fn> };
+        stderr: { on: ReturnType<typeof vi.fn> };
+        stdin?: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
+      };
       const argString = args.join(' ');
 
       child.stdout = {
@@ -597,7 +601,190 @@ describe('GenerateCommitMessageTool', () => {
       const result = await tool.execute(undefined, new AbortController().signal);
 
       expect(result.llmContent).toContain('Error during commit workflow');
-      expect(result.llmContent).toContain('Unable to generate commit message using AI');
+      expect(result.llmContent).toContain('AI response parsing failed');
+    });
+
+    it('should handle malformed JSON structure gracefully', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    analysis: {
+                      changedFiles: 'should be array', // Invalid type
+                      changeType: 'feat',
+                      purpose: 'Test purpose',
+                      impact: 'Test impact',
+                      hasSensitiveInfo: false,
+                    },
+                    commitMessage: {
+                      header: 'feat: test',
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('AI response parsing failed');
+    });
+  });
+
+  describe('Git index hash and race condition protection', () => {
+    it('should complete commit workflow successfully', async () => {
+      const statusOutput = 'M  file.txt';
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+        'commit': ''
+      }));
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Commit created successfully!');
+      expect(result.llmContent).toContain('feat: new feature');
+    });
+  });
+
+  describe('Enhanced error handling', () => {
+    it('should handle stdin write errors gracefully', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation((_command, args) => {
+        const child = new EventEmitter() as EventEmitter & {
+          stdout: { on: ReturnType<typeof vi.fn> };
+          stderr: { on: ReturnType<typeof vi.fn> };
+          stdin?: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn>; on: ReturnType<typeof vi.fn> };
+        };
+        
+        child.stdout = { on: vi.fn((event: string, listener: (data: Buffer) => void) => {
+          if (event === 'data') {
+            const argString = args.join(' ');
+            if (argString.includes('status')) {
+              listener(Buffer.from(statusOutput));
+            } else if (argString.includes('diff --cached')) {
+              listener(Buffer.from(diff));
+            } else if (argString.includes('diff') && !argString.includes('--cached')) {
+              listener(Buffer.from(''));
+            } else if (argString.includes('log')) {
+              listener(Buffer.from(logOutput));
+            } else {
+              listener(Buffer.from(''));
+            }
+          }
+        }) };
+        
+        child.stderr = { on: vi.fn() };
+        
+        if (args.includes('commit')) {
+          child.stdin = {
+            write: vi.fn(() => {
+              throw new Error('EPIPE: broken pipe');
+            }),
+            end: vi.fn(),
+            on: vi.fn(),
+          };
+        }
+        
+        process.nextTick(() => child.emit('close', 0));
+        return child;
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('Failed to write to git process stdin');
+    });
+
+    it('should handle AI API errors with specific messages', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockRejectedValue(new Error('quota exceeded'));
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('API error during commit message generation');
+    });
+
+    it('should detect sensitive information in commits', async () => {
+      const diff = 'diff --git a/file.txt b/file.txt\n--- a/file.txt\n+++ b/file.txt\n@@ -1 +1 @@\n-old\n+new';
+      const statusOutput = 'M  file.txt';
+      const logOutput = 'abc1234 Previous commit message';
+
+      mockSpawn.mockImplementation(createGitCommandMock({
+        'status': statusOutput,
+        'diff --cached': diff,
+        'diff': '',
+        'log': logOutput,
+      }));
+
+      (mockClient.generateContent as Mock).mockResolvedValue({
+        candidates: [
+          {
+            content: {
+              parts: [
+                {
+                  text: JSON.stringify({
+                    analysis: {
+                      changedFiles: ['file.txt'],
+                      changeType: 'feat',
+                      scope: '',
+                      purpose: 'Add API key',
+                      impact: 'Adds functionality',
+                      hasSensitiveInfo: true, // Sensitive info detected
+                    },
+                    commitMessage: {
+                      header: 'feat: add API integration',
+                      body: '',
+                      footer: '',
+                    },
+                  }),
+                },
+              ],
+            },
+          },
+        ],
+      });
+
+      const result = await tool.execute(undefined, new AbortController().signal);
+
+      expect(result.llmContent).toContain('Error during commit workflow');
+      expect(result.llmContent).toContain('potentially sensitive information');
     });
   });
 });
