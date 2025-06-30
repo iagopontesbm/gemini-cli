@@ -247,7 +247,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         
         const diffForAI = commitMode === 'staged-only' ? 
           (stagedDiff || '') : 
-          [stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\\n');
+[stagedDiff, unstagedDiff].filter(d => d?.trim()).join('\n');
 
         statusOutput = statusOut || '';
 
