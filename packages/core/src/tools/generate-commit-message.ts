@@ -241,10 +241,10 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
         // Fallback for non-cached execution - determine staging strategy
         const currentStagedDiff = await this.executeGitCommand(['diff', '--cached'], signal);
         const currentUnstagedDiff = await this.executeGitCommand(['diff'], signal);
-        const hasOnlyUnstagedChanges = !currentStagedDiff?.trim() && currentUnstagedDiff?.trim();
+        const hasUnstagedChanges = !!currentUnstagedDiff?.trim();
         const hasUntrackedFiles = statusOutput?.includes('??');
         
-        if (hasOnlyUnstagedChanges || hasUntrackedFiles) {
+        if (hasUnstagedChanges || hasUntrackedFiles) {
           console.debug('[GenerateCommitMessage] Staging all changes using git add .');
           await this.executeGitCommand(['add', '.'], signal);
         }
