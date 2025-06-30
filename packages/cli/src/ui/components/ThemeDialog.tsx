@@ -63,7 +63,7 @@ export function ThemeDialog({
 
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
-  // Determine which radio button should be initially selected in the theme list
+  // Determine which radio button should be initially selected in the themes list
   // This should reflect the theme *saved* for the selected scope, or the default
   const initialThemeIndex = themeItems.findIndex(
     (item: any) => item.value === (settings.merged.theme || DEFAULT_THEME.name),
