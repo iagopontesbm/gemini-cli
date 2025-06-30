@@ -357,6 +357,11 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
 
         // Write stdin if provided
         if (stdin && child.stdin) {
+          child.stdin.on('error', (err) => {
+            // This can happen if the process exits before we finish writing.
+            // The 'close' or 'error' event on the child process will reject the promise.
+            console.debug(`[GenerateCommitMessage] stdin write error: ${err.message}`);
+          });
           child.stdin.write(stdin);
           child.stdin.end();
         }
