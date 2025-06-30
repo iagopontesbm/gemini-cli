@@ -76,6 +76,52 @@ export function ManualAuthInProgress({
 
   return (
     <Box flexDirection="column" width="100%">
+      {/* Auth URL displayed above instructions box for easy copying */}
+      <Box marginBottom={1}>
+        <Text bold color={Colors.AccentBlue}>
+          {isUrlShortening
+            ? 'Shortening authentication URL...'
+            : 'Authentication URL (click to select and copy):'}
+        </Text>
+      </Box>
+
+      {/* Show shortened URL if available */}
+      {displayUrl !== authUrl && !isUrlShortening && (
+        <Box marginBottom={1}>
+          <Text bold color={Colors.AccentGreen}>
+            Shortened URL:
+          </Text>
+          <Box marginTop={1}>
+            <Text color={Colors.AccentBlue} wrap="wrap">
+              {displayUrl}
+            </Text>
+          </Box>
+        </Box>
+      )}
+
+      {/* Always show original URL */}
+      <Box marginBottom={1}>
+        <Text bold color={Colors.AccentBlue}>
+          {displayUrl !== authUrl && !isUrlShortening ? 'Original URL:' : ''}
+        </Text>
+        <Box marginTop={displayUrl !== authUrl && !isUrlShortening ? 1 : 0}>
+          <Text
+            color={
+              displayUrl !== authUrl && !isUrlShortening
+                ? Colors.Gray
+                : Colors.AccentBlue
+            }
+            wrap="wrap"
+          >
+            {displayUrl !== authUrl && !isUrlShortening
+              ? authUrl
+              : isUrlShortening
+                ? 'Shortening...'
+                : displayUrl}
+          </Text>
+        </Box>
+      </Box>
+
       {/* Instructions box */}
       <Box
         borderStyle="round"
@@ -90,7 +136,7 @@ export function ManualAuthInProgress({
         </Box>
 
         <Box marginTop={1}>
-          <Text bold>1. Copy and paste the URL below into your browser</Text>
+          <Text bold>1. Copy and paste the URL above into your browser</Text>
         </Box>
 
         <Box marginTop={1}>
@@ -117,52 +163,6 @@ export function ManualAuthInProgress({
         <Box marginTop={2}>
           <Text color={Colors.AccentYellow}>
             Waiting for authentication... (Press ESC to cancel)
-          </Text>
-        </Box>
-      </Box>
-
-      {/* Auth URL displayed outside box for easy copying */}
-      <Box marginTop={1}>
-        <Text bold color={Colors.AccentBlue}>
-          {isUrlShortening
-            ? 'Shortening authentication URL...'
-            : 'Authentication URL (click to select and copy):'}
-        </Text>
-      </Box>
-
-      {/* Show shortened URL if available */}
-      {displayUrl !== authUrl && !isUrlShortening && (
-        <Box marginTop={1}>
-          <Text bold color={Colors.AccentGreen}>
-            Shortened URL:
-          </Text>
-          <Box marginTop={1}>
-            <Text color={Colors.AccentBlue} wrap="wrap">
-              {displayUrl}
-            </Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Always show original URL */}
-      <Box marginTop={1}>
-        <Text bold color={Colors.AccentBlue}>
-          {displayUrl !== authUrl && !isUrlShortening ? 'Original URL:' : ''}
-        </Text>
-        <Box marginTop={displayUrl !== authUrl && !isUrlShortening ? 1 : 0}>
-          <Text
-            color={
-              displayUrl !== authUrl && !isUrlShortening
-                ? Colors.Gray
-                : Colors.AccentBlue
-            }
-            wrap="wrap"
-          >
-            {displayUrl !== authUrl && !isUrlShortening
-              ? authUrl
-              : isUrlShortening
-                ? 'Shortening...'
-                : displayUrl}
           </Text>
         </Box>
       </Box>

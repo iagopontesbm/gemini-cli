@@ -41,7 +41,7 @@ describe('ManualAuthInProgress', () => {
     expect(output).toContain('Manual Login with Google');
     expect(output).toContain('Please complete the following steps:');
     expect(output).toContain(
-      '1. Copy and paste the URL below into your browser',
+      '1. Copy and paste the URL above into your browser',
     );
     expect(output).toContain('Authentication URL (click to select and copy):');
     expect(output).toContain('https://accounts.google.com/oauth/authorize'); // Just check part of URL
@@ -137,14 +137,14 @@ describe('ManualAuthInProgress', () => {
     expect(output).toContain('Manual Login with Google'); // In the box
     expect(output).toContain('Authentication URL (click to select and copy):'); // Outside the box
 
-    // Verify the URL appears after the instructions box
+    // Verify the URL appears before the instructions box
     const lines = output?.split('\n') || [];
-    const instructionsBoxEndIndex = lines.findIndex((line) =>
-      line.includes('╰'),
+    const instructionsBoxStartIndex = lines.findIndex((line) =>
+      line.includes('╭'),
     );
     const authUrlLabelIndex = lines.findIndex((line) =>
       line.includes('Authentication URL'),
     );
-    expect(authUrlLabelIndex).toBeGreaterThan(instructionsBoxEndIndex);
+    expect(authUrlLabelIndex).toBeLessThan(instructionsBoxStartIndex);
   });
 });
