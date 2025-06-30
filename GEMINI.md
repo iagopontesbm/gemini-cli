@@ -20,6 +20,24 @@ It applies to all code, config, prompts, and documentation in the repository.
 
 ---
 
+## devcontext Integration
+
+### For Human Contributors
+
+* Refer to the [devcontext repository](https://github.com/aiurda/devcontext)
+  for environment setup, developer context, and tooling guidance.
+* When working on developer onboarding, configuration, or workflow,
+  ensure your approach aligns with `devcontext` standards and resources.
+* Use devcontext templates or scripts where available, rather than creating new mechanisms.
+
+### For Gemini Model
+
+* Always check if a relevant context, tool, or setup convention exists in `devcontext` before suggesting changes.
+* When environment or configuration tasks are requested, incorporate devcontext guidance and references.
+* Prefer devcontext-based solutions to custom scripts for project setup or context sharing.
+
+---
+
 ## Gemini Profiles & Parameters
 
 ### For Human Contributors
@@ -115,12 +133,14 @@ It applies to all code, config, prompts, and documentation in the repository.
   - Updates docs and tests
   ```
 * PR titles must summarize the change; body must link to relevant issues.
+* When working on developer setup or context, check for guidance in `devcontext` and reference it in your PR.
 
 ### For Gemini Model
 
 * Always return patch-ready, minimal diffs unless asked for alternatives.
 * Prefix commit messages with semantic type (`feat:`, `fix:`, etc.).
 * Summarize major changes at top of PR, list files affected.
+* For tasks involving developer environment or configuration, include or reference devcontext resources when relevant.
 * Never generate merge commits.
 
 ---
@@ -138,11 +158,13 @@ It applies to all code, config, prompts, and documentation in the repository.
 * Lint before pushing; CI will enforce.
 * Tests must be reproducible and not depend on external APIs by default.
 * Mark slow/integration tests clearly.
+* For test environment setup, consult `devcontext` for scripts or conventions.
 
 ### For Gemini Model
 
 * Always add or update tests when generating code that alters behavior.
 * Suggest test cases for new flags or parameters.
+* For test or CI environment changes, align with devcontext recommendations.
 * Never bypass linters or skip CI steps.
 
 ---
@@ -155,11 +177,13 @@ It applies to all code, config, prompts, and documentation in the repository.
 * Revise CLI/man output when flags or parameters change.
 * Maintain inline docstrings for all modules and functions.
 * All new features require usage examples.
+* Reference or update `devcontext` docs when onboarding or environment setup changes.
 
 ### For Gemini Model
 
 * Always generate or update docstrings and usage examples when introducing changes.
 * Flag missing or outdated docs in PR summaries.
+* When generating onboarding or setup documentation, link to or update relevant devcontext content.
 
 ---
 
@@ -193,11 +217,13 @@ It applies to all code, config, prompts, and documentation in the repository.
   * [ ] Docs updated
   * [ ] No secrets committed
   * [ ] CI passes
+  * [ ] devcontext checked for related updates or required references
 
 ### For Gemini Model
 
 * Always suggest branch names matching the change type (`feat/`, `fix/`, etc.).
 * Summarize backward-incompatible changes in PR descriptions.
+* Reference or update devcontext if project context, setup, or onboarding changes.
 * Never suggest direct pushes to `main`.
 
 ---
@@ -213,9 +239,11 @@ It applies to all code, config, prompts, and documentation in the repository.
 * **Semantic Versioning:** Versioning as MAJOR.MINOR.PATCH.
 * **PR:** Pull Request for proposing changes.
 * **CI:** Continuous Integration—automated testing pipeline.
+* **devcontext:** Repository for shared developer environment/context standards.
 
 ---
 
 > ⚠️  Always defer to `GEMINI.md` if other guides disagree.
 > File an issue if clarification is needed.
+> For any developer context or setup task, check devcontext before creating or changing workflow.
 
