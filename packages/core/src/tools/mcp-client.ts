@@ -18,7 +18,7 @@ import {
   Schema,
 } from '@google/genai';
 import { ToolRegistry } from './tool-registry.js';
-import { GoogleAuth, AuthClient } from 'google-auth-library';
+import { GoogleAuth } from 'google-auth-library';
 
 export const MCP_DEFAULT_TIMEOUT_MSEC = 10 * 60 * 1000; // default to 10 minutes
 
@@ -169,26 +169,31 @@ async function connectAndDiscover(
   updateMCPServerStatus(mcpServerName, MCPServerStatus.CONNECTING);
 
   let transport;
-  let authClient: AuthClient | undefined;
+  let requestInit;
 
   if (
     (mcpServerConfig.httpUrl || mcpServerConfig.url) &&
     mcpServerConfig.oauth
   ) {
-    const auth = new GoogleAuth({
-      scopes: 'https://www.googleapis.com/auth/userinfo.email',
-    });
-    authClient = await auth.getClient();
-  }
-
-  if (mcpServerConfig.httpUrl) {
-    let requestInit;
-    if (authClient) {
+    try {
+      const auth = new GoogleAuth({
+        scopes: 'https://www.googleapis.com/auth/userinfo.email',
+      });
+      const authClient = await auth.getClient();
       const headers = await authClient.getRequestHeaders();
       requestInit = {
         headers: headers as Record<string, string>,
       };
+    } catch (error) {
+      console.error(
+        `Failed to get auth client or headers for MCP server '${mcpServerName}': ${error}`,
+      );
+      updateMCPServerStatus(mcpServerName, MCPServerStatus.DISCONNECTED);
+      return;
     }
+  }
+
+  if (mcpServerConfig.httpUrl) {
     transport = new StreamableHTTPClientTransport(
       new URL(mcpServerConfig.httpUrl),
       {
@@ -196,13 +201,6 @@ async function connectAndDiscover(
       },
     );
   } else if (mcpServerConfig.url) {
-    let requestInit;
-    if (authClient) {
-      const headers = await authClient.getRequestHeaders();
-      requestInit = {
-        headers: headers as Record<string, string>,
-      };
-    }
     transport = new SSEClientTransport(new URL(mcpServerConfig.url), {
       requestInit,
     });

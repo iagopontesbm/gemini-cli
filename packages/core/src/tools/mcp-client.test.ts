@@ -648,6 +648,37 @@ describe('discoverMcpTools', () => {
       clientInstances[clientInstances.length - 1]?.value;
     expect(lastClientInstance?.onerror).toEqual(expect.any(Function));
   });
+
+  it('should log error and skip server if auth fails', async () => {
+    const serverConfig: MCPServerConfig = {
+      httpUrl: 'http://localhost:1234/http',
+      oauth: true,
+    };
+    mockConfig.getMcpServers.mockReturnValue({
+      'auth-fail-server': serverConfig,
+    });
+
+    const mockGetClient = vi.fn().mockRejectedValue(new Error('Auth failed'));
+    vi.mocked(GoogleAuth).mockReturnValue({
+      getClient: mockGetClient,
+    } as any);
+
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    await discoverMcpTools(
+      mockConfig.getMcpServers() ?? {},
+      mockConfig.getMcpServerCommand(),
+      mockToolRegistry as any,
+    );
+
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining(
+        `Failed to get auth client or headers for MCP server 'auth-fail-server': Error: Auth failed`,
+      ),
+    );
+    expect(Client).not.toHaveBeenCalled();
+    expect(mockToolRegistry.registerTool).not.toHaveBeenCalled();
+  });
 });
 
 describe('sanitizeParameters', () => {
