@@ -204,4 +204,4 @@ describe('Custom Theme Functionality', () => {
     expect(validation.isValid).toBe(false);
     expect(validation.error).toContain('Missing required field: name');
   });
-});
+}); 

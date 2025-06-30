@@ -50,6 +50,7 @@ export function ThemeDialog({
     };
   });
 
+
   const [selectInputKey, setSelectInputKey] = useState(Date.now());
 
   // Determine which radio button should be initially selected in the themes list
@@ -78,12 +79,22 @@ export function ThemeDialog({
     setFocusedSection('theme'); // Reset focus to theme section
   };
 
-  const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>(
-    'theme',
-  );
-  const [selectedThemeIndex, setSelectedThemeIndex] = useState(
-    initialThemeIndex >= 0 ? initialThemeIndex : 0,
-  );
+  const handleCustomThemeSave = (customTheme: CustomTheme, scope: SettingScope) => {
+    if (onCustomThemeSave) {
+      onCustomThemeSave(customTheme, scope);
+    }
+    setShowCustomThemeEditor(false);
+    setSelectInputKey(Date.now()); // Refresh the theme list
+  };
+
+  const handleCustomThemeCancel = () => {
+    setShowCustomThemeEditor(false);
+  };
+
+  // Remove state and logic for 'create' focus section
+  // const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
+  const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>('theme');
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(initialThemeIndex >= 0 ? initialThemeIndex : 0);
 
   // Add a handler for navigation
   useInput((input, key) => {
@@ -300,7 +311,7 @@ export function ThemeDialog({
               `# function\ndef fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a`,
               'python',
               codeBlockHeight,
-              colorizeCodeWidth,
+              colorizeCodeWidth
             )}
             <Box marginTop={1} />
             <DiffRenderer

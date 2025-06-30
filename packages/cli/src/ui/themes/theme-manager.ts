@@ -15,13 +15,7 @@ import { DefaultLight } from './default-light.js';
 import { DefaultDark } from './default.js';
 import { ShadesOfPurple } from './shades-of-purple.js';
 import { XCode } from './xcode.js';
-import {
-  Theme,
-  ThemeType,
-  CustomTheme,
-  createCustomTheme,
-  validateCustomTheme,
-} from './theme.js';
+import { Theme, ThemeType, CustomTheme, createCustomTheme, validateCustomTheme } from './theme.js';
 import { ANSI } from './ansi.js';
 import { ANSILight } from './ansi-light.js';
 import { NoColorTheme } from './no-color.js';
@@ -65,14 +59,12 @@ class ThemeManager {
    */
   loadCustomThemes(customThemesSettings?: Record<string, CustomTheme>): void {
     this.customThemes.clear();
-
+    
     if (!customThemesSettings) {
       return;
     }
 
-    for (const [name, customThemeConfig] of Object.entries(
-      customThemesSettings,
-    )) {
+    for (const [name, customThemeConfig] of Object.entries(customThemesSettings)) {
       const validation = validateCustomTheme(customThemeConfig);
       if (validation.isValid) {
         try {
@@ -137,16 +129,14 @@ class ThemeManager {
       isCustom: false,
     }));
 
-    const customThemes = Array.from(this.customThemes.values()).map(
-      (theme) => ({
-        name: theme.name,
-        type: theme.type,
-        isCustom: true,
-      }),
-    );
+    const customThemes = Array.from(this.customThemes.values()).map((theme) => ({
+      name: theme.name,
+      type: theme.type,
+      isCustom: true,
+    }));
 
     const allThemes = [...builtInThemes, ...customThemes];
-
+    
     const sortedThemes = allThemes.sort((a, b) => {
       const typeOrder = (type: ThemeType): number => {
         switch (type) {
@@ -186,15 +176,13 @@ class ThemeManager {
     if (!themeName) {
       return DEFAULT_THEME;
     }
-
+    
     // First check built-in themes
-    const builtInTheme = this.availableThemes.find(
-      (theme) => theme.name === themeName,
-    );
+    const builtInTheme = this.availableThemes.find((theme) => theme.name === themeName);
     if (builtInTheme) {
       return builtInTheme;
     }
-
+    
     // Then check custom themes
     return this.customThemes.get(themeName);
   }
