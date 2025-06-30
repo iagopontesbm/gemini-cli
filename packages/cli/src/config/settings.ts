@@ -134,7 +134,11 @@ export class LoadedSettings {
   setValue(
     scope: SettingScope,
     key: keyof Settings,
-    value: string | Record<string, MCPServerConfig> | Record<string, CustomTheme> | undefined,
+    value:
+      | string
+      | Record<string, MCPServerConfig>
+      | Record<string, CustomTheme>
+      | undefined,
   ): void {
     const settingsFile = this.forScope(scope);
     // @ts-expect-error - value can be string | Record<string, MCPServerConfig> | Record<string, CustomTheme>

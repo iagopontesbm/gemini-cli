@@ -84,8 +84,12 @@ export function ThemeDialog({
 
   // Remove state and logic for 'create' focus section
   // const [focusedSection, setFocusedSection] = useState<'theme' | 'create' | 'scope'>('theme');
-  const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>('theme');
-  const [selectedThemeIndex, setSelectedThemeIndex] = useState(initialThemeIndex >= 0 ? initialThemeIndex : 0);
+  const [focusedSection, setFocusedSection] = useState<'theme' | 'scope'>(
+    'theme',
+  );
+  const [selectedThemeIndex, setSelectedThemeIndex] = useState(
+    initialThemeIndex >= 0 ? initialThemeIndex : 0,
+  );
 
   // Add a handler for navigation
   useInput((input, key) => {
@@ -133,8 +137,8 @@ export function ThemeDialog({
   const colorizeCodeWidth = Math.max(
     Math.floor(
       (terminalWidth - TOTAL_HORIZONTAL_PADDING) *
-      PREVIEW_PANE_WIDTH_PERCENTAGE *
-      PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
+        PREVIEW_PANE_WIDTH_PERCENTAGE *
+        PREVIEW_PANE_WIDTH_SAFETY_MARGIN,
     ),
     1,
   );
@@ -192,7 +196,9 @@ export function ThemeDialog({
   // useEffect for previewing theme
   useEffect(() => {
     const previousTheme = themeManager.getActiveTheme();
-    const previewThemeObj = themeManager.findThemeByName(themeItems[selectedThemeIndex]?.value);
+    const previewThemeObj = themeManager.findThemeByName(
+      themeItems[selectedThemeIndex]?.value,
+    );
     if (previewThemeObj) {
       themeManager.setActiveTheme(previewThemeObj.name);
     }
@@ -233,7 +239,9 @@ export function ThemeDialog({
             initialIndex={selectedThemeIndex}
             onSelect={handleThemeSelect}
             onHighlight={(themeName) => {
-              const idx = themeItems.findIndex((item) => item.value === themeName);
+              const idx = themeItems.findIndex(
+                (item) => item.value === themeName,
+              );
               if (idx !== -1) setSelectedThemeIndex(idx);
               // Optionally preview theme here if needed
               if (themeName) themeManager.setActiveTheme(themeName);
@@ -276,7 +284,7 @@ export function ThemeDialog({
               `# function\ndef fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        a, b = b, a + b\n    return a`,
               'python',
               codeBlockHeight,
-              colorizeCodeWidth
+              colorizeCodeWidth,
             )}
             <Box marginTop={1} />
             <DiffRenderer
