@@ -229,7 +229,7 @@ export class Config {
     }
   }
 
-  async refreshAuth(authMethod: AuthType) {
+  async refreshAuth(authMethod: AuthType, onAuthUrl?: (url: string) => void) {
     // Always use the original default model when switching auth methods
     // This ensures users don't stay on Flash after switching between auth types
     // and allows API key users to get proper fallback behavior from getEffectiveModel
@@ -243,6 +243,7 @@ export class Config {
       modelToUse,
       authMethod,
       this,
+      onAuthUrl,
     );
 
     const gc = new GeminiClient(this);

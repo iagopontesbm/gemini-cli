@@ -45,12 +45,14 @@ export type ContentGeneratorConfig = {
   apiKey?: string;
   vertexai?: boolean;
   authType?: AuthType | undefined;
+  onAuthUrl?: (url: string) => void;
 };
 
 export async function createContentGeneratorConfig(
   model: string | undefined,
   authType: AuthType | undefined,
   config?: { getModel?: () => string },
+  onAuthUrl?: (url: string) => void,
 ): Promise<ContentGeneratorConfig> {
   const geminiApiKey = process.env.GEMINI_API_KEY;
   const googleApiKey = process.env.GOOGLE_API_KEY;
@@ -65,8 +67,9 @@ export async function createContentGeneratorConfig(
     authType,
   };
 
-  // if we are using google auth nothing else to validate for now
+  // if we are using google auth, store the callback for later use
   if (authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
+    contentGeneratorConfig.onAuthUrl = onAuthUrl;
     return contentGeneratorConfig;
   }
 
@@ -109,7 +112,12 @@ export async function createContentGenerator(
     },
   };
   if (config.authType === AuthType.LOGIN_WITH_GOOGLE_PERSONAL) {
-    return createCodeAssistContentGenerator(httpOptions, config.authType);
+    const onAuthUrl = config.onAuthUrl;
+    return createCodeAssistContentGenerator(
+      httpOptions,
+      config.authType,
+      onAuthUrl,
+    );
   }
 
   if (

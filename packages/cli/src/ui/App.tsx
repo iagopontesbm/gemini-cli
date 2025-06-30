@@ -156,6 +156,7 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
     handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
+    authUrl,
   } = useAuthCommand(settings, setAuthError, config);
 
   useEffect(() => {
@@ -661,13 +662,23 @@ const App = ({ config, settings, startupWarnings = [] }: AppProps) => {
               />
             </Box>
           ) : isAuthenticating ? (
-            <AuthInProgress
-              onTimeout={() => {
-                setAuthError('Authentication timed out. Please try again.');
-                cancelAuthentication();
-                openAuthDialog();
-              }}
-            />
+            <Box flexDirection="column">
+              {authUrl && (
+                <Box marginBottom={1} flexDirection="column">
+                  <Text>
+                    If browser doesn&apos;t open automatically, copy this link:
+                  </Text>
+                  <Text color={Colors.AccentBlue}>{authUrl}</Text>
+                </Box>
+              )}
+              <AuthInProgress
+                onTimeout={() => {
+                  setAuthError('Authentication timed out. Please try again.');
+                  cancelAuthentication();
+                  openAuthDialog();
+                }}
+              />
+            </Box>
           ) : isAuthDialogOpen ? (
             <Box flexDirection="column">
               <AuthDialog

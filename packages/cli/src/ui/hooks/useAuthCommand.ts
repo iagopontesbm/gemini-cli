@@ -13,8 +13,12 @@ import {
   getErrorMessage,
 } from '@google/gemini-cli-core';
 
-async function performAuthFlow(authMethod: AuthType, config: Config) {
-  await config.refreshAuth(authMethod);
+async function performAuthFlow(
+  authMethod: AuthType,
+  config: Config,
+  onAuthUrl?: (url: string) => void,
+) {
+  await config.refreshAuth(authMethod, onAuthUrl);
   console.log(`Authenticated via "${authMethod}".`);
 }
 
@@ -32,6 +36,7 @@ export const useAuthCommand = (
   }, []);
 
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [authUrl, setAuthUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const authFlow = async () => {
@@ -44,6 +49,7 @@ export const useAuthCommand = (
         await performAuthFlow(
           settings.merged.selectedAuthType as AuthType,
           config,
+          (url: string) => setAuthUrl(url),
         );
       } catch (e) {
         setAuthError(`Failed to login. Message: ${getErrorMessage(e)}`);
@@ -74,6 +80,7 @@ export const useAuthCommand = (
 
   const cancelAuthentication = useCallback(() => {
     setIsAuthenticating(false);
+    setAuthUrl(null);
   }, []);
 
   return {
@@ -83,5 +90,6 @@ export const useAuthCommand = (
     handleAuthHighlight,
     isAuthenticating,
     cancelAuthentication,
+    authUrl,
   };
 };

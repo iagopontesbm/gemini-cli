@@ -53,7 +53,9 @@ export interface OauthWebLogin {
   loginCompletePromise: Promise<void>;
 }
 
-export async function getOauthClient(): Promise<OAuth2Client> {
+export async function getOauthClient(
+  onAuthUrl?: (url: string) => void,
+): Promise<OAuth2Client> {
   const client = new OAuth2Client({
     clientId: OAUTH_CLIENT_ID,
     clientSecret: OAUTH_CLIENT_SECRET,
@@ -80,6 +82,11 @@ export async function getOauthClient(): Promise<OAuth2Client> {
   }
 
   const webLogin = await authWithWeb(client);
+
+  // Call the callback with the auth URL for UI display
+  if (onAuthUrl) {
+    onAuthUrl(webLogin.authUrl);
+  }
 
   console.log(
     `\n\nCode Assist login required.\n` +
