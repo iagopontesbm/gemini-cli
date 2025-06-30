@@ -1039,7 +1039,7 @@ export const useSlashCommandProcessor = (
                 const output = execSync(bashCmd, { encoding: 'utf-8' });
                 lines[i] = output.trim();
               } catch (e) {
-                lines[i] = `[failed: ${bashCmd}]`;
+                lines[i] = `[Failed to execute shell command: ${bashCmd}]`;
               }
             }
             if (lines[i].startsWith('@')) {
@@ -1048,7 +1048,7 @@ export const useSlashCommandProcessor = (
                 const fileContent = await fs.readFile(filePath, 'utf-8');
                 lines[i] = fileContent;
               } catch (e) {
-                lines[i] = `[file read failed: ${filePath}]`;
+                lines[i] = `[Failed to read file: ${filePath}]`;
               }
             }
           }
