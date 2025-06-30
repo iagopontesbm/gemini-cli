@@ -212,7 +212,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       return confirmationDetails;
     } catch (error) {
       const errorDetails = this.formatExecutionError(error);
-      throw new Error(errorDetails.message);
+      throw new Error(errorDetails.message, { cause: errorDetails.originalError ?? error });
     }
   }
 
