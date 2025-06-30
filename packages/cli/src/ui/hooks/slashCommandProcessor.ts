@@ -1038,16 +1038,6 @@ export const useSlashCommandProcessor = (
 
           const lines = prompt.split('\n');
           for (let i = 0; i < lines.length; i++) {
-            if (lines[i].startsWith('!')) {
-              const bashCmd = lines[i].slice(1).trim();
-              try {
-                const { execSync } = await import('child_process');
-                const output = execSync(bashCmd, { encoding: 'utf-8' });
-                lines[i] = output.trim();
-              } catch (e) {
-                lines[i] = `[Failed to execute shell command: ${bashCmd}]`;
-              }
-            }
             if (lines[i].startsWith('@')) {
               const filePath = lines[i].slice(1).trim();
               try {

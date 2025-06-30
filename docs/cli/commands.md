@@ -91,7 +91,6 @@ You can define your own custom slash commands by placing Markdown (`.md`) files 
 - **YAML frontmatter** (optional) lets you specify metadata such as `description` and `allowed-tools`.
 - Use `$ARGUMENTS` in your template to insert the arguments passed to the command.
 - Use `@<file_path>` to include the content of a file in the prompt.
-- Use `!<shell_command>` to include the output of a shell command in the prompt.
 
 **Example:**
 
