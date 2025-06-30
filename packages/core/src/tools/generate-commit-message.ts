@@ -200,7 +200,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           this.executeGitCommand(['diff', '--cached'], signal),
           this.executeGitCommand(['diff'], signal),
         ]);
-        const currentDiffOutput = [currentStagedDiff, currentUnstagedDiff].filter(d => d?.trim()).join('\\n');
+        const currentDiffOutput = [currentStagedDiff, currentUnstagedDiff].filter(d => d?.trim()).join('\n');
 
         if (currentDiffOutput !== this.cachedCommitData.diffOutput) {
           this.cachedCommitData = null; // Invalidate cache
