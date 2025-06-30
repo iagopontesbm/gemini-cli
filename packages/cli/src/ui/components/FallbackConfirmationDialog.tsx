@@ -37,7 +37,7 @@ export function FallbackConfirmationDialog({ currentModel, fallbackModel, onSele
       <Box marginTop={1}>
         <RadioButtonSelect<boolean>
           items={items}
-          onSelect={(value) => onSelect(value)}
+          onSelect={onSelect}
           isFocused={true}
         />
       </Box>
