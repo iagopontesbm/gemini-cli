@@ -194,6 +194,19 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
       // Check if we have cached data from shouldConfirmExecute
       if (this.cachedCommitData && (Date.now() - this.cachedCommitData.timestamp < 30000)) {
         console.debug('[GenerateCommitMessage] Using cached commit message from confirmation...');
+        
+        // TOCTOU Fix: Verify git diff hasn't changed since confirmation
+        const [currentStagedDiff, currentUnstagedDiff] = await Promise.all([
+          this.executeGitCommand(['diff', '--cached'], signal),
+          this.executeGitCommand(['diff'], signal),
+        ]);
+        const currentDiffOutput = [currentStagedDiff, currentUnstagedDiff].filter(d => d?.trim()).join('\\n');
+
+        if (currentDiffOutput !== this.cachedCommitData.diffOutput) {
+          this.cachedCommitData = null; // Invalidate cache
+          throw new Error('Git changes detected since confirmation. Please run the command again to generate an accurate commit message.');
+        }
+
         finalCommitMessage = this.cachedCommitData.finalCommitMessage;
         statusOutput = this.cachedCommitData.statusOutput;
         
