@@ -39,6 +39,7 @@ import {
 } from './contentGenerator.js';
 import { ProxyAgent, setGlobalDispatcher } from 'undici';
 import { DEFAULT_GEMINI_FLASH_MODEL } from '../config/models.js';
+import { CodeAssistServer } from '../code_assist/server.js';
 
 function isThinkingSupported(model: string) {
   if (model.startsWith('gemini-2.5')) return true;
@@ -100,6 +101,13 @@ export class GeminiClient {
 
   async resetChat(): Promise<void> {
     this.chat = await this.startChat();
+  }
+
+  resetSessionId(): void {
+    const generator = this.getContentGenerator();
+    if (generator instanceof CodeAssistServer) {
+      generator.resetSessionId();
+    }
   }
 
   private async getEnvironment(): Promise<Part[]> {

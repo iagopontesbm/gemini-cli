@@ -122,7 +122,9 @@ export async function createContentGenerator(
       httpOptions,
     });
 
-    return googleGenAI.models;
+    const models = googleGenAI.models;
+
+    return models as unknown as ContentGenerator;
   }
 
   throw new Error(
