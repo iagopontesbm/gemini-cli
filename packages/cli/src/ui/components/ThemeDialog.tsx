@@ -264,10 +264,10 @@ export function ThemeDialog({
             initialIndex={selectedThemeIndex}
             onSelect={handleThemeSelect}
             onHighlight={(themeName) => {
-              const idx = themeItems.findIndex((item) => item.value === themeName);
+              const idx = themeItems.findIndex(
+                (item) => item.value === themeName,
+              );
               if (idx !== -1) setSelectedThemeIndex(idx);
-              // Optionally preview theme here if needed
-              if (themeName) themeManager.setActiveTheme(themeName);
             }}
             isFocused={currenFocusedSection === 'theme'}
           />
