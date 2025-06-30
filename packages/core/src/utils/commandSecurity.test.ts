@@ -117,6 +117,35 @@ describe('commandSecurity', () => {
       // Should be quoted to prevent execution
       expect(result).toMatch(/^["'].*["']$/);
     });
+    
+    it('should correctly escape single quotes in arguments', () => {
+      // Test the specific bug fix for POSIX single quote escaping
+      const result = escapeShellArgument("don't");
+      // On POSIX systems, this should become 'don'\''t'
+      // On Windows, this should be quoted with double quotes
+      expect(result).toMatch(/^["'].*["']$/);
+      // Make sure it doesn't contain the broken pattern
+      expect(result).not.toContain('"\'"\'"');
+    });
+    
+    it('should handle Windows path edge cases', () => {
+      // Test Windows-specific edge cases that the bot identified
+      const testCases = [
+        'C:\\path\\with\\backslashes',
+        'path with "quotes"',
+        'C:\\path\\ending\\with\\backslash\\',
+        'file with spaces.txt',
+        'path\\with\\trailing\\"quote'
+      ];
+      
+      for (const testCase of testCases) {
+        const result = escapeShellArgument(testCase);
+        expect(result).toMatch(/^["'].*["']$/);
+        // Should not contain the old broken patterns
+        expect(result).not.toContain('""""'); // Old double quote escaping
+        expect(result).not.toContain('^&'); // Caret escaping inside quotes
+      }
+    });
   });
   
   describe('splitCommandSafely', () => {

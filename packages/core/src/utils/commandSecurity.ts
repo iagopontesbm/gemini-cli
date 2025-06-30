@@ -144,11 +144,12 @@ function escapeShellArgumentPosix(arg: string): string {
   }
   
   // Use single quotes and escape embedded single quotes
-  return "'" + arg.replace(/'/g, "'\"'\"'") + "'";
+  return "'" + arg.replace(/'/g, "'\\''") + "'";
 }
 
 /**
  * Escapes an argument for Windows cmd.exe
+ * Follows Microsoft's documented command-line parsing rules
  */
 function escapeShellArgumentWindows(arg: string): string {
   // Empty strings need quotes
@@ -156,22 +157,37 @@ function escapeShellArgumentWindows(arg: string): string {
     return '""';
   }
   
-  // Check if escaping is needed
-  if (!/[^A-Za-z0-9_\-.,:\/@]/.test(arg)) {
+  // Check if escaping is needed - if no special characters, return as-is
+  if (!/[ \t\n\v\f\r"\\]/.test(arg)) {
     return arg;
   }
   
-  // Escape special characters for cmd.exe
-  let escaped = arg;
+  // For Windows cmd.exe, we need to follow these rules:
+  // 1. Backslashes are literal unless they precede a quote
+  // 2. A sequence of backslashes followed by a quote needs special handling
+  // 3. Double quotes inside must be escaped as \"
   
-  // Escape cmd.exe metacharacters
-  escaped = escaped.replace(/([&|<>^])/g, '^$1');
+  let escaped = '';
+  let backslashCount = 0;
   
-  // Double quotes
-  escaped = escaped.replace(/"/g, '""');
+  for (let i = 0; i < arg.length; i++) {
+    const char = arg[i];
+    
+    if (char === '\\') {
+      backslashCount++;
+    } else if (char === '"') {
+      // Escape preceding backslashes (double them) and the quote
+      escaped += '\\'.repeat(backslashCount * 2) + '\\"';
+      backslashCount = 0;
+    } else {
+      // Regular character, add any pending backslashes
+      escaped += '\\'.repeat(backslashCount) + char;
+      backslashCount = 0;
+    }
+  }
   
-  // Percent signs
-  escaped = escaped.replace(/%/g, '%%');
+  // Handle trailing backslashes - they need to be doubled when followed by closing quote
+  escaped += '\\'.repeat(backslashCount * 2);
   
   return '"' + escaped + '"';
 }
