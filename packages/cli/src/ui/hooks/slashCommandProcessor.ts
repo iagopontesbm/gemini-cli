@@ -3,8 +3,8 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
+selectedAuthType 
 
-//const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || '';
 
 import { useCallback, useMemo } from 'react';
 import { type PartListUnion } from '@google/genai';
@@ -622,7 +622,7 @@ export const useSlashCommandProcessor = (
           }
           const modelVersion = config?.getModel() || 'Unknown';
           const cliVersion = await getCliVersion();
-          const selectedAuthType = settings.merged.selectedAuthType || '';
+          const selectedAuthType = settings.merged.selectedAuthType ?? 'oauth';
           const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || process.env.GOOGLE_CLOUD_PROJECT_ID || '';
           addMessage({
             type: MessageType.ABOUT,

@@ -3,7 +3,7 @@
  * Copyright 2025 Google LLC
  * SPDX-License-Identifier: Apache-2.0
  */
-
+Settings 
 const { mockProcessExit } = vi.hoisted(() => ({
   mockProcessExit: vi.fn((_code?: number): never => undefined as never),
 }));
@@ -157,6 +157,7 @@ describe('useSlashCommandProcessor', () => {
     const settings = {
       merged: {
         contextFileName: 'GEMINI.md',
+        selectedAuthType: 'oauth',
       },
     } as LoadedSettings;
     return renderHook(() =>
@@ -375,6 +376,7 @@ describe('useSlashCommandProcessor', () => {
         merged: {
           selectedAuthType: 'test-auth-type',
           contextFileName: 'GEMINI.md',
+          selectedAuthType: 'oauth',
         },
       } as LoadedSettings;
 
