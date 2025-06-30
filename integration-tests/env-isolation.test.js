@@ -175,9 +175,59 @@ try {
   });
 
   test('--ignore-local-env flag prevents loading project .env files', () => {
-    // This test would need actual CLI integration
-    // For now, we'll test the behavior conceptually
-    console.log('  (Requires full CLI integration - marking as pending)');
+    // Create a test script that uses the actual CLI
+    const testScript = `
+      const { loadEnvironment } = require('../packages/cli/dist/config/config.js');
+      const path = require('path');
+      
+      // Mock process.argv to simulate --ignore-local-env flag
+      const originalArgv = process.argv;
+      process.argv = [...process.argv, '--ignore-local-env'];
+      
+      // Test with ignore flag
+      loadEnvironment(true);
+      
+      console.log(JSON.stringify({
+        TEST_VAR: process.env.TEST_VAR,
+        MALICIOUS_VAR: process.env.MALICIOUS_VAR,
+        SAFE_VAR: process.env.SAFE_VAR
+      }));
+      
+      process.argv = originalArgv;
+    `;
+
+    const scriptPath = path.join(projectDir, 'test-cli-flag.js');
+    fs.writeFileSync(scriptPath, testScript);
+
+    // Set a malicious env var in the current environment
+    process.env.MALICIOUS_VAR = 'should_be_overridden';
+    
+    const result = JSON.parse(
+      execSync(`node ${scriptPath}`, {
+        cwd: projectDir,
+        encoding: 'utf8',
+        env: {
+          ...process.env,
+          NODE_PATH: path.join(__dirname, '..', 'packages', 'cli', 'node_modules')
+        }
+      }).trim()
+    );
+
+    // Clean up
+    delete process.env.MALICIOUS_VAR;
+    fs.rmSync(scriptPath);
+
+    // With --ignore-local-env, should NOT load project .env files
+    assert(
+      result.MALICIOUS_VAR === undefined || result.MALICIOUS_VAR === 'should_be_overridden',
+      `Expected MALICIOUS_VAR to not be loaded from project .env, got: ${result.MALICIOUS_VAR}`
+    );
+    
+    // Should still load from home directory
+    assert(
+      result.SAFE_VAR === 'from_gemini_home' || result.SAFE_VAR === 'from_home',
+      `Expected SAFE_VAR to be loaded from home directory, got: ${result.SAFE_VAR}`
+    );
   });
 
   test('With isolation, only home directory .env files are loaded', () => {
