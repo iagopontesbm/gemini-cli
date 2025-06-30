@@ -490,7 +490,7 @@ export class GenerateCommitMessageTool extends BaseTool<undefined, ToolResult> {
           .replace(/```$/, '')
           .trim();
         
-        return commitMessage || generatedText;
+        return commitMessage;
       }
 
       return generatedText;
